@@ -36,7 +36,7 @@
 
   // Rutas y ganchos que registran otros módulos (cultos.js).
   var rutasExtra = [];
-  var ganchos = { fichaCancion: [], vistas: {}, inicio: [], paleta: [] };
+  var ganchos = { fichaCancion: [], vistas: {}, inicio: [], paleta: [], detalleVacio: {} };
 
   // ---------------------------------------------------------------- utilidades
 
@@ -567,10 +567,13 @@
       state.seleccion[vista] = 0;
       return;
     }
-    append(host, h('div', { class: 'pcan-detail-empty' },
-      h('span', { class: 'pcan-detail-empty-ico', 'aria-hidden': 'true' }, icono(vista === 'cultos' ? 'calendario' : 'partitura')),
-      h('p', { text: VISTAS_DIVIDIDAS[vista] }),
-      h('p', { class: 'pcan-muted' }, 'o pulsa ', h('kbd', { text: '/' }), ' para buscar')));
+    // Una vista puede llenar el hueco con su propia portada (los cultos muestran el próximo y lo pendiente).
+    if (!(ganchos.detalleVacio[vista] && ganchos.detalleVacio[vista](host))) {
+      append(host, h('div', { class: 'pcan-detail-empty' },
+        h('span', { class: 'pcan-detail-empty-ico', 'aria-hidden': 'true' }, icono(vista === 'cultos' ? 'calendario' : 'partitura')),
+        h('p', { text: VISTAS_DIVIDIDAS[vista] }),
+        h('p', { class: 'pcan-muted' }, 'o pulsa ', h('kbd', { text: '/' }), ' para buscar')));
+    }
     state.seleccion[vista] = 0;
     marcarSeleccion(vista);
   }
@@ -2454,6 +2457,7 @@
     enFichaCancion: function (fn) { ganchos.fichaCancion.push(fn); },
     enInicio: function (fn) { ganchos.inicio.push(fn); },
     enPaleta: function (fn) { ganchos.paleta.push(fn); },
+    enDetalleVacio: function (vista, fn) { ganchos.detalleVacio[vista] = fn; },
     actualizarUso: function (mapa) { state.uso = mapa || {}; state.usoCargado = true; if (ui.lista) { pintarLista(); } pintarCifras(); },
     repintarInicio: function () { if (state.vista === 'inicio') { pintarInicio(); } },
     listo: cargar().then(function () { return state.canciones; })

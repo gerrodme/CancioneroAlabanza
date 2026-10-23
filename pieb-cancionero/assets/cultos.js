@@ -138,6 +138,7 @@
       pasados.length ? h('div', { class: 'pcan-cultos is-past' }, pasados.map(tarjeta)) : null
     ]);
     P.marcarSeleccion('cultos');
+    refrescarPortada();
   }
 
   function bloqueFecha(iso) {
@@ -154,10 +155,13 @@
 
   function tarjeta(c) {
     var titulos = titulosDe(c);
+    var faltan = diasEntre(hoyISO(), c.fecha);
     return h('a', { class: 'pcan-culto', href: '#/culto/' + c.id, 'data-id': String(c.id) },
       bloqueFecha(c.fecha),
       h('span', { class: 'pcan-culto-main' },
-        h('span', { class: 'pcan-row-title', text: c.titulo }),
+        h('span', { class: 'pcan-culto-titulo' },
+          h('span', { class: 'pcan-row-title', text: c.titulo }),
+          faltan >= 0 && faltan <= 30 ? h('span', { class: 'pcan-cuenta' + (faltan <= 1 ? ' is-ya' : ''), text: faltan === 0 ? 'hoy' : faltan === 1 ? 'mañana' : 'en ' + faltan + ' días' }) : null),
         h('span', { class: 'pcan-culto-songs' + (titulos.length ? '' : ' is-empty'), text: titulos.length ? titulos.join(' · ') : 'Sin canciones todavía' })),
       h('span', { class: 'pcan-culto-count', title: c.items.length + ' canciones' }, String(c.items.length)));
   }
@@ -196,6 +200,85 @@
     P.repintarInicio();
   }
 
+  /** Tarjeta grande del próximo culto (en inicio y en la portada de cultos); sin culto, invita a preparar uno. */
+  function tarjetaProximo(proximo) {
+    if (!proximo) {
+      return h('a', { class: 'pcan-hero is-vacio', href: '#/culto/nuevo' },
+        h('span', { class: 'pcan-hero-ico', 'aria-hidden': 'true' }, icono('calendario')),
+        h('span', { class: 'pcan-hero-texto' }, h('strong', { text: 'Prepara el próximo culto' }), h('span', { text: 'Crea el setlist y ten las partituras listas para tocar en la tableta.' })),
+        h('span', { class: 'pcan-btn pcan-btn-primary' }, icono('mas'), 'Nuevo culto'));
+    }
+    var canciones = proximo.items.map(function (it) { return { s: P.cancion(+it.cancion), tono: it.tonalidad }; }).filter(function (x) { return x.s; });
+    return h('section', { class: 'pcan-hero', 'aria-label': 'Próximo culto' },
+      h('div', { class: 'pcan-hero-cab' },
+        bloqueFecha(proximo.fecha),
+        h('div', { class: 'pcan-hero-texto' },
+          h('span', { class: 'pcan-hero-kicker', text: 'Próximo culto · ' + haceTanto(proximo.fecha) }),
+          h('a', { href: '#/culto/' + proximo.id }, h('strong', { text: proximo.titulo })),
+          h('span', { text: [proximo.tipo, canciones.length + (canciones.length === 1 ? ' canción' : ' canciones')].filter(Boolean).join(' · ') }))),
+      canciones.length ? h('ol', { class: 'pcan-hero-set' }, canciones.map(function (x, i) {
+        return h('li', null, h('a', { href: '#/culto/' + proximo.id + '/tocar/' + (i + 1), title: 'Tocar desde aquí' },
+          h('span', { class: 'pcan-hero-n', text: String(i + 1) }),
+          h('span', { class: 'pcan-hero-t', text: x.s.titulo }),
+          (x.tono || x.s.tonalidad) ? P.pastillaTono(x.tono || x.s.tonalidad) : null));
+      })) : h('p', { class: 'pcan-hero-vacio', text: 'Aún no tiene canciones.' }),
+      h('div', { class: 'pcan-hero-acciones' },
+        canciones.length ? h('a', { class: 'pcan-btn pcan-btn-primary pcan-btn-lg', href: '#/culto/' + proximo.id + '/tocar/1' }, icono('play'), 'Tocar') : null,
+        h('a', { class: 'pcan-btn', href: '#/culto/editar/' + proximo.id }, icono('editar'), canciones.length ? 'Editar setlist' : 'Añadir canciones')));
+  }
+
+  // ---------------------------------------------------------------- vista: portada (vista dividida sin culto elegido)
+
+  /** Llena el hueco de la derecha: el próximo culto, lo que falta por preparar y lo que viene después. */
+  function pintarPortada(host) {
+    host.innerHTML = '';
+    var portada = h('div', { class: 'pcan-cultos-portada' });
+    append(host, portada);
+    if (!cultos.length && !cargados) { append(portada, h('p', { class: 'pcan-muted', text: 'Cargando cultos…' })); return true; }
+    var hoy = hoyISO();
+    var proximos = cultos.filter(function (c) { return c.fecha >= hoy; }).sort(function (a, b) { return a.fecha.localeCompare(b.fecha); });
+    var celebrados = cultos.filter(function (c) { return c.fecha < hoy; });
+    var domingo = proximoDomingo();
+
+    append(portada, tarjetaProximo(proximos[0]));
+
+    // Por preparar: el próximo domingo sin culto y los cultos programados sin canciones.
+    var pendientes = proximos.filter(function (c) { return !c.items.length; }).map(function (c) {
+      return h('a', { class: 'pcan-pendiente', href: '#/culto/editar/' + c.id }, icono('aviso'),
+        h('span', { class: 'pcan-pendiente-texto' }, h('strong', { text: c.titulo }), h('small', { text: 'Aún no tiene canciones · ' + haceTanto(c.fecha) })),
+        h('span', { class: 'pcan-pendiente-accion', text: 'Añadir canciones' }));
+    });
+    if (proximos.length && !proximos.some(function (c) { return c.fecha === domingo; })) {
+      pendientes.unshift(h('a', { class: 'pcan-pendiente', href: '#/culto/nuevo' }, icono('calendario'),
+        h('span', { class: 'pcan-pendiente-texto' }, h('strong', { text: 'Domingo ' + fechaCorta(domingo) }), h('small', { text: 'Todavía no hay culto preparado' })),
+        h('span', { class: 'pcan-pendiente-accion', text: 'Preparar' })));
+    }
+    if (pendientes.length) {
+      append(portada, h('section', { class: 'pcan-portada-sec' }, h('h3', { text: 'Por preparar' }), h('div', { class: 'pcan-pendientes' }, pendientes)));
+    }
+
+    // Lo que viene después del próximo.
+    var despues = proximos.slice(1, 7);
+    if (despues.length) {
+      append(portada, h('section', { class: 'pcan-portada-sec' }, h('h3', { text: 'Después' }),
+        h('div', { class: 'pcan-portada-cultos' }, despues.map(function (c) {
+          return h('a', { class: 'pcan-portada-culto', href: '#/culto/' + c.id }, bloqueFecha(c.fecha),
+            h('span', { class: 'pcan-portada-culto-texto' }, h('strong', { text: c.titulo }), h('small', { text: c.items.length + (c.items.length === 1 ? ' canción' : ' canciones') + ' · ' + haceTanto(c.fecha) })));
+        }))));
+    }
+
+    append(portada, h('p', { class: 'pcan-portada-pie pcan-muted' },
+      proximos.length + (proximos.length === 1 ? ' culto programado' : ' cultos programados') + ' · ' + celebrados.length + (celebrados.length === 1 ? ' celebrado' : ' celebrados') + ' · ',
+      h('a', { href: '#/culto/nuevo', text: 'Nuevo culto' })));
+    return true;
+  }
+
+  /** Vuelve a pintar la portada si es lo que se está viendo (tras cargar o cambiar cultos). */
+  function refrescarPortada() {
+    var host = P.ui.detalle.cultos;
+    if (host && host.querySelector('.pcan-cultos-portada, .pcan-detail-empty')) { pintarPortada(host); }
+  }
+
   // ---------------------------------------------------------------- vista: ficha del culto
 
   function verCulto(id) {
@@ -227,7 +310,11 @@
           h('a', { class: 'pcan-set-title', href: '#/cancion/' + it.cancion }, s.titulo),
           h('span', { class: 'pcan-set-sub' },
             s.numero ? h('span', { text: 'Nº ' + s.numero }) : null,
+            s.tempo ? h('span', { title: s.tempo + ' pulsaciones por minuto', text: '♩ ' + s.tempo }) : null,
             it.nota ? h('span', { class: 'pcan-set-note', text: it.nota }) : null)),
+        h('span', { class: 'pcan-set-recursos', 'aria-hidden': 'true' },
+          s.partituras && s.partituras.length ? h('span', { title: s.partituras.length === 1 ? 'Partitura' : s.partituras.length + ' partituras' }, icono('partitura')) : null,
+          s.letra ? h('span', { title: 'Letra' }, icono('letra')) : null),
         tono ? P.pastillaTono(tono, { title: 'Tonalidad' }) : null,
         h('a', { class: 'pcan-icon-btn', href: '#/culto/' + c.id + '/tocar/' + (i + 1), 'aria-label': 'Tocar desde ' + s.titulo, title: 'Tocar desde aquí' }, icono('play')));
     }));
@@ -586,30 +673,7 @@
       var hoy = hoyISO();
       var proximo = cultos.filter(function (c) { return c.fecha >= hoy; }).sort(function (a, b) { return a.fecha.localeCompare(b.fecha); })[0];
       heroe.innerHTML = '';
-      if (!proximo) {
-        append(heroe, h('a', { class: 'pcan-hero is-vacio', href: '#/culto/nuevo' },
-          h('span', { class: 'pcan-hero-ico', 'aria-hidden': 'true' }, icono('calendario')),
-          h('span', { class: 'pcan-hero-texto' }, h('strong', { text: 'Prepara el próximo culto' }), h('span', { text: 'Crea el setlist y ten las partituras listas para tocar en la tableta.' })),
-          h('span', { class: 'pcan-btn pcan-btn-primary' }, icono('mas'), 'Nuevo culto')));
-      } else {
-        var canciones = proximo.items.map(function (it) { return { s: P.cancion(+it.cancion), tono: it.tonalidad }; }).filter(function (x) { return x.s; });
-        append(heroe, h('section', { class: 'pcan-hero', 'aria-label': 'Próximo culto' },
-          h('div', { class: 'pcan-hero-cab' },
-            bloqueFecha(proximo.fecha),
-            h('div', { class: 'pcan-hero-texto' },
-              h('span', { class: 'pcan-hero-kicker', text: 'Próximo culto · ' + haceTanto(proximo.fecha) }),
-              h('a', { href: '#/culto/' + proximo.id }, h('strong', { text: proximo.titulo })),
-              h('span', { text: [proximo.tipo, canciones.length + (canciones.length === 1 ? ' canción' : ' canciones')].filter(Boolean).join(' · ') }))),
-          canciones.length ? h('ol', { class: 'pcan-hero-set' }, canciones.map(function (x, i) {
-            return h('li', null, h('a', { href: '#/culto/' + proximo.id + '/tocar/' + (i + 1), title: 'Tocar desde aquí' },
-              h('span', { class: 'pcan-hero-n', text: String(i + 1) }),
-              h('span', { class: 'pcan-hero-t', text: x.s.titulo }),
-              (x.tono || x.s.tonalidad) ? P.pastillaTono(x.tono || x.s.tonalidad) : null));
-          })) : h('p', { class: 'pcan-hero-vacio', text: 'Aún no tiene canciones.' }),
-          h('div', { class: 'pcan-hero-acciones' },
-            canciones.length ? h('a', { class: 'pcan-btn pcan-btn-primary pcan-btn-lg', href: '#/culto/' + proximo.id + '/tocar/1' }, icono('play'), 'Tocar') : null,
-            h('a', { class: 'pcan-btn', href: '#/culto/editar/' + proximo.id }, icono('editar'), canciones.length ? 'Editar setlist' : 'Añadir canciones'))));
-      }
+      append(heroe, tarjetaProximo(proximo));
 
       // Para recuperar: lo que lleva tiempo sin sonar (o nunca ha sonado).
       var ultima = {};
@@ -1002,6 +1066,8 @@
   // ---------------------------------------------------------------- rutas
 
   P.vista('cultos', function () { mostrarListado(); });
+  P.enDetalleVacio('cultos', pintarPortada);
+  refrescarPortada();
   cargar().then(pintarLateral).catch(function () {});
 
   P.ruta(/^cultos$/, function () { P.mostrarVista('cultos'); P.cerrarPanel(); });
