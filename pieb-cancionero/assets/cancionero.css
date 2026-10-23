@@ -1753,3 +1753,64 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
   [data-pcan-theme] .pcan-culto-hero .pcan-culto-date { width: 64px; height: 72px; }
   [data-pcan-theme] .pcan-culto-hero .pcan-culto-day { font-size: 28px; }
 }
+
+/* ================================================================== «Pentagrama» en todas las pantallas
+ * La paleta del tema (papel, dorado y azul marino) sustituye a la de «Como la web» en todas las vistas: se declara
+ * en los hijos de la raíz porque la raíz lleva el acento de WordPress como estilo en línea. Dorado para lo que se
+ * resalta (filtros, barras, números, foco); azul marino para fechas, tonalidades y botones principales.
+ */
+.pcan[data-pcan-estilo="pentagrama"] > * {
+  --pc-accent: #9a6b1c; --pc-accent-ink: #fff;
+  --pc-accent-hover: #7f5714; --pc-accent-strong: #7f5714;
+  --pc-accent-soft: #f3e7cc;
+  --pc-ink: #192e59; --pc-on-ink: #fdf6e6; --pc-on-ink-accent: #e9c37a;
+  --pc-text: #1d2740; --pc-muted: #7a6d5a; --pc-line: #e7dcc6;
+  --pc-bg: #fbf7ef; --pc-surface: #fffdf8; --pc-surface-2: #f6eedd;
+  --pc-tag-bg: #f1e5c9; --pc-tag-ink: #6b4b12;
+  --pc-key-bg: #192e59; --pc-key-ink: #f6e7c6;
+  --pc-side-active: #f1e5c9; --pc-side-hover: #f6eedd;
+  --pc-focus: rgba(184, 134, 47, .4);
+  --pc-ola: #eadbb8; --pc-ola-2: #f3e7cc; --pc-ola-3: #f7efdd; --pc-ola-4: #faf5ea;
+  --pc-fab-shadow: rgba(154, 107, 28, .45);
+  --pc-font-head: Georgia, "Times New Roman", serif;
+}
+/* Títulos con letra clásica */
+[data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-top-title, .pcan-list-head h2, .pcan-vista h1, .pcan-panel-head h2, .pcan-portada-sec h3) {
+  font-family: Georgia, "Times New Roman", serif; font-weight: 600; letter-spacing: -0.01em;
+}
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-portada-sec h3 { color: #7f5714; font-size: 13px; letter-spacing: .06em; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-fieldset legend { color: #7f5714; font-family: Georgia, "Times New Roman", serif; font-size: 15px; font-weight: 600; }
+
+/* Superficies de papel en vez de blancos y grises fijos de «Como la web» */
+[data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-split-list, .pcan-split-detail, .pcan-toolbar, .pcan-thead) { background: transparent; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-kpi, .pcan-stat-card, .pcan-resumen-item, .pcan-uso) { background: #fff; box-shadow: 0 0 0 1px #eadfca inset; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-row, .pcan-culto):hover { background: var(--pc-surface-2); }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-row, .pcan-culto).is-selected { background: #efe2c4; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-chip:hover { background: #efe2c4; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-search, .pcan-top-search, .pcan-home-buscar):hover { background: #efe5d0; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-btn { border-color: #cdbb98; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-icon-btn-line, .pcan-mas > summary) { border-color: #d8c9a8; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-btn-primary, .pcan-btn-gold) { background: #192e59; border-color: #192e59; color: #fdf6e6; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-btn-primary, .pcan-btn-gold):hover { background: #24386a; border-color: #24386a; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .is-past .pcan-culto-date { background: #e7dcc6; color: #6f6352; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-drop { border-color: #dcc9a2; background: #fffaf0; }
+
+/* Cultos: la cabecera como la tarjeta del próximo culto y el setlist numerado en dorado */
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-culto-hero {
+  position: relative; overflow: hidden; margin-bottom: 16px; padding: 18px 20px; border-radius: 14px; color: #fdf6e6;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='90'%3E%3Cpath d='M0 30h10M0 40h10M0 50h10M0 60h10M0 70h10' stroke='%23fff' stroke-opacity='.08'/%3E%3C/svg%3E") 0 0 / 10px 90px repeat,
+    linear-gradient(135deg, #192e59, #24386a);
+}
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-culto-hero::after {
+  content: "\1D11E"; position: absolute; right: 2%; bottom: -30%; font-size: 200px; line-height: 1; color: var(--pc-oro); opacity: .2; pointer-events: none;
+  font-family: "Noto Music", "Segoe UI Symbol", "Apple Symbols", serif;
+}
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-culto-hero > * { position: relative; z-index: 1; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-culto-hero :is(.pcan-det-titulo, .pcan-det-meta, .pcan-det-meta span) { color: #fdf6e6 !important; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-culto-hero .pcan-det-kicker { color: #e9c37a !important; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-culto-hero .pcan-culto-date { background: var(--pc-oro); color: #fff; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-set-n { background: transparent; color: var(--pc-oro); box-shadow: 0 0 0 1.5px var(--pc-oro) inset; font-family: Georgia, "Times New Roman", serif; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-cuenta { background: #f1e5c9; color: #6b4b12; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-cuenta.is-ya { background: var(--pc-oro); color: #fff; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-culto-hero .pcan-det-titulo { font-size: clamp(24px, 4.2cqi, 40px); line-height: 1.1; }
