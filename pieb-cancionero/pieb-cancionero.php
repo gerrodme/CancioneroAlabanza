@@ -2,7 +2,7 @@
 /**
  * Plugin Name: PIEB Cancionero
  * Description: Cancionero del equipo de Adoración y culto: canciones con partitura, letra, audios y YouTube, setlists de cultos, visor para tableta, temas propios y acceso con Google. Shortcode [cancionero].
- * Version: 1.0.9
+ * Version: 1.0.10
  * Author: Gerson Rodrigo Menéndez
  * Requires at least: 6.0
  * Requires PHP: 7.4
@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PIEB_CAN_VERSION', '1.0.9');
+define('PIEB_CAN_VERSION', '1.0.10');
 define('PIEB_CAN_FILE', __FILE__);
 define('PIEB_CAN_DIR', plugin_dir_path(__FILE__));
 define('PIEB_CAN_URL', plugin_dir_url(__FILE__));
@@ -166,6 +166,42 @@ add_action('template_redirect', function () {
         wp_safe_redirect(home_url('/adoracion-y-culto/cancionero/'), 302);
         exit;
     }
+});
+
+// Menú principal del sitio (tema Vantage): los apartados con submenú («Quiénes somos», «Diaconías»…) se abren y
+// cierran con un clic o un toque en vez de ir a su página, que ya es la primera opción del submenú. Sin esto, en
+// pantallas táctiles el toque abría el submenú y navegaba a la vez, y el menú se cerraba antes de poder elegir.
+add_action('wp_footer', function () {
+    ?>
+<style>.main-navigation ul li.pieb-abierto > ul { visibility: visible; opacity: 1; }</style>
+<script>
+(function () {
+  var menu = document.querySelector('.main-navigation');
+  if (!menu) { return; }
+  function cerrar(excepto) {
+    Array.prototype.forEach.call(menu.querySelectorAll('li.pieb-abierto'), function (li) {
+      if (!excepto || !li.contains(excepto)) { li.classList.remove('pieb-abierto'); }
+    });
+  }
+  menu.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('li.menu-item-has-children > a') : null;
+    if (!a || !menu.contains(a)) { return; }
+    e.preventDefault();
+    var li = a.parentNode, abierto = li.classList.contains('pieb-abierto');
+    cerrar(li);
+    li.classList.toggle('pieb-abierto', !abierto);
+  });
+  // Con ratón, al salir del apartado se cierra como siempre.
+  menu.addEventListener('pointerout', function (e) {
+    if (e.pointerType !== 'mouse') { return; }
+    var li = e.target.closest ? e.target.closest('li.pieb-abierto') : null;
+    if (li && !li.contains(e.relatedTarget)) { li.classList.remove('pieb-abierto'); }
+  });
+  document.addEventListener('click', function (e) { if (!menu.contains(e.target)) { cerrar(null); } });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { cerrar(null); } });
+})();
+</script>
+    <?php
 });
 
 function pieb_can_atributos_raiz($tema) {
