@@ -9,6 +9,15 @@
   var TONALIDADES = ['Do', 'Do#', 'Reb', 'Re', 'Mib', 'Mi', 'Fa', 'Fa#', 'Solb', 'Sol', 'Lab', 'La', 'Sib', 'Si',
     'Do m', 'Do# m', 'Re m', 'Mib m', 'Mi m', 'Fa m', 'Fa# m', 'Sol m', 'Sol# m', 'La m', 'Sib m', 'Si m'];
 
+  /** Posición de una tonalidad en el círculo de quintas (0 = Do, 1 = Sol…); las menores, con su relativa mayor. -1 si no se reconoce. */
+  function quintaDe(tono) {
+    var m = String(tono || '').trim().match(/^(do|re|mi|fa|sol|la|si|[a-g])\s*([#♯b♭]?)\s*(m(?![a-z]{2})|menor)?/i);
+    if (!m) { return -1; }
+    var base = { do: 0, re: 2, mi: 4, fa: 5, sol: 7, la: 9, si: 11, c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 }[m[1].toLowerCase()];
+    var semitono = base + (/[#♯]/.test(m[2]) ? 1 : /[b♭]/.test(m[2]) ? -1 : 0) + (m[3] ? 3 : 0);
+    return ((((semitono % 12) + 12) % 12) * 7) % 12;
+  }
+
   var state = {
     canciones: [],
     indice: [],
@@ -46,6 +55,14 @@
     }
     for (var i = 2; i < arguments.length; i++) { append(el, arguments[i]); }
     return el;
+  }
+
+  /** Pastilla de tonalidad; con el estilo «Colores» cada tonalidad lleva su color (--tono-h, por el círculo de quintas). */
+  function pastillaTono(tono, attrs) {
+    var q = quintaDe(tono);
+    var a = { class: 'pcan-key', text: tono, style: q < 0 ? null : '--tono-h: ' + (q * 30) };
+    Object.keys(attrs || {}).forEach(function (k) { a[k] = k === 'class' ? a.class + ' ' + attrs[k] : attrs[k]; });
+    return h('span', a);
   }
 
   function append(el, child) {
@@ -246,10 +263,15 @@
     return varsSitio;
   }
 
+  /** «Colores» y «Pentagrama» son estilos sobre la base de «Como la web». */
+  var ESTILOS = { colores: 'sitio', pentagrama: 'sitio' };
+
   /** Aplica el tema actual a un elemento raíz (la app, el lector, los avisos). */
   function temaEn(el) {
-    el.setAttribute('data-pcan-theme', state.tema);
-    var vars = state.tema === 'sitio' ? variablesDelSitio() : null;
+    var base = ESTILOS[state.tema] || state.tema;
+    el.setAttribute('data-pcan-theme', base);
+    if (ESTILOS[state.tema]) { el.setAttribute('data-pcan-estilo', state.tema); } else { el.removeAttribute('data-pcan-estilo'); }
+    var vars = base === 'sitio' ? variablesDelSitio() : null;
     // «Como la web» toma de WordPress solo el color de acento; letra y fondos son los del cancionero.
     ['--pc-accent', '--pc-accent-ink', '--pc-text', '--pc-bg', '--pc-font', '--pc-font-head'].forEach(function (k) {
       if (vars && (k === '--pc-accent' || k === '--pc-accent-ink')) { el.style.setProperty(k, vars[k]); } else { el.style.removeProperty(k); }
@@ -989,7 +1011,7 @@
           c.autor ? h('span', { class: 'pcan-row-autor', text: c.autor }) : null,
           snippet ? h('span', { class: 'pcan-row-snippet' }, '«', resaltar(snippet, state.query), '»') : null),
         h('span', { class: 'pcan-row-meta' },
-          h('span', { class: 'pcan-c-tono' }, c.tonalidad ? h('span', { class: 'pcan-key', text: c.tonalidad }) : null),
+          h('span', { class: 'pcan-c-tono' }, c.tonalidad ? pastillaTono(c.tonalidad) : null),
           h('span', { class: 'pcan-c-tempo', title: c.tempo ? c.tempo + ' pulsaciones por minuto' : null, text: c.tempo ? '♩ ' + c.tempo : '' }),
           h('span', { class: 'pcan-c-tags' }, c.etiquetas.map(function (e) { return h('span', { class: 'pcan-tag', text: e }); }))),
         h('span', { class: 'pcan-c-rec' },
@@ -1208,7 +1230,7 @@
         })),
       h('h2', { class: 'pcan-det-titulo', text: c.titulo }),
       h('p', { class: 'pcan-det-meta' },
-        c.tonalidad ? h('span', { class: 'pcan-key is-lg', title: 'Tonalidad', text: c.tonalidad }) : null,
+        c.tonalidad ? pastillaTono(c.tonalidad, { class: 'is-lg', title: 'Tonalidad' }) : null,
         c.tempo ? h('span', { class: 'pcan-tempo', title: c.tempo + ' pulsaciones por minuto', text: '♩ = ' + c.tempo }) : null,
         c.autor ? h('span', { text: c.autor }) : null,
         c.subidaPor ? h('span', { class: 'pcan-muted', text: 'Subida por ' + c.subidaPor }) : null));
@@ -2426,6 +2448,7 @@
     mostrarVista: mostrarVista,
     abrirPaleta: abrirPaleta,
     tonalidades: TONALIDADES,
+    pastillaTono: pastillaTono,
     ruta: function (re, fn) { rutasExtra.push({ re: re, fn: fn }); },
     vista: function (nombre, fn) { ganchos.vistas[nombre] = fn; },
     enFichaCancion: function (fn) { ganchos.fichaCancion.push(fn); },

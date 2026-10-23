@@ -8,27 +8,32 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-/** Temas disponibles. «sitio» sigue los colores y la tipografía del tema activo de WordPress. */
+/**
+ * Temas disponibles. «sitio» sigue los colores y la tipografía del tema activo de WordPress;
+ * «colores» y «pentagrama» son estilos sobre esa misma base (ver pieb_can_atributos_raiz).
+ */
 function pieb_can_temas() {
     return array(
-        'sitio'     => 'Como la web',
-        'pulso'     => 'Pulso',
-        'claro'     => 'Estudio',
-        'escenario' => 'Escenario',
-        'papel'     => 'Partitura',
+        'colores'    => 'Colores',
+        'pentagrama' => 'Pentagrama',
+        'sitio'      => 'Como la web',
+        'pulso'      => 'Pulso',
+        'claro'      => 'Estudio',
+        'escenario'  => 'Escenario',
+        'papel'      => 'Partitura',
     );
 }
 
 function pieb_can_ajustes() {
     $guardados = get_option('pieb_can_ajustes', array());
     $ajustes = wp_parse_args(is_array($guardados) ? $guardados : array(), array(
-        'tema_defecto'     => 'claro',
+        'tema_defecto'     => 'colores',
         'google_client_id' => '',
         'emails'           => array(),
         'dominio'          => '',
     ));
     if (!isset(pieb_can_temas()[$ajustes['tema_defecto']])) {
-        $ajustes['tema_defecto'] = 'claro';
+        $ajustes['tema_defecto'] = 'colores';
     }
     return $ajustes;
 }

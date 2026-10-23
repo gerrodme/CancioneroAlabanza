@@ -2,7 +2,7 @@
 /**
  * Plugin Name: PIEB Cancionero
  * Description: Cancionero del equipo de Adoración y culto: canciones con partitura, letra, audios y YouTube, setlists de cultos, visor para tableta, temas propios y acceso con Google. Shortcode [cancionero].
- * Version: 1.0.10
+ * Version: 1.1.1
  * Author: Gerson Rodrigo Menéndez
  * Requires at least: 6.0
  * Requires PHP: 7.4
@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PIEB_CAN_VERSION', '1.0.10');
+define('PIEB_CAN_VERSION', '1.1.1');
 define('PIEB_CAN_FILE', __FILE__);
 define('PIEB_CAN_DIR', plugin_dir_path(__FILE__));
 define('PIEB_CAN_URL', plugin_dir_url(__FILE__));
@@ -206,7 +206,10 @@ add_action('wp_footer', function () {
 
 function pieb_can_atributos_raiz($tema) {
     $clase = 'pcan is-app';
-    return 'class="' . esc_attr($clase) . '" data-pcan-theme="' . esc_attr($tema) . '"';
+    // «Colores» y «Pentagrama» son estilos sobre la base de «Como la web» (igual que temaEn en cancionero.js).
+    $estilo = in_array($tema, array('colores', 'pentagrama'), true) ? $tema : '';
+    return 'class="' . esc_attr($clase) . '" data-pcan-theme="' . esc_attr($estilo ? 'sitio' : $tema) . '"'
+        . ($estilo ? ' data-pcan-estilo="' . esc_attr($estilo) . '"' : '');
 }
 
 function pieb_can_shortcode() {

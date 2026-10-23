@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Banco de pruebas · Cancionero</title>
-<link rel="stylesheet" href="../pieb-cancionero/assets/cancionero.css?v=109">
+<link rel="stylesheet" href="../pieb-cancionero/assets/cancionero.css?v=111">
 <style>body { margin: 0; font-family: sans-serif; background: #f8f5f0; }</style>
 </head>
 <body>
@@ -12,12 +12,12 @@
 <script>
 // Datos simulados: imitan las respuestas de /wp-json/pieb/v1/.
 (function () {
-  var tema = new URLSearchParams(location.search).get('tema') || 'claro';
+  var tema = new URLSearchParams(location.search).get('tema') || 'colores';
   document.getElementById('pieb-cancionero').setAttribute('data-pcan-theme', tema);
   window.PIEB_CANCIONERO = {
     api: '/api/', nonce: 'x', userId: 1, userName: 'Gerson Rodrigo', gestionar: true,
-    logoutUrl: '#', homeUrl: '#', sitio: 'Tu iglesia', maxUpload: 33554432, maxPartitura: 4194304, maxAudio: 10485760, trozo: 1048576, admin: true, version: "1.0.9", tema: tema,
-    temas: { sitio: 'Como la web', pulso: 'Pulso', claro: 'Estudio', escenario: 'Escenario', papel: 'Partitura' }
+    logoutUrl: '#', homeUrl: '#', sitio: 'Tu iglesia', maxUpload: 33554432, maxPartitura: 4194304, maxAudio: 10485760, trozo: 1048576, admin: true, version: "1.1.1", tema: tema,
+    temas: { colores: 'Colores', pentagrama: 'Pentagrama', sitio: 'Como la web', pulso: 'Pulso', claro: 'Estudio', escenario: 'Escenario', papel: 'Partitura' }
   };
   var hoy = new Date();
   function iso(d) { return d.toISOString().slice(0, 10); }
@@ -72,8 +72,8 @@
   };
 })();
 </script>
-<script src="../pieb-cancionero/assets/cancionero.js?v=109"></script>
-<script src="../pieb-cancionero/assets/visor.js?v=109"></script>
-<script src="../pieb-cancionero/assets/cultos.js?v=109"></script>
+<script src="../pieb-cancionero/assets/cancionero.js?v=111"></script>
+<script src="../pieb-cancionero/assets/visor.js?v=111"></script>
+<script src="../pieb-cancionero/assets/cultos.js?v=111"></script>
 </body>
 </html>

@@ -1589,3 +1589,120 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
   .pcan-det-side .pcan-det-actions .pcan-btn-label { display: none; }
   .pcan-det-main .pcan-visor-info { min-width: 64px; }
 }
+
+/* ================================================================== estilos «Colores» y «Pentagrama»
+ * Van sobre la base de «Como la web»: la raíz lleva data-pcan-theme="sitio" y data-pcan-estilo (temaEn en cancionero.js).
+ */
+.pcan-tema-muestra[data-muestra="colores"] { background: conic-gradient(#2f6fd6 0 25%, #e0821e 0 50%, #2e9e6b 0 75%, #7a4fd0 0); }
+.pcan-tema-muestra[data-muestra="pentagrama"] { background: linear-gradient(135deg, #fbf7ef 50%, #b8862f 50%); }
+
+/* ---- Pentagrama: papel cálido con pentagramas, títulos clásicos, dorado y clave de sol */
+.pcan[data-pcan-estilo="pentagrama"] {
+  --pc-oro: #b8862f; --pc-papel: #fbf7ef;
+  background-color: #efe6d6;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='120'%3E%3Cg stroke='%23192e59' stroke-opacity='.09' stroke-width='1'%3E%3Cpath d='M0 20h400M0 28h400M0 36h400M0 44h400M0 52h400'/%3E%3C/g%3E%3Cg fill='%23192e59' fill-opacity='.08'%3E%3Cellipse cx='70' cy='40' rx='5' ry='3.6' transform='rotate(-20 70 40)'/%3E%3Cellipse cx='160' cy='28' rx='5' ry='3.6' transform='rotate(-20 160 28)'/%3E%3Cellipse cx='290' cy='48' rx='5' ry='3.6' transform='rotate(-20 290 48)'/%3E%3C/g%3E%3Cg stroke='%23192e59' stroke-opacity='.08' stroke-width='1.2'%3E%3Cpath d='M75 39V14M165 27V2M295 47V22'/%3E%3C/g%3E%3C/svg%3E");
+}
+[data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-side, .pcan-body) { background: var(--pc-papel); box-shadow: 0 1px 0 rgba(255, 255, 255, .7) inset, 0 6px 24px rgba(90, 60, 20, .08); }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-top { background: rgba(251, 247, 239, .9); }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-home-saludo h1, [data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-home-card-head h2, [data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-det-titulo {
+  font-family: Georgia, "Times New Roman", serif !important; font-weight: 600 !important; letter-spacing: -0.01em !important;
+}
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-home-saludo h1 { font-style: italic; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-hero {
+  position: relative; overflow: hidden; color: #fdf6e6;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='90'%3E%3Cpath d='M0 30h10M0 40h10M0 50h10M0 60h10M0 70h10' stroke='%23fff' stroke-opacity='.08'/%3E%3C/svg%3E") 0 0 / 10px 90px repeat,
+    linear-gradient(135deg, #192e59, #24386a);
+  border-radius: 14px;
+}
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-hero::after {
+  content: "\1D11E"; position: absolute; right: 2%; bottom: -18%; font-size: 260px; line-height: 1; color: var(--pc-oro); opacity: .22; pointer-events: none;
+  font-family: "Noto Music", "Segoe UI Symbol", "Apple Symbols", serif;
+}
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-hero > * { position: relative; z-index: 1; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-hero :is(.pcan-hero-texto, .pcan-hero-texto a, .pcan-hero-set a, .pcan-hero-n) { color: #fdf6e6 !important; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-hero-kicker { color: #e9c37a !important; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-hero-texto strong { font-family: Georgia, "Times New Roman", serif; font-weight: 600; letter-spacing: -0.01em; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-hero .pcan-culto-date { background: var(--pc-oro); color: #fff; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-hero-set a:hover { background: rgba(255, 255, 255, .1); }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-hero .pcan-key { background: transparent; color: #e9c37a; box-shadow: 0 0 0 1px #e9c37a inset; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-hero .pcan-btn-primary { background: var(--pc-oro); border-color: var(--pc-oro); color: #fff; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-hero .pcan-btn:not(.pcan-btn-primary) { border-color: rgba(253, 246, 230, .6); color: #fdf6e6; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-atajo, .pcan-home-card, .pcan-cifra) { background: #fff; box-shadow: 0 0 0 1px #eadfca inset; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-atajo-ico { background: var(--pc-oro) !important; color: #fff !important; border-radius: 50% !important; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-cifra strong { font-family: Georgia, "Times New Roman", serif; font-weight: 600; color: var(--pc-oro); }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-btn-primary { background: #192e59; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-brand-logo { background: var(--pc-oro); }
+
+/* ---- Colores: cada sección con su color y cada tonalidad con el suyo */
+.pcan[data-pcan-estilo="colores"] {
+  --pc-c-canciones: #2f6fd6; --pc-c-cultos: #e0821e; --pc-c-stats: #2e9e6b; --pc-c-inicio: #7a4fd0;
+  background: linear-gradient(160deg, #eef2fb, #f7f1fb 50%, #fdf3ea);
+}
+/* Cada sección con su color: según la vista activa (data-vista en la raíz) cambian el acento y todo lo que
+   deriva de él (botones, filtros, números, barras, selección…). Se declara en los hijos de la raíz porque la raíz
+   lleva el acento de WordPress como estilo en línea. */
+.pcan[data-pcan-estilo="colores"] > * { --pc-seccion: #6b44c4; }
+.pcan[data-pcan-estilo="colores"][data-vista="canciones"] > * { --pc-seccion: #2563c9; }
+.pcan[data-pcan-estilo="colores"][data-vista="cultos"] > * { --pc-seccion: #c2620e; }
+.pcan[data-pcan-estilo="colores"][data-vista="estadisticas"] > * { --pc-seccion: #1f8a5b; }
+.pcan[data-pcan-estilo="colores"] > * {
+  --pc-accent: var(--pc-seccion); --pc-accent-ink: #fff;
+  --pc-ink: var(--pc-accent); --pc-on-ink: #fff; --pc-on-ink-accent: #fff;
+  --pc-accent-hover: color-mix(in srgb, var(--pc-accent) 85%, #000);
+  --pc-accent-strong: color-mix(in srgb, var(--pc-accent) 85%, #000);
+  --pc-accent-soft: color-mix(in srgb, var(--pc-accent) 12%, #fff);
+  --pc-surface-2: color-mix(in srgb, var(--pc-accent) 6%, #fff);
+  --pc-tag-bg: color-mix(in srgb, var(--pc-accent) 11%, #fff);
+  --pc-tag-ink: color-mix(in srgb, var(--pc-accent) 78%, #000);
+  --pc-side-active: color-mix(in srgb, var(--pc-accent) 13%, #fff);
+  --pc-focus: color-mix(in srgb, var(--pc-accent) 40%, transparent);
+  --pc-ola: color-mix(in srgb, var(--pc-accent) 20%, #fff);
+  --pc-ola-2: color-mix(in srgb, var(--pc-accent) 9%, #fff);
+  --pc-ola-3: color-mix(in srgb, var(--pc-accent) 5%, #fff);
+  --pc-ola-4: color-mix(in srgb, var(--pc-accent) 3%, #fff);
+  --pc-fab-shadow: color-mix(in srgb, var(--pc-accent) 45%, transparent);
+}
+/* Una franja suave del color de la sección arriba de cada vista */
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-body { background: linear-gradient(180deg, color-mix(in srgb, var(--pc-accent) 10%, #fff), #fff 340px); }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-top { background: color-mix(in srgb, color-mix(in srgb, var(--pc-accent) 9%, #fff) 90%, transparent); }
+[data-pcan-theme][data-pcan-estilo="colores"] :is(.pcan-split-list, .pcan-split-detail, .pcan-toolbar, .pcan-thead) { background: transparent; }
+[data-pcan-theme][data-pcan-estilo="colores"] :is(.pcan-kpi, .pcan-stat-card) { background: #fff; box-shadow: 0 0 0 1px color-mix(in srgb, var(--pc-accent) 14%, #fff) inset; }
+[data-pcan-theme][data-pcan-estilo="colores"] :is(.pcan-row, .pcan-culto).is-selected { background: color-mix(in srgb, var(--pc-accent) 12%, #fff); }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-chip:hover { background: color-mix(in srgb, var(--pc-accent) 14%, #fff); }
+/* Lo que no depende de la sección mantiene su color: los cultos del lateral, ámbar; el logo, violeta */
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-side-culto-fecha { background: var(--pc-c-cultos); }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-brand-logo { background: var(--pc-c-inicio); }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-side-link:nth-child(1) svg { color: var(--pc-c-inicio); }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-side-link:nth-child(2) svg { color: var(--pc-c-canciones); }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-side-link:nth-child(3) svg { color: var(--pc-c-cultos); }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-side-link:nth-child(4) svg { color: var(--pc-c-stats); }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-hero {
+  color: #fff;
+  background:
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, .16) 1px, transparent 1.5px) 0 0 / 14px 14px,
+    linear-gradient(120deg, #e0821e, #d4553f 55%, #b8406a);
+  box-shadow: 0 16px 36px rgba(212, 85, 63, .3);
+}
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-hero :is(.pcan-hero-kicker, .pcan-hero-texto, .pcan-hero-texto a, .pcan-hero-set a, .pcan-hero-n) { color: #fff !important; }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-hero-texto > span { color: rgba(255, 255, 255, .85); }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-hero .pcan-culto-date { background: #fff; color: #b8406a; }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-hero-set a:hover { background: rgba(255, 255, 255, .15); }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-hero .pcan-btn-primary { background: #fff; border-color: #fff; color: #c2472f; }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-hero .pcan-btn:not(.pcan-btn-primary) { border-color: rgba(255, 255, 255, .7); color: #fff; }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-atajo:nth-child(1) { background: color-mix(in srgb, var(--pc-c-canciones) 9%, #fff); }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-atajo:nth-child(1) .pcan-atajo-ico { background: var(--pc-c-canciones); }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-atajo:nth-child(2) { background: color-mix(in srgb, var(--pc-c-cultos) 10%, #fff); }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-atajo:nth-child(2) .pcan-atajo-ico { background: var(--pc-c-cultos); }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-atajo:nth-child(3) { background: color-mix(in srgb, var(--pc-c-stats) 10%, #fff); }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-atajo:nth-child(3) .pcan-atajo-ico { background: var(--pc-c-stats); }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-cifra { background: #fff; }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-cifra:nth-child(1) strong { color: var(--pc-c-canciones); }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-cifra:nth-child(2) strong { color: var(--pc-c-inicio); }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-cifra:nth-child(3) strong { color: var(--pc-c-stats); }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-cifra:nth-child(4) strong { color: var(--pc-c-cultos); }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-home-card { background: #fff; }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-home-card .pcan-num { background: var(--pc-c-canciones); }
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-home-card.is-recuperar .pcan-num { background: var(--pc-c-cultos); }
+/* Cada tonalidad con su color: pastillaTono() pone --tono-h según el círculo de quintas */
+[data-pcan-theme][data-pcan-estilo="colores"] .pcan-key[style*="--tono-h"] { background: hsl(var(--tono-h) 62% 42%) !important; color: #fff !important; }

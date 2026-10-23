@@ -228,7 +228,7 @@
           h('span', { class: 'pcan-set-sub' },
             s.numero ? h('span', { text: 'Nº ' + s.numero }) : null,
             it.nota ? h('span', { class: 'pcan-set-note', text: it.nota }) : null)),
-        tono ? h('span', { class: 'pcan-key', title: 'Tonalidad', text: tono }) : null,
+        tono ? P.pastillaTono(tono, { title: 'Tonalidad' }) : null,
         h('a', { class: 'pcan-icon-btn', href: '#/culto/' + c.id + '/tocar/' + (i + 1), 'aria-label': 'Tocar desde ' + s.titulo, title: 'Tocar desde aquí' }, icono('play')));
     }));
 
@@ -604,7 +604,7 @@
             return h('li', null, h('a', { href: '#/culto/' + proximo.id + '/tocar/' + (i + 1), title: 'Tocar desde aquí' },
               h('span', { class: 'pcan-hero-n', text: String(i + 1) }),
               h('span', { class: 'pcan-hero-t', text: x.s.titulo }),
-              (x.tono || x.s.tonalidad) ? h('span', { class: 'pcan-key', text: x.tono || x.s.tonalidad }) : null));
+              (x.tono || x.s.tonalidad) ? P.pastillaTono(x.tono || x.s.tonalidad) : null));
           })) : h('p', { class: 'pcan-hero-vacio', text: 'Aún no tiene canciones.' }),
           h('div', { class: 'pcan-hero-acciones' },
             canciones.length ? h('a', { class: 'pcan-btn pcan-btn-primary pcan-btn-lg', href: '#/culto/' + proximo.id + '/tocar/1' }, icono('play'), 'Tocar') : null,
