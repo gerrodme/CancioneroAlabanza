@@ -729,12 +729,32 @@
     return parte + ', ' + String(CFG.userName || '').split(' ')[0];
   }
 
+  /** Cifras del repertorio en inicio; cada una abre Canciones con el filtro correspondiente. */
+  function pintarCifras() {
+    if (!ui.cifras) { return; }
+    var cs = state.canciones;
+    var cuenta = function (fn) { return cs.filter(fn).length; };
+    var datos = cs.length ? [
+      ['Canciones', cs.length, ''],
+      ['Con audio', cuenta(function (c) { return c.audios; }), 'audio'],
+      ['Con letra', cuenta(function (c) { return c.letra; }), 'letra'],
+      state.usoCargado ? ['Nunca tocadas', cuenta(function (c) { return !state.uso[c.id]; }), 'nunca'] : ['Con YouTube', cuenta(function (c) { return c.youtube; }), 'youtube']
+    ] : [];
+    ui.cifras.innerHTML = '';
+    append(ui.cifras, datos.map(function (d) {
+      return h('a', { class: 'pcan-cifra', href: '#/canciones', onclick: function () { state.filtro = d[2]; if (ui.lista) { pintarLista(); } } },
+        h('strong', { text: String(d[1]) }), h('span', { text: d[0] }));
+    }));
+  }
+
   function pintarInicio() {
     var cont = ui.vistaInicio;
     cont.innerHTML = '';
     var hoy = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
     var heroe = h('div', { class: 'pcan-home-hero' });
     var tarjetas = h('div', { class: 'pcan-home-grid' });
+    ui.cifras = h('div', { class: 'pcan-home-cifras', 'aria-label': 'El repertorio en cifras' });
+    pintarCifras();
 
     var recientes = state.canciones.slice().sort(function (a, b) { return b.creada.localeCompare(a.creada); }).slice(0, 5);
     append(tarjetas, h('section', { class: 'pcan-home-card' },
@@ -754,6 +774,7 @@
         h('a', { class: 'pcan-atajo', href: '#/nueva' }, h('span', { class: 'pcan-atajo-ico' }, icono('mas')), h('span', null, h('strong', { text: 'Nueva canción' }), h('small', { text: 'Partitura, letra y audios' }))),
         h('a', { class: 'pcan-atajo', href: '#/culto/nuevo' }, h('span', { class: 'pcan-atajo-ico' }, icono('calendario')), h('span', null, h('strong', { text: 'Nuevo culto' }), h('small', { text: 'Preparar el setlist' }))),
         h('a', { class: 'pcan-atajo', href: '#/estadisticas' }, h('span', { class: 'pcan-atajo-ico' }, icono('grafica')), h('span', null, h('strong', { text: 'Estadísticas' }), h('small', { text: 'Qué tocamos y qué no' })))),
+      ui.cifras,
       tarjetas));
 
     ganchos.inicio.forEach(function (fn) { fn(heroe, tarjetas); });
@@ -2404,7 +2425,7 @@
     enFichaCancion: function (fn) { ganchos.fichaCancion.push(fn); },
     enInicio: function (fn) { ganchos.inicio.push(fn); },
     enPaleta: function (fn) { ganchos.paleta.push(fn); },
-    actualizarUso: function (mapa) { state.uso = mapa || {}; state.usoCargado = true; if (ui.lista) { pintarLista(); } },
+    actualizarUso: function (mapa) { state.uso = mapa || {}; state.usoCargado = true; if (ui.lista) { pintarLista(); } pintarCifras(); },
     repintarInicio: function () { if (state.vista === 'inicio') { pintarInicio(); } },
     listo: cargar().then(function () { return state.canciones; })
   };

@@ -660,7 +660,7 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
 .pcan-det-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 16px; }
 .pcan-det-actions .pcan-btn-lg { flex: 0 1 auto; min-width: 150px; }
 
-.pcan-det-grid { display: grid; gap: 20px; }
+.pcan-det-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
 @container det (min-width: 780px) {
   .pcan-det-grid { grid-template-columns: minmax(0, 1.5fr) minmax(250px, 1fr); align-items: start; }
   .pcan-det-side { position: sticky; top: 72px; }
@@ -1391,8 +1391,6 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 /* ================================================================== móvil */
 
 @container pcan (max-width: 760px) {
-  .pcan-home-atajos { grid-template-columns: 1fr; }
-  .pcan-home-grid { grid-template-columns: 1fr; }
   .pcan-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .pcan-stats-grid { grid-template-columns: 1fr; }
   .pcan-section-head { flex-wrap: wrap; }
@@ -1419,3 +1417,80 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
   .pcan-panel-wrap.is-modal { padding: 0; }
   .pcan-panel-wrap.is-modal .pcan-panel { width: 100%; max-height: none; height: 100%; border-radius: 0; }
 }
+
+/* ================================================================== inicio adaptable y sin desbordes
+ * La vista de inicio mide su propio ancho (con o sin barra lateral) y reparte el contenido:
+ * móvil una columna compacta, tableta saludo y buscador en una fila, PC dos columnas.
+ */
+.pcan-vista[data-vista="inicio"] { container: inicio / inline-size; max-width: 1400px; }
+.pcan-home {
+  grid-template-columns: minmax(0, 1fr); gap: 14px;
+  grid-template-areas: "saludo" "buscar" "hero" "atajos" "cifras" "tarjetas";
+}
+.pcan-home > * { min-width: 0; }
+.pcan-home-saludo { grid-area: saludo; }
+.pcan-home-buscar { grid-area: buscar; }
+.pcan-home-hero { grid-area: hero; }
+.pcan-home-atajos { grid-area: atajos; }
+.pcan-home-cifras { grid-area: cifras; }
+.pcan-home-grid { grid-area: tarjetas; }
+[data-pcan-theme] .pcan-vista .pcan-home-saludo h1 { font-size: clamp(24px, 5.6cqi, 40px); line-height: 1.08; }
+[data-pcan-theme] .pcan-vista .pcan-hero-texto strong { font-size: clamp(20px, 4.2cqi, 30px); }
+
+/* Cifras del repertorio: cada una abre Canciones con ese filtro */
+.pcan-home-cifras { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.pcan-home-cifras:empty { display: none; }
+[data-pcan-theme] .pcan-cifra {
+  display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border: var(--pc-card-border); border-radius: var(--pc-radius);
+  background: var(--pc-surface); color: var(--pc-text);
+}
+[data-pcan-theme] .pcan-cifra:hover { border-color: var(--pc-accent); }
+.pcan-cifra strong { font-family: var(--pc-font-head); font-size: 24px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.pcan-cifra span { color: var(--pc-muted); font-size: 12.5px; font-weight: 600; }
+:is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-cifra { border: 0; border-radius: 8px; background: #f6f6f6; }
+:is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-cifra:hover { background: #ececec; }
+
+/* Móvil: tres accesos en una fila y el próximo culto más compacto */
+@container inicio (max-width: 559px) {
+  .pcan-home-atajos { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  [data-pcan-theme] .pcan-atajo { flex-direction: column; justify-content: center; gap: 6px; padding: 10px 6px; text-align: center; }
+  .pcan-atajo > span:last-child { align-items: center; }
+  .pcan-atajo small { display: none; }
+  .pcan-atajo strong { font-size: 13px; line-height: 1.2; }
+  .pcan-home-grid { grid-template-columns: minmax(0, 1fr); }
+  [data-pcan-theme] .pcan-home-buscar { height: 48px; font-size: 16px; }
+  [data-pcan-theme] .pcan-hero { gap: 12px; padding: 16px; border-radius: 18px; }
+  .pcan-hero-acciones .pcan-btn { flex: 1 1 auto; justify-content: center; }
+}
+
+/* Tableta: saludo y buscador comparten fila; el resto, a lo ancho */
+@container inicio (min-width: 560px) {
+  .pcan-home {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, .85fr); align-items: center;
+    grid-template-areas: "saludo buscar" "hero hero" "atajos atajos" "cifras cifras" "tarjetas tarjetas";
+  }
+  .pcan-home > :not(.pcan-home-saludo):not(.pcan-home-buscar) { align-self: start; }
+  .pcan-home-cifras { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  [data-pcan-theme] .pcan-hero { gap: 12px; padding: 18px 20px; }
+  /* Los botones del próximo culto, a la derecha del título: una fila menos */
+  .pcan-hero:not(.is-vacio) { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+  .pcan-hero:not(.is-vacio) > .pcan-hero-acciones { grid-column: 2; grid-row: 1; }
+  .pcan-hero:not(.is-vacio) > :is(.pcan-hero-set, .pcan-hero-vacio) { grid-column: 1 / -1; }
+}
+
+/* PC: dos columnas; a la izquierda el próximo culto, los accesos y las cifras; a la derecha las listas */
+@container inicio (min-width: 980px) {
+  .pcan-home {
+    grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); grid-template-rows: auto auto auto auto 1fr; column-gap: 22px;
+    grid-template-areas: "saludo buscar" "hero tarjetas" "atajos tarjetas" "cifras tarjetas" ". tarjetas";
+  }
+  .pcan-home-grid { grid-template-columns: minmax(0, 1fr); align-content: start; }
+}
+
+/* Sin desbordes laterales: los contenedores de una columna pueden encoger y los textos largos se recortan */
+.pcan-cultos { grid-template-columns: minmax(0, 1fr); }
+.pcan-form > *, .pcan-det-main > *, .pcan-det-side > * { min-width: 0; }
+[data-pcan-theme] .pcan-fieldset { min-width: 0; }
+.pcan-uso > * { min-width: 0; max-width: 100%; }
+.pcan-uso-fila { flex-wrap: wrap; }
+[data-pcan-theme] .pcan-uso-fila .pcan-select-sm { flex: 1 1 140px; min-width: 0; max-width: 100%; }
