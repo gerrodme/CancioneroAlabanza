@@ -1494,3 +1494,66 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 .pcan-uso > * { min-width: 0; max-width: 100%; }
 .pcan-uso-fila { flex-wrap: wrap; }
 [data-pcan-theme] .pcan-uso-fila .pcan-select-sm { flex: 1 1 140px; min-width: 0; max-width: 100%; }
+
+/* ================================================================== formulario de canción adaptable
+ * Móvil: una columna en el orden de siempre (las dos columnas se «disuelven» con display: contents).
+ * Pantallas anchas: datos, letra y notas a la izquierda; partituras, audios, etiquetas y vídeos a la derecha.
+ */
+.pcan-form-cancion .pcan-form-col { display: contents; }
+.pcan-form-datos { order: 1; }
+.pcan-form-partituras { order: 2; }
+.pcan-form-audios { order: 3; }
+.pcan-form-etiquetas { order: 4; }
+.pcan-form-letra { order: 5; }
+.pcan-form-videos { order: 6; }
+.pcan-form-notas { order: 7; }
+.pcan-form-cancion > :not(.pcan-form-col) { order: 10; }
+.pcan-form-cancion .pcan-drop { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 2px 10px; padding: 12px 16px; }
+.pcan-form-cancion .pcan-drop .pcan-help { flex-basis: 100%; }
+.pcan-form-cancion .pcan-drop .pcan-ico { width: 22px; height: 22px; }
+.pcan-file-name > :is(.pcan-file-ver, .pcan-file-new) { flex: 0 0 auto; white-space: nowrap; }
+
+/* Datos: el título y el autor a lo ancho; número, tonalidad y tempo juntos en una fila */
+.pcan-form-datos { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 12px; }
+.pcan-form-datos > .pcan-span-2, .pcan-form-datos > :nth-child(5) { grid-column: 1 / -1; }
+.pcan-form-datos > :nth-child(5) { grid-row: 2; }
+
+/* Columnas estrechas: cada enlace de YouTube y cada audio, en dos líneas en vez de apretados en una */
+@container det (max-width: 519px) {
+  .pcan-yt-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .pcan-yt-row > :nth-child(1) { grid-column: 1; grid-row: 1; }
+  .pcan-yt-row > :nth-child(2) { grid-column: 1; grid-row: 2; }
+  .pcan-yt-row > :nth-child(3) { grid-column: 2; grid-row: 1; }
+  .pcan-audio-campos { grid-template-columns: minmax(0, 1fr); }
+}
+@container det (min-width: 700px) and (max-width: 1099px) {
+  .pcan-yt-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .pcan-yt-row > :nth-child(1) { grid-column: 1; grid-row: 1; }
+  .pcan-yt-row > :nth-child(2) { grid-column: 1; grid-row: 2; }
+  .pcan-yt-row > :nth-child(3) { grid-column: 2; grid-row: 1; }
+  .pcan-audio-campos { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Con sitio: título y autor en una fila; número, tonalidad y tempo en la siguiente */
+@container det (min-width: 600px) and (max-width: 699px) {
+  .pcan-form-datos { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .pcan-form-datos > .pcan-span-2 { grid-column: 1 / 5; grid-row: 1; }
+  .pcan-form-datos > :nth-child(5) { grid-column: 5 / 7; grid-row: 1; }
+  .pcan-form-datos > :nth-child(n+2):nth-child(-n+4) { grid-column: span 2; }
+}
+@container det (min-width: 1100px) {
+  .pcan-form-datos { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .pcan-form-datos > .pcan-span-2 { grid-column: 1 / 5; grid-row: 1; }
+  .pcan-form-datos > :nth-child(5) { grid-column: 5 / 7; grid-row: 1; }
+  .pcan-form-datos > :nth-child(n+2):nth-child(-n+4) { grid-column: span 2; }
+}
+
+@container det (min-width: 700px) {
+  .pcan-form-cancion { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 18px 24px; align-items: stretch; }
+  .pcan-form-cancion .pcan-form-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .pcan-form-cancion > :not(.pcan-form-col) { grid-column: 1 / -1; }
+  /* La letra crece hasta igualar la columna de archivos */
+  .pcan-form-letra { flex: 1 1 auto; }
+  [data-pcan-theme] .pcan-form-letra .pcan-textarea { flex: 1 1 auto; min-height: 240px; }
+  [data-pcan-theme] .pcan-form-cancion .pcan-fieldset { padding: 14px 16px; }
+}
