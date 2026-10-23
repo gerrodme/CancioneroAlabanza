@@ -1,0 +1,18 @@
+# Paquete para WordPress: se genera con herramientas/empaquetar.py
+dist/
+
+# Vídeo del tutorial (16 MB): se regenera con herramientas/tutorial/
+*.mp4
+
+# Fotogramas temporales de la grabación del vídeo
+herramientas/tutorial/captura/
+
+# Python
+__pycache__/
+.venv/
+venv/
+
+# Sistema
+Thumbs.db
+desktop.ini
+.DS_Store

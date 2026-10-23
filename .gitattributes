@@ -1,0 +1,8 @@
+# Fin de línea LF en todo el texto (así se comparan con lo publicado en WordPress)
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.mp3 binary
+*.mp4 binary
+*.zip binary

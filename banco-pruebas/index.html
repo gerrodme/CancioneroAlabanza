@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Banco de pruebas · Cancionero</title>
+<link rel="stylesheet" href="../pieb-cancionero/assets/cancionero.css?v=096">
+<style>body { margin: 0; font-family: sans-serif; background: #f8f5f0; }</style>
+</head>
+<body>
+<div id="pieb-cancionero" class="pcan is-app" data-pcan-theme="claro"></div>
+<script>
+// Datos simulados: imitan las respuestas de /wp-json/pieb/v1/.
+(function () {
+  var tema = new URLSearchParams(location.search).get('tema') || 'claro';
+  document.getElementById('pieb-cancionero').setAttribute('data-pcan-theme', tema);
+  window.PIEB_CANCIONERO = {
+    api: '/api/', nonce: 'x', userId: 1, userName: 'Gerson Rodrigo', gestionar: true,
+    logoutUrl: '#', homeUrl: '#', sitio: 'Tu iglesia', maxUpload: 33554432, tema: tema,
+    temas: { sitio: 'Como la web', pulso: 'Pulso', claro: 'Estudio', escenario: 'Escenario', papel: 'Partitura' }
+  };
+  var hoy = new Date();
+  function iso(d) { return d.toISOString().slice(0, 10); }
+  function dias(n) { var d = new Date(hoy); d.setDate(d.getDate() + n); return iso(d); }
+  var canciones = [
+    [437, 'A Cristo coronad', '51', 'Sol', 'G. J. Elvey', ['Alabanza'], 'A Cristo coronad, divino Salvador\nsentado en alta majestad\ndigno de loor'],
+    [436, 'A Dios demos gloria', '18', 'Lab', 'W. H. Doane', ['Alabanza'], ''],
+    [435, 'A Jesucristo ven sin tardar', '304', '', '', ['Invitación'], ''],
+    [434, 'A los sedientos venid', '233', 'Re', '', [], ''],
+    [433, 'A media noche en Belén', '200', 'Fa', 'R. S. Willis', ['Navidad'], 'A medianoche en Belén\nse oyó un canto celestial'],
+    [432, 'A Ti la gloria', '3', 'Mib', 'G. F. Händel', ['Alabanza', 'Pascua'], 'A Ti la gloria, oh nuestro Señor'],
+    [440, 'Cuán grande es Él', '17', 'Sib', 'C. Boberg', ['Adoración'], 'Señor mi Dios, al contemplar los cielos'],
+    [441, 'Santo, santo, santo', '1', 'Re', 'J. B. Dykes', ['Adoración', 'Trinidad'], 'Santo, santo, santo, Señor omnipotente']
+  ].map(function (x, i) {
+    return { id: x[0], titulo: x[1], numero: x[2], tonalidad: x[3], autor: x[4], etiquetas: x[5], letra: x[6], partituras: 1,
+      youtube: i % 3 === 0 ? 1 : 0, audios: i % 4 === 0 ? 1 : 0, miniatura: '', creada: dias(-i * 3) + 'T10:00:00Z', modificada: dias(-i) + 'T10:00:00Z' };
+  });
+  var cultos = [
+    { id: 900, titulo: 'Culto dominical · ' + dias(4), fecha: dias(4), tipo: 'Culto dominical', notas: 'Predica: pastor', items: [{ cancion: 432, tonalidad: 'Mib', nota: 'Solo estrofas 1 y 3' }, { cancion: 440, tonalidad: '', nota: '' }, { cancion: 437, tonalidad: '', nota: '' }], creadoPor: 'Gerson', puedeBorrar: true },
+    { id: 901, titulo: 'Culto de oración', fecha: dias(7), tipo: 'Culto de oración', notas: '', items: [{ cancion: 441, tonalidad: '', nota: '' }], creadoPor: 'Gerson', puedeBorrar: true },
+    { id: 902, titulo: 'Culto dominical', fecha: dias(-3), tipo: 'Culto dominical', notas: '', items: [{ cancion: 437, tonalidad: '', nota: '' }, { cancion: 436, tonalidad: '', nota: '' }], creadoPor: 'Gerson', puedeBorrar: true },
+    { id: 903, titulo: 'Culto dominical', fecha: dias(-120), tipo: 'Culto dominical', notas: '', items: [{ cancion: 434, tonalidad: '', nota: '' }], creadoPor: 'Gerson', puedeBorrar: true }
+  ];
+  function detalleCancion(c) {
+    return Object.assign({}, c, {
+      notas: c.id === 432 ? 'Empezar suave, coro entra en la segunda estrofa.' : '',
+      partituras: [{ id: 1, label: 'Himnario', url: 'partitura.png', tipo: 'imagen', archivo: 'partitura.png', miniatura: '' }],
+      audios: c.audios ? [{ id: 2, nombre: 'Ensayo voces', descripcion: 'Jueves', url: '#', archivo: 'ensayo.mp3', duracion: '3:12' }] : [],
+      youtube: c.youtube ? [{ url: 'https://youtu.be/dQw4w9WgXcQ', label: 'Coro', videoId: 'dQw4w9WgXcQ' }] : [],
+      subidaPor: 'Gerson', puedeBorrar: true
+    });
+  }
+  function detalleCulto(c) {
+    return Object.assign({}, c, { items: c.items.map(function (it) {
+      var s = canciones.filter(function (x) { return x.id === it.cancion; })[0];
+      return Object.assign({}, it, { datos: { titulo: s.titulo, numero: s.numero, tonalidad: s.tonalidad, letra: s.letra, partituras: detalleCancion(s).partituras } });
+    }) });
+  }
+  var real = window.fetch;
+  window.fetch = function (url, opts) {
+    var m = String(url).match(/^\/api\/(.*)$/);
+    if (!m) { return real.apply(this, arguments); }
+    var ruta = m[1], datos = {};
+    var mc;
+    if (ruta === 'canciones') { datos = canciones; }
+    else if ((mc = ruta.match(/^canciones\/(\d+)$/))) { datos = detalleCancion(canciones.filter(function (c) { return c.id === +mc[1]; })[0]); }
+    else if (ruta === 'cultos' && (!opts || !opts.method || opts.method === 'GET')) { datos = cultos; }
+    else if ((mc = ruta.match(/^cultos\/(\d+)$/))) { datos = detalleCulto(cultos.filter(function (c) { return c.id === +mc[1]; })[0]); }
+    else if (ruta === 'ajustes') { datos = { temaDefecto: 'claro', googleClientId: '', dominio: '', emails: ['ana@example.com'], miembros: [{ email: 'ana@example.com', nombre: '', haEntrado: false, enLista: true }], origen: location.origin }; }
+    else { datos = { ok: true }; }
+    return Promise.resolve(new Response(JSON.stringify(datos), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+  };
+})();
+</script>
+<script src="../pieb-cancionero/assets/cancionero.js?v=096"></script>
+<script src="../pieb-cancionero/assets/visor.js?v=096"></script>
+<script src="../pieb-cancionero/assets/cultos.js?v=096"></script>
+</body>
+</html>

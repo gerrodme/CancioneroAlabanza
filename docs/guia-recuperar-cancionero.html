@@ -1,0 +1,270 @@
+<title>Recuperar el Cancionero</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: una sola columna de pasos numerados; cada paso dice en qué web ocurre, la ruta exacta y cómo saber que salió bien. */
+:root {
+  --bg: #eef0f5;
+  --card: #ffffff;
+  --ink: #16203a;
+  --muted: #5b6480;
+  --line: #dfe3ec;
+  --navy: #192e59;
+  --sky: #6f9abf;
+  --old: #8a5a12;
+  --old-bg: #fbf1df;
+  --new: #1d6b4a;
+  --new-bg: #e2f3ea;
+  --code-bg: #f3f5f9;
+  --font-display: "Bricolage Grotesque", "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Figtree", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1322; --card: #172036; --ink: #e9edf6; --muted: #a2abc4; --line: #2b3652; --navy: #9cbbe0; --sky: #6f9abf;
+    --old: #f0c27a; --old-bg: #3a2c14; --new: #8fdcb6; --new-bg: #163628; --code-bg: #1e2942; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1322; --card: #172036; --ink: #e9edf6; --muted: #a2abc4; --line: #2b3652; --navy: #9cbbe0; --sky: #6f9abf;
+  --old: #f0c27a; --old-bg: #3a2c14; --new: #8fdcb6; --new-bg: #163628; --code-bg: #1e2942; color-scheme: dark;
+}
+
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.55; }
+.pagina { max-width: 860px; margin: 0 auto; padding-block: 32px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 28px; }
+
+/* cabecera */
+.cab { display: grid; gap: 14px; }
+.kicker { margin: 0; color: var(--sky); font-size: 13px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+h1 { margin: 0; font-family: var(--font-display); font-size: clamp(34px, 6vw, 56px); font-weight: 800; line-height: 1; letter-spacing: -0.035em; text-wrap: balance; }
+.cab p { margin: 0; max-width: 60ch; color: var(--muted); font-size: 17px; }
+
+/* viaje: web antigua → copia → web nueva */
+.viaje { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; gap: 10px; padding: 18px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); }
+.parada { display: grid; justify-items: center; gap: 6px; text-align: center; font-size: 14px; font-weight: 700; min-width: 0; }
+.parada small { color: var(--muted); font-weight: 500; font-size: 12.5px; }
+.parada .ico { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 12px; }
+.parada .ico svg { width: 24px; height: 24px; fill: currentColor; }
+.ico.old { background: var(--old-bg); color: var(--old); }
+.ico.zip { background: var(--code-bg); color: var(--navy); }
+.ico.new { background: var(--new-bg); color: var(--new); }
+.flecha { color: var(--muted); font-size: 22px; }
+@media (max-width: 520px) {
+  .viaje { grid-template-columns: 1fr; }
+  .flecha { justify-self: center; transform: rotate(90deg); }
+}
+
+/* progreso */
+.progreso { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--muted); font-weight: 600; }
+.progreso .barra { flex: 1; height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.progreso .barra i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--new); transition: width .3s; }
+
+/* pasos */
+.pasos { display: grid; gap: 16px; margin: 0; padding: 0; list-style: none; }
+.paso { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 16px; padding: 20px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); transition: opacity .2s, border-color .2s; }
+.paso.hecho { opacity: .62; border-color: var(--new); }
+.num { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 14px; background: var(--navy); color: var(--card); font-family: var(--font-display); font-size: 28px; font-weight: 800; }
+.paso.hecho .num { background: var(--new); }
+.cuerpo { display: grid; gap: 10px; min-width: 0; }
+.fila { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; justify-content: space-between; }
+h2 { margin: 0; font-size: 21px; font-weight: 800; letter-spacing: -0.02em; text-wrap: balance; }
+.donde { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 800; letter-spacing: .02em; }
+.donde.old { background: var(--old-bg); color: var(--old); }
+.donde.new { background: var(--new-bg); color: var(--new); }
+.ruta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 0; padding: 0; list-style: none; font-size: 14px; }
+.ruta li { padding: 3px 9px; border-radius: 6px; background: var(--code-bg); font-weight: 600; }
+.ruta li + li::before { content: "›"; margin: 0 6px 0 -2px; color: var(--muted); font-weight: 400; }
+.cuerpo p { margin: 0; max-width: 62ch; }
+.cuerpo ul.puntos { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.ok { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; background: var(--new-bg); color: var(--new); font-size: 14.5px; font-weight: 600; }
+.ok svg { width: 18px; height: 18px; flex: 0 0 auto; margin-top: 2px; fill: currentColor; }
+.nota { color: var(--muted); font-size: 14px; }
+
+/* código copiable */
+.copiar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+code { padding: 3px 8px; border-radius: 6px; background: var(--code-bg); font-family: var(--font-mono); font-size: 14.5px; overflow-wrap: anywhere; }
+.btn { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink); font: 700 13px var(--font-body); cursor: pointer; }
+.btn:hover { border-color: var(--navy); }
+.btn:focus-visible, .marca input:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+
+/* datos del correo */
+.datos { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; margin: 0; padding: 12px 14px; border-radius: 10px; background: var(--code-bg); font-size: 14.5px; }
+.datos dt { color: var(--muted); font-weight: 600; }
+.datos dd { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
+
+/* marca de hecho */
+.marca { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--muted); cursor: pointer; user-select: none; }
+.marca input { width: 20px; height: 20px; margin: 0; accent-color: var(--new); }
+
+/* final */
+.fin { padding: 22px; border-radius: 16px; background: var(--navy); color: var(--card); display: grid; gap: 8px; }
+.fin h2 { color: var(--card); }
+.fin p { margin: 0; max-width: 62ch; opacity: .9; }
+
+@media (max-width: 520px) {
+  .paso { grid-template-columns: 1fr; padding: 16px; }
+  .num { width: 44px; height: 44px; font-size: 22px; border-radius: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<main class="pagina">
+  <header class="cab">
+    <p class="kicker">Tu iglesia · Adoración y culto</p>
+    <h1>Recuperar el Cancionero en un WordPress nuevo</h1>
+    <p>Siete pasos para llevar canciones, partituras, audios, cultos y equipo a una web nueva. El resto del WordPress no hace falta.</p>
+  </header>
+
+  <section class="viaje" aria-label="El recorrido">
+    <div class="parada"><span class="ico old"><svg viewBox="0 0 24 24"><path d="M3 4h18v13H3V4zm2 2v9h14V6H5zm3 13h8v2H8v-2z"/></svg></span>Web actual<small>tu web</small></div>
+    <span class="flecha" aria-hidden="true">→</span>
+    <div class="parada"><span class="ico zip"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6V2zm8 1.5V8h4.5L14 3.5zM10 4v2h2V4h-2zm0 3v2h2V7h-2zm0 3v2h2v-2h-2zm-1 4v4h4v-4H9z"/></svg></span>Copia .zip<small>en tu ordenador</small></div>
+    <span class="flecha" aria-hidden="true">→</span>
+    <div class="parada"><span class="ico new"><svg viewBox="0 0 24 24"><path d="M3 4h18v13H3V4zm2 2v9h14V6H5zm3 13h8v2H8v-2zm3-11h2v2h2v2h-2v2h-2v-2H9v-2h2V8z"/></svg></span>WordPress nuevo<small>recién instalado</small></div>
+  </section>
+
+  <div class="progreso" aria-live="polite"><span id="contador">0 de 7 hechos</span><span class="barra"><i id="barra"></i></span></div>
+
+  <ol class="pasos">
+    <li class="paso" data-paso="1">
+      <span class="num" aria-hidden="true">1</span>
+      <div class="cuerpo">
+        <div class="fila"><h2>Descarga una copia</h2><span class="donde old">Web actual</span></div>
+        <ul class="ruta"><li>Cancionero</li><li>Menú de tu cuenta</li><li>Copias de seguridad</li><li>Descargar copia</li></ul>
+        <p>Deja marcadas las cuatro opciones: canciones, partituras y audios, cultos, y ajustes.</p>
+        <div class="ok"><svg viewBox="0 0 24 24"><path d="M9.5 16.2 5.3 12l-1.4 1.4 5.6 5.6L20.1 8.4 18.7 7z"/></svg>Se descarga <strong>cancionero-copia-AAAA-MM-DD.zip</strong> (unos 13 MB).</div>
+        <label class="marca"><input type="checkbox" id="p1"> Hecho</label>
+      </div>
+    </li>
+
+    <li class="paso" data-paso="2">
+      <span class="num" aria-hidden="true">2</span>
+      <div class="cuerpo">
+        <div class="fila"><h2>Instala el plugin</h2><span class="donde new">WordPress nuevo</span></div>
+        <ul class="ruta"><li>Plugins</li><li>Añadir nuevo</li><li>Subir plugin</li></ul>
+        <p>Elige el archivo del plugin, pulsa <strong>Instalar ahora</strong> y después <strong>Activar</strong>.</p>
+        <div class="copiar"><code id="c-zip">dist\pieb-cancionero.zip</code><button class="btn" type="button" data-copia="c-zip">Copiar ruta</button></div>
+        <div class="ok"><svg viewBox="0 0 24 24"><path d="M9.5 16.2 5.3 12l-1.4 1.4 5.6 5.6L20.1 8.4 18.7 7z"/></svg>En la lista de plugins aparece <strong>PIEB Cancionero</strong> activado, con la versión más reciente.</div>
+        <label class="marca"><input type="checkbox" id="p2"> Hecho</label>
+      </div>
+    </li>
+
+    <li class="paso" data-paso="3">
+      <span class="num" aria-hidden="true">3</span>
+      <div class="cuerpo">
+        <div class="fila"><h2>Activa los enlaces permanentes</h2><span class="donde new">WordPress nuevo</span></div>
+        <ul class="ruta"><li>Ajustes</li><li>Enlaces permanentes</li></ul>
+        <p>Elige <strong>Nombre de la entrada</strong> y pulsa <strong>Guardar cambios</strong>. Así las direcciones quedan limpias.</p>
+        <label class="marca"><input type="checkbox" id="p3"> Hecho</label>
+      </div>
+    </li>
+
+    <li class="paso" data-paso="4">
+      <span class="num" aria-hidden="true">4</span>
+      <div class="cuerpo">
+        <div class="fila"><h2>Crea la página del cancionero</h2><span class="donde new">WordPress nuevo</span></div>
+        <ul class="ruta"><li>Páginas</li><li>Añadir</li></ul>
+        <ul class="puntos">
+          <li>Título: <strong>Cancionero</strong></li>
+          <li>Añade un bloque <strong>Código corto</strong> (búscalo como «shortcode»; su icono es <strong>[/]</strong>) y escribe dentro:</li>
+        </ul>
+        <div class="copiar"><code id="c-sc">[cancionero]</code><button class="btn" type="button" data-copia="c-sc">Copiar</button></div>
+        <p>Pulsa <strong>Publicar</strong>.</p>
+        <p class="nota">No uses el bloque <strong>Código</strong> ni <strong>Preformateado</strong>: muestran <code>[cancionero]</code> como texto en un recuadro gris. Si te pasa, borra ese bloque y escribe <code>[cancionero]</code> en un párrafo normal: también funciona.</p>
+        <div class="ok"><svg viewBox="0 0 24 24"><path d="M9.5 16.2 5.3 12l-1.4 1.4 5.6 5.6L20.1 8.4 18.7 7z"/></svg>Al abrir la página ves el cancionero vacío, con su menú a la izquierda.</div>
+        <label class="marca"><input type="checkbox" id="p4"> Hecho</label>
+      </div>
+    </li>
+
+    <li class="paso" data-paso="5">
+      <span class="num" aria-hidden="true">5</span>
+      <div class="cuerpo">
+        <div class="fila"><h2>Restaura la copia</h2><span class="donde new">WordPress nuevo</span></div>
+        <ul class="ruta"><li>Página Cancionero</li><li>Menú de tu cuenta</li><li>Copias de seguridad</li><li>Restaurar desde una copia</li></ul>
+        <ul class="puntos">
+          <li>Elige el <strong>.zip</strong> del paso 1. Todo aparece como <strong>Nueva</strong>.</li>
+          <li>Pulsa <strong>Restaurar 48 canciones, 3 cultos, los ajustes</strong> y confirma.</li>
+          <li>Espera a que termine el registro: las partituras se suben una a una.</li>
+        </ul>
+        <div class="ok"><svg viewBox="0 0 24 24"><path d="M9.5 16.2 5.3 12l-1.4 1.4 5.6 5.6L20.1 8.4 18.7 7z"/></svg>Sale «Copia restaurada». Pulsa <strong>Ver el cancionero restaurado</strong> y aparecen tus canciones y cultos.</div>
+        <p class="nota">Hazlo con tu sesión de administrador abierta: solo los administradores ven «Copias de seguridad».</p>
+        <label class="marca"><input type="checkbox" id="p5"> Hecho</label>
+      </div>
+    </li>
+
+    <li class="paso" data-paso="6">
+      <span class="num" aria-hidden="true">6</span>
+      <div class="cuerpo">
+        <div class="fila"><h2>Configura el correo</h2><span class="donde new">WordPress nuevo</span></div>
+        <p>Sin esto no llegan los enlaces para entrar. Instala el plugin <strong>FluentSMTP</strong> y crea una conexión <strong>Other SMTP</strong>:</p>
+        <dl class="datos">
+          <dt>Servidor</dt><dd>smtp.gmail.com</dd>
+          <dt>Puerto</dt><dd>587</dd>
+          <dt>Cifrado</dt><dd>TLS</dd>
+          <dt>Usuario</dt><dd>la cuenta de Gmail del grupo</dd>
+          <dt>Contraseña</dt><dd>su contraseña de aplicación</dd>
+        </dl>
+        <ul class="ruta"><li>Cancionero</li><li>Ajustes y equipo</li><li>Enviarme un correo de prueba</li></ul>
+        <div class="ok"><svg viewBox="0 0 24 24"><path d="M9.5 16.2 5.3 12l-1.4 1.4 5.6 5.6L20.1 8.4 18.7 7z"/></svg>Te llega el correo de prueba. La lista del equipo ya viene en la copia: cada persona entra con su enlace y su cuenta se crea sola.</div>
+        <label class="marca"><input type="checkbox" id="p6"> Hecho</label>
+      </div>
+    </li>
+
+    <li class="paso" data-paso="7">
+      <span class="num" aria-hidden="true">7</span>
+      <div class="cuerpo">
+        <div class="fila"><h2>Elige el aspecto</h2><span class="donde new">WordPress nuevo</span></div>
+        <ul class="ruta"><li>Ajustes y equipo</li><li>Tema por defecto</li></ul>
+        <p>«Como la web» toma el color del tema de WordPress que tengas instalado, así que puede no salir el azul marino de antes. Si no te convence, elige <strong>Pulso</strong> o cualquier otro.</p>
+        <label class="marca"><input type="checkbox" id="p7"> Hecho</label>
+      </div>
+    </li>
+  </ol>
+
+  <section class="fin">
+    <h2>¿Algo no sale como aquí?</h2>
+    <p>Apunta en qué paso estabas y qué mensaje apareció. El registro de la restauración (paso 5) dice exactamente qué canción o culto falló y por qué.</p>
+  </section>
+</main>
+
+<script>
+(function () {
+  var CLAVE = 'guia-cancionero-hechos';
+  var guardado = {};
+  try { guardado = JSON.parse(localStorage.getItem(CLAVE) || '{}') || {}; } catch (e) { guardado = {}; }
+  var casillas = Array.prototype.slice.call(document.querySelectorAll('.marca input'));
+  function pintar() {
+    var n = 0;
+    casillas.forEach(function (c) {
+      var paso = c.closest('.paso');
+      paso.classList.toggle('hecho', c.checked);
+      if (c.checked) { n++; }
+    });
+    document.getElementById('contador').textContent = n + ' de ' + casillas.length + ' hechos';
+    document.getElementById('barra').style.width = (n / casillas.length * 100) + '%';
+  }
+  casillas.forEach(function (c) {
+    c.checked = !!guardado[c.id];
+    c.addEventListener('change', function () {
+      guardado[c.id] = c.checked;
+      try { localStorage.setItem(CLAVE, JSON.stringify(guardado)); } catch (e) { /* sin almacenamiento: solo dura esta visita */ }
+      pintar();
+    });
+  });
+  pintar();
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-copia]'), function (b) {
+    b.addEventListener('click', function () {
+      var el = document.getElementById(b.getAttribute('data-copia'));
+      var texto = el.textContent, original = b.textContent;
+      var hecho = function () { b.textContent = 'Copiado'; setTimeout(function () { b.textContent = original; }, 1500); };
+      var seleccionar = function () { var r = document.createRange(); r.selectNodeContents(el); var s = getSelection(); s.removeAllRanges(); s.addRange(r); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(texto).then(hecho, seleccionar);
+      } else { seleccionar(); }
+    });
+  });
+})();
+</script>
