@@ -1557,3 +1557,35 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
   [data-pcan-theme] .pcan-form-letra .pcan-textarea { flex: 1 1 auto; min-height: 240px; }
   [data-pcan-theme] .pcan-form-cancion .pcan-fieldset { padding: 14px 16px; }
 }
+
+/* ================================================================== ficha de canción adaptable
+ * Móvil: una columna (cabecera, acciones, uso, partitura y el resto); la columna lateral se disuelve.
+ * Pantallas anchas: la partitura a la izquierda desde arriba y a la altura de la pantalla; a la derecha
+ * el título, las acciones, el uso, los audios, la letra y lo demás.
+ */
+.pcan-det-grid { gap: 16px; }
+.pcan-det-grid .pcan-det-hero, .pcan-det-grid .pcan-det-actions, .pcan-det-grid .pcan-ficha-extra { margin-bottom: 0; }
+.pcan-det-grid .pcan-det-hero { order: 1; }
+.pcan-det-grid .pcan-det-actions { order: 2; }
+.pcan-det-grid .pcan-ficha-extra { order: 3; }
+.pcan-det-grid .pcan-det-main { order: 4; }
+.pcan-det-side > :not(.pcan-det-hero):not(.pcan-det-actions):not(.pcan-ficha-extra) { order: 5; }
+@container det (max-width: 699px) {
+  .pcan-det-grid .pcan-det-side { display: contents; }
+}
+@container det (min-width: 700px) {
+  .pcan-det-grid { grid-template-columns: minmax(0, 1.25fr) minmax(280px, 1fr); align-items: start; column-gap: 24px; }
+  .pcan-det-grid .pcan-det-side { position: static; gap: 16px; order: 5; }
+  .pcan-det-grid .pcan-det-hero { gap: 4px; }
+  [data-pcan-theme] .pcan-det-side .pcan-det-titulo { font-size: clamp(26px, 3.4cqi, 44px); }
+  /* La partitura llena el alto disponible para no tener que bajar */
+  .pcan-det-main .pcan-visor-marco { height: max(380px, calc(100dvh - 230px)); max-height: 1100px; }
+  .pcan-det-side .pcan-uso { flex-direction: row; align-items: center; }
+  .pcan-det-side .pcan-det-actions { flex-wrap: nowrap; }
+  .pcan-det-side .pcan-det-actions .pcan-btn-lg { flex: 1 1 auto; min-width: 0; }
+}
+/* Columnas justas (tableta): «Editar» solo con icono y controles del visor más estrechos */
+@container det (min-width: 700px) and (max-width: 1099px) {
+  .pcan-det-side .pcan-det-actions .pcan-btn-label { display: none; }
+  .pcan-det-main .pcan-visor-info { min-width: 64px; }
+}

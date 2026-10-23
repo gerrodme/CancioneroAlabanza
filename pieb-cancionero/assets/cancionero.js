@@ -1227,7 +1227,10 @@
     var principal = h('div', { class: 'pcan-det-main' },
       seccion('Partitura', 'partitura', vistaPartituras(c, function (v) { visor = v; })));
 
+    // En pantallas anchas la partitura ocupa la columna izquierda desde arriba y todo lo demás va a la derecha;
+    // en móvil la columna lateral se «disuelve» y se mantiene el orden cabecera, acciones, uso, partitura, resto.
     var lateral = h('div', { class: 'pcan-det-side' },
+      cabecera, acciones, extra,
       faltan.length ? h('div', { class: 'pcan-faltan' },
         h('span', { text: 'Completa la ficha:' }),
         faltan.map(function (f) { return h('a', { class: 'pcan-chip is-dashed', href: '#/editar/' + c.id }, icono('mas'), f.texto); })) : null,
@@ -1239,7 +1242,7 @@
 
     abrirPanel([
       cabeceraPanel(h('span', { class: 'pcan-panel-crumb', text: 'Canción' })),
-      h('div', { class: 'pcan-panel-body' }, cabecera, acciones, extra, h('div', { class: 'pcan-det-grid' }, principal, lateral))
+      h('div', { class: 'pcan-panel-body' }, h('div', { class: 'pcan-det-grid' }, principal, lateral))
     ], c.titulo, { vista: 'canciones', id: c.id });
 
     alCerrarPanel.push(function () { if (visor) { visor.destruir(); visor = null; } });
