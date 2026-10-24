@@ -368,3 +368,16 @@ function pieb_can_mover_auxiliar($dir_origen, $nombre, $privada) {
     }
     return $nuevo;
 }
+
+// Las páginas públicas de adjuntos de WordPress (?attachment_id=N) mostrarían el título y el nombre de cada partitura:
+// para los archivos del cancionero responden 404.
+add_action('template_redirect', function () {
+    if (is_attachment() && pieb_can_es_archivo_cancionero(get_queried_object_id())) {
+        global $wp_query;
+        $wp_query->set_404();
+        status_header(404);
+        nocache_headers();
+        include get_404_template();
+        exit;
+    }
+});
