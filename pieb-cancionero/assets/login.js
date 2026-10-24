@@ -1,4 +1,4 @@
-/* PIEB Cancionero · pantalla de entrada: enlace por correo y, si está configurado, Google */
+/* Cancionero · pantalla de entrada: enlace por correo y, si está configurado, Google */
 (function () {
   'use strict';
 

@@ -27,7 +27,7 @@ def main():
                 # Dentro del zip todo cuelga de «pieb-cancionero/», como espera WordPress.
                 z.write(ruta, os.path.relpath(ruta, RAIZ).replace(os.sep, '/'))
                 archivos += 1
-    print('PIEB Cancionero %s -> %s (%d archivos, %d KB)' % (version(), SALIDA, archivos, os.path.getsize(SALIDA) // 1024))
+    print('Cancionero %s -> %s (%d archivos, %d KB)' % (version(), SALIDA, archivos, os.path.getsize(SALIDA) // 1024))
 
 
 if __name__ == '__main__':

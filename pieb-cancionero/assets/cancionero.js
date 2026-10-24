@@ -1,4 +1,4 @@
-/* PIEB Cancionero · aplicación del equipo de Adoración y culto */
+/* Cancionero · aplicación principal */
 (function () {
   'use strict';
 
@@ -513,7 +513,7 @@
     var lateral = h('aside', { class: 'pcan-side', 'aria-label': 'Navegación del cancionero' },
       h('a', { class: 'pcan-brand', href: '#/' },
         h('span', { class: 'pcan-brand-logo', 'aria-hidden': 'true' }, icono('nota')),
-        h('span', { class: 'pcan-brand-text' }, h('strong', { text: 'Cancionero' }), h('small', { text: CFG.sitio }))),
+        h('span', { class: 'pcan-brand-text' }, h('strong', { text: CFG.nombre || 'Cancionero' }), h('small', { text: CFG.sitio }))),
       h('button', { type: 'button', class: 'pcan-side-search', onclick: function () { abrirPaleta(); } },
         icono('buscar'), h('span', { text: 'Buscar' }), h('kbd', { text: atajo() })),
       ui.sideNav = h('nav', { class: 'pcan-side-nav', 'aria-label': 'Secciones' }, VISTAS.map(function (v) {
@@ -577,7 +577,7 @@
           h('label', { class: 'pcan-search' }, icono('filtro'), ui.buscador, ui.contador),
           ui.orden,
           h('a', { class: 'pcan-btn pcan-btn-sec pcan-lote-btn', href: '#/subir', title: 'Subir varias canciones de golpe', 'aria-label': 'Subida múltiple' }, icono('subir'), h('span', { class: 'pcan-lote-btn-txt', text: 'Subida múltiple' })),
-          CFG.admin ? (ui.btnMarcar = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sec pcan-lote-btn pcan-lote-btn-borrar', title: 'Elegir canciones para borrarlas', 'aria-label': 'Borrar', 'aria-pressed': 'false', onclick: function () { alternarMarcado(); } }, icono('borrar'), h('span', { class: 'pcan-lote-btn-txt', text: 'Borrar' }))) : null),
+          CFG.gestionar ? (ui.btnMarcar = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sec pcan-lote-btn pcan-lote-btn-borrar', title: 'Elegir canciones para borrarlas', 'aria-label': 'Borrar', 'aria-pressed': 'false', onclick: function () { alternarMarcado(); } }, icono('borrar'), h('span', { class: 'pcan-lote-btn-txt', text: 'Borrar' }))) : null),
         ui.chips,
         ui.thead,
         ui.lista,
@@ -1997,6 +1997,9 @@
   }
 
   function pintarAjustes(a) {
+    var fNombre = h('input', { type: 'text', class: 'pcan-input', value: a.nombre || '', maxlength: '40', placeholder: 'Cancionero', spellcheck: 'false' });
+    var fAdmins = h('textarea', { class: 'pcan-input pcan-textarea', rows: '3', placeholder: 'Un correo por línea', spellcheck: 'false' });
+    fAdmins.value = (a.administradores || []).join('\n');
     var fTema = h('select', { class: 'pcan-input' }, Object.keys(CFG.temas).map(function (k) { return h('option', { value: k, text: CFG.temas[k] }); }));
     fTema.value = a.temaDefecto;
     var fClient = h('input', { type: 'text', class: 'pcan-input', value: a.googleClientId, placeholder: '1234567890-abc….apps.googleusercontent.com', spellcheck: 'false' });
@@ -2011,6 +2014,7 @@
       return h('li', null,
         h('span', { class: 'pcan-avatar is-sm', 'aria-hidden': 'true' }, iniciales(m.nombre || m.email)),
         h('span', { class: 'pcan-miembro-main' }, h('strong', { text: m.nombre || m.email }), m.nombre ? h('span', { text: m.email }) : null),
+        m.esGestor && !m.esAdmin ? h('span', { class: 'pcan-estado is-ok', title: 'Puede cambiar los ajustes, gestionar el equipo y borrar canciones', text: 'Administrador' }) : null,
         m.esAdmin
           ? h('span', { class: 'pcan-estado is-warn', title: 'Las cuentas de administración no reciben enlaces por correo', text: 'Administración · entra con contraseña' })
           : h('span', { class: 'pcan-estado' + (m.haEntrado ? ' is-ok' : ''), text: m.haEntrado ? 'Ha entrado' : m.enLista ? 'Pendiente' : 'Fuera de la lista' }));
@@ -2078,8 +2082,12 @@
 
     var form = h('form', { class: 'pcan-form', novalidate: true },
       h('fieldset', { class: 'pcan-fieldset' },
+        h('legend', { text: 'General' }),
+        campo('Nombre del cancionero', fNombre, 'Se muestra arriba a la izquierda y en la pantalla de acceso. Por ejemplo: «Cancionero de la iglesia».')),
+      h('fieldset', { class: 'pcan-fieldset' },
         h('legend', { text: 'Equipo' }),
         campo('Correos con acceso', fEmails, 'Cada persona entra con un enlace que recibe en ese correo (o con Google, si lo configuras). Quien sale de la lista pierde el acceso.'),
+        campo('Administradores del cancionero', fAdmins, 'Pueden cambiar los ajustes, gestionar el equipo y borrar canciones, sin ser administradores de la web. Entran como el resto del equipo (enlace por correo o Google).'),
         campo('Dominio permitido', fDominio, 'Opcional: cualquier cuenta de este dominio de Google Workspace podrá entrar.'),
         miembros,
         hayAdmin ? h('p', { class: 'pcan-aviso-admin' }, icono('aviso'), 'Los correos marcados son de cuentas de administración: no reciben enlaces por seguridad y entran con usuario y contraseña. Para probar el enlace, usa otro correo.') : null,
@@ -2118,6 +2126,8 @@
       e.preventDefault();
       guardar.disabled = true;
       api('ajustes', { json: {
+        nombre: fNombre.value.trim(),
+        administradores: fAdmins.value.split(/[\s,;]+/).filter(Boolean),
         temaDefecto: fTema.value,
         googleClientId: fClient.value.trim(),
         dominio: fDominio.value.trim(),
@@ -2165,7 +2175,7 @@
     return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
   }
 
-  var LEEME = 'Copia de seguridad del Cancionero (plugin PIEB Cancionero).\n\n' +
+  var LEEME = 'Copia de seguridad del Cancionero (plugin Cancionero).\n\n' +
     'copia.json  canciones, cultos y ajustes\n' +
     'archivos/   partituras, audios y partituras editables de cada canción\n\n' +
     'Para restaurarla: instala el plugin en WordPress, entra como administrador en el cancionero\n' +

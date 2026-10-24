@@ -1,6 +1,6 @@
 # Contexto del proyecto (para retomar el trabajo)
 
-Plugin de WordPress **PIEB Cancionero**: herramienta para que cualquier grupo gestione sus partituras. Autor: Gerson
+Plugin de WordPress **Cancionero**: herramienta para que cualquier grupo gestione sus partituras. Autor: Gerson
 Rodrigo Menéndez. Léase junto con [README.md](README.md) y [docs/arquitectura.md](docs/arquitectura.md).
 Idioma de la interfaz, de los comentarios del código y de los mensajes de commit: **español**.
 
@@ -11,6 +11,13 @@ Idioma de la interfaz, de los comentarios del código y de los mensajes de commi
   GPL-2.0-or-later, documentación CC BY-SA 4.0.
 - El contenido vive en cada WordPress, no en el repo. La URL de la instalación piloto se pregunta al usuario cuando
   haga falta; si está tras un acceso protegido, el usuario inicia sesión él mismo (nunca teclear credenciales).
+
+## Nombre
+
+El producto se llama simplemente **Cancionero** y cada instalación puede ponerle su propio nombre (Ajustes y equipo →
+General; opción `nombre`). El prefijo interno `pieb` (`pieb_cancion`, `_pieb_*`, `pieb/v1`, `pieb_can_*`, carpeta
+`pieb-cancionero/`) es un identificador técnico heredado: **no se renombra** para no romper datos ya guardados. Una
+renombrada completa exigiría una migración de datos.
 
 ## Estructura rápida
 

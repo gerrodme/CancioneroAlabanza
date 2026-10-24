@@ -1,6 +1,6 @@
 # Arquitectura
 
-Resumen técnico del plugin **PIEB Cancionero** para quien llegue nuevo al código.
+Resumen técnico del plugin **Cancionero** para quien llegue nuevo al código.
 
 ## Piezas
 
@@ -25,8 +25,15 @@ La interfaz es una aplicación de una sola página dentro de la página de WordP
 ## Modelo de datos
 
 - Tipos de contenido: `pieb_cancion` (canción), `pieb_culto` (culto). Taxonomía de etiquetas: `pieb_etiqueta`.
-- Rol `equipo_adoracion` («Equipo de adoración»). Capacidades: `pieb_cancionero_acceso` (ver, subir y editar canciones)
-  y `pieb_cancionero_gestionar` (borrar cualquiera, ajustes y copias de seguridad).
+- Roles: `equipo_adoracion` («Equipo de adoración»: capacidad `pieb_cancionero_acceso`, ver, subir y editar canciones) y
+  `administrador_cancionero` («Administrador del cancionero»: acceso + `pieb_cancionero_gestionar`, es decir, ajustes,
+  equipo y borrar cualquier canción). Los administradores y editores de WordPress tienen ambas capacidades; las
+  copias de seguridad quedan reservadas a quien puede `manage_options`. Las listas de correos «equipo» y
+  «administradores» están en los ajustes: al entrar (Google o enlace) o al guardar los ajustes, el rol de administrador
+  se concede o se retira según esa lista (`pieb_can_sincronizar_administrador`).
+- **Prefijo interno `pieb`:** las claves internas (tipos `pieb_cancion`, metadatos `_pieb_*`, ruta REST `pieb/v1`,
+  funciones `pieb_can_*`) conservan el prefijo histórico para no romper los datos de instalaciones existentes. Es solo un
+  identificador técnico; el nombre visible del producto es «Cancionero».
 - Metadatos de **canción** (en `post_meta`):
 
   | Clave | Contenido |
@@ -43,7 +50,8 @@ La interfaz es una aplicación de una sola página dentro de la página de WordP
 
 - Metadatos de **culto**: `_pieb_fecha`, `_pieb_tipo`, `_pieb_notas`, `_pieb_items` (lista de
   `{cancion, tonalidad, nota}` en orden).
-- Opciones de WordPress: `pieb_can_ajustes` (ajustes), `pieb_can_version`, `pieb_can_migrado`.
+- Opciones de WordPress: `pieb_can_ajustes` (ajustes: `nombre`, `tema_defecto`, `google_client_id`, `emails`,
+  `administradores`, `dominio`), `pieb_can_version`, `pieb_can_migrado`.
 
 ## API REST (`/wp-json/pieb/v1/`)
 

@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name: PIEB Cancionero
- * Description: Cancionero del equipo de Adoración y culto: canciones con partitura, letra, audios y YouTube, setlists de cultos, visor para tableta, temas propios y acceso con Google. Shortcode [cancionero].
- * Version: 1.3.3
+ * Plugin Name: Cancionero
+ * Description: Cancionero para equipos de música y alabanza: canciones con partitura, letra, audios y YouTube, setlists de cultos, visor para tableta, temas propios y acceso con Google. Shortcode [cancionero].
+ * Version: 1.4.0
  * Author: Gerson Rodrigo Menéndez
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PIEB_CAN_VERSION', '1.3.3');
+define('PIEB_CAN_VERSION', '1.4.0');
 define('PIEB_CAN_FILE', __FILE__);
 define('PIEB_CAN_DIR', plugin_dir_path(__FILE__));
 define('PIEB_CAN_URL', plugin_dir_url(__FILE__));
@@ -25,6 +25,7 @@ const PIEB_CAN_CPT  = 'pieb_cancion';
 const PIEB_CAN_CULTO = 'pieb_culto';
 const PIEB_CAN_TAX  = 'pieb_etiqueta';
 const PIEB_CAN_ROLE = 'equipo_adoracion';
+const PIEB_CAN_ROLE_ADMIN = 'administrador_cancionero';
 
 // Capacidades: acceder (ver, subir, editar canciones) y gestionar (borrar cualquiera, administrar).
 const PIEB_CAN_CAP_ACCESO     = 'pieb_cancionero_acceso';
@@ -46,7 +47,7 @@ function pieb_can_registrar_tipos() {
         'labels' => array(
             'name'          => 'Canciones',
             'singular_name' => 'Canción',
-            'menu_name'     => 'Cancionero',
+            'menu_name'     => pieb_can_nombre(),
             'all_items'     => 'Todas las canciones',
             'edit_item'     => 'Editar canción',
             'search_items'  => 'Buscar canciones',
@@ -119,6 +120,17 @@ function pieb_can_instalar_roles() {
         PIEB_CAN_CAP_ACCESO   => true,
     );
 
+    // Administradores del cancionero: gestionan ajustes, equipo y borrado sin ser administradores de WordPress.
+    $caps_admin = $caps_equipo + array(PIEB_CAN_CAP_GESTIONAR => true);
+    $rol_admin = get_role(PIEB_CAN_ROLE_ADMIN);
+    if (!$rol_admin) {
+        add_role(PIEB_CAN_ROLE_ADMIN, 'Administrador del cancionero', $caps_admin);
+    } else {
+        foreach ($caps_admin as $cap => $grant) {
+            $rol_admin->add_cap($cap, $grant);
+        }
+    }
+
     $role = get_role(PIEB_CAN_ROLE);
     if (!$role) {
         add_role(PIEB_CAN_ROLE, 'Equipo de adoración', $caps_equipo);
@@ -147,7 +159,7 @@ add_filter('show_admin_bar', function ($show) {
 
 function pieb_can_es_solo_equipo() {
     $user = wp_get_current_user();
-    return $user && in_array(PIEB_CAN_ROLE, (array) $user->roles, true) && !current_user_can('edit_posts');
+    return $user && (in_array(PIEB_CAN_ROLE, (array) $user->roles, true) || in_array(PIEB_CAN_ROLE_ADMIN, (array) $user->roles, true)) && !current_user_can('edit_posts');
 }
 
 // Shortcode con la aplicación.
@@ -244,6 +256,7 @@ function pieb_can_shortcode() {
         'logoutUrl'  => wp_logout_url(get_permalink()),
         'homeUrl'    => home_url('/'),
         'sitio'      => get_bloginfo('name'),
+        'nombre'     => pieb_can_nombre(),
         'maxUpload'  => (int) wp_max_upload_size(),
         // Límites por tipo y tamaño de cada trozo (por debajo del límite de PHP del servidor).
         'maxPartitura' => PIEB_CAN_MAX_PARTITURA,
@@ -271,7 +284,7 @@ function pieb_can_render_login() {
     $html  = '<div ' . pieb_can_atributos_raiz($tema) . '><div class="pcan-login-card">';
     $html .= '<span class="pcan-login-logo" aria-hidden="true">♪</span>';
     $html .= '<p class="pcan-kicker">' . esc_html(get_bloginfo('name')) . ' · Adoración y culto</p>';
-    $html .= '<h1>Cancionero</h1>';
+    $html .= '<h1>' . esc_html(pieb_can_nombre()) . '</h1>';
 
     // Llegada desde el enlace del correo: se pide un clic para no gastar el enlace con los filtros antispam.
     if ($token) {

@@ -27,15 +27,25 @@ function pieb_can_temas() {
 function pieb_can_ajustes() {
     $guardados = get_option('pieb_can_ajustes', array());
     $ajustes = wp_parse_args(is_array($guardados) ? $guardados : array(), array(
+        'nombre'           => 'Cancionero',
         'tema_defecto'     => 'colores',
         'google_client_id' => '',
         'emails'           => array(),
+        'administradores'  => array(),
         'dominio'          => '',
     ));
+    if (trim((string) $ajustes['nombre']) === '') {
+        $ajustes['nombre'] = 'Cancionero';
+    }
     if (!isset(pieb_can_temas()[$ajustes['tema_defecto']])) {
         $ajustes['tema_defecto'] = 'colores';
     }
     return $ajustes;
+}
+
+/** Nombre del cancionero, configurable en Ajustes (por defecto «Cancionero»). */
+function pieb_can_nombre() {
+    return pieb_can_ajustes()['nombre'];
 }
 
 function pieb_can_tema_usuario() {
@@ -109,9 +119,10 @@ function pieb_can_miembros($ajustes) {
             'enLista'   => true,
             // Las cuentas de administración no reciben enlaces por correo: entran con contraseña.
             'esAdmin'   => $u && user_can($u, 'manage_options'),
+            'esGestor'  => in_array($email, $ajustes['administradores'], true) || ($u && in_array(PIEB_CAN_ROLE_ADMIN, (array) $u->roles, true)),
         );
     }
-    foreach (get_users(array('role' => PIEB_CAN_ROLE)) as $u) {
+    foreach (array_merge(get_users(array('role' => PIEB_CAN_ROLE)), get_users(array('role' => PIEB_CAN_ROLE_ADMIN))) as $u) {
         $email = strtolower($u->user_email);
         $miembros[$email] = array(
             'email'     => $email,
@@ -119,6 +130,7 @@ function pieb_can_miembros($ajustes) {
             'haEntrado' => (bool) (get_user_meta($u->ID, 'pieb_can_google_sub', true) || get_user_meta($u->ID, 'pieb_can_ultimo_acceso', true)),
             'enLista'   => isset($miembros[$email]),
             'esAdmin'   => user_can($u, 'manage_options'),
+            'esGestor'  => in_array($email, $ajustes['administradores'], true) || in_array(PIEB_CAN_ROLE_ADMIN, (array) $u->roles, true),
         );
     }
     ksort($miembros);
@@ -128,6 +140,8 @@ function pieb_can_miembros($ajustes) {
 function pieb_can_rest_ajustes_ver() {
     $ajustes = pieb_can_ajustes();
     return rest_ensure_response(array(
+        'nombre'         => $ajustes['nombre'],
+        'administradores' => $ajustes['administradores'],
         'temaDefecto'    => $ajustes['tema_defecto'],
         'googleClientId' => $ajustes['google_client_id'],
         'dominio'        => $ajustes['dominio'],
@@ -141,6 +155,10 @@ function pieb_can_rest_ajustes_guardar(WP_REST_Request $request) {
     $anterior = pieb_can_ajustes();
     $ajustes = $anterior;
 
+    if ($request->has_param('nombre')) {
+        $nombre = trim(sanitize_text_field((string) $request->get_param('nombre')));
+        $ajustes['nombre'] = $nombre === '' ? 'Cancionero' : mb_substr($nombre, 0, 40);
+    }
     $tema = (string) $request->get_param('temaDefecto');
     if (isset(pieb_can_temas()[$tema])) {
         $ajustes['tema_defecto'] = $tema;
@@ -159,7 +177,21 @@ function pieb_can_rest_ajustes_guardar(WP_REST_Request $request) {
         $ajustes['emails'] = pieb_can_normalizar_emails(implode(' ', (array) $request->get_param('emails')));
     }
 
+    if ($request->has_param('administradores')) {
+        $ajustes['administradores'] = pieb_can_normalizar_emails(implode(' ', (array) $request->get_param('administradores')));
+        // Un administrador siempre tiene acceso: se añade también a la lista del equipo.
+        $ajustes['emails'] = array_values(array_unique(array_merge($ajustes['emails'], $ajustes['administradores'])));
+    }
+
     update_option('pieb_can_ajustes', $ajustes, false);
+
+    // Aplica ya los cambios de administradores a las cuentas existentes.
+    foreach (array_unique(array_merge($anterior['administradores'], $ajustes['administradores'])) as $email) {
+        $u = get_user_by('email', $email);
+        if ($u) {
+            pieb_can_sincronizar_administrador($u, $ajustes);
+        }
+    }
 
     // Quien sale de la lista pierde el acceso (salvo administradores y editores).
     foreach (array_diff($anterior['emails'], $ajustes['emails']) as $email) {

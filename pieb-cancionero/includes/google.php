@@ -43,7 +43,7 @@ function pieb_can_google_verificar($credential, $client_id) {
 }
 
 function pieb_can_email_permitido($email, $ajustes) {
-    if (in_array($email, $ajustes['emails'], true)) {
+    if (in_array($email, $ajustes['emails'], true) || in_array($email, $ajustes['administradores'], true)) {
         return true;
     }
     if ($ajustes['dominio'] && substr($email, -strlen('@' . $ajustes['dominio'])) === '@' . $ajustes['dominio']) {
@@ -98,6 +98,7 @@ function pieb_can_rest_google(WP_REST_Request $request) {
             return new WP_Error('pieb_google', 'No se pudo crear la cuenta: ' . $user_id->get_error_message(), array('status' => 500));
         }
         $user = get_userdata($user_id);
+        pieb_can_sincronizar_administrador($user);
     } else {
         // Las cuentas de administración siguen entrando con contraseña: Google solo da acceso al equipo.
         if (user_can($user, 'manage_options')) {
@@ -111,6 +112,7 @@ function pieb_can_rest_google(WP_REST_Request $request) {
         if (!user_can($user, PIEB_CAN_CAP_ACCESO)) {
             $user->add_role(PIEB_CAN_ROLE);
         }
+        pieb_can_sincronizar_administrador($user);
     }
 
     update_user_meta($user->ID, 'pieb_can_google_sub', $sub);
@@ -235,12 +237,37 @@ function pieb_can_usuario_para_email($email) {
         if (is_wp_error($user_id)) {
             return $user_id;
         }
-        return get_userdata($user_id);
+        $nuevo = get_userdata($user_id);
+        pieb_can_sincronizar_administrador($nuevo);
+        return $nuevo;
     }
     if (!user_can($user, PIEB_CAN_CAP_ACCESO)) {
         $user->add_role(PIEB_CAN_ROLE);
     }
+    pieb_can_sincronizar_administrador($user);
     return $user;
+}
+
+/**
+ * Da o quita el rol de administrador del cancionero según la lista de Ajustes.
+ * No toca a los administradores de WordPress, que ya gestionan todo.
+ */
+function pieb_can_sincronizar_administrador($user, $ajustes = null) {
+    if (!$user || user_can($user, 'manage_options')) {
+        return;
+    }
+    $ajustes = $ajustes ? $ajustes : pieb_can_ajustes();
+    $es = in_array(strtolower($user->user_email), $ajustes['administradores'], true);
+    $tiene = in_array(PIEB_CAN_ROLE_ADMIN, (array) $user->roles, true);
+    if ($es && !$tiene) {
+        $user->add_role(PIEB_CAN_ROLE_ADMIN);
+    } elseif (!$es && $tiene) {
+        $user->remove_role(PIEB_CAN_ROLE_ADMIN);
+        // Deja de ser administrador, pero conserva el acceso si sigue en la lista del equipo.
+        if (!user_can($user, PIEB_CAN_CAP_ACCESO) && pieb_can_email_permitido(strtolower($user->user_email), $ajustes)) {
+            $user->add_role(PIEB_CAN_ROLE);
+        }
+    }
 }
 
 // Al pulsar «Entrar» en la pantalla del enlace.

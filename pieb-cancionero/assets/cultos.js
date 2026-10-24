@@ -1,4 +1,4 @@
-/* PIEB Cancionero · cultos y setlists */
+/* Cancionero · cultos y setlists */
 (function () {
   'use strict';
 

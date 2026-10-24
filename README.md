@@ -1,4 +1,4 @@
-# Cancionero · PIEB Cancionero
+# Cancionero
 
 Plugin de WordPress para gestionar el **cancionero de un equipo de adoración**: canciones con partitura (PDF o imagen),
 letra, audios, partituras editables, tempo, tonalidad y enlaces de YouTube; **cultos con su setlist**; un **modo culto**
@@ -17,7 +17,9 @@ la herramienta: **no incluye ninguna canción ni partitura**; cada instalación 
   y PDF del setlist.
 - **Visor / modo culto:** pantalla pensada para tableta, con la partitura grande y cambio rápido entre canciones.
 - **Acceso:** rol «Equipo de adoración», inicio de sesión con Google (Google Identity Services) o con enlace por correo.
-  Los administradores pueden borrar (a la papelera de WordPress) y gestionar ajustes.
+- **Administradores del cancionero:** además de los administradores de WordPress, se pueden nombrar otros desde
+  **Ajustes y equipo**. Pueden cambiar los ajustes, gestionar el equipo y borrar canciones (a la papelera de WordPress).
+- **Nombre propio:** el nombre del cancionero («Cancionero de la iglesia», etc.) se cambia en **Ajustes y equipo → General**.
 - **Temas visuales:** Colores (por defecto), Pentagrama, Como la web, Pulso, Estudio, Escenario y Partitura.
 - **Copias de seguridad:** exportar e importar todo el contenido desde el menú de la cuenta (solo administradores).
 
@@ -32,7 +34,8 @@ WordPress 6.0 o superior y PHP 7.4 o superior. No necesita plugins adicionales.
 1. Genera el zip: `python herramientas/empaquetar.py` → `dist/pieb-cancionero.zip` (o descarga el de las *Releases*).
 2. En WordPress: **Plugins → Añadir nuevo → Subir plugin** y selecciona el zip.
 3. Activa el plugin y crea una página con el shortcode `[cancionero]`.
-4. (Opcional) En **Ajustes** del propio cancionero: tema por defecto, acceso con Google y lista de correos del equipo.
+4. En **Ajustes y equipo** del propio cancionero: nombre, administradores, lista de correos del equipo, acceso con Google
+   (opcional) y tema por defecto.
 
 Para actualizar: sube el zip nuevo y elige **Reemplazar el actual con el subido**. Los datos no se tocan.
 

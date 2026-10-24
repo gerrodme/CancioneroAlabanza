@@ -1,4 +1,4 @@
-/* PIEB Cancionero · visor de partituras para tableta
+/* Cancionero · visor de partituras para tableta
  *
  * - Pinta cada página con PDF.js (o la imagen) y recorta el margen en blanco para aprovechar la pantalla.
  * - Las páginas se pasan en horizontal: deslizar, tocar los laterales, flechas, AvPág/RePág o pedal Bluetooth.

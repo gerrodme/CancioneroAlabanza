@@ -2,6 +2,11 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.4.0 · 2026-10-24
+
+Nombre del cancionero configurable en Ajustes, administradores del cancionero (rol propio con ajustes y borrado, sin ser
+administradores de WordPress) y el producto pasa a llamarse «Cancionero»
+
 ## 1.3.3 · 2026-10-24
 
 Proyecto genérico para publicar: licencias, documentación, autoría y textos de ejemplo sin datos de ninguna iglesia
@@ -60,5 +65,5 @@ Inicio adaptable al dispositivo y sin scroll lateral en móvil
 
 ## 1.0.6 · 2026-10-23
 
-Primera versión pública del plugin PIEB Cancionero
+Primera versión pública del plugin Cancionero
 
