@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Cancionero
  * Description: Cancionero para equipos de música y alabanza: canciones con partitura, letra, audios y YouTube, setlists de cultos, visor para tableta, temas propios y acceso con Google. Shortcode [cancionero].
- * Version: 1.5.4
+ * Version: 1.5.5
  * Author: Gerson Rodrigo Menéndez
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PIEB_CAN_VERSION', '1.5.4');
+define('PIEB_CAN_VERSION', '1.5.5');
 define('PIEB_CAN_FILE', __FILE__);
 define('PIEB_CAN_DIR', plugin_dir_path(__FILE__));
 define('PIEB_CAN_URL', plugin_dir_url(__FILE__));
@@ -256,7 +256,7 @@ function pieb_can_shortcode() {
         'admin'      => current_user_can('manage_options'),
         'logoutUrl'  => wp_logout_url(get_permalink()),
         'homeUrl'    => home_url('/'),
-        'sitio'      => get_bloginfo('name'),
+        'sitio'      => pieb_can_subtitulo(),
         'nombre'     => pieb_can_nombre(),
         'maxUpload'  => (int) wp_max_upload_size(),
         // Límites por tipo y tamaño de cada trozo (por debajo del límite de PHP del servidor).
@@ -284,7 +284,9 @@ function pieb_can_render_login() {
 
     $html  = '<div ' . pieb_can_atributos_raiz($tema) . '><div class="pcan-login-card">';
     $html .= '<span class="pcan-login-logo" aria-hidden="true">♪</span>';
-    $html .= '<p class="pcan-kicker">' . esc_html(get_bloginfo('name')) . ' · Adoración y culto</p>';
+    if (pieb_can_subtitulo() !== '') {
+        $html .= '<p class="pcan-kicker">' . esc_html(pieb_can_subtitulo()) . '</p>';
+    }
     $html .= '<h1>' . esc_html(pieb_can_nombre()) . '</h1>';
 
     // Llegada desde el enlace del correo: se pide un clic para no gastar el enlace con los filtros antispam.

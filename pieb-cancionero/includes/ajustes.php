@@ -28,6 +28,7 @@ function pieb_can_ajustes() {
     $guardados = get_option('pieb_can_ajustes', array());
     $ajustes = wp_parse_args(is_array($guardados) ? $guardados : array(), array(
         'nombre'           => 'Cancionero',
+        'subtitulo'        => null,
         'tema_defecto'     => 'colores',
         'google_client_id' => '',
         'emails'           => array(),
@@ -36,6 +37,10 @@ function pieb_can_ajustes() {
     ));
     if (trim((string) $ajustes['nombre']) === '') {
         $ajustes['nombre'] = 'Cancionero';
+    }
+    // Sin subtítulo guardado se usa el nombre del sitio de WordPress; guardado vacío = sin subtítulo.
+    if ($ajustes['subtitulo'] === null) {
+        $ajustes['subtitulo'] = get_bloginfo('name');
     }
     if (!isset(pieb_can_temas()[$ajustes['tema_defecto']])) {
         $ajustes['tema_defecto'] = 'colores';
@@ -46,6 +51,11 @@ function pieb_can_ajustes() {
 /** Nombre del cancionero, configurable en Ajustes (por defecto «Cancionero»). */
 function pieb_can_nombre() {
     return pieb_can_ajustes()['nombre'];
+}
+
+/** Línea bajo el nombre del cancionero (por defecto, el nombre del sitio). */
+function pieb_can_subtitulo() {
+    return pieb_can_ajustes()['subtitulo'];
 }
 
 function pieb_can_tema_usuario() {
@@ -141,6 +151,8 @@ function pieb_can_rest_ajustes_ver() {
     $ajustes = pieb_can_ajustes();
     return rest_ensure_response(array(
         'nombre'         => $ajustes['nombre'],
+        'subtitulo'      => $ajustes['subtitulo'],
+        'version'        => PIEB_CAN_VERSION,
         'administradores' => $ajustes['administradores'],
         'temaDefecto'    => $ajustes['tema_defecto'],
         'googleClientId' => $ajustes['google_client_id'],
@@ -158,6 +170,9 @@ function pieb_can_rest_ajustes_guardar(WP_REST_Request $request) {
     if ($request->has_param('nombre')) {
         $nombre = trim(sanitize_text_field((string) $request->get_param('nombre')));
         $ajustes['nombre'] = $nombre === '' ? 'Cancionero' : mb_substr($nombre, 0, 40);
+    }
+    if ($request->has_param('subtitulo')) {
+        $ajustes['subtitulo'] = mb_substr(trim(sanitize_text_field((string) $request->get_param('subtitulo'))), 0, 60);
     }
     $tema = (string) $request->get_param('temaDefecto');
     if (isset(pieb_can_temas()[$tema])) {

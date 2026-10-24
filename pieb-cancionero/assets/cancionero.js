@@ -1998,6 +1998,7 @@
 
   function pintarAjustes(a) {
     var fNombre = h('input', { type: 'text', class: 'pcan-input', value: a.nombre || '', maxlength: '40', placeholder: 'Cancionero', spellcheck: 'false' });
+    var fSubtitulo = h('input', { type: 'text', class: 'pcan-input', value: a.subtitulo || '', maxlength: '60', placeholder: 'p. ej. Nombre de tu iglesia o grupo', spellcheck: 'false' });
     var fAdmins = h('textarea', { class: 'pcan-input pcan-textarea', rows: '3', placeholder: 'Un correo por línea', spellcheck: 'false' });
     fAdmins.value = (a.administradores || []).join('\n');
     var fTema = h('select', { class: 'pcan-input' }, Object.keys(CFG.temas).map(function (k) { return h('option', { value: k, text: CFG.temas[k] }); }));
@@ -2134,7 +2135,8 @@
     var form = h('form', { class: 'pcan-form', novalidate: true },
       h('fieldset', { class: 'pcan-fieldset' },
         h('legend', { text: 'General' }),
-        campo('Nombre del cancionero', fNombre, 'Se muestra arriba a la izquierda y en la pantalla de acceso. Por ejemplo: «Cancionero de la iglesia».')),
+        campo('Nombre del cancionero', fNombre, 'Se muestra arriba a la izquierda y en la pantalla de acceso. Por ejemplo: «Cancionero de la iglesia».'),
+        campo('Línea bajo el nombre', fSubtitulo, 'Texto pequeño debajo del nombre. Por defecto es el nombre de la web; déjalo vacío para no mostrar nada.')),
       h('fieldset', { class: 'pcan-fieldset' },
         h('legend', { text: 'Equipo' }),
         campo('Correos con acceso', fEmails, 'Cada persona entra con un enlace que recibe en ese correo (o con Google, si lo configuras). Quien sale de la lista pierde el acceso.'),
@@ -2172,6 +2174,7 @@
       h('fieldset', { class: 'pcan-fieldset' },
         h('legend', { text: 'Apariencia' }),
         campo('Tema por defecto', fTema, 'Para quien aún no ha elegido tema. Cada persona puede cambiarlo en su menú.')),
+      h('p', { class: 'pcan-help pcan-version', text: 'Cancionero · versión ' + (a.version || CFG.version) }),
       errorBox,
       h('div', { class: 'pcan-form-actions' }, guardar,
         h('button', { type: 'button', class: 'pcan-btn', onclick: function () { cerrarPanel(); } }, 'Cancelar')));
@@ -2181,6 +2184,7 @@
       guardar.disabled = true;
       api('ajustes', { json: {
         nombre: fNombre.value.trim(),
+        subtitulo: fSubtitulo.value.trim(),
         administradores: fAdmins.value.split(/[\s,;]+/).filter(Boolean),
         temaDefecto: fTema.value,
         googleClientId: fClient.value.trim(),
@@ -2401,19 +2405,29 @@
       var elegidos = copia.cultos.map(function () { return true; });
       var modo = 'saltar';
       var nExisten = existen.canciones.filter(Boolean).length + existen.cultos.filter(Boolean).length;
+      var soloNuevas = false;
+      var filtros = [];
 
       function lista(items, marcas, existe, texto) {
         if (!items.length) { return null; }
         var todas = h('input', { type: 'checkbox', checked: true, 'aria-label': 'Marcar todas' });
         var casillas = [];
+        var filas = [];
         var ul = h('ul', { class: 'pcan-copia-lista' }, items.map(function (it, i) {
           var c = h('input', { type: 'checkbox', checked: true, onchange: function (e) { marcas[i] = e.target.checked; resumen(); } });
           casillas.push(c);
-          return h('li', null, h('label', null, c, h('span', { text: texto(it) }),
+          var li = h('li', null, h('label', null, c, h('span', { text: texto(it) }),
             h('span', { class: 'pcan-estado' + (existe[i] ? ' is-warn' : ' is-ok'), text: existe[i] ? 'Ya existe' : 'Nueva' })));
+          filas.push(li);
+          return li;
         }));
+        filtros.push(function () { filas.forEach(function (li, i) { li.style.display = soloNuevas && existe[i] ? 'none' : ''; }); });
         todas.addEventListener('change', function () {
-          casillas.forEach(function (c, i) { c.checked = todas.checked; marcas[i] = todas.checked; });
+          // «Todas» solo afecta a las filas que se están viendo.
+          casillas.forEach(function (c, i) {
+            if (filas[i].style.display === 'none') { return; }
+            c.checked = todas.checked; marcas[i] = todas.checked;
+          });
           resumen();
         });
         return [h('label', { class: 'pcan-copia-todas' }, todas, h('span', { text: 'Todas' })), ul];
@@ -2426,6 +2440,11 @@
       var modos = h('div', { class: 'pcan-copia-modos', role: 'radiogroup', 'aria-label': 'Si ya existe' },
         [['saltar', 'Dejar la que ya hay (recomendado)'], ['sobrescribir', 'Sustituirla por la de la copia']].map(function (m) {
           return h('label', null, h('input', { type: 'radio', name: 'pcan-modo-copia', value: m[0], checked: m[0] === modo, onchange: function () { modo = m[0]; resumen(); } }), h('span', { text: m[1] }));
+        }));
+
+      var ctrlFiltro = h('div', { class: 'pcan-copia-modos', role: 'radiogroup', 'aria-label': 'Qué mostrar' },
+        [[false, 'Mostrar todas (' + (copia.canciones.length + copia.cultos.length) + ')'], [true, 'Mostrar solo las que no existen (' + (copia.canciones.length + copia.cultos.length - nExisten) + ')']].map(function (m) {
+          return h('label', null, h('input', { type: 'radio', name: 'pcan-filtro-copia', checked: m[0] === soloNuevas, onchange: function () { soloNuevas = m[0]; filtros.forEach(function (f) { f(); }); } }), h('span', { text: m[1] }));
         }));
 
       var aviso2 = h('p', { class: 'pcan-help' });
@@ -2509,6 +2528,7 @@
         h('div', { class: 'pcan-copia-origen' }, icono('descargar'),
           h('span', null, h('strong', { text: file.name }),
             h('small', { text: 'Copia del ' + fechaCorta(copia.fecha) + ' ' + String(copia.fecha || '').slice(0, 4) + ' · ' + String(copia.sitio || '').replace(/^https?:\/\//, '').replace(/\/$/, '') + ' · ' + tamano(file.size) + (copia.conArchivos ? ' · con archivos' : ' · solo datos') }))),
+        nExisten ? h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: 'Qué ver' }), ctrlFiltro) : null,
         copia.canciones.length ? h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: 'Canciones (' + copia.canciones.length + ')' }),
           lista(copia.canciones, elegidas, existen.canciones, function (c) { return (c.numero ? c.numero + ' · ' : '') + c.titulo + ((c.partituras || []).length + (c.audios || []).length && copia.conArchivos ? ' · ' + ((c.partituras || []).length + (c.audios || []).length) + (((c.partituras || []).length + (c.audios || []).length) === 1 ? ' archivo' : ' archivos') : ''); })) : null,
         copia.cultos.length ? h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: 'Cultos (' + copia.cultos.length + ')' }),
