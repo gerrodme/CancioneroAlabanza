@@ -388,13 +388,7 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
 [data-pcan-theme] .pcan-icon-btn-line { border: 1px solid var(--pc-line); width: 44px; height: 44px; }
 .pcan-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
 
-/* Menú «⋯» */
-.pcan-mas { position: relative; }
-[data-pcan-theme] .pcan-mas > summary { border: 1px solid var(--pc-line); width: 44px; height: 44px; }
-.pcan-mas-menu {
-  position: absolute; top: calc(100% + 6px); right: 0; z-index: 20; min-width: 240px; padding: 6px;
-  border: 1px solid var(--pc-line); border-radius: var(--pc-radius); background: var(--pc-surface); box-shadow: var(--pc-shadow-lg);
-}
+/* Elementos del menú de la cuenta */
 [data-pcan-theme] .pcan-menu-item {
   display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: 0; border-radius: var(--pc-radius-sm);
   background: transparent; color: var(--pc-text) !important; font-size: 14px; text-align: left;
@@ -402,6 +396,17 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
 [data-pcan-theme] .pcan-menu-item:hover { background: var(--pc-surface-2); }
 .pcan-menu-item .pcan-ico { color: var(--pc-muted); }
 [data-pcan-theme] .pcan-menu-item.is-danger, [data-pcan-theme] .pcan-menu-item.is-danger .pcan-ico { color: var(--pc-danger) !important; }
+
+/* Acciones secundarias de las fichas: en una fila propia bajo los botones principales, siempre visibles */
+.pcan-det-actions > .pcan-acciones-sec { flex: 1 1 100%; }
+.pcan-acciones-sec { display: flex; flex-wrap: wrap; gap: 6px; }
+[data-pcan-theme] .pcan-btn-sec { min-height: 34px; padding: 5px 11px; border-color: var(--pc-line); background: transparent; color: var(--pc-text); font-size: 13px; font-weight: 600; }
+[data-pcan-theme] .pcan-btn-sec .pcan-ico { width: 16px; height: 16px; color: var(--pc-muted); }
+[data-pcan-theme] .pcan-btn-sec:hover { border-color: var(--pc-accent); background: var(--pc-surface-2); transform: none; }
+[data-pcan-theme] .pcan-btn-sec.is-danger, [data-pcan-theme] .pcan-btn-sec.is-danger .pcan-ico { color: var(--pc-danger); }
+[data-pcan-theme] .pcan-btn-sec.is-danger:hover { border-color: var(--pc-danger); }
+/* En el móvil «Tocar» ya va solo en su fila: «Editar» tiene sitio para su texto */
+@media (max-width: 760px) { .pcan-det-actions .pcan-btn-label { display: inline; } }
 
 /* ================================================================== menú de usuario y temas */
 
@@ -1264,7 +1269,7 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 :is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) :is(.pcan-btn-primary, .pcan-btn-gold) { border-color: var(--pc-accent); background: var(--pc-accent); color: var(--pc-accent-ink); }
 :is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) :is(.pcan-btn-primary, .pcan-btn-gold):hover { border-color: var(--pc-accent-hover); background: var(--pc-accent-hover); transform: scale(1.04); }
 :is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-btn-lg { min-height: 52px; padding: 10px 28px; font-size: 16px; }
-:is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-icon-btn-line, :is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-mas > summary { border-color: #b3b3b3; }
+:is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-icon-btn-line { border-color: #b3b3b3; }
 
 /* ---- barra lateral */
 :is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-side-search { border-radius: 999px; background: var(--pc-surface-2); }
@@ -1581,7 +1586,6 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
   /* La partitura llena el alto disponible para no tener que bajar */
   .pcan-det-main .pcan-visor-marco { height: max(380px, calc(100dvh - 230px)); max-height: 1100px; }
   .pcan-det-side .pcan-uso { flex-direction: row; align-items: center; }
-  .pcan-det-side .pcan-det-actions { flex-wrap: nowrap; }
   .pcan-det-side .pcan-det-actions .pcan-btn-lg { flex: 1 1 auto; min-width: 0; }
 }
 /* Columnas justas (tableta): «Editar» solo con icono y controles del visor más estrechos */
@@ -1789,7 +1793,7 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 [data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-chip:hover { background: #efe2c4; }
 [data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-search, .pcan-top-search, .pcan-home-buscar):hover { background: #efe5d0; }
 [data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-btn { border-color: #cdbb98; }
-[data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-icon-btn-line, .pcan-mas > summary) { border-color: #d8c9a8; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-icon-btn-line, .pcan-btn-sec) { border-color: #d8c9a8; }
 [data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-btn-primary, .pcan-btn-gold) { background: #192e59; border-color: #192e59; color: #fdf6e6; }
 [data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-btn-primary, .pcan-btn-gold):hover { background: #24386a; border-color: #24386a; }
 [data-pcan-theme][data-pcan-estilo="pentagrama"] .is-past .pcan-culto-date { background: #e7dcc6; color: #6f6352; }

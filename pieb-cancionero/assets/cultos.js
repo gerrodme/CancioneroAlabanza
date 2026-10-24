@@ -331,8 +331,8 @@
         h('div', { class: 'pcan-det-actions' },
           validos.length ? h('a', { class: 'pcan-btn pcan-btn-primary pcan-btn-lg', href: '#/culto/' + c.id + '/tocar/1' }, icono('play'), 'Tocar el culto') : null,
           h('a', { class: 'pcan-btn', href: '#/culto/editar/' + c.id }, icono('editar'), h('span', { class: 'pcan-btn-label', text: validos.length ? 'Editar' : 'Añadir canciones' })),
-          h('button', { type: 'button', class: 'pcan-icon-btn pcan-icon-btn-line', 'aria-label': 'Copiar setlist como texto', title: 'Copiar como texto (WhatsApp)', onclick: function () { P.copiar(textoSetlist(c), 'Setlist copiado'); } }, icono('copiar')),
-          P.menuMas([
+          P.accionesSecundarias([
+            { texto: 'Copiar como texto', icono: 'copiar', fn: function () { P.copiar(textoSetlist(c), 'Setlist copiado (para WhatsApp)'); } },
             validos.length ? pdfItem : null,
             { texto: 'Duplicar para otro día', icono: 'mas', href: '#/culto/duplicar/' + c.id },
             c.puedeBorrar ? { texto: 'Borrar culto', icono: 'borrar', peligro: true, fn: function () { borrar(c); } } : null

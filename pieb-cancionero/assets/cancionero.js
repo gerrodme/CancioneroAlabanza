@@ -1177,29 +1177,22 @@
       h('button', { type: 'button', class: 'pcan-icon-btn pcan-panel-x', 'aria-label': 'Cerrar', onclick: function () { volverPanel(); } }, icono('cerrar')));
   }
 
-  /** Menú «⋯» desplegable sin JavaScript extra (details/summary). */
-  function menuMas(items) {
+  /** Acciones secundarias de una ficha: botones pequeños con icono y texto, siempre a la vista (nada escondido en un «⋯»). */
+  function accionesSecundarias(items) {
     var lista = items.filter(Boolean);
     if (!lista.length) { return null; }
-    var det = h('details', { class: 'pcan-mas' },
-      h('summary', { class: 'pcan-icon-btn pcan-mas-btn', 'aria-label': 'Más acciones', title: 'Más acciones' }, icono('puntos')),
-      h('div', { class: 'pcan-mas-menu', role: 'menu' }, lista.map(function (it) {
-        var attrs = { class: 'pcan-menu-item' + (it.peligro ? ' is-danger' : ''), role: 'menuitem' };
-        if (it.href) {
-          attrs.href = it.href;
-          if (it.descargar) { attrs.download = it.descargar; }
-          if (it.nueva) { attrs.target = '_blank'; attrs.rel = 'noopener'; }
-          return h('a', attrs, icono(it.icono), it.texto);
-        }
-        attrs.type = 'button';
-        attrs.onclick = function () { det.open = false; it.fn(); };
-        return h('button', attrs, icono(it.icono), it.texto);
-      })));
-    document.addEventListener('click', function cerrarMas(e) {
-      if (!document.contains(det)) { document.removeEventListener('click', cerrarMas); return; }
-      if (det.open && !det.contains(e.target)) { det.open = false; }
-    });
-    return det;
+    return h('div', { class: 'pcan-acciones-sec' }, lista.map(function (it) {
+      var attrs = { class: 'pcan-btn pcan-btn-sm pcan-btn-sec' + (it.peligro ? ' is-danger' : '') };
+      if (it.href) {
+        attrs.href = it.href;
+        if (it.descargar) { attrs.download = it.descargar; }
+        if (it.nueva) { attrs.target = '_blank'; attrs.rel = 'noopener'; }
+        return h('a', attrs, icono(it.icono), it.texto);
+      }
+      attrs.type = 'button';
+      attrs.onclick = it.fn;
+      return h('button', attrs, icono(it.icono), it.texto);
+    }));
   }
 
   // ---------------------------------------------------------------- vista: ficha de canción
@@ -1256,8 +1249,8 @@
     var acciones = h('div', { class: 'pcan-det-actions' },
       c.partituras.length ? h('button', { type: 'button', class: 'pcan-btn pcan-btn-primary pcan-btn-lg', onclick: function () { lectorDeCancion(c); } }, icono('play'), 'Tocar') : null,
       h('a', { class: 'pcan-btn', href: '#/editar/' + c.id }, icono('editar'), h('span', { class: 'pcan-btn-label', text: 'Editar' })),
-      h('button', { type: 'button', class: 'pcan-icon-btn pcan-icon-btn-line', 'aria-label': 'Copiar enlace', title: 'Copiar enlace', onclick: function () { copiar(enlaceCancion(c.id), 'Enlace copiado'); } }, icono('enlace')),
-      menuMas([
+      accionesSecundarias([
+        { texto: 'Copiar enlace', icono: 'enlace', fn: function () { copiar(enlaceCancion(c.id), 'Enlace copiado'); } },
         c.partituras[0] ? { texto: 'Descargar partitura', icono: 'descargar', href: c.partituras[0].url, descargar: c.partituras[0].archivo || true } : null,
         c.partituras[0] ? { texto: 'Abrir el PDF original', icono: 'abrir', href: c.partituras[0].url, nueva: true } : null,
         c.letra ? { texto: 'Copiar letra', icono: 'copiar', fn: function () { copiar(c.letra, 'Letra copiada'); } } : null,
@@ -2501,7 +2494,7 @@
     copiar: copiar,
     norm: norm,
     temaEn: temaEn,
-    menuMas: menuMas,
+    accionesSecundarias: accionesSecundarias,
     esAncho: esAncho,
     buscar: function (q) { return buscar(q, '').map(function (r) { return r.c; }); },
     cancion: function (id) {
