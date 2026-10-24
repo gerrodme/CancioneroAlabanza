@@ -162,6 +162,18 @@ function pieb_can_servir_archivo() {
         $parcial = true;
     }
 
+    // El navegador puede guardar el archivo, pero debe preguntar al servidor cada vez (no-cache): así, tras cerrar sesión,
+    // no se puede volver a abrir desde la caché. Si no ha cambiado, el servidor responde 304 sin reenviarlo.
+    $modificado = (int) filemtime($real);
+    $etag = '"' . md5($id . '|' . $real . '|' . $modificado . '|' . $tamano) . '"';
+    header('ETag: ' . $etag);
+    header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $modificado) . ' GMT');
+    header('Cache-Control: private, no-cache, must-revalidate');
+    if (!$parcial && isset($_SERVER['HTTP_IF_NONE_MATCH']) && trim(wp_unslash($_SERVER['HTTP_IF_NONE_MATCH'])) === $etag) {
+        status_header(304);
+        exit;
+    }
+
     while (ob_get_level()) {
         ob_end_clean();
     }
@@ -176,7 +188,6 @@ function pieb_can_servir_archivo() {
     header('Content-Disposition: ' . ($descargar ? 'attachment' : 'inline') . "; filename*=UTF-8''" . rawurlencode($nombre));
     header('X-Content-Type-Options: nosniff');
     header('X-Robots-Tag: noindex, nofollow');
-    header('Cache-Control: private, max-age=3600');
 
     $f = fopen($real, 'rb');
     if ($f) {

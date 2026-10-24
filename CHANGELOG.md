@@ -2,6 +2,10 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.5.1 · 2026-10-24
+
+Los archivos privados ya no se pueden reabrir desde la caché del navegador tras cerrar sesión (el navegador revalida cada vez)
+
 ## 1.5.0 · 2026-10-24
 
 Archivos privados: partituras, audios y editables se guardan en una carpeta que el servidor no sirve y solo se entregan
