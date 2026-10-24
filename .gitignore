@@ -16,3 +16,6 @@ venv/
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# Lista de trabajo de una sesión (datos locales, no versionar)
+candidatas-nuevas.md

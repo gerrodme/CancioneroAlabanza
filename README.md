@@ -1,38 +1,66 @@
 # Cancionero · PIEB Cancionero
 
-Plugin de WordPress con el cancionero del equipo de Adoración y culto de la Tu iglesia: canciones con partitura,
-letra, audios, tempo y YouTube; cultos con su setlist y modo culto para tocar en la tableta; estadísticas;
-copias de seguridad; acceso del equipo con enlace por correo.
+Plugin de WordPress para gestionar el **cancionero de un equipo de adoración**: canciones con partitura (PDF o imagen),
+letra, audios, partituras editables, tempo, tonalidad y enlaces de YouTube; **cultos con su setlist**; un **modo culto**
+para tocar desde la tableta; estadísticas; copias de seguridad; y acceso del equipo con Google o con enlace por correo.
 
-En producción: <https://tuweb.org/adoracion-y-culto/cancionero/>.
+Es software libre pensado para que cualquier iglesia o grupo musical gestione sus propias partituras. El plugin es solo
+la herramienta: **no incluye ninguna canción ni partitura**; cada instalación aporta las suyas. La interfaz está en **español**.
 
-## Estructura
+## Qué hace
 
-| Carpeta | Qué hay |
+- **Canciones:** una ficha por canción con una o varias partituras, letra, notas, audios, editables (MuseScore, MusicXML…),
+  etiquetas de color, tonalidad, tempo (BPM), número de himnario y vídeos de YouTube.
+- **Importación masiva:** «Subida múltiple» (arrastrar muchos PDF/imágenes de una vez; el título, el número de himnario
+  y la tonalidad se deducen del nombre del archivo).
+- **Cultos y setlists:** orden de canciones por culto, con tonalidad y nota por canción, cuenta atrás al próximo culto
+  y PDF del setlist.
+- **Visor / modo culto:** pantalla pensada para tableta, con la partitura grande y cambio rápido entre canciones.
+- **Acceso:** rol «Equipo de adoración», inicio de sesión con Google (Google Identity Services) o con enlace por correo.
+  Los administradores pueden borrar (a la papelera de WordPress) y gestionar ajustes.
+- **Temas visuales:** Colores (por defecto), Pentagrama, Como la web, Pulso, Estudio, Escenario y Partitura.
+- **Copias de seguridad:** exportar e importar todo el contenido desde el menú de la cuenta (solo administradores).
+
+Se muestra en cualquier página con el shortcode `[cancionero]`.
+
+## Requisitos
+
+WordPress 6.0 o superior y PHP 7.4 o superior. No necesita plugins adicionales.
+
+## Instalación
+
+1. Genera el zip: `python herramientas/empaquetar.py` → `dist/pieb-cancionero.zip` (o descarga el de las *Releases*).
+2. En WordPress: **Plugins → Añadir nuevo → Subir plugin** y selecciona el zip.
+3. Activa el plugin y crea una página con el shortcode `[cancionero]`.
+4. (Opcional) En **Ajustes** del propio cancionero: tema por defecto, acceso con Google y lista de correos del equipo.
+
+Para actualizar: sube el zip nuevo y elige **Reemplazar el actual con el subido**. Los datos no se tocan.
+
+## Estructura del repositorio
+
+| Carpeta / archivo | Qué hay |
 |---|---|
-| `pieb-cancionero/` | El plugin. La carpeta se llama como el plugin en WordPress. |
+| `pieb-cancionero/` | El plugin (la carpeta se llama como el plugin en WordPress). |
 | `banco-pruebas/` | Página local con datos simulados para probar la interfaz sin WordPress. |
-| `tutorial/` | Tutorial animado con locución (HTML autocontenido) y su vídeo MP4 (este no se versiona). |
-| `docs/` | Guía para recuperar el cancionero en un WordPress nuevo. |
+| `tutorial/` | Tutorial animado con locución (HTML autocontenido). El vídeo MP4 no se versiona. |
+| `docs/` | Guías: [arquitectura](docs/arquitectura.md), [carga masiva y enriquecimiento de datos](docs/carga-masiva.md), [recuperar el cancionero](docs/guia-recuperar-cancionero.html). |
 | `herramientas/` | Empaquetar el plugin y regenerar la locución y el vídeo del tutorial. |
-| `dist/` | El `.zip` para subir a WordPress (no se versiona). |
+| `CLAUDE.md` | Contexto del proyecto para retomar el trabajo (también útil para cualquier persona nueva). |
+| `CHANGELOG.md` | Historial de versiones. |
+| `dist/` | El `.zip` generado (no se versiona). |
 
-## Publicar una versión
+## Desarrollo
 
-1. Cambia la versión en `pieb-cancionero/pieb-cancionero.php` (cabecera `Version:` y `PIEB_CAN_VERSION`).
-   Así los navegadores descargan los CSS y JS nuevos.
-2. `python herramientas/empaquetar.py` → `dist/pieb-cancionero.zip`.
-3. En WordPress: **Plugins → Añadir nuevo → Subir plugin** y **Reemplazar el actual con el subido**.
-
-Los cambios pequeños en archivos que ya existen también se pueden aplicar desde el editor de plugins de WordPress;
-los archivos nuevos solo llegan con el zip.
-
-## Probar en local
-
-- **Banco de pruebas:** configuración `banco-cancionero` de `.claude/launch.json` (sirve la raíz del repositorio en
-  `http://127.0.0.1:8765`) y abre `/banco-pruebas/index.html`. Admite `?tema=sitio|pulso|claro|escenario|papel`.
-  Las subidas de archivos no se pueden probar aquí: hace falta WordPress.
-- No hay PHP en este equipo: el código PHP se revisa a mano y se prueba en el WordPress real.
+- **Publicar una versión:** cambia la versión en `pieb-cancionero/pieb-cancionero.php` (cabecera `Version:` **y**
+  `PIEB_CAN_VERSION`, así los navegadores descargan los CSS y JS nuevos), anota el cambio en `CHANGELOG.md`, ejecuta
+  `python herramientas/empaquetar.py` y sube el zip a WordPress.
+- **Probar la interfaz sin WordPress:** `python -m http.server 8765 --bind 127.0.0.1` en la raíz del repositorio y abre
+  `http://127.0.0.1:8765/banco-pruebas/index.html`. Admite `?tema=colores|pentagrama|sitio|pulso|claro|escenario|papel`.
+  Las subidas de archivos y todo lo que dependa de PHP solo se prueban en un WordPress real.
+- **PHP:** no hay entorno PHP local en el equipo de desarrollo original: el código PHP se revisa a mano y se prueba en
+  WordPress. Si tienes PHP, `php -l` sobre cada archivo es un buen primer filtro.
+- Más detalle (modelo de datos, API REST, convenciones): [docs/arquitectura.md](docs/arquitectura.md) y
+  [CLAUDE.md](CLAUDE.md).
 
 ## Tutorial
 
@@ -44,7 +72,25 @@ los archivos nuevos solo llegan con el zip.
 3. Con el banco de pruebas en marcha: `python herramientas/tutorial/grabar_video.py`
 4. `python herramientas/tutorial/montar_video.py` → `tutorial/tutorial-cancionero-1080p.mp4`
 
-## Datos del cancionero
+## Datos
 
-El contenido (canciones, partituras, cultos, ajustes) vive en WordPress, no en este repositorio. Para guardarlo o
-llevarlo a otra web: menú de la cuenta → **Copias de seguridad** (solo administradores). Ver `docs/`.
+El contenido (canciones, partituras, cultos, ajustes) vive en WordPress, **no en este repositorio**. Las partituras
+pueden tener derechos de autor: eres responsable de las que subas a tu instalación. Para guardar o llevar el cancionero a otra web:
+menú de la cuenta → **Copias de seguridad** (solo administradores). Ver
+[docs/guia-recuperar-cancionero.html](docs/guia-recuperar-cancionero.html).
+
+Para cargar o completar muchas canciones desde una carpeta de archivos, ver [docs/carga-masiva.md](docs/carga-masiva.md).
+
+## Autor y licencia
+
+Copyright © Gerson Rodrigo Menéndez.
+
+- **Código** (plugin, herramientas, banco de pruebas): [GPL-2.0-or-later](LICENSE), la licencia habitual de WordPress.
+- **Documentación y tutorial** (`README`, `docs/`, `tutorial/`): [CC BY-SA 4.0](LICENSE-DOCS.txt).
+
+Las licencias Creative Commons no están pensadas para software; por eso el código va con GPL (compatible con WordPress)
+y solo los textos y el tutorial con Creative Commons.
+
+## Contribuir
+
+Ver [CONTRIBUTING.md](CONTRIBUTING.md). Las ideas, errores y mejoras son bienvenidos en *Issues* y *Pull requests*.

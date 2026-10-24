@@ -2,8 +2,10 @@
 /**
  * Plugin Name: PIEB Cancionero
  * Description: Cancionero del equipo de Adoración y culto: canciones con partitura, letra, audios y YouTube, setlists de cultos, visor para tableta, temas propios y acceso con Google. Shortcode [cancionero].
- * Version: 1.3.2
+ * Version: 1.3.3
  * Author: Gerson Rodrigo Menéndez
+ * License: GPL-2.0-or-later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Requires at least: 6.0
  * Requires PHP: 7.4
  * Text Domain: pieb-cancionero
@@ -13,7 +15,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PIEB_CAN_VERSION', '1.3.2');
+define('PIEB_CAN_VERSION', '1.3.3');
 define('PIEB_CAN_FILE', __FILE__);
 define('PIEB_CAN_DIR', plugin_dir_path(__FILE__));
 define('PIEB_CAN_URL', plugin_dir_url(__FILE__));
