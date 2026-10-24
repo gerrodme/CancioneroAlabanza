@@ -62,3 +62,7 @@ usuario** y `fetch` desde la consola con `PIEB_CANCIONERO.api` y `PIEB_CANCIONER
 ## Ideas no hechas
 
 Detectar duplicados desde la propia interfaz, completar tempos desde otras fuentes, publicar *Releases* con el zip.
+
+- **Idioma inglés** (valorado, aplazado por el autor): mecanismo `t('clave')` con diccionarios `es`/`en` en JS (~520 textos),
+  `__()`/`.po` en PHP (~80), idioma por defecto el de WordPress y elección por usuario (como el tema), fechas con `Intl`
+  y plurales adaptados. Documentación en inglés opcional. Hacerlo por fases, una versión por fase.
