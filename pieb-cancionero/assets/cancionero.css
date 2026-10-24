@@ -1093,9 +1093,14 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 .pcan-lote-estado .pcan-ico { width: 14px; height: 14px; }
 .pcan-lote-estado.is-ok { color: var(--pc-ok) !important; }
 .pcan-lote-estado.is-error { color: var(--pc-danger); }
-[data-pcan-theme] .pcan-lote-btn { width: 46px; height: 46px; border-radius: 12px; }
+[data-pcan-theme] .pcan-lote-btn { flex: none; min-height: 46px; padding: 0 14px; gap: 8px; border-radius: 12px; font-size: 14px; white-space: nowrap; }
+[data-pcan-theme] .pcan-lote-btn .pcan-ico { width: 20px; height: 20px; }
+[data-pcan-theme] .pcan-lote-btn-borrar, [data-pcan-theme] .pcan-lote-btn-borrar .pcan-ico { color: var(--pc-danger); }
+[data-pcan-theme] .pcan-lote-btn-borrar { border-color: var(--pc-danger); }
+[data-pcan-theme] .pcan-lote-btn-borrar:hover { border-color: var(--pc-danger); background: color-mix(in srgb, var(--pc-danger) 10%, var(--pc-surface)); }
+@container pcan (max-width: 699px) { [data-pcan-theme] .pcan-lote-btn { padding: 0; width: 46px; justify-content: center; } .pcan-lote-btn-txt { display: none; } }
 /* Borrado masivo: filas como casillas y barra flotante */
-[data-pcan-theme] .pcan-lote-btn.is-active { border-color: var(--pc-danger); background: var(--pc-danger); color: #fff; }
+[data-pcan-theme] .pcan-lote-btn.is-active, [data-pcan-theme] .pcan-lote-btn.is-active .pcan-ico { border-color: var(--pc-danger); background: var(--pc-danger); color: #fff; }
 .pcan-row.is-marcando { cursor: pointer; user-select: none; }
 [data-pcan-theme] .pcan-row.is-marcada { background: color-mix(in srgb, var(--pc-danger) 9%, var(--pc-surface)); }
 [data-pcan-theme] .pcan-row .pcan-num.pcan-casilla { display: grid; place-items: center; width: 26px; height: 26px; margin: 0 7px; border: 2px solid var(--pc-muted); border-radius: 7px; background: var(--pc-surface); background-image: none; color: #fff; }
