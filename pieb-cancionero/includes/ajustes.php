@@ -305,14 +305,14 @@ function pieb_can_rest_huerfanos_borrar(WP_REST_Request $request) {
     return rest_ensure_response(array_merge(pieb_can_archivos_sin_usar(), array('borrados' => $borrados, 'liberado' => $liberado)));
 }
 
-// ---------------------------------------------------------------- copias de seguridad (solo administradores)
+// ---------------------------------------------------------------- copias de seguridad (administradores del cancionero)
 //
 // La copia la monta el navegador: pide aquí los datos (/copia), descarga cada archivo y lo guarda todo en un ZIP.
 // Para restaurar, el navegador sube cada archivo por trozos (/subidas) y crea las canciones y los cultos de uno en uno,
 // así funciona aunque el servidor tenga límites de subida o de tiempo bajos, y también en otra instalación.
 
 add_action('rest_api_init', function () {
-    $admin = function () { return current_user_can('manage_options'); };
+    $admin = function () { return current_user_can(PIEB_CAN_CAP_GESTIONAR); };
     $rutas = array(
         '/copia'         => array(WP_REST_Server::READABLE, 'pieb_can_rest_copia_exportar'),
         '/copia/estado'  => array(WP_REST_Server::CREATABLE, 'pieb_can_rest_copia_estado'),

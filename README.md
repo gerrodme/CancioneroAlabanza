@@ -21,7 +21,7 @@ la herramienta: **no incluye ninguna canción ni partitura**; cada instalación 
   **Ajustes y equipo**. Pueden cambiar los ajustes, gestionar el equipo y borrar canciones (a la papelera de WordPress).
 - **Nombre propio:** el nombre del cancionero («Cancionero de la iglesia», etc.) se cambia en **Ajustes y equipo → General**.
 - **Temas visuales:** Colores (por defecto), Pentagrama, Como la web, Pulso, Estudio, Escenario y Partitura.
-- **Copias de seguridad:** exportar e importar todo el contenido desde el menú de la cuenta (solo administradores).
+- **Copias de seguridad:** exportar e importar todo el contenido desde el menú de la cuenta (administradores del cancionero y de WordPress).
 
 Se muestra en cualquier página con el shortcode `[cancionero]`.
 
@@ -100,7 +100,7 @@ de WordPress, solo a quien ha iniciado sesión y tiene acceso al cancionero.
 
 El contenido (canciones, partituras, cultos, ajustes) vive en WordPress, **no en este repositorio**. Las partituras
 pueden tener derechos de autor: eres responsable de las que subas a tu instalación. Para guardar o llevar el cancionero a otra web:
-menú de la cuenta → **Copias de seguridad** (solo administradores). Ver
+menú de la cuenta → **Copias de seguridad** (administradores del cancionero y de WordPress). Ver
 [docs/guia-recuperar-cancionero.html](docs/guia-recuperar-cancionero.html).
 
 Para cargar o completar muchas canciones desde una carpeta de archivos, ver [docs/carga-masiva.md](docs/carga-masiva.md).

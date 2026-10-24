@@ -2,6 +2,10 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.5.6 · 2026-10-24
+
+Los administradores del cancionero pueden hacer y restaurar copias de seguridad
+
 ## 1.5.5 · 2026-10-24
 
 Línea bajo el nombre del cancionero configurable (por defecto, el nombre de la web), versión del plugin visible en Ajustes y

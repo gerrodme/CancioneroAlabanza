@@ -552,7 +552,7 @@
       ui.menuTemas,
       h('div', { class: 'pcan-menu-sep' }),
       CFG.gestionar ? h('a', { class: 'pcan-menu-item', href: '#/ajustes' }, icono('ajustes'), 'Ajustes y equipo') : null,
-      CFG.admin ? h('a', { class: 'pcan-menu-item', href: '#/copias' }, icono('descargar'), 'Copias de seguridad') : null,
+      CFG.gestionar ? h('a', { class: 'pcan-menu-item', href: '#/copias' }, icono('descargar'), 'Copias de seguridad') : null,
       h('a', { class: 'pcan-menu-item', href: CFG.homeUrl }, icono('salir-web'), 'Volver a la web'),
       h('a', { class: 'pcan-menu-item', href: CFG.logoutUrl }, icono('salir'), 'Cerrar sesión'),
       CFG.version ? h('p', { class: 'pcan-menu-version', text: 'Cancionero ' + CFG.version }) : null);
@@ -2338,7 +2338,7 @@
   }
 
   function abrirCopias() {
-    if (!CFG.admin) { location.hash = '#/'; return; }
+    if (!CFG.gestionar) { location.hash = '#/'; return; }
     var cuerpo = h('div', { class: 'pcan-panel-body' });
     abrirPanel([cabeceraPanel(h('h2', { text: 'Copias de seguridad' })), cuerpo], 'Copias de seguridad', { modal: true });
     pintarCopias(cuerpo);

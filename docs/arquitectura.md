@@ -28,7 +28,7 @@ La interfaz es una aplicación de una sola página dentro de la página de WordP
 - Roles: `equipo_adoracion` («Equipo de adoración»: capacidad `pieb_cancionero_acceso`, ver, subir y editar canciones) y
   `administrador_cancionero` («Administrador del cancionero»: acceso + `pieb_cancionero_gestionar`, es decir, ajustes,
   equipo y borrar cualquier canción). Los administradores y editores de WordPress tienen ambas capacidades; las
-  copias de seguridad quedan reservadas a quien puede `manage_options`. Las listas de correos «equipo» y
+  copias de seguridad, la restauración y los ajustes requieren `pieb_cancionero_gestionar`. Las listas de correos «equipo» y
   «administradores» están en los ajustes: al entrar (Google o enlace) o al guardar los ajustes, el rol de administrador
   se concede o se retira según esa lista (`pieb_can_sincronizar_administrador`).
 - **Prefijo interno `pieb`:** las claves internas (tipos `pieb_cancion`, metadatos `_pieb_*`, ruta REST `pieb/v1`,
