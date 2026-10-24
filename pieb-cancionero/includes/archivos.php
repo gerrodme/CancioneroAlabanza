@@ -16,9 +16,13 @@ if (!defined('ABSPATH')) {
 const PIEB_CAN_DIR_PRIVADO = 'cancionero-privado';
 const PIEB_CAN_TANDA_PROTEGER = 50;
 
-/** Ruta absoluta de la carpeta privada (se crea con sus protecciones si no existe). */
-function pieb_can_ruta_privada() {
-    $dir = trailingslashit(wp_upload_dir()['basedir']) . PIEB_CAN_DIR_PRIVADO;
+/**
+ * Ruta absoluta de la carpeta privada (se crea con sus protecciones si no existe).
+ * $base: carpeta uploads; hay que pasarla desde el filtro upload_dir, donde llamar a wp_upload_dir() sería recursivo.
+ */
+function pieb_can_ruta_privada($base = null) {
+    $base = $base ? $base : wp_upload_dir()['basedir'];
+    $dir = trailingslashit($base) . PIEB_CAN_DIR_PRIVADO;
     if (!is_dir($dir)) {
         wp_mkdir_p($dir);
     }
@@ -35,7 +39,7 @@ function pieb_can_ruta_privada() {
 
 /** Filtro de upload_dir: todo lo que sube el cancionero va a la carpeta privada, sin subcarpetas por fecha. */
 function pieb_can_dir_subidas($dir) {
-    pieb_can_ruta_privada();
+    pieb_can_ruta_privada($dir['basedir']);
     $dir['subdir'] = '/' . PIEB_CAN_DIR_PRIVADO;
     $dir['path'] = $dir['basedir'] . '/' . PIEB_CAN_DIR_PRIVADO;
     $dir['url'] = $dir['baseurl'] . '/' . PIEB_CAN_DIR_PRIVADO;
