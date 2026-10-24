@@ -455,7 +455,13 @@ function pieb_can_copia_buscar($tipo, $datos) {
         return 0;
     }
     $ids = get_posts(array('post_type' => $cpt, 'post_status' => 'publish', 'posts_per_page' => -1, 'fields' => 'ids', 'title' => $titulo));
+    $uid_valido = (bool) preg_match('/^[a-f0-9-]{36}$/', $uid);
     foreach ($ids as $id) {
+        // Un elemento que ya tiene otro identificador es otra canción (o culto) con el mismo título, no el mismo.
+        $uid_existente = (string) get_post_meta($id, '_pieb_uid', true);
+        if ($uid_valido && preg_match('/^[a-f0-9-]{36}$/', $uid_existente) && $uid_existente !== $uid) {
+            continue;
+        }
         $igual = $tipo === 'culto'
             ? (string) get_post_meta($id, '_pieb_fecha', true) === (isset($datos['fecha']) ? (string) $datos['fecha'] : '')
             : (string) get_post_meta($id, '_pieb_numero', true) === (isset($datos['numero']) ? (string) $datos['numero'] : '');

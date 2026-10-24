@@ -2,6 +2,10 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.5.4 · 2026-10-24
+
+Restaurar copias: dos canciones con el mismo título y sin número ya no se confunden y se restauran las dos (si tienen identificadores distintos)
+
 ## 1.5.3 · 2026-10-24
 
 Las páginas públicas de adjuntos de WordPress dejan de mostrar el título y el nombre de las partituras (responden 404)
