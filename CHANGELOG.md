@@ -2,6 +2,11 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.6.0 · 2026-10-24
+
+En el setlist de un culto se puede elegir qué partitura se usa de las canciones con varias: la elegida es la que se abre en
+el modo culto y la que va en el PDF del setlist
+
 ## 1.5.6 · 2026-10-24
 
 Los administradores del cancionero pueden hacer y restaurar copias de seguridad

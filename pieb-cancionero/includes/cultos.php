@@ -115,6 +115,13 @@ function pieb_can_culto_detalle($post) {
             continue;
         }
         $detalle = pieb_can_detalle($cancion);
+        // La partitura elegida para este culto va la primera: el modo culto y el PDF usan siempre la primera.
+        $elegida = isset($item['partitura']) ? (int) $item['partitura'] : 0;
+        if ($elegida) {
+            usort($detalle['partituras'], function ($a, $b) use ($elegida) {
+                return (int) ((int) $b['id'] === $elegida) - (int) ((int) $a['id'] === $elegida);
+            });
+        }
         $item['datos'] = array(
             'titulo'     => $detalle['titulo'],
             'numero'     => $detalle['numero'],
@@ -180,10 +187,16 @@ function pieb_can_rest_culto_guardar(WP_REST_Request $request) {
         if (!$cancion || $cancion->post_type !== PIEB_CAN_CPT) {
             continue;
         }
+        // Partitura elegida para este culto: debe ser una de las de la canción; 0 = la primera (por defecto).
+        $partitura = isset($item['partitura']) ? (int) $item['partitura'] : 0;
+        if ($partitura && !in_array($partitura, array_map('intval', wp_list_pluck(pieb_can_get_partituras($cancion_id), 'id')), true)) {
+            $partitura = 0;
+        }
         $items[] = array(
             'cancion'   => $cancion_id,
             'tonalidad' => isset($item['tonalidad']) ? sanitize_text_field($item['tonalidad']) : '',
             'nota'      => isset($item['nota']) ? sanitize_text_field($item['nota']) : '',
+            'partitura' => $partitura,
         );
     }
 

@@ -386,7 +386,7 @@
         var copia = r[0];
         pintarEditor(null, {
           tipo: copia.tipo, notas: copia.notas,
-          items: copia.items.filter(function (it) { return !it.eliminada; }).map(function (it) { return { cancion: +it.cancion, tonalidad: it.tonalidad, nota: it.nota }; })
+          items: copia.items.filter(function (it) { return !it.eliminada; }).map(function (it) { return { cancion: +it.cancion, tonalidad: it.tonalidad, nota: it.nota, partitura: it.partitura || 0 }; })
         });
       } else {
         pintarEditor(r[0], opciones);
@@ -397,10 +397,10 @@
   function pintarEditor(c, opciones) {
     var editando = !!c;
     var items = editando
-      ? c.items.filter(function (it) { return !it.eliminada; }).map(function (it) { return { cancion: +it.cancion, tonalidad: it.tonalidad, nota: it.nota }; })
+      ? c.items.filter(function (it) { return !it.eliminada; }).map(function (it) { return { cancion: +it.cancion, tonalidad: it.tonalidad, nota: it.nota, partitura: it.partitura || 0 }; })
       : (opciones.items || []);
     if (opciones.cancion && !items.some(function (it) { return it.cancion === opciones.cancion; })) {
-      items.push({ cancion: opciones.cancion, tonalidad: '', nota: '' });
+      items.push({ cancion: opciones.cancion, tonalidad: '', nota: '', partitura: 0 });
     }
 
     var fFecha = h('input', { type: 'date', class: 'pcan-input', required: true, value: editando ? c.fecha : proximoDomingo() });
@@ -459,7 +459,7 @@
     }
 
     function anadir(s) {
-      items.push({ cancion: s.id, tonalidad: '', nota: '' });
+      items.push({ cancion: s.id, tonalidad: '', nota: '', partitura: 0 });
       buscador.value = '';
       activo = 0;
       pintarResultados();
@@ -514,7 +514,17 @@
               h('input', {
                 type: 'text', class: 'pcan-input pcan-input-sm', value: it.nota, placeholder: 'Nota (p. ej. «solo estrofas 1 y 3»)',
                 'aria-label': 'Nota para ' + titulo, oninput: function (e) { it.nota = e.target.value; }
-              })),
+              }),
+              s && s.variantes && s.variantes.length > 1 ? (function () {
+                var sel = h('select', {
+                  class: 'pcan-input pcan-input-sm pcan-set-partitura', 'aria-label': 'Partitura de ' + titulo, title: 'Partitura que se usa en este culto (modo culto y PDF)',
+                  onchange: function (e) { it.partitura = +e.target.value; }
+                }, [h('option', { value: '0', text: 'Partitura: la primera' })].concat(s.variantes.map(function (v, k) {
+                  return h('option', { value: String(v.id), text: 'Partitura: ' + (v.label || 'n.º ' + (k + 1)) });
+                })));
+                sel.value = String(it.partitura || 0);
+                return sel;
+              })() : null),
             repetida ? h('span', { class: 'pcan-picker-warn' }, icono('aviso'), 'Está repetida en este setlist') : null,
             rep ? h('span', { class: 'pcan-picker-warn' }, icono('aviso'), rep) : null),
           h('span', { class: 'pcan-set-tools' },
@@ -881,8 +891,8 @@
           var c = cultos.filter(function (x) { return x.id === +select.value; })[0];
           if (!c) { return; }
           boton.disabled = true;
-          var items = c.items.map(function (it) { return { cancion: +it.cancion, tonalidad: it.tonalidad, nota: it.nota }; });
-          items.push({ cancion: cancion.id, tonalidad: '', nota: '' });
+          var items = c.items.map(function (it) { return { cancion: +it.cancion, tonalidad: it.tonalidad, nota: it.nota, partitura: it.partitura || 0 }; });
+          items.push({ cancion: cancion.id, tonalidad: '', nota: '', partitura: 0 });
           api('cultos/' + c.id, { json: { titulo: c.titulo, fecha: c.fecha, tipo: c.tipo, notas: c.notas, items: items } })
             .then(function () { return cargar(true); })
             .then(function () { aviso('Añadida a «' + c.titulo + '»'); refrescar(); select.querySelector('option[value="' + c.id + '"]').remove(); boton.disabled = false; })

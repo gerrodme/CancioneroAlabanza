@@ -49,7 +49,8 @@ La interfaz es una aplicación de una sola página dentro de la página de WordP
   | `_pieb_editables` | Lista de `{id, descripcion}`: MuseScore, MusicXML… máx. 10 MB. |
 
 - Metadatos de **culto**: `_pieb_fecha`, `_pieb_tipo`, `_pieb_notas`, `_pieb_items` (lista de
-  `{cancion, tonalidad, nota}` en orden).
+  `{cancion, tonalidad, nota, partitura}` en orden; `partitura` es el ID del adjunto elegido para ese culto, 0 = la primera. Al
+  servir el culto, la elegida se coloca la primera en `datos.partituras`, que es la que usan el modo culto y el PDF).
 - Opciones de WordPress: `pieb_can_ajustes` (ajustes: `nombre`, `tema_defecto`, `google_client_id`, `emails`,
   `administradores`, `dominio`), `pieb_can_version`, `pieb_can_migrado`.
 

@@ -958,6 +958,7 @@ a.pcan-set-title:hover { color: var(--pc-accent) !important; }
 .pcan-set-num { display: inline-grid; place-items: center; flex: 0 0 auto; min-width: 34px; height: 22px; padding: 0 6px; border-radius: 7px; background: var(--pc-accent-soft); color: var(--pc-accent); font-size: 12px; font-weight: 800; }
 .pcan-set-note { font-style: italic; }
 .pcan-set-fields { display: grid; grid-template-columns: 96px 1fr; gap: 6px; }
+.pcan-set-partitura { grid-column: 1 / -1; }
 .pcan-set-tools { display: flex; flex: 0 0 auto; }
 [data-pcan-theme] .pcan-set-placeholder { padding: 22px; border: 1px dashed var(--pc-line); border-radius: var(--pc-radius); color: var(--pc-muted); text-align: center; }
 [data-pcan-theme] .pcan-drag {

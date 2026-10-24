@@ -32,7 +32,7 @@
     [440, 'Cuán grande es Él', '17', 'Sib', 'C. Boberg', ['Adoración'], 'Señor mi Dios, al contemplar los cielos'],
     [441, 'Santo, santo, santo', '1', 'Re', 'J. B. Dykes', ['Adoración', 'Trinidad'], 'Santo, santo, santo, Señor omnipotente']
   ].map(function (x, i) {
-    return { id: x[0], titulo: x[1], numero: x[2], tonalidad: x[3], autor: x[4], etiquetas: x[5], letra: x[6], partituras: 1,
+    return { id: x[0], titulo: x[1], numero: x[2], tonalidad: x[3], autor: x[4], etiquetas: x[5], letra: x[6], variantes: x[1] === 'A Cristo coronad' ? [{ id: 1, label: 'Himnario' }, { id: 2, label: 'Coro' }] : [], partituras: 1,
       youtube: i % 3 === 0 ? 1 : 0, audios: i % 4 === 0 ? 1 : 0, editables: i % 3 === 0 ? (i ? 1 : 2) : 0, miniatura: '', creada: dias(-i * 3) + 'T10:00:00Z', modificada: dias(-i) + 'T10:00:00Z' };
   });
   var cultos = [

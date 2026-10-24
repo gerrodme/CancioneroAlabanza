@@ -182,6 +182,10 @@ function pieb_can_resumen($post) {
         'audios'      => count(pieb_can_get_audios($post->ID)),
         'editables'   => count(pieb_can_get_editables($post->ID)),
         'miniatura'   => $thumb ? $thumb : '',
+        // Versiones (partituras) de la canción, solo si hay más de una: el setlist deja elegir cuál usar.
+        'variantes'   => count($partituras) > 1 ? array_map(function ($p) {
+            return array('id' => (int) $p['id'], 'label' => (string) $p['label']);
+        }, $partituras) : array(),
         'creada'      => get_post_time('c', true, $post),
         'modificada'  => get_post_modified_time('c', true, $post),
     );
