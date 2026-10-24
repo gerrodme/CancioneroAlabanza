@@ -870,6 +870,9 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
   position: sticky; bottom: 0; z-index: 4; display: flex; gap: 10px; margin: 0 -20px -40px; padding: 14px 20px calc(16px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--pc-line); background: var(--pc-surface);
 }
+/* Subida múltiple: la barra de progreso va dentro de la barra fija inferior para verse siempre. */
+.pcan-form-actions { flex-wrap: wrap; }
+.pcan-form-actions > .pcan-progress { flex: 1 0 100%; order: -1; height: 10px; }
 @container pcan (min-width: 1000px) { .pcan-split-detail .pcan-form-actions { margin: 0 -28px -48px; padding: 14px 28px 18px; } }
 [data-pcan-theme="escenario"] .pcan-split-detail .pcan-form-actions { background: var(--pc-bg); }
 

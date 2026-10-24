@@ -1981,8 +1981,8 @@
       cabeceraPanel(h('h2', { text: 'Subir varias canciones' })),
       h('div', { class: 'pcan-panel-body' },
         h('div', { class: 'pcan-form' },
-          resumen, zona, lista, quitarYa, progreso,
-          h('div', { class: 'pcan-form-actions' }, subir,
+          resumen, zona, lista, quitarYa,
+          h('div', { class: 'pcan-form-actions' }, progreso, subir,
             h('button', { type: 'button', class: 'pcan-btn', onclick: function () { cerrarPanel(); } }, 'Cerrar'))))
     ], 'Subir varias canciones', { vista: 'canciones', id: 0 });
     pintar();
