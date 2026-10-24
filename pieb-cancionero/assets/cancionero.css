@@ -1827,3 +1827,41 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 }
 [data-pcan-theme] .pcan-editable:hover { background: var(--pc-surface-2); }
 .pcan-editable > .pcan-ico { flex: 0 0 auto; color: var(--pc-muted); }
+
+/* ================================================================== etiquetas con color
+ * Cada etiqueta lleva su color (--tag), asignado al crearla; se tiñen las pastillas y los filtros.
+ */
+[data-pcan-theme] .pcan-tag[style*="--tag"] { background: color-mix(in srgb, var(--tag) 15%, var(--pc-surface)); color: color-mix(in srgb, var(--tag) 72%, var(--pc-text)); }
+[data-pcan-theme="papel"] .pcan-tag[style*="--tag"] { background: transparent; color: color-mix(in srgb, var(--tag) 80%, var(--pc-text)); }
+[data-pcan-theme] button.pcan-tag.is-link[style*="--tag"]:hover { background: color-mix(in srgb, var(--tag) 28%, var(--pc-surface)); color: color-mix(in srgb, var(--tag) 80%, var(--pc-text)); }
+[data-pcan-theme] .pcan-chip[style*="--tag"]::before { content: ""; flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: var(--tag); }
+[data-pcan-theme] .pcan-chip[style*="--tag"]:hover { border-color: var(--tag); }
+[data-pcan-theme] .pcan-chip.is-active[style*="--tag"] { border-color: var(--tag); background: var(--tag); color: #fff; }
+[data-pcan-theme] .pcan-chip.is-active[style*="--tag"]::before { background: #fff; }
+
+/* ================================================================== cabecera de la tabla: los iconos de recursos también ordenan */
+@container pcan (min-width: 860px) {
+  [data-pcan-theme] .pcan-thead .pcan-c-rec > .pcan-th-rec { position: relative; display: grid; place-items: center; width: 22px; height: 26px; padding: 0; border-radius: 6px; }
+  [data-pcan-theme] .pcan-thead .pcan-th-rec:hover, [data-pcan-theme] .pcan-thead .pcan-th-rec.is-active { background: var(--pc-surface-2); color: var(--pc-text); }
+  .pcan-th-rec .pcan-th-flecha { position: absolute; right: -3px; bottom: -3px; font-size: 10px; line-height: 1; }
+}
+
+/* ================================================================== editor del culto
+ * Con sitio (PC y tableta), los datos en una fila y cada canción del setlist en una sola línea: cabe sin desplazarse.
+ */
+@container det (min-width: 640px) {
+  .pcan-form-culto { gap: 14px; }
+  .pcan-culto-datos { grid-template-columns: 150px minmax(0, 1fr) minmax(0, 1.5fr); gap: 10px 12px; }
+  .pcan-culto-datos > .pcan-span-2 { grid-column: auto; }
+  .pcan-culto-datos .pcan-help { display: none; }
+  [data-pcan-theme] .pcan-form-culto .pcan-fieldset { gap: 8px; padding: 12px 14px; }
+  [data-pcan-theme] .pcan-setlist.is-edit { gap: 4px; }
+  [data-pcan-theme] .pcan-setlist.is-edit .pcan-set-item { gap: 8px; margin-bottom: 0; padding: 4px 6px 4px 4px; }
+  .pcan-setlist.is-edit .pcan-set-main { display: grid; grid-template-columns: minmax(0, 1fr) 76px minmax(0, 1.1fr); align-items: center; column-gap: 8px; row-gap: 2px; }
+  .pcan-setlist.is-edit .pcan-set-fields { display: contents; }
+  .pcan-setlist.is-edit .pcan-set-main > .pcan-picker-warn { grid-column: 1 / -1; }
+  [data-pcan-theme] .pcan-setlist.is-edit .pcan-set-title { min-width: 0; overflow: hidden; font-size: 15px; white-space: nowrap; }
+  [data-pcan-theme] .pcan-setlist.is-edit .pcan-set-n { width: 26px; height: 26px; font-size: 12px; }
+  [data-pcan-theme] .pcan-setlist.is-edit .pcan-icon-btn { width: 32px; height: 32px; }
+  [data-pcan-theme] .pcan-form-culto .pcan-textarea { min-height: 60px; }
+}

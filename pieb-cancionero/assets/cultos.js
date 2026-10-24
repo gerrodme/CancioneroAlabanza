@@ -407,7 +407,7 @@
     var listaTipos = h('datalist', { id: 'pcan-tipos' }, TIPOS.map(function (t) { return h('option', { value: t }); }));
     var fTipo = h('input', { type: 'text', class: 'pcan-input', list: 'pcan-tipos', maxlength: '80', value: editando ? c.tipo : (opciones.tipo || 'Culto dominical') });
     var fTitulo = h('input', { type: 'text', class: 'pcan-input', required: true, maxlength: '200', value: editando ? c.titulo : '' });
-    var fNotas = h('textarea', { class: 'pcan-input pcan-textarea', rows: '3', placeholder: 'Tema del culto, quién predica, indicaciones para el equipo…' });
+    var fNotas = h('textarea', { class: 'pcan-input pcan-textarea', rows: '2', placeholder: 'Tema del culto, quién predica, indicaciones para el equipo…' });
     fNotas.value = editando ? c.notas : (opciones.notas || '');
 
     // El título se rellena solo («Culto dominical · 26 oct») hasta que alguien lo cambie a mano.
@@ -576,8 +576,9 @@
     var guardar = h('button', { type: 'submit', class: 'pcan-btn pcan-btn-primary' }, editando ? 'Guardar cambios' : 'Crear culto');
     var tonos = h('datalist', { id: 'pcan-tonos-set' }, P.tonalidades.map(function (t) { return h('option', { value: t }); }));
 
-    var form = h('form', { class: 'pcan-form', novalidate: true },
-      h('div', { class: 'pcan-grid-2' },
+    // En pantallas anchas los datos van en una fila y cada canción del setlist en una línea (ver «editor del culto» en el CSS).
+    var form = h('form', { class: 'pcan-form pcan-form-culto', novalidate: true },
+      h('div', { class: 'pcan-grid-2 pcan-culto-datos' },
         P.campo('Fecha', fFecha, null, true),
         P.campo('Tipo de culto', h('span', null, fTipo, listaTipos)),
         h('div', { class: 'pcan-span-2' }, P.campo('Título', fTitulo, 'Se rellena solo con el tipo y la fecha; puedes cambiarlo.', true))),

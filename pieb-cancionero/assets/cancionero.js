@@ -36,6 +36,8 @@
     query: '',
     etiqueta: '',
     orden: 'titulo',
+    ordenInverso: false,
+    coloresEtiquetas: {},
     cargado: false,
     error: '',
     vista: 'inicio',
@@ -311,6 +313,11 @@
   // ---------------------------------------------------------------- datos
 
   function cargar() {
+    // Los colores de las etiquetas llegan aparte; si fallan, cada etiqueta usa uno provisional (colorEtiqueta).
+    api('etiquetas').then(function (colores) {
+      state.coloresEtiquetas = colores && typeof colores === 'object' ? colores : {};
+      if (ui.lista) { pintarChips(); pintarLista(); }
+    }).catch(function () {});
     return api('canciones').then(function (lista) {
       state.canciones = lista;
       state.indice = lista.map(function (c) {
@@ -329,6 +336,21 @@
       state.error = e.message;
       state.cargado = true;
     });
+  }
+
+  // Misma paleta que el servidor (PIEB_CAN_COLORES_ETIQUETA): cada etiqueta recibe uno al crearse.
+  var COLORES_ETIQUETA = ['#2f6fd6', '#d4553f', '#2e9e6b', '#8a4fd0', '#d4890f', '#1f8fa3', '#c2407a', '#5c6bc0', '#7a8f1f', '#a0522d', '#0f766e', '#b45309'];
+
+  /** Color de una etiqueta: el que le asignó el servidor o, si aún no existe (recién escrita), uno estable según su nombre. */
+  function colorEtiqueta(nombre) {
+    if (state.coloresEtiquetas[nombre]) { return state.coloresEtiquetas[nombre]; }
+    var n = 0;
+    for (var i = 0; i < nombre.length; i++) { n = (n * 31 + nombre.charCodeAt(i)) % 9973; }
+    return COLORES_ETIQUETA[n % COLORES_ETIQUETA.length];
+  }
+
+  function estiloEtiqueta(nombre) {
+    return '--tag: ' + colorEtiqueta(nombre);
   }
 
   function etiquetasTodas() {
@@ -379,26 +401,49 @@
     return res;
   }
 
+  // Sentido natural de cada orden: lo alfabético y numérico, de menor a mayor; fechas, uso y recursos, primero lo que más tiene.
+  var ORDENES = {
+    titulo: { texto: 'A–Z', asc: true }, numero: { texto: 'Nº himnario', asc: true }, tono: { texto: 'Tono', asc: true },
+    tempo: { texto: 'Tempo', asc: true }, etiquetas: { texto: 'Etiquetas', asc: true }, recientes: { texto: 'Recientes', asc: false },
+    uso: { texto: 'Más tocadas', asc: false }, partituras: { texto: 'Partituras', asc: false }, letra: { texto: 'Con letra', asc: false },
+    audios: { texto: 'Audios', asc: false }, editables: { texto: 'Editables', asc: false }, youtube: { texto: 'YouTube', asc: false }
+  };
+
+  /** Valor por el que se ordena cada columna; null si la canción no tiene ese dato (va siempre al final). */
+  function valorOrden(c, orden) {
+    var n;
+    switch (orden) {
+      case 'numero': n = parseInt(c.numero, 10); return isNaN(n) ? null : n;
+      case 'tono': return c.tonalidad || null;
+      case 'tempo': n = parseInt(c.tempo, 10); return isNaN(n) ? null : n;
+      case 'etiquetas': return c.etiquetas.length ? c.etiquetas.slice().sort(function (x, y) { return x.localeCompare(y, 'es'); })[0] : null;
+      case 'recientes': return c.creada;
+      case 'uso': n = state.uso[c.id]; return n ? n.n * 1e9 + Number(String(n.ultima).replace(/\D/g, '').slice(0, 8)) : 0;
+      case 'letra': return c.letra ? 1 : 0;
+      case 'partituras': case 'audios': case 'editables': case 'youtube': return c[orden] || 0;
+      default: return c.titulo;
+    }
+  }
+
   function comparar(a, b) {
-    if (state.orden === 'numero') {
-      var na = parseInt(a.numero, 10), nb = parseInt(b.numero, 10);
-      if (isNaN(na) && isNaN(nb)) { return a.titulo.localeCompare(b.titulo, 'es'); }
-      if (isNaN(na)) { return 1; }
-      if (isNaN(nb)) { return -1; }
-      return na - nb;
+    var orden = ORDENES[state.orden] ? state.orden : 'titulo';
+    var va = valorOrden(a, orden), vb = valorOrden(b, orden);
+    var r = 0;
+    if (va === null || vb === null) { r = va === vb ? 0 : va === null ? 1 : -1; }
+    else {
+      r = typeof va === 'number' ? va - vb : String(va).localeCompare(String(vb), 'es', { sensitivity: 'base' });
+      // Sentido: el natural de la columna, o el contrario si se ha vuelto a pulsar su cabecera.
+      if (ORDENES[orden].asc === state.ordenInverso) { r = -r; }
     }
-    if (state.orden === 'recientes') { return b.creada.localeCompare(a.creada); }
-    if (state.orden === 'tono') { return (a.tonalidad || '~').localeCompare(b.tonalidad || '~', 'es') || a.titulo.localeCompare(b.titulo, 'es'); }
-    if (state.orden === 'tempo') {
-      var ta = parseInt(a.tempo, 10), tb = parseInt(b.tempo, 10);
-      if (isNaN(ta) !== isNaN(tb)) { return isNaN(ta) ? 1 : -1; }
-      return (ta - tb) || a.titulo.localeCompare(b.titulo, 'es');
-    }
-    if (state.orden === 'uso') {
-      var ua = state.uso[a.id] || { n: 0, ultima: '' }, ub = state.uso[b.id] || { n: 0, ultima: '' };
-      return ub.n - ua.n || ub.ultima.localeCompare(ua.ultima) || a.titulo.localeCompare(b.titulo, 'es');
-    }
-    return a.titulo.localeCompare(b.titulo, 'es', { sensitivity: 'base' });
+    return r || a.titulo.localeCompare(b.titulo, 'es', { sensitivity: 'base' });
+  }
+
+  /** Ordena por una columna; si ya era esa, invierte el sentido. */
+  function ordenarPor(orden) {
+    state.ordenInverso = state.orden === orden ? !state.ordenInverso : false;
+    state.orden = orden;
+    if (ui.orden) { ui.orden.value = orden; }
+    pintarLista();
   }
 
   // Fragmento de la letra donde aparece la búsqueda.
@@ -452,15 +497,8 @@
     ui.contador = h('span', { class: 'pcan-count' });
     ui.orden = h('select', {
       class: 'pcan-select', 'aria-label': 'Ordenar',
-      onchange: function (e) { state.orden = e.target.value; pintarLista(); }
-    },
-      h('option', { value: 'titulo', text: 'A–Z' }),
-      h('option', { value: 'numero', text: 'Nº himnario' }),
-      h('option', { value: 'recientes', text: 'Recientes' }),
-      h('option', { value: 'uso', text: 'Más tocadas' }),
-      h('option', { value: 'tono', text: 'Tono' }),
-      h('option', { value: 'tempo', text: 'Tempo' })
-    );
+      onchange: function (e) { state.orden = e.target.value; state.ordenInverso = false; pintarLista(); }
+    }, Object.keys(ORDENES).map(function (k) { return h('option', { value: k, text: ORDENES[k].texto }); }));
     ui.chips = h('div', { class: 'pcan-chips', role: 'toolbar', 'aria-label': 'Filtrar por etiqueta' });
     ui.lista = h('div', { class: 'pcan-list', role: 'list' });
     ui.panel = h('div', { class: 'pcan-panel-wrap', hidden: true });
@@ -829,6 +867,7 @@
       var activo = state.etiqueta === etiqueta;
       return h('button', {
         type: 'button', class: 'pcan-chip' + (activo ? ' is-active' : ''), 'aria-pressed': activo ? 'true' : 'false',
+        style: etiqueta ? estiloEtiqueta(etiqueta) : null,
         onclick: function () { state.etiqueta = activo && etiqueta ? '' : etiqueta; pintarChips(); pintarLista(); }
       }, nombre, n !== undefined ? h('span', { class: 'pcan-chip-n', text: String(n) }) : null);
     };
@@ -839,6 +878,7 @@
   function pasaFiltro(c) {
     if (state.filtro === 'letra') { return !!c.letra; }
     if (state.filtro === 'audio') { return !!c.audios; }
+    if (state.filtro === 'editable') { return !!c.editables; }
     if (state.filtro === 'youtube') { return !!c.youtube; }
     if (state.filtro === 'nunca') { return !state.uso[c.id]; }
     return true;
@@ -859,6 +899,7 @@
       { id: '', texto: 'Canciones', n: total, icono: 'nota' },
       { id: 'letra', texto: 'Con letra', n: cuenta(function (c) { return c.letra; }), icono: 'letra' },
       { id: 'audio', texto: 'Con audio', n: cuenta(function (c) { return c.audios; }), icono: 'audio' },
+      { id: 'editable', texto: 'Con editable', n: cuenta(function (c) { return c.editables; }), icono: 'editable' },
       { id: 'youtube', texto: 'Con YouTube', n: cuenta(function (c) { return c.youtube; }), icono: 'youtube' }
     ];
     if (state.usoCargado) {
@@ -877,28 +918,33 @@
     });
   }
 
-  /** Cabecera de la tabla (pantallas anchas): las columnas ordenables son botones. */
+  /** Cabecera de la tabla (pantallas anchas): cada columna ordena; pulsarla otra vez invierte el sentido. */
   function pintarCabecera() {
     ui.thead.innerHTML = '';
-    var col = function (clase, texto, orden) {
-      if (!orden) { return h('span', { class: clase, text: texto }); }
+    function flecha(orden) {
+      if (state.orden !== orden) { return null; }
+      var asc = ORDENES[orden].asc !== state.ordenInverso;
+      return h('span', { class: 'pcan-th-flecha', 'aria-hidden': 'true', text: asc ? '▴' : '▾' });
+    }
+    function boton(clase, orden, titulo, contenido) {
       var activo = state.orden === orden;
       return h('button', {
         type: 'button', class: clase + ' pcan-th' + (activo ? ' is-active' : ''), 'aria-pressed': activo ? 'true' : 'false',
-        title: 'Ordenar por ' + texto.toLowerCase(),
-        onclick: function () { state.orden = orden; ui.orden.value = orden; pintarLista(); }
-      }, texto, activo ? h('span', { class: 'pcan-th-flecha', 'aria-hidden': 'true', text: '▾' }) : null);
-    };
+        title: 'Ordenar por ' + titulo + (activo ? ' (pulsa otra vez para invertir)' : ''),
+        onclick: function () { ordenarPor(orden); }
+      }, contenido, flecha(orden));
+    }
+    var col = function (clase, texto, orden) { return boton(clase, orden, texto.toLowerCase(), texto); };
+    var rec = function (orden, nombre, ico) { return boton('pcan-th-rec', orden, nombre, icono(ico)); };
     append(ui.thead, [
       col('pcan-c-num', 'Nº', 'numero'),
       col('pcan-c-titulo', 'Título', 'titulo'),
       col('pcan-c-tono', 'Tono', 'tono'),
       col('pcan-c-tempo', 'Tempo', 'tempo'),
-      col('pcan-c-tags', 'Etiquetas'),
+      col('pcan-c-tags', 'Etiquetas', 'etiquetas'),
       h('span', { class: 'pcan-c-rec' },
-        h('span', { title: 'Partituras' }, icono('partitura')), h('span', { title: 'Letra' }, icono('letra')),
-        h('span', { title: 'Audios' }, icono('audio')), h('span', { title: 'Partituras editables' }, icono('editable')),
-        h('span', { title: 'YouTube' }, icono('youtube'))),
+        rec('partituras', 'partituras', 'partitura'), rec('letra', 'letra', 'letra'), rec('audios', 'audios', 'audio'),
+        rec('editables', 'partituras editables', 'editable'), rec('youtube', 'vídeos de YouTube', 'youtube')),
       col('pcan-c-uso', 'Tocada', 'uso'),
       col('pcan-c-fecha', 'Añadida', 'recientes')
     ]);
@@ -1030,7 +1076,7 @@
         h('span', { class: 'pcan-row-meta' },
           h('span', { class: 'pcan-c-tono' }, c.tonalidad ? pastillaTono(c.tonalidad) : null),
           h('span', { class: 'pcan-c-tempo', title: c.tempo ? c.tempo + ' pulsaciones por minuto' : null, text: c.tempo ? '♩ ' + c.tempo : '' }),
-          h('span', { class: 'pcan-c-tags' }, c.etiquetas.map(function (e) { return h('span', { class: 'pcan-tag', text: e }); }))),
+          h('span', { class: 'pcan-c-tags' }, c.etiquetas.map(function (e) { return h('span', { class: 'pcan-tag', style: estiloEtiqueta(e), text: e }); }))),
         h('span', { class: 'pcan-c-rec' },
           puntoRecurso(c.partituras, 'partitura', 'partitura', 'partituras'),
           puntoRecurso(c.letra ? 1 : 0, 'letra', 'letra', 'letras'),
@@ -1235,7 +1281,7 @@
         c.numero ? h('span', { class: 'pcan-det-num', text: 'Nº ' + c.numero }) : null,
         c.etiquetas.map(function (e) {
           return h('button', {
-            type: 'button', class: 'pcan-tag is-link', title: 'Ver canciones con esta etiqueta',
+            type: 'button', class: 'pcan-tag is-link', style: estiloEtiqueta(e), title: 'Ver canciones con esta etiqueta',
             onclick: function () { state.etiqueta = e; state.query = ''; ui.buscador.value = ''; pintarChips(); pintarLista(); cerrarPanel(); mostrarVista('canciones'); }
           }, e);
         })),
@@ -1454,7 +1500,7 @@
     function pintarTags() {
       tagBox.innerHTML = '';
       etiquetas.forEach(function (e, i) {
-        append(tagBox, h('span', { class: 'pcan-tag' }, e,
+        append(tagBox, h('span', { class: 'pcan-tag', style: estiloEtiqueta(e) }, e,
           h('button', { type: 'button', class: 'pcan-tag-x', 'aria-label': 'Quitar ' + e, onclick: function () { etiquetas.splice(i, 1); pintarTags(); } }, '×')));
       });
       append(tagBox, tagInput);

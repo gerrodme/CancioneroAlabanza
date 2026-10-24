@@ -112,6 +112,45 @@ function pieb_can_youtube_id($url) {
     return '';
 }
 
+// Paleta de las etiquetas (la misma que COLORES_ETIQUETA en cancionero.js).
+const PIEB_CAN_COLORES_ETIQUETA = array('#2f6fd6', '#d4553f', '#2e9e6b', '#8a4fd0', '#d4890f', '#1f8fa3', '#c2407a', '#5c6bc0', '#7a8f1f', '#a0522d', '#0f766e', '#b45309');
+
+// Cada etiqueta recibe un color al crearse: el menos usado de la paleta, para que las etiquetas se distingan.
+add_action('created_' . PIEB_CAN_TAX, 'pieb_can_asignar_color_etiqueta');
+
+function pieb_can_asignar_color_etiqueta($term_id) {
+    $ids = get_terms(array('taxonomy' => PIEB_CAN_TAX, 'hide_empty' => false, 'fields' => 'ids'));
+    $usados = array();
+    foreach (is_array($ids) ? $ids : array() as $id) {
+        $color = get_term_meta($id, 'pieb_color', true);
+        if ($color) {
+            $usados[$color] = isset($usados[$color]) ? $usados[$color] + 1 : 1;
+        }
+    }
+    $elegido = PIEB_CAN_COLORES_ETIQUETA[0];
+    $minimo = PHP_INT_MAX;
+    foreach (PIEB_CAN_COLORES_ETIQUETA as $color) {
+        $n = isset($usados[$color]) ? $usados[$color] : 0;
+        if ($n < $minimo) {
+            $minimo = $n;
+            $elegido = $color;
+        }
+    }
+    update_term_meta($term_id, 'pieb_color', $elegido);
+    return $elegido;
+}
+
+/** Nombre => color de todas las etiquetas; las que aún no tienen color (anteriores a esta función) lo reciben ahora. */
+function pieb_can_colores_etiquetas() {
+    $colores = array();
+    $terms = get_terms(array('taxonomy' => PIEB_CAN_TAX, 'hide_empty' => false));
+    foreach (is_array($terms) ? $terms : array() as $t) {
+        $color = get_term_meta($t->term_id, 'pieb_color', true);
+        $colores[html_entity_decode($t->name, ENT_QUOTES, 'UTF-8')] = $color ? $color : pieb_can_asignar_color_etiqueta($t->term_id);
+    }
+    return $colores;
+}
+
 function pieb_can_etiquetas($post_id) {
     $terms = wp_get_object_terms($post_id, PIEB_CAN_TAX, array('fields' => 'names'));
     return is_wp_error($terms) ? array() : array_values($terms);

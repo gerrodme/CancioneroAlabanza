@@ -27,6 +27,12 @@ function pieb_can_rest_rutas() {
         ),
     ));
 
+    register_rest_route($ns, '/etiquetas', array(
+        'methods'             => WP_REST_Server::READABLE,
+        'callback'            => function () { return rest_ensure_response((object) pieb_can_colores_etiquetas()); },
+        'permission_callback' => $acceso,
+    ));
+
     register_rest_route($ns, '/subidas', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'pieb_can_rest_trozo',
