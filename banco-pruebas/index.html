@@ -68,6 +68,7 @@
     else if (ruta === 'cultos' && (!opts || !opts.method || opts.method === 'GET')) { datos = cultos; }
     else if ((mc = ruta.match(/^cultos\/(\d+)$/))) { datos = detalleCulto(cultos.filter(function (c) { return c.id === +mc[1]; })[0]); }
     else if (ruta === 'etiquetas') { datos = {}; }
+    else if (ruta === 'archivos/estado') { datos = { pendientes: 3, proteccion: 'expuesto', tanda: 50 }; }
     else if (ruta === 'ajustes') { datos = { nombre: 'Cancionero', administradores: ['ana@example.com'], temaDefecto: 'claro', googleClientId: '', dominio: '', emails: ['ana@example.com'], miembros: [{ email: 'ana@example.com', nombre: '', haEntrado: false, enLista: true, esGestor: true }], origen: location.origin }; }
     else { datos = { ok: true }; }
     return Promise.resolve(new Response(JSON.stringify(datos), { status: 200, headers: { 'Content-Type': 'application/json' } }));

@@ -2,6 +2,11 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.5.0 · 2026-10-24
+
+Archivos privados: partituras, audios y editables se guardan en una carpeta que el servidor no sirve y solo se entregan
+a quien ha iniciado sesión; botón para proteger los archivos existentes y aviso si el servidor no respeta la protección
+
 ## 1.4.0 · 2026-10-24
 
 Nombre del cancionero configurable en Ajustes, administradores del cancionero (rol propio con ajustes y borrado, sin ser

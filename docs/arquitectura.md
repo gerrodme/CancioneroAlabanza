@@ -79,6 +79,20 @@ Cuerpo `multipart/form-data` con todos estos campos (los ausentes se **vacían**
 Para cambiar un solo dato: `GET` la ficha, reconstruir todos los campos con ella y modificar solo el deseado. Receta en
 [carga-masiva.md](carga-masiva.md).
 
+## Archivos privados
+
+`includes/archivos.php`. Todo lo que sube el plugin va, mediante el filtro `upload_dir`, a
+`uploads/cancionero-privado/` (con `.htaccess` y `index.php`). Se sirve en `/?pcan_archivo=ID[&t=thumbnail|medium|large][&descargar=1]`
+(`pieb_can_servir_archivo`, en `init`): exige sesión y la capacidad `pieb_cancionero_acceso`, comprueba que el adjunto
+es del cancionero (`_pieb_partitura`, `_pieb_audio`, `_pieb_editable` o hijo de una canción), admite peticiones parciales
+(`Range`) y responde con `Cache-Control: private`. Los editables siempre se entregan como descarga. No se usa la API REST
+porque `<img>`, `<audio>` e `<iframe>` no pueden enviar el nonce.
+
+Las direcciones que ve la interfaz (`url`, `miniatura`) las genera `pieb_can_url_archivo()` / `pieb_can_url_miniatura()`;
+**no usar `wp_get_attachment_url()`** para archivos del cancionero. Los archivos anteriores a la 1.5.0 se mueven con
+`POST /archivos/proteger` (tandas de 50; `GET /archivos/estado` informa de pendientes y de si el servidor entrega
+la carpeta sin sesión: `protegido`, `expuesto` o `desconocido`). Ambas rutas requieren `pieb_cancionero_gestionar`.
+
 ## Subida múltiple
 
 `#/subir`: el usuario arrastra archivos; el título, el número de himnario y la tonalidad se deducen del nombre

@@ -39,6 +39,27 @@ WordPress 6.0 o superior y PHP 7.4 o superior. No necesita plugins adicionales.
 
 Para actualizar: sube el zip nuevo y elige **Reemplazar el actual con el subido**. Los datos no se tocan.
 
+## Seguridad de los archivos
+
+Las partituras pueden tener derechos de autor, así que **no se sirven directamente**. Desde la versión 1.5.0 los archivos
+(partituras, audios, editables y miniaturas) se guardan en `wp-content/uploads/cancionero-privado/` y se entregan a través
+de WordPress, solo a quien ha iniciado sesión y tiene acceso al cancionero.
+
+- **Apache:** la carpeta incluye un `.htaccess` que prohíbe el acceso directo. Comprueba que tu servidor permite
+  archivos `.htaccess` (`AllowOverride`).
+- **Nginx:** ignora `.htaccess`. Añade esta regla a la configuración del sitio y recarga el servidor:
+
+  ```nginx
+  location ^~ /wp-content/uploads/cancionero-privado/ { deny all; }
+  ```
+
+- **Comprobación:** en **Ajustes y equipo → Protección de los archivos** el plugin comprueba si el servidor entrega los
+  archivos sin sesión y te avisa en rojo si es así.
+- **Archivos de antes de la 1.5.0:** el mismo apartado tiene el botón **Proteger archivos existentes**, que los mueve a
+  la carpeta privada por tandas de 50. Haz antes una copia de seguridad. Los enlaces directos antiguos dejan de funcionar.
+- Cualquier persona con acceso al cancionero puede descargar los archivos (es su función). Si hay una caché o CDN
+  delante de la web, excluye las direcciones con `?pcan_archivo=`.
+
 ## Estructura del repositorio
 
 | Carpeta / archivo | Qué hay |

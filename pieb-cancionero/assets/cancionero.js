@@ -2021,6 +2021,57 @@
     }) : h('li', { class: 'pcan-muted', text: 'Aún no hay nadie en la lista.' }));
     var hayAdmin = a.miembros.some(function (m) { return m.esAdmin; });
 
+    // Protección de los archivos: comprueba que el servidor no los entrega sin sesión y mueve los antiguos a la carpeta privada.
+    var cajaProteccion = h('div', { class: 'pcan-huerfanos' }, h('p', { class: 'pcan-help', text: 'Comprobando la protección de los archivos…' }));
+    cajaProteccion.addEventListener('input', function (e) { e.stopPropagation(); });
+    cajaProteccion.addEventListener('change', function (e) { e.stopPropagation(); });
+    function pintarProteccion(r) {
+      cajaProteccion.innerHTML = '';
+      var regla = 'location ^~ /wp-content/uploads/cancionero-privado/ { deny all; }';
+      var estado = r.proteccion === 'protegido'
+        ? h('p', { class: 'pcan-help', text: 'La carpeta de archivos privados está protegida: solo se entregan a quien ha iniciado sesión.' })
+        : r.proteccion === 'expuesto'
+          ? h('div', { class: 'pcan-form-error', role: 'alert' },
+            h('strong', { text: 'Tu servidor entrega los archivos privados sin pedir sesión. ' }),
+            'Si usas Nginx, añade esta regla a la configuración del sitio y recarga el servidor: ', h('code', { text: regla }),
+            '. En Apache, comprueba que se permiten los archivos .htaccess (AllowOverride).')
+          : h('p', { class: 'pcan-help', text: 'No se pudo comprobar la protección desde el servidor. Prueba a abrir una partitura en una ventana privada sin sesión: debe dar error.' });
+      var pendientes = r.pendientes || 0;
+      var progreso = h('p', { class: 'pcan-help', hidden: true });
+      var boton = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-primary' },
+        icono('subir'), pendientes ? 'Proteger ' + pendientes + (pendientes === 1 ? ' archivo existente' : ' archivos existentes') : 'Proteger archivos existentes');
+      boton.disabled = !pendientes;
+      boton.addEventListener('click', function () {
+        boton.disabled = true;
+        var total = pendientes, movidos = 0, fallos = [];
+        progreso.hidden = false;
+        (function tanda() {
+          progreso.textContent = 'Moviendo archivos… ' + movidos + ' de ' + total;
+          api('archivos/proteger', { json: {} }).then(function (res) {
+            movidos += res.movidos;
+            fallos = fallos.concat(res.fallos || []);
+            if (res.restantes > 0 && res.movidos > 0) { tanda(); return; }
+            progreso.textContent = movidos + (movidos === 1 ? ' archivo protegido' : ' archivos protegidos') +
+              (fallos.length ? ' · ' + fallos.length + ' no se pudieron mover: ' + fallos.slice(0, 5).map(function (f) { return f.archivo + ' (' + f.motivo + ')'; }).join('; ') : '.');
+            aviso(movidos + (movidos === 1 ? ' archivo protegido' : ' archivos protegidos'), fallos.length ? 'error' : undefined);
+            api('archivos/estado').then(pintarProteccion);
+          }).catch(function (err) {
+            progreso.textContent = 'Se interrumpió: ' + err.message + ' Vuelve a pulsar el botón para continuar.';
+            boton.disabled = false;
+          });
+        })();
+      });
+      append(cajaProteccion, [estado,
+        h('p', { class: 'pcan-help', text: pendientes
+          ? 'Hay ' + pendientes + (pendientes === 1 ? ' archivo subido' : ' archivos subidos') + ' antes de esta versión que todavía se ' + (pendientes === 1 ? 'puede abrir' : 'pueden abrir') + ' con su dirección directa. Muévelos a la carpeta privada (se hace por tandas; los enlaces directos antiguos dejarán de funcionar).'
+          : 'Todos los archivos del cancionero están en la carpeta privada.' }),
+        h('div', { class: 'pcan-actions' }, boton), progreso]);
+    }
+    api('archivos/estado').then(pintarProteccion).catch(function (e) {
+      cajaProteccion.innerHTML = '';
+      append(cajaProteccion, h('p', { class: 'pcan-form-error', text: e.message }));
+    });
+
     // Archivos sin usar: partituras y audios que ya no tiene ninguna canción.
     var cajaHuerfanos = h('div', { class: 'pcan-huerfanos' }, h('p', { class: 'pcan-help', text: 'Buscando archivos sin usar…' }));
     // Marcar casillas aquí no son cambios de los ajustes: no deben pedir confirmación al cerrar.
@@ -2112,6 +2163,9 @@
             h('li', { text: 'Crear credenciales → ID de cliente de OAuth → Aplicación web.' }),
             h('li', null, 'En «Orígenes de JavaScript autorizados» añade: ', h('code', { text: a.origen })),
             h('li', { text: 'Copia el ID de cliente y pégalo aquí.' })))),
+      h('fieldset', { class: 'pcan-fieldset' },
+        h('legend', { text: 'Protección de los archivos' }),
+        cajaProteccion),
       h('fieldset', { class: 'pcan-fieldset' },
         h('legend', { text: 'Archivos sin usar' }),
         cajaHuerfanos),

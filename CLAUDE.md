@@ -39,6 +39,13 @@ renombrada completa exigiría una migración de datos.
 - Preferencias del usuario: cambios pequeños y concretos; botones con texto claro (no solo iconos); acciones
   destructivas en rojo; barras de progreso siempre visibles.
 
+## Seguridad de los archivos (importante)
+
+Las partituras pueden tener derechos de autor: se guardan en `uploads/cancionero-privado/` y solo se entregan con sesión
+(`?pcan_archivo=ID`, ver [docs/arquitectura.md](docs/arquitectura.md)). Nunca generar direcciones con
+`wp_get_attachment_url()` para archivos del cancionero. Al probar cambios de subida o de URLs, comprobar en producción
+con una ventana privada (sin sesión) que el archivo da 403.
+
 ## Operar sobre los datos sin programar el plugin
 
 Todo lo que hace la interfaz está en la API REST (`/wp-json/pieb/v1/…`, ver arquitectura). Para tareas masivas

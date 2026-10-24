@@ -261,7 +261,7 @@ function pieb_can_archivos_sin_usar() {
             'tipo'    => get_post_meta($adjunto->ID, '_pieb_audio', true) ? 'audio' : (get_post_meta($adjunto->ID, '_pieb_editable', true) ? 'editable' : 'partitura'),
             'tamano'  => $ruta && file_exists($ruta) ? (int) filesize($ruta) : 0,
             'fecha'   => get_the_date('Y-m-d', $adjunto),
-            'url'     => wp_get_attachment_url($adjunto->ID),
+            'url'     => pieb_can_url_archivo($adjunto->ID),
             'cancion' => $padre && $padre->post_type === PIEB_CAN_CPT ? html_entity_decode(get_the_title($padre), ENT_QUOTES, 'UTF-8') : '',
         );
     }
@@ -331,7 +331,7 @@ function pieb_can_copia_archivo($attachment_id, $extra) {
     }
     return array_merge(array(
         'archivo' => wp_basename($ruta),
-        'url'     => wp_get_attachment_url($attachment_id),
+        'url'     => pieb_can_url_archivo($attachment_id),
         'tamano'  => (int) filesize($ruta),
     ), $extra);
 }

@@ -165,7 +165,7 @@ function pieb_can_resumen($post) {
     $partituras = pieb_can_get_partituras($post->ID);
     $thumb = '';
     if ($partituras) {
-        $thumb = wp_get_attachment_image_url($partituras[0]['id'], 'medium');
+        $thumb = pieb_can_url_miniatura($partituras[0]['id'], 'medium');
     }
 
     return array(
@@ -195,29 +195,29 @@ function pieb_can_detalle($post) {
 
     $datos['partituras'] = array();
     foreach (pieb_can_get_partituras($post->ID) as $p) {
-        $url = wp_get_attachment_url($p['id']);
-        if (!$url) {
+        $file = get_attached_file($p['id']);
+        if (!$file) {
             continue;
         }
-        $file = get_attached_file($p['id']);
+        $url = pieb_can_url_archivo($p['id']);
         $datos['partituras'][] = array(
             'id'        => (int) $p['id'],
             'label'     => (string) $p['label'],
             'url'       => $url,
             'tipo'      => get_post_mime_type($p['id']) === 'application/pdf' ? 'pdf' : 'imagen',
             'archivo'   => $file ? wp_basename($file) : '',
-            'miniatura' => (string) wp_get_attachment_image_url($p['id'], 'large'),
+            'miniatura' => pieb_can_url_miniatura($p['id'], 'large'),
         );
     }
 
     $datos['audios'] = array();
     foreach (pieb_can_get_audios($post->ID) as $a) {
-        $url = wp_get_attachment_url($a['id']);
-        if (!$url) {
+        $file = get_attached_file($a['id']);
+        if (!$file) {
             continue;
         }
+        $url = pieb_can_url_archivo($a['id']);
         $meta = wp_get_attachment_metadata($a['id']);
-        $file = get_attached_file($a['id']);
         $datos['audios'][] = array(
             'id'          => (int) $a['id'],
             'nombre'      => (string) $a['nombre'],
@@ -230,11 +230,11 @@ function pieb_can_detalle($post) {
 
     $datos['editables'] = array();
     foreach (pieb_can_get_editables($post->ID) as $e) {
-        $url = wp_get_attachment_url($e['id']);
         $file = get_attached_file($e['id']);
-        if (!$url || !$file) {
+        if (!$file) {
             continue;
         }
+        $url = pieb_can_url_archivo($e['id']);
         $datos['editables'][] = array(
             'id'          => (int) $e['id'],
             'descripcion' => (string) $e['descripcion'],
@@ -305,6 +305,8 @@ function pieb_can_adjuntar($file, $post_id, $titulo, $tipo) {
         return new WP_Error('pieb_tipo', sprintf($clase['error'], $file['name']));
     }
 
+    // Todo lo que sube el cancionero va a la carpeta privada (uploads/cancionero-privado), sin acceso directo desde la web.
+    add_filter('upload_dir', 'pieb_can_dir_subidas');
     if ($tipo === 'editable') {
         pieb_can_permitir_editables(true);
     }
@@ -314,6 +316,7 @@ function pieb_can_adjuntar($file, $post_id, $titulo, $tipo) {
     if ($tipo === 'editable') {
         pieb_can_permitir_editables(false);
     }
+    remove_filter('upload_dir', 'pieb_can_dir_subidas');
 
     if (!is_wp_error($attachment_id)) {
         update_post_meta($attachment_id, $clase['meta'], 1);
@@ -323,27 +326,16 @@ function pieb_can_adjuntar($file, $post_id, $titulo, $tipo) {
 }
 
 /**
- * Mientras se guarda un editable, WordPress admite sus extensiones y lo coloca en uploads/pieb-editables,
- * una carpeta cuyo .htaccess obliga a descargar los archivos (un MusicXML no debe abrirse como página).
+ * Mientras se guarda un editable, WordPress admite sus extensiones (MuseScore, MusicXML…). Se entregan siempre como
+ * descarga (ver pieb_can_servir_archivo): un MusicXML no debe abrirse como página.
  */
 function pieb_can_permitir_editables($activar) {
     if ($activar) {
-        $dir = trailingslashit(wp_upload_dir()['basedir']) . 'pieb-editables';
-        if (!is_dir($dir)) {
-            wp_mkdir_p($dir);
-        }
-        if (!file_exists($dir . '/.htaccess')) {
-            @file_put_contents($dir . '/.htaccess', "# Partituras editables del cancionero: siempre se descargan, nunca se abren en el navegador.\n"
-                . "<IfModule mod_mime.c>\nForceType application/octet-stream\n</IfModule>\n"
-                . "<IfModule mod_headers.c>\nHeader set Content-Disposition attachment\nHeader set X-Content-Type-Options nosniff\n</IfModule>\n");
-        }
         add_filter('upload_mimes', 'pieb_can_mimes_editables');
         add_filter('wp_check_filetype_and_ext', 'pieb_can_tipo_editable', 10, 3);
-        add_filter('upload_dir', 'pieb_can_dir_editables');
     } else {
         remove_filter('upload_mimes', 'pieb_can_mimes_editables');
         remove_filter('wp_check_filetype_and_ext', 'pieb_can_tipo_editable', 10);
-        remove_filter('upload_dir', 'pieb_can_dir_editables');
     }
 }
 
@@ -354,13 +346,6 @@ function pieb_can_mimes_editables($mimes) {
 function pieb_can_tipo_editable($datos, $ruta, $nombre) {
     $tipo = wp_check_filetype($nombre, PIEB_CAN_TIPOS_EDITABLE);
     return $tipo['ext'] ? array('ext' => $tipo['ext'], 'type' => $tipo['type'], 'proper_filename' => false) : $datos;
-}
-
-function pieb_can_dir_editables($dir) {
-    $dir['subdir'] = '/pieb-editables';
-    $dir['path'] = $dir['basedir'] . '/pieb-editables';
-    $dir['url'] = $dir['baseurl'] . '/pieb-editables';
-    return $dir;
 }
 
 /** Carpeta temporal de las subidas por trozos; la web no puede servir su contenido. */
