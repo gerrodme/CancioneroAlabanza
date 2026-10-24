@@ -732,6 +732,68 @@
     return String(t || '').replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/[–—]/g, '-').replace(/[^\x20-\x7E\xA0-\xFF]/g, '');
   }
 
+  // Las partituras del PDF del setlist van sin el margen en blanco que traen muchas (el mismo recorte que al tocar):
+  // la parte con contenido se amplía en una hoja A4, vertical o apaisada según convenga.
+  var MARGEN_HOJA = 20;
+  var AMPLIACION_MAX = 2;
+
+  function cajaDe(p, n) {
+    var entera = { x: 0, y: 0, w: 1, h: 1 };
+    return P.Visor && P.Visor.cajaContenido ? P.Visor.cajaContenido(p, n).catch(function () { return entera; }) : Promise.resolve(entera);
+  }
+
+  function casiEntera(bb) {
+    return bb.w > 0.96 && bb.h > 0.96;
+  }
+
+  /** Añade una hoja A4 y devuelve dónde dibujar un contenido de w×alto para que ocupe lo más posible. */
+  function hojaPara(doc, A4, w, alto, maxEscala) {
+    var tam = w > alto ? [A4[1], A4[0]] : A4;
+    var hoja = doc.addPage(tam);
+    var escala = Math.min((tam[0] - 2 * MARGEN_HOJA) / w, (tam[1] - 2 * MARGEN_HOJA) / alto, maxEscala || Infinity);
+    return { hoja: hoja, x: (tam[0] - w * escala) / 2, y: (tam[1] - alto * escala) / 2, width: w * escala, height: alto * escala };
+  }
+
+  /** Página de un PDF: se incrusta solo el rectángulo con contenido, sin rasterizar (sigue siendo vectorial). */
+  function paginaSinMargenes(doc, A4, origen, pagina, i, p) {
+    function copiar() { return doc.copyPages(origen, [i]).then(function (c) { doc.addPage(c[0]); }); }
+    // Las páginas giradas se dejan como están: su contenido no va en el mismo sentido que la caja medida.
+    if (pagina.getRotation().angle % 360) { return copiar(); }
+    return cajaDe(p, i + 1).then(function (bb) {
+      if (casiEntera(bb)) { return copiar(); }
+      var caja = pagina.getCropBox();
+      var izq = caja.x + bb.x * caja.width, arriba = caja.y + (1 - bb.y) * caja.height;
+      var w = bb.w * caja.width, alto = bb.h * caja.height;
+      return doc.embedPage(pagina, { left: izq, bottom: arriba - alto, right: izq + w, top: arriba }).then(function (incrustada) {
+        var r = hojaPara(doc, A4, w, alto, AMPLIACION_MAX);
+        r.hoja.drawPage(incrustada, { x: r.x, y: r.y, width: r.width, height: r.height });
+      });
+    }).catch(copiar);
+  }
+
+  /** Imagen (JPG o PNG): se recorta en un lienzo a su resolución original y se coloca en la hoja. */
+  function imagenSinMargenes(doc, A4, buf, p) {
+    var esPng = /\.png$/i.test(p.url);
+    function incrustar(datos) { return esPng ? doc.embedPng(datos) : doc.embedJpg(datos); }
+    return cajaDe(p, 1).then(function (bb) {
+      if (casiEntera(bb) || !window.createImageBitmap) { return incrustar(buf); }
+      return createImageBitmap(new Blob([buf])).then(function (img) {
+        var sx = Math.round(bb.x * img.width), sy = Math.round(bb.y * img.height);
+        var lienzo = document.createElement('canvas');
+        lienzo.width = Math.max(1, Math.round(bb.w * img.width));
+        lienzo.height = Math.max(1, Math.round(bb.h * img.height));
+        var ctx = lienzo.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, lienzo.width, lienzo.height);
+        ctx.drawImage(img, sx, sy, lienzo.width, lienzo.height, 0, 0, lienzo.width, lienzo.height);
+        return new Promise(function (resolve) { lienzo.toBlob(resolve, esPng ? 'image/png' : 'image/jpeg', 0.92); });
+      }).then(function (blob) { return blob ? blob.arrayBuffer().then(incrustar) : incrustar(buf); });
+    }).then(function (img) {
+      var r = hojaPara(doc, A4, img.width, img.height);
+      r.hoja.drawImage(img, { x: r.x, y: r.y, width: r.width, height: r.height });
+    });
+  }
+
   function descargarPdf(c) {
     aviso('Preparando el PDF del setlist…');
 
@@ -772,16 +834,12 @@
               }).then(function (buf) {
                 if (p.tipo === 'pdf') {
                   return L.PDFDocument.load(buf, { ignoreEncryption: true }).then(function (origen) {
-                    return doc.copyPages(origen, origen.getPageIndices()).then(function (pags) { pags.forEach(function (pp) { doc.addPage(pp); }); });
+                    return origen.getPages().reduce(function (sig, pagina, i) {
+                      return sig.then(function () { return paginaSinMargenes(doc, A4, origen, pagina, i, p); });
+                    }, Promise.resolve());
                   });
                 }
-                var esPng = /\.png$/i.test(p.url);
-                return (esPng ? doc.embedPng(buf) : doc.embedJpg(buf)).then(function (img) {
-                  var hoja = doc.addPage(A4);
-                  var escala = Math.min((A4[0] - 40) / img.width, (A4[1] - 40) / img.height);
-                  var w = img.width * escala, alto = img.height * escala;
-                  hoja.drawImage(img, { x: (A4[0] - w) / 2, y: (A4[1] - alto) / 2, width: w, height: alto });
-                });
+                return imagenSinMargenes(doc, A4, buf, p);
               }).catch(function () { fallos.push(it.datos.titulo); });
             });
           });

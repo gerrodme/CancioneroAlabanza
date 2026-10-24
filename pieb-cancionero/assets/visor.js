@@ -102,6 +102,11 @@
     return recortes[clave];
   }
 
+  /** La misma caja con contenido, para quien no tiene el documento abierto (el PDF del setlist). */
+  function cajaContenido(fuente, n) {
+    return abrirDocumento(fuente).then(function (doc) { return recorte(fuente, doc, n); });
+  }
+
   function cajaConTinta(ctx, w, alto) {
     var d = ctx.getImageData(0, 0, w, alto).data;
     var filas = new Uint32Array(alto);
@@ -476,5 +481,5 @@
     return { el: caja, destruir: esc.destruir };
   }
 
-  P.Visor = { crearEscenario: crearEscenario, abrirLector: abrirLector, visorCompacto: visorCompacto };
+  P.Visor = { crearEscenario: crearEscenario, abrirLector: abrirLector, visorCompacto: visorCompacto, cajaContenido: cajaContenido };
 })();
