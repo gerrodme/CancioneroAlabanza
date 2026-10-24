@@ -2,7 +2,7 @@
 /**
  * Plugin Name: PIEB Cancionero
  * Description: Cancionero del equipo de Adoración y culto: canciones con partitura, letra, audios y YouTube, setlists de cultos, visor para tableta, temas propios y acceso con Google. Shortcode [cancionero].
- * Version: 1.1.3
+ * Version: 1.2.0
  * Author: Gerson Rodrigo Menéndez
  * Requires at least: 6.0
  * Requires PHP: 7.4
@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PIEB_CAN_VERSION', '1.1.3');
+define('PIEB_CAN_VERSION', '1.2.0');
 define('PIEB_CAN_FILE', __FILE__);
 define('PIEB_CAN_DIR', plugin_dir_path(__FILE__));
 define('PIEB_CAN_URL', plugin_dir_url(__FILE__));
@@ -246,6 +246,7 @@ function pieb_can_shortcode() {
         // Límites por tipo y tamaño de cada trozo (por debajo del límite de PHP del servidor).
         'maxPartitura' => PIEB_CAN_MAX_PARTITURA,
         'maxAudio'     => PIEB_CAN_MAX_AUDIO,
+        'maxEditable'  => PIEB_CAN_MAX_EDITABLE,
         'trozo'        => (int) min(1536 * 1024, floor(wp_max_upload_size() * 0.75)),
         'tema'       => $tema,
         'temas'      => pieb_can_temas(),

@@ -9,6 +9,18 @@
   var TONALIDADES = ['Do', 'Do#', 'Reb', 'Re', 'Mib', 'Mi', 'Fa', 'Fa#', 'Solb', 'Sol', 'Lab', 'La', 'Sib', 'Si',
     'Do m', 'Do# m', 'Re m', 'Mib m', 'Mi m', 'Fa m', 'Fa# m', 'Sol m', 'Sol# m', 'La m', 'Sib m', 'Si m'];
 
+  /** Programa con el que se abre cada partitura editable, según su extensión (la misma lista que admite el servidor). */
+  var PROGRAMAS_EDITABLES = {
+    mscz: 'MuseScore', mscx: 'MuseScore', musicxml: 'MusicXML', mxl: 'MusicXML', xml: 'MusicXML', sib: 'Sibelius',
+    mus: 'Finale', musx: 'Finale', dorico: 'Dorico', gp: 'Guitar Pro', gp3: 'Guitar Pro', gp4: 'Guitar Pro', gp5: 'Guitar Pro',
+    gpx: 'Guitar Pro', enc: 'Encore', cap: 'Capella', capx: 'Capella', ly: 'LilyPond', mid: 'MIDI', midi: 'MIDI'
+  };
+
+  function programaEditable(nombre) {
+    var m = String(nombre || '').match(/\.([a-z0-9]+)$/i);
+    return m ? PROGRAMAS_EDITABLES[m[1].toLowerCase()] || '' : '';
+  }
+
   /** Posición de una tonalidad en el círculo de quintas (0 = Do, 1 = Sol…); las menores, con su relativa mayor. -1 si no se reconoce. */
   function quintaDe(tono) {
     var m = String(tono || '').trim().match(/^(do|re|mi|fa|sol|la|si|[a-g])\s*([#♯b♭]?)\s*(m(?![a-z]{2})|menor)?/i);
@@ -110,7 +122,8 @@
     filtro: 'M3 5h18v2l-7 7v5l-4 2v-7L3 7V5z',
     puntos: 'M5 10.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm7 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm7 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z',
     'salir-web': 'M5 4h7v2H7v12h5v2H5V4zm9.6 3.6L16 6l6 6-6 6-1.4-1.6 3.4-3.4H9v-2h9z',
-    grafica: 'M4 20h16v-2H4v2zm1-4h3V9H5v7zm5 0h3V4h-3v12zm5 0h3v-5h-3v5z'
+    grafica: 'M4 20h16v-2H4v2zm1-4h3V9H5v7zm5 0h3V4h-3v12zm5 0h3v-5h-3v5z',
+    editable: 'M6 2h8l6 6v5h-2V9h-5V4H6v16h6v2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm12.6 12 2.4 2.4-5.6 5.6H13v-2.4l5.6-5.6z'
   };
 
   function icono(nombre) {
@@ -884,7 +897,8 @@
       col('pcan-c-tags', 'Etiquetas'),
       h('span', { class: 'pcan-c-rec' },
         h('span', { title: 'Partituras' }, icono('partitura')), h('span', { title: 'Letra' }, icono('letra')),
-        h('span', { title: 'Audios' }, icono('audio')), h('span', { title: 'YouTube' }, icono('youtube'))),
+        h('span', { title: 'Audios' }, icono('audio')), h('span', { title: 'Partituras editables' }, icono('editable')),
+        h('span', { title: 'YouTube' }, icono('youtube'))),
       col('pcan-c-uso', 'Tocada', 'uso'),
       col('pcan-c-fecha', 'Añadida', 'recientes')
     ]);
@@ -1021,6 +1035,7 @@
           puntoRecurso(c.partituras, 'partitura', 'partitura', 'partituras'),
           puntoRecurso(c.letra ? 1 : 0, 'letra', 'letra', 'letras'),
           puntoRecurso(c.audios, 'audio', 'audio', 'audios'),
+          puntoRecurso(c.editables, 'editable', 'partitura editable', 'partituras editables'),
           puntoRecurso(c.youtube, 'youtube', 'vídeo', 'vídeos', c.youtube ? ' is-yt' : '')),
         h('span', { class: 'pcan-c-uso' + (uso ? '' : ' is-nunca') },
           !state.usoCargado ? '' : uso ? [h('strong', { text: uso.n + (uso.n === 1 ? ' vez' : ' veces') }), ' · ' + fechaCorta(uso.ultima)] : 'Nunca'),
@@ -1260,6 +1275,7 @@
         h('span', { text: 'Completa la ficha:' }),
         faltan.map(function (f) { return h('a', { class: 'pcan-chip is-dashed', href: '#/editar/' + c.id }, icono('mas'), f.texto); })) : null,
       c.audios.length ? seccion('Audios', 'audio', vistaAudios(c)) : null,
+      c.editables && c.editables.length ? seccion('Partituras editables', 'editable', vistaEditables(c)) : null,
       c.letra ? seccion('Letra', 'letra', vistaLetra(c),
         h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-ghost', onclick: function () { copiar(c.letra, 'Letra copiada'); } }, icono('copiar'), 'Copiar')) : null,
       c.youtube.length ? seccion('Versiones en YouTube', 'youtube', vistaYoutube(c)) : null,
@@ -1308,6 +1324,18 @@
 
   function vistaLetra(c) {
     return h('div', { class: 'pcan-letra', text: c.letra });
+  }
+
+  /** Partituras editables: para descargar y abrir con su programa; la partitura que se ve sigue siendo el PDF o la imagen. */
+  function vistaEditables(c) {
+    return h('div', { class: 'pcan-editables' }, c.editables.map(function (e) {
+      return h('a', { class: 'pcan-editable', href: e.url, download: e.archivo || true, title: 'Descargar ' + e.archivo },
+        h('span', { class: 'pcan-audio-ico', 'aria-hidden': 'true' }, icono('editable')),
+        h('span', { class: 'pcan-audio-text' },
+          h('strong', { text: e.descripcion || e.archivo }),
+          h('span', { class: 'pcan-audio-desc', text: [programaEditable(e.archivo), e.descripcion ? e.archivo : '', e.tamano ? tamano(e.tamano) : ''].filter(Boolean).join(' · ') })),
+        icono('descargar'));
+    }));
   }
 
   function vistaAudios(c) {
@@ -1384,12 +1412,14 @@
 
   function pintarFormulario(c) {
     var editando = !!c;
-    c = c || { titulo: '', numero: '', autor: '', tonalidad: '', tempo: '', etiquetas: [], letra: '', notas: '', partituras: [], audios: [], youtube: [] };
+    c = c || { titulo: '', numero: '', autor: '', tonalidad: '', tempo: '', etiquetas: [], letra: '', notas: '', partituras: [], audios: [], editables: [], youtube: [] };
 
     var existentes = c.partituras.map(function (p) { return { id: p.id, label: p.label, archivo: p.archivo, url: p.url }; });
     var nuevas = [];
     var audiosExistentes = c.audios.map(function (a) { return { id: a.id, nombre: a.nombre, descripcion: a.descripcion, archivo: a.archivo, url: a.url }; });
     var audiosNuevos = [];
+    var editablesExistentes = (c.editables || []).map(function (e) { return { id: e.id, descripcion: e.descripcion, archivo: e.archivo, url: e.url }; });
+    var editablesNuevos = [];
     var etiquetas = c.etiquetas.slice();
     var videos = c.youtube.map(function (y) { return { url: y.url, label: y.label }; });
 
@@ -1520,6 +1550,34 @@
     }
     pintarAudios();
 
+    // Partituras editables (MuseScore, MusicXML…): adjuntos para descargar, con una descripción opcional.
+    var listaEditables = h('div', { class: 'pcan-files' });
+    var extensionesEditables = Object.keys(PROGRAMAS_EDITABLES);
+    var zonaEditables = zonaArchivos(extensionesEditables.map(function (e) { return '.' + e; }).join(','), 'Elegir archivos editables',
+      'MuseScore, MusicXML, Sibelius, Finale, Dorico, Guitar Pro, MIDI… · máx. ' + tamano(CFG.maxEditable) + ' por archivo', function (files) {
+        Array.prototype.forEach.call(files, function (f) {
+          if (archivoValido(f, new RegExp('\\.(' + extensionesEditables.join('|') + ')$', 'i'), 'una partitura editable (MuseScore, MusicXML, Sibelius, Finale…)', CFG.maxEditable)) {
+            editablesNuevos.push({ file: f, descripcion: '' });
+          }
+        });
+        pintarEditables();
+      });
+
+    function pintarEditables() {
+      listaEditables.innerHTML = '';
+      editablesExistentes.forEach(function (e, i) {
+        append(listaEditables, filaArchivo('editable', e.archivo || 'Archivo', h('a', { href: e.url, download: e.archivo || true, class: 'pcan-file-ver', text: 'descargar' }),
+          campoTexto(e, 'descripcion', 'Descripción (p. ej. «Arreglo coro», «En Sol»)', 'Descripción de ' + e.archivo),
+          function () { editablesExistentes.splice(i, 1); pintarEditables(); }));
+      });
+      editablesNuevos.forEach(function (e, i) {
+        append(listaEditables, filaArchivo('editable', e.file.name, h('span', { class: 'pcan-file-new', text: 'nuevo · ' + tamano(e.file.size) }),
+          campoTexto(e, 'descripcion', 'Descripción (p. ej. «Arreglo coro», «En Sol»)', 'Descripción de ' + e.file.name),
+          function () { editablesNuevos.splice(i, 1); pintarEditables(); }));
+      });
+    }
+    pintarEditables();
+
     // Enlaces de YouTube.
     var listaVideos = h('div', { class: 'pcan-yt-list' });
     function pintarVideos() {
@@ -1568,6 +1626,10 @@
           h('legend', { text: 'Audios' }),
           h('p', { class: 'pcan-help', text: 'Ensayos, voces por separado, pistas… Ponle a cada uno un nombre y, si quieres, una descripción.' }),
           listaAudios, zonaAudios),
+        h('fieldset', { class: 'pcan-fieldset pcan-form-editables' },
+          h('legend', { text: 'Partituras editables' }),
+          h('p', { class: 'pcan-help', text: 'Opcional: el archivo original para quien quiera modificar o transportar la partitura (MuseScore, Sibelius, Finale…). Se descargan; la partitura que se ve sigue siendo el PDF o la imagen.' }),
+          listaEditables, zonaEditables),
         h('fieldset', { class: 'pcan-fieldset pcan-form-etiquetas' },
           h('legend', { text: 'Etiquetas' }),
           tagBox, listaEtiquetas,
@@ -1597,7 +1659,8 @@
 
       // Primero se suben los archivos nuevos, uno a uno y por trozos; después se guarda la canción.
       var pendientes = nuevas.map(function (n) { return { item: n, tipo: 'partitura' }; })
-        .concat(audiosNuevos.map(function (a) { return { item: a, tipo: 'audio' }; }));
+        .concat(audiosNuevos.map(function (a) { return { item: a, tipo: 'audio' }; }))
+        .concat(editablesNuevos.map(function (e) { return { item: e, tipo: 'editable' }; }));
       var bytes = pendientes.reduce(function (s, p) { return s + p.item.file.size; }, 0) || 1;
       var hechos = 0;
       guardar.disabled = true;
@@ -1644,6 +1707,8 @@
       fd.append('nuevasSubidas', JSON.stringify(nuevas.map(function (n) { return { id: n.subida, nombre: n.file.name, label: n.label }; })));
       fd.append('audios', JSON.stringify(audiosExistentes.map(function (a) { return { id: a.id, nombre: a.nombre, descripcion: a.descripcion }; })));
       fd.append('audiosSubidos', JSON.stringify(audiosNuevos.map(function (a) { return { id: a.subida, archivo: a.file.name, nombre: a.nombre, descripcion: a.descripcion }; })));
+      fd.append('editables', JSON.stringify(editablesExistentes.map(function (e) { return { id: e.id, descripcion: e.descripcion }; })));
+      fd.append('editablesSubidos', JSON.stringify(editablesNuevos.map(function (e) { return { id: e.subida, archivo: e.file.name, descripcion: e.descripcion }; })));
       return fd;
     }
 
@@ -1926,7 +1991,7 @@
       var papelera = r.enPapelera ? h('p', { class: 'pcan-help', text: r.enPapelera + (r.enPapelera === 1 ? ' archivo es' : ' archivos son') +
         ' de canciones que están en la papelera: se conservan por si se recuperan y aparecerán aquí cuando la papelera se vacíe.' }) : null;
       if (!archivos.length) {
-        append(cajaHuerfanos, [h('p', { class: 'pcan-help', text: 'No hay archivos sin usar: todos los audios y partituras pertenecen a alguna canción.' }), papelera]);
+        append(cajaHuerfanos, [h('p', { class: 'pcan-help', text: 'No hay archivos sin usar: todas las partituras, audios y editables pertenecen a alguna canción.' }), papelera]);
         return;
       }
       var boton = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger' });
@@ -1960,7 +2025,7 @@
         h('ul', { class: 'pcan-huerfanos-lista' }, archivos.map(function (f) {
           return h('li', { class: 'pcan-huerfano' },
             h('input', { type: 'checkbox', checked: true, 'aria-label': 'Borrar ' + f.archivo, onchange: function (e) { marcados[f.id] = e.target.checked; actualizar(); } }),
-            icono(f.tipo === 'audio' ? 'audio' : 'partitura'),
+            icono(f.tipo === 'audio' || f.tipo === 'editable' ? f.tipo : 'partitura'),
             h('span', null, h('a', { href: f.url, target: '_blank', rel: 'noopener', text: f.archivo }),
               h('small', { text: [tamano(f.tamano), fechaCorta(f.fecha), f.cancion ? 'era de «' + f.cancion + '»' : ''].filter(Boolean).join(' · ') })));
         })),
@@ -2063,7 +2128,7 @@
 
   var LEEME = 'Copia de seguridad del Cancionero (plugin PIEB Cancionero).\n\n' +
     'copia.json  canciones, cultos y ajustes\n' +
-    'archivos/   partituras y audios de cada canción\n\n' +
+    'archivos/   partituras, audios y partituras editables de cada canción\n\n' +
     'Para restaurarla: instala el plugin en WordPress, entra como administrador en el cancionero\n' +
     'y abre el menú de tu cuenta → Copias de seguridad → Restaurar desde una copia.\n';
 
@@ -2079,7 +2144,7 @@
       if (opc.canciones) {
         copia.canciones = d.canciones.map(function (c) {
           var nueva = Object.assign({}, c);
-          ['partituras', 'audios'].forEach(function (k) {
+          ['partituras', 'audios', 'editables'].forEach(function (k) {
             nueva[k] = (c[k] || []).map(function (f, i) {
               var g = Object.assign({}, f);
               delete g.url;
@@ -2158,6 +2223,9 @@
       return subir(c.audios, 'audio');
     }).then(function (a) {
       datos.audios = a;
+      return subir(c.editables, 'editable');
+    }).then(function (e) {
+      datos.editables = e;
       return api('copia/cancion', { json: { cancion: datos, modo: modo, conArchivos: conArchivos } });
     });
   }
@@ -2182,7 +2250,7 @@
 
     // --- crear
     var oCanciones = casilla('Canciones', true, state.canciones.length + ' canciones con sus datos, letras, etiquetas y enlaces de YouTube.');
-    var oArchivos = casilla('Partituras y audios', true, 'Los archivos de cada canción. Sin ellos la copia ocupa muy poco, pero no sirve para empezar en otra web.');
+    var oArchivos = casilla('Partituras, audios y editables', true, 'Los archivos de cada canción. Sin ellos la copia ocupa muy poco, pero no sirve para empezar en otra web.');
     var oCultos = casilla('Cultos y setlists', true, 'Todos los cultos con el orden de sus canciones (de ahí salen las estadísticas).');
     var oAjustes = casilla('Ajustes y lista del equipo', true, 'Tema por defecto, correos con acceso y acceso con Google.');
     oCanciones.input.addEventListener('change', function () { oArchivos.input.disabled = !oCanciones.input.checked; });

@@ -1166,7 +1166,7 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
   .pcan-split-list .pcan-list { display: flex !important; flex-direction: column; gap: 0 !important; }
   .pcan-thead, .pcan-split-list .pcan-row {
     display: grid; grid-template-areas: none;
-    grid-template-columns: 48px minmax(200px, 2.4fr) 72px 64px minmax(110px, 1.5fr) 112px 128px 76px;
+    grid-template-columns: 48px minmax(200px, 2.4fr) 72px 64px minmax(110px, 1.5fr) 124px 128px 76px;
     column-gap: 14px; align-items: center;
   }
   .pcan-thead {
@@ -1502,7 +1502,7 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 .pcan-form-cancion .pcan-form-col { display: contents; }
 .pcan-form-datos { order: 1; }
 .pcan-form-partituras { order: 2; }
-.pcan-form-audios { order: 3; }
+.pcan-form-audios, .pcan-form-editables { order: 3; }
 .pcan-form-etiquetas { order: 4; }
 .pcan-form-letra { order: 5; }
 .pcan-form-videos { order: 6; }
@@ -1814,3 +1814,12 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 [data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-cuenta { background: #f1e5c9; color: #6b4b12; }
 [data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-cuenta.is-ya { background: var(--pc-oro); color: #fff; }
 [data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-culto-hero .pcan-det-titulo { font-size: clamp(24px, 4.2cqi, 40px); line-height: 1.1; }
+
+/* ================================================================== partituras editables (MuseScore, MusicXML…) */
+.pcan-editables { display: grid; gap: 8px; }
+[data-pcan-theme] .pcan-editable {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: var(--pc-card-border); border-radius: var(--pc-radius);
+  background: var(--pc-surface); color: var(--pc-text) !important;
+}
+[data-pcan-theme] .pcan-editable:hover { background: var(--pc-surface-2); }
+.pcan-editable > .pcan-ico { flex: 0 0 auto; color: var(--pc-muted); }

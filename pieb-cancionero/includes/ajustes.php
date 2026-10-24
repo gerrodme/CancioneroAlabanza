@@ -176,7 +176,7 @@ function pieb_can_rest_ajustes_guardar(WP_REST_Request $request) {
 }
 
 /**
- * Partituras y audios subidos desde el cancionero que ya no usa ninguna canción ni aparecen enlazados
+ * Partituras, audios y editables subidos desde el cancionero que ya no usa ninguna canción ni aparecen enlazados
  * en otras páginas. Los de canciones en la papelera se conservan por si se recuperan.
  */
 function pieb_can_archivos_sin_usar() {
@@ -187,7 +187,7 @@ function pieb_can_archivos_sin_usar() {
     foreach (array('any', 'trash') as $estado) {
         $ids = get_posts(array('post_type' => PIEB_CAN_CPT, 'post_status' => $estado, 'posts_per_page' => -1, 'fields' => 'ids'));
         foreach ($ids as $id) {
-            foreach (array_merge(pieb_can_get_partituras($id), pieb_can_get_audios($id)) as $item) {
+            foreach (array_merge(pieb_can_get_partituras($id), pieb_can_get_audios($id), pieb_can_get_editables($id)) as $item) {
                 $usados[(int) $item['id']] = true;
                 if ($estado === 'trash') {
                     $en_papelera[(int) $item['id']] = true;
@@ -204,6 +204,7 @@ function pieb_can_archivos_sin_usar() {
             'relation' => 'OR',
             array('key' => '_pieb_audio', 'compare' => 'EXISTS'),
             array('key' => '_pieb_partitura', 'compare' => 'EXISTS'),
+            array('key' => '_pieb_editable', 'compare' => 'EXISTS'),
         ),
     ));
 
@@ -225,7 +226,7 @@ function pieb_can_archivos_sin_usar() {
         $archivos[] = array(
             'id'      => $adjunto->ID,
             'archivo' => $nombre,
-            'tipo'    => get_post_meta($adjunto->ID, '_pieb_audio', true) ? 'audio' : 'partitura',
+            'tipo'    => get_post_meta($adjunto->ID, '_pieb_audio', true) ? 'audio' : (get_post_meta($adjunto->ID, '_pieb_editable', true) ? 'editable' : 'partitura'),
             'tamano'  => $ruta && file_exists($ruta) ? (int) filesize($ruta) : 0,
             'fecha'   => get_the_date('Y-m-d', $adjunto),
             'url'     => wp_get_attachment_url($adjunto->ID),
@@ -330,6 +331,13 @@ function pieb_can_rest_copia_exportar() {
                 $audios[] = $f;
             }
         }
+        $editables = array();
+        foreach (pieb_can_get_editables($post->ID) as $e) {
+            $f = pieb_can_copia_archivo((int) $e['id'], array('descripcion' => isset($e['descripcion']) ? (string) $e['descripcion'] : ''));
+            if ($f) {
+                $editables[] = $f;
+            }
+        }
         $uids[$post->ID] = pieb_can_uid($post->ID);
         $cancion = array(
             'uid'    => $uids[$post->ID],
@@ -347,6 +355,7 @@ function pieb_can_rest_copia_exportar() {
             'subidaPor'  => pieb_can_copia_email($post->post_author),
             'partituras' => $partituras,
             'audios'     => $audios,
+            'editables'  => $editables,
         ));
     }
 
@@ -454,8 +463,8 @@ function pieb_can_rest_copia_cancion(WP_REST_Request $request) {
     }
 
     // Los archivos (ya subidos por trozos) se comprueban antes de tocar nada.
-    $archivos = array('partitura' => array(), 'audio' => array());
-    foreach (array('partituras' => 'partitura', 'audios' => 'audio') as $clave => $tipo) {
+    $archivos = array('partitura' => array(), 'audio' => array(), 'editable' => array());
+    foreach (array('partituras' => 'partitura', 'audios' => 'audio', 'editables' => 'editable') as $clave => $tipo) {
         foreach ((array) (isset($c[$clave]) ? $c[$clave] : array()) as $f) {
             $f = (array) $f;
             if (empty($f['subida'])) {
@@ -502,7 +511,7 @@ function pieb_can_rest_copia_cancion(WP_REST_Request $request) {
     $etiquetas = array_filter(array_map('sanitize_text_field', (array) (isset($c['etiquetas']) ? $c['etiquetas'] : array())));
     wp_set_object_terms($id, array_values(array_unique($etiquetas)), PIEB_CAN_TAX);
 
-    // Una copia con archivos manda: sus partituras y audios sustituyen a los de esta web.
+    // Una copia con archivos manda: sus partituras, audios y editables sustituyen a los de esta web.
     // Una copia solo de datos conserva los archivos que ya hubiera aquí.
     if ($con_archivos) {
         $partituras = array();
@@ -523,8 +532,18 @@ function pieb_can_rest_copia_cancion(WP_REST_Request $request) {
             }
             $audios[] = pieb_can_limpiar_audio($adjunto, $par[1]);
         }
+        $editables = array();
+        foreach ($archivos['editable'] as $par) {
+            $adjunto = pieb_can_adjuntar($par[0], $id, $titulo, 'editable');
+            if (is_wp_error($adjunto)) {
+                $adjunto->add_data(array('status' => 400));
+                return $adjunto;
+            }
+            $editables[] = pieb_can_limpiar_editable($adjunto, $par[1]);
+        }
         update_post_meta($id, '_pieb_partituras', $partituras);
         update_post_meta($id, '_pieb_audios', $audios);
+        update_post_meta($id, '_pieb_editables', $editables);
     }
 
     return rest_ensure_response(array('estado' => $estado, 'id' => (int) $id));

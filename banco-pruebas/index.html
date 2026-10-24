@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Banco de pruebas · Cancionero</title>
-<link rel="stylesheet" href="../pieb-cancionero/assets/cancionero.css?v=113">
+<link rel="stylesheet" href="../pieb-cancionero/assets/cancionero.css?v=120">
 <style>body { margin: 0; font-family: sans-serif; background: #f8f5f0; }</style>
 </head>
 <body>
@@ -16,7 +16,7 @@
   document.getElementById('pieb-cancionero').setAttribute('data-pcan-theme', tema);
   window.PIEB_CANCIONERO = {
     api: '/api/', nonce: 'x', userId: 1, userName: 'Gerson Rodrigo', gestionar: true,
-    logoutUrl: '#', homeUrl: '#', sitio: 'Tu iglesia', maxUpload: 33554432, maxPartitura: 4194304, maxAudio: 10485760, trozo: 1048576, admin: true, version: "1.1.3", tema: tema,
+    logoutUrl: '#', homeUrl: '#', sitio: 'Tu iglesia', maxUpload: 33554432, maxPartitura: 4194304, maxAudio: 10485760, maxEditable: 10485760, trozo: 1048576, admin: true, version: "1.2.0", tema: tema,
     temas: { colores: 'Colores', pentagrama: 'Pentagrama', sitio: 'Como la web', pulso: 'Pulso', claro: 'Estudio', escenario: 'Escenario', papel: 'Partitura' }
   };
   var hoy = new Date();
@@ -33,7 +33,7 @@
     [441, 'Santo, santo, santo', '1', 'Re', 'J. B. Dykes', ['Adoración', 'Trinidad'], 'Santo, santo, santo, Señor omnipotente']
   ].map(function (x, i) {
     return { id: x[0], titulo: x[1], numero: x[2], tonalidad: x[3], autor: x[4], etiquetas: x[5], letra: x[6], partituras: 1,
-      youtube: i % 3 === 0 ? 1 : 0, audios: i % 4 === 0 ? 1 : 0, miniatura: '', creada: dias(-i * 3) + 'T10:00:00Z', modificada: dias(-i) + 'T10:00:00Z' };
+      youtube: i % 3 === 0 ? 1 : 0, audios: i % 4 === 0 ? 1 : 0, editables: i % 3 === 0 ? (i ? 1 : 2) : 0, miniatura: '', creada: dias(-i * 3) + 'T10:00:00Z', modificada: dias(-i) + 'T10:00:00Z' };
   });
   var cultos = [
     { id: 900, titulo: 'Culto dominical · ' + dias(4), fecha: dias(4), tipo: 'Culto dominical', notas: 'Predica: pastor', items: [{ cancion: 432, tonalidad: 'Mib', nota: 'Solo estrofas 1 y 3' }, { cancion: 440, tonalidad: '', nota: '' }, { cancion: 437, tonalidad: '', nota: '' }], creadoPor: 'Gerson', puedeBorrar: true },
@@ -46,6 +46,7 @@
       notas: c.id === 432 ? 'Empezar suave, coro entra en la segunda estrofa.' : '',
       partituras: [{ id: 1, label: 'Himnario', url: 'partitura.png', tipo: 'imagen', archivo: 'partitura.png', miniatura: '' }],
       audios: c.audios ? [{ id: 2, nombre: 'Ensayo voces', descripcion: 'Jueves', url: '#', archivo: 'ensayo.mp3', duracion: '3:12' }] : [],
+      editables: c.editables ? [{ id: 3, descripcion: 'Arreglo coro', url: '#', archivo: 'a-cristo-coronad.mscz', tamano: 48213 }, { id: 4, descripcion: '', url: '#', archivo: 'a-cristo-coronad.musicxml', tamano: 151022 }].slice(0, c.editables) : [],
       youtube: c.youtube ? [{ url: 'https://youtu.be/dQw4w9WgXcQ', label: 'Coro', videoId: 'dQw4w9WgXcQ' }] : [],
       subidaPor: 'Gerson', puedeBorrar: true
     });
@@ -72,8 +73,8 @@
   };
 })();
 </script>
-<script src="../pieb-cancionero/assets/cancionero.js?v=113"></script>
-<script src="../pieb-cancionero/assets/visor.js?v=113"></script>
-<script src="../pieb-cancionero/assets/cultos.js?v=113"></script>
+<script src="../pieb-cancionero/assets/cancionero.js?v=120"></script>
+<script src="../pieb-cancionero/assets/visor.js?v=120"></script>
+<script src="../pieb-cancionero/assets/cultos.js?v=120"></script>
 </body>
 </html>

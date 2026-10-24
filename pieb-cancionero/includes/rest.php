@@ -62,11 +62,11 @@ function pieb_can_rest_acceso() {
  */
 function pieb_can_rest_trozo(WP_REST_Request $request) {
     $id = (string) $request->get_param('id');
-    $tipo = $request->get_param('tipo') === 'audio' ? 'audio' : 'partitura';
+    $clase = pieb_can_clase_archivo((string) $request->get_param('tipo'));
     $nombre = sanitize_file_name((string) $request->get_param('nombre'));
     $total = (int) $request->get_param('total');
     $desde = (int) $request->get_param('desde');
-    $max = $tipo === 'audio' ? PIEB_CAN_MAX_AUDIO : PIEB_CAN_MAX_PARTITURA;
+    $max = $clase['max'];
 
     if (!preg_match('/^[a-f0-9]{32}$/', $id) || $nombre === '' || $total <= 0 || $desde < 0) {
         return new WP_Error('pieb_subida', 'Petición de subida no válida.', array('status' => 400));
@@ -74,10 +74,9 @@ function pieb_can_rest_trozo(WP_REST_Request $request) {
     if ($total > $max) {
         return new WP_Error('pieb_tamano', sprintf('«%s» pesa %s; el máximo es %s.', $nombre, size_format($total, 1), size_format($max)), array('status' => 400));
     }
-    $extension = wp_check_filetype($nombre, $tipo === 'audio' ? PIEB_CAN_TIPOS_AUDIO : PIEB_CAN_TIPOS_PARTITURA);
+    $extension = wp_check_filetype($nombre, $clase['tipos']);
     if (empty($extension['ext'])) {
-        $msg = $tipo === 'audio' ? '«%s» no es un audio MP3, M4A, OGG, WAV o AAC.' : '«%s» no es un PDF ni una imagen JPG/PNG.';
-        return new WP_Error('pieb_tipo', sprintf($msg, $nombre), array('status' => 400));
+        return new WP_Error('pieb_tipo', sprintf($clase['error'], $nombre), array('status' => 400));
     }
 
     $files = $request->get_file_params();
@@ -318,6 +317,29 @@ function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
         $audios[] = pieb_can_limpiar_audio($attachment_id, $s);
     }
     update_post_meta($post_id, '_pieb_audios', $audios);
+
+    // Partituras editables: igual que los audios, se conservan las que ya eran de la canción y se añaden las subidas.
+    $editables_actuales = array();
+    foreach (pieb_can_get_editables($post_id) as $e) {
+        $editables_actuales[(int) $e['id']] = $e;
+    }
+    $editables = array();
+    foreach ((array) json_decode((string) $request->get_param('editables'), true) as $e) {
+        $id = isset($e['id']) ? (int) $e['id'] : 0;
+        if (isset($editables_actuales[$id])) {
+            $editables[] = pieb_can_limpiar_editable($id, $e);
+        }
+    }
+    foreach ((array) json_decode((string) $request->get_param('editablesSubidos'), true) as $s) {
+        $file = pieb_can_archivo_subido(isset($s['id']) ? $s['id'] : '', isset($s['archivo']) ? (string) $s['archivo'] : '');
+        $attachment_id = is_wp_error($file) ? $file : pieb_can_adjuntar($file, $post_id, $titulo, 'editable');
+        if (is_wp_error($attachment_id)) {
+            $attachment_id->add_data(array('status' => 400));
+            return $attachment_id;
+        }
+        $editables[] = pieb_can_limpiar_editable($attachment_id, $s);
+    }
+    update_post_meta($post_id, '_pieb_editables', $editables);
 
     foreach (pieb_can_campos_texto() as $campo => $meta_key) {
         update_post_meta($post_id, $meta_key, pieb_can_valor_campo($campo, $request->get_param($campo)));
