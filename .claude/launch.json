@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "banco-cancionero",
-      "runtimeExecutable": "C:/Python314/python.exe",
+      "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "8765", "--bind", "127.0.0.1"],
       "port": 8765
     }

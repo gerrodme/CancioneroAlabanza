@@ -22,3 +22,7 @@ candidatas-nuevas.md
 
 # Vídeo de presentación (material promocional, no es parte del plugin): se queda solo en local
 video/
+
+# Ajustes y notas personales de Claude Code (los compartidos son CLAUDE.md y .claude/launch.json)
+.claude/settings.local.json
+CLAUDE.local.md
