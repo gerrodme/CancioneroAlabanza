@@ -49,7 +49,7 @@ La interfaz es una aplicación de una sola página dentro de la página de WordP
   | `_pieb_editables` | Lista de `{id, descripcion}`: MuseScore, MusicXML… máx. 10 MB. |
 
 - Metadatos de **culto**: `_pieb_fecha`, `_pieb_tipo`, `_pieb_notas`, `_pieb_items` (lista de
-  `{cancion, tonalidad, nota, partitura}` en orden; `partitura` es el ID del adjunto elegido para ese culto, 0 = la primera. Al
+  `{cancion, tonalidad, nota, partitura}` en orden; `partitura` es el ID del adjunto elegido para ese culto, 0 = la principal (la primera de la canción). Al
   servir el culto, la elegida se coloca la primera en `datos.partituras`, que es la que usan el modo culto y el PDF).
 - Opciones de WordPress: `pieb_can_ajustes` (ajustes: `nombre`, `tema_defecto`, `google_client_id`, `emails`,
   `administradores`, `dominio`), `pieb_can_version`, `pieb_can_migrado`.
@@ -79,6 +79,19 @@ Cuerpo `multipart/form-data` con todos estos campos (los ausentes se **vacían**
 
 Para cambiar un solo dato: `GET` la ficha, reconstruir todos los campos con ella y modificar solo el deseado. Receta en
 [carga-masiva.md](carga-masiva.md).
+
+## Papelera
+
+`includes/papelera.php`. Borrar una canción (`DELETE /canciones/{id}`) la manda a la papelera de WordPress
+(`wp_trash_post`) y guarda quién la borró (`_pieb_borrada_por`). Los administradores del cancionero la gestionan en
+`#/papelera`: `GET /papelera` (lista con fecha, autor del borrado y días restantes), `POST /papelera/{id}/restaurar`
+(vuelve publicada), `DELETE /papelera/{id}` (eliminar para siempre) y `POST /papelera/vaciar`. `GET /canciones/{id}`
+también devuelve las borradas a quien gestiona (con `enPapelera` y `papelera`), y sus archivos solo se sirven a esos
+usuarios.
+
+Limpieza: el ajuste `papelera_dias` (30 por defecto; 0 = nunca) manda sobre la limpieza de WordPress (filtro
+`pre_delete_post` durante `wp_scheduled_delete`) y hay una tarea diaria propia (`pieb_can_limpiar_papelera`). Al eliminar
+una canción para siempre, por cualquier vía, `before_delete_post` borra también sus partituras, audios y editables.
 
 ## Archivos privados
 

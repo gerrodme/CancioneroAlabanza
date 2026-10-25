@@ -519,7 +519,7 @@
                 var sel = h('select', {
                   class: 'pcan-input pcan-input-sm pcan-set-partitura', 'aria-label': 'Partitura de ' + titulo, title: 'Partitura que se usa en este culto (modo culto y PDF)',
                   onchange: function (e) { it.partitura = +e.target.value; }
-                }, [h('option', { value: '0', text: 'Partitura: la primera' })].concat(s.variantes.map(function (v, k) {
+                }, [h('option', { value: '0', text: 'Partitura: la principal' })].concat(s.variantes.map(function (v, k) {
                   return h('option', { value: String(v.id), text: 'Partitura: ' + (v.label || 'n.º ' + (k + 1)) });
                 })));
                 sel.value = String(it.partitura || 0);

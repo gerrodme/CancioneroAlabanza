@@ -11,6 +11,10 @@ la herramienta: **no incluye ninguna canción ni partitura**; cada instalación 
 
 - **Canciones:** una ficha por canción con una o varias partituras, letra, notas, audios, editables (MuseScore, MusicXML…),
   etiquetas de color, tonalidad, tempo (BPM), número de himnario y vídeos de YouTube.
+- **Partitura principal:** si una canción tiene varias partituras, la primera es la principal (la que se usa por defecto);
+  se cambia con «Hacer principal» en la ficha.
+- **Papelera:** las canciones borradas van a una papelera que los administradores ven en el menú: pueden abrirlas,
+  restaurarlas o eliminarlas para siempre. Se limpian solas pasados N días (30 por defecto, configurable; 0 = nunca).
 - **Importación masiva:** «Subida múltiple» (arrastrar muchos PDF/imágenes de una vez; el título, el número de himnario
   y la tonalidad se deducen del nombre del archivo).
 - **Cultos y setlists:** orden de canciones por culto, con tonalidad, nota y partitura elegida por canción, cuenta atrás al próximo culto

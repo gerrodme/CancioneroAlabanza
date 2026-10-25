@@ -122,6 +122,11 @@ function pieb_can_servir_archivo() {
     if (!pieb_can_es_archivo_cancionero($id)) {
         pieb_can_error_archivo(404, 'Archivo no encontrado.');
     }
+    // Los archivos de canciones borradas solo los ve quien gestiona el cancionero.
+    $padre = wp_get_post_parent_id($id);
+    if ($padre && get_post_status($padre) === 'trash' && !current_user_can(PIEB_CAN_CAP_GESTIONAR)) {
+        pieb_can_error_archivo(404, 'Archivo no encontrado.');
+    }
 
     $base = realpath(wp_upload_dir()['basedir']);
     $ruta = get_attached_file($id);

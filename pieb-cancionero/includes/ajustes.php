@@ -29,6 +29,7 @@ function pieb_can_ajustes() {
     $ajustes = wp_parse_args(is_array($guardados) ? $guardados : array(), array(
         'nombre'           => 'Cancionero',
         'subtitulo'        => null,
+        'papelera_dias'    => 30,
         'tema_defecto'     => 'colores',
         'google_client_id' => '',
         'emails'           => array(),
@@ -152,6 +153,7 @@ function pieb_can_rest_ajustes_ver() {
     return rest_ensure_response(array(
         'nombre'         => $ajustes['nombre'],
         'subtitulo'      => $ajustes['subtitulo'],
+        'papeleraDias'   => (int) $ajustes['papelera_dias'],
         'version'        => PIEB_CAN_VERSION,
         'administradores' => $ajustes['administradores'],
         'temaDefecto'    => $ajustes['tema_defecto'],
@@ -173,6 +175,9 @@ function pieb_can_rest_ajustes_guardar(WP_REST_Request $request) {
     }
     if ($request->has_param('subtitulo')) {
         $ajustes['subtitulo'] = mb_substr(trim(sanitize_text_field((string) $request->get_param('subtitulo'))), 0, 60);
+    }
+    if ($request->has_param('papeleraDias')) {
+        $ajustes['papelera_dias'] = max(0, min(3650, (int) $request->get_param('papeleraDias')));
     }
     $tema = (string) $request->get_param('temaDefecto');
     if (isset(pieb_can_temas()[$tema])) {

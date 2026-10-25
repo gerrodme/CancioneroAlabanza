@@ -112,9 +112,11 @@ function pieb_can_rest_trozo(WP_REST_Request $request) {
     return rest_ensure_response(array('recibido' => $recibido, 'completo' => $recibido === $total));
 }
 
-function pieb_can_rest_cancion($id) {
+/** Canción publicada; con $con_papelera, quien gestiona el cancionero también puede ver las borradas. */
+function pieb_can_rest_cancion($id, $con_papelera = false) {
     $post = get_post((int) $id);
-    if (!$post || $post->post_type !== PIEB_CAN_CPT || $post->post_status !== 'publish') {
+    $estado_ok = $post && ($post->post_status === 'publish' || ($con_papelera && $post->post_status === 'trash' && current_user_can(PIEB_CAN_CAP_GESTIONAR)));
+    if (!$post || $post->post_type !== PIEB_CAN_CPT || !$estado_ok) {
         return new WP_Error('pieb_no_existe', 'La canción no existe.', array('status' => 404));
     }
     return $post;
@@ -135,7 +137,7 @@ function pieb_can_rest_listar() {
 }
 
 function pieb_can_rest_ver(WP_REST_Request $request) {
-    $post = pieb_can_rest_cancion($request['id']);
+    $post = pieb_can_rest_cancion($request['id'], true);
     if (is_wp_error($post)) {
         return $post;
     }
@@ -205,8 +207,12 @@ function pieb_can_rest_borrar(WP_REST_Request $request) {
         return new WP_Error('pieb_permiso', 'Solo quien subió la canción o un administrador puede borrarla.', array('status' => 403));
     }
 
-    // A la papelera: un administrador puede recuperarla desde el escritorio.
+    // A la papelera del cancionero: un administrador puede verla, restaurarla o eliminarla para siempre.
     wp_trash_post($post->ID);
+    // Si WordPress tiene la papelera desactivada (EMPTY_TRASH_DAYS = 0) la entrada ya se habrá eliminado.
+    if (get_post_status($post->ID) !== 'trash') {
+        return rest_ensure_response(array('borrada' => true, 'id' => $post->ID, 'definitiva' => true));
+    }
 
     return rest_ensure_response(array('borrada' => true, 'id' => $post->ID));
 }

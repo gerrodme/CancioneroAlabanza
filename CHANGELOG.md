@@ -2,6 +2,11 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.7.0 · 2026-10-25
+
+Partitura principal marcable en la ficha, y papelera del cancionero para administradores: ver las canciones borradas,
+abrirlas, restaurarlas o eliminarlas para siempre, con limpieza automática configurable (30 días por defecto)
+
 ## 1.6.0 · 2026-10-24
 
 En el setlist de un culto se puede elegir qué partitura se usa de las canciones con varias: la elegida es la que se abre en

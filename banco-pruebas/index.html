@@ -44,7 +44,7 @@
   function detalleCancion(c) {
     return Object.assign({}, c, {
       notas: c.id === 432 ? 'Empezar suave, coro entra en la segunda estrofa.' : '',
-      partituras: [{ id: 1, label: 'Himnario', url: 'partitura.png', tipo: 'imagen', archivo: 'partitura.png', miniatura: '' }],
+      partituras: [{ id: 1, label: 'Himnario', url: 'partitura.png', tipo: 'imagen', archivo: 'partitura.png', miniatura: '' }, { id: 2, label: 'Coro', url: 'partitura.png', tipo: 'imagen', archivo: 'coro.png', miniatura: '' }],
       audios: c.audios ? [{ id: 2, nombre: 'Ensayo voces', descripcion: 'Jueves', url: '#', archivo: 'ensayo.mp3', duracion: '3:12' }] : [],
       editables: c.editables ? [{ id: 3, descripcion: 'Arreglo coro', url: '#', archivo: 'a-cristo-coronad.mscz', tamano: 48213 }, { id: 4, descripcion: '', url: '#', archivo: 'a-cristo-coronad.musicxml', tamano: 151022 }].slice(0, c.editables) : [],
       youtube: c.youtube ? [{ url: 'https://youtu.be/dQw4w9WgXcQ', label: 'Coro', videoId: 'dQw4w9WgXcQ' }] : [],
@@ -69,8 +69,11 @@
     else if ((mc = ruta.match(/^cultos\/(\d+)$/))) { datos = detalleCulto(cultos.filter(function (c) { return c.id === +mc[1]; })[0]); }
     else if (ruta === 'etiquetas') { datos = {}; }
     else if (ruta === 'copia/estado') { datos = { canciones: [5, 0, 7, 0, 0], cultos: [] }; }
+    else if (ruta === 'papelera') { datos = { dias: 30, canciones: [
+      { id: 301, titulo: 'Cantad al Señor', numero: '10', tonalidad: 'Sol', archivos: 2, borradaEl: dias(-3) + 'T10:00:00Z', borradaPor: 'Ana', caduca: '', diasRestantes: 27 },
+      { id: 302, titulo: 'Cuán dulce es el amor', numero: '', tonalidad: '', archivos: 1, borradaEl: dias(-20) + 'T10:00:00Z', borradaPor: '', caduca: '', diasRestantes: 10 }] }; }
     else if (ruta === 'archivos/estado') { datos = { pendientes: 3, proteccion: 'expuesto', tanda: 50 }; }
-    else if (ruta === 'ajustes') { datos = { nombre: 'Cancionero', subtitulo: 'Tu iglesia', version: '1.5.5', administradores: ['ana@example.com'], temaDefecto: 'claro', googleClientId: '', dominio: '', emails: ['ana@example.com'], miembros: [{ email: 'ana@example.com', nombre: '', haEntrado: false, enLista: true, esGestor: true }], origen: location.origin }; }
+    else if (ruta === 'ajustes') { datos = { nombre: 'Cancionero', subtitulo: 'Tu iglesia', version: '1.5.5', administradores: ['ana@example.com'], papeleraDias: 30, temaDefecto: 'claro', googleClientId: '', dominio: '', emails: ['ana@example.com'], miembros: [{ email: 'ana@example.com', nombre: '', haEntrado: false, enLista: true, esGestor: true }], origen: location.origin }; }
     else { datos = { ok: true }; }
     return Promise.resolve(new Response(JSON.stringify(datos), { status: 200, headers: { 'Content-Type': 'application/json' } }));
   };

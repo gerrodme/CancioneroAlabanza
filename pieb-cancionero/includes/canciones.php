@@ -260,6 +260,10 @@ function pieb_can_detalle($post) {
     $author = get_userdata($post->post_author);
     $datos['subidaPor']   = $author ? $author->display_name : '';
     $datos['puedeBorrar'] = pieb_can_usuario_puede_borrar($post);
+    $datos['enPapelera']  = $post->post_status === 'trash';
+    if ($datos['enPapelera']) {
+        $datos['papelera'] = pieb_can_papelera_item($post);
+    }
 
     return $datos;
 }

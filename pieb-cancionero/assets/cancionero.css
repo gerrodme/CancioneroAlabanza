@@ -959,6 +959,14 @@ a.pcan-set-title:hover { color: var(--pc-accent) !important; }
 .pcan-set-note { font-style: italic; }
 .pcan-set-fields { display: grid; grid-template-columns: 96px 1fr; gap: 6px; }
 .pcan-set-partitura { grid-column: 1 / -1; }
+.pcan-papelera-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.pcan-papelera-item { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--pc-line); border-radius: var(--pc-radius-sm); background: var(--pc-surface-2); }
+.pcan-papelera-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 260px; }
+.pcan-papelera-main small { color: var(--pc-muted); }
+.pcan-papelera-acciones { display: flex; flex-wrap: wrap; gap: 6px; }
+.pcan-papelera-aviso { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border: 1px solid var(--pc-danger); border-radius: var(--pc-radius-sm); background: color-mix(in srgb, var(--pc-danger) 8%, var(--pc-surface)); }
+.pcan-file-extra { display: inline-flex; align-items: center; gap: 8px; margin-left: 8px; }
+.pcan-file-principal { padding: 2px 8px; border-radius: 99px; background: color-mix(in srgb, var(--pc-accent) 14%, var(--pc-surface)); color: var(--pc-accent); font-size: 12px; font-weight: 700; }
 .pcan-set-tools { display: flex; flex: 0 0 auto; }
 [data-pcan-theme] .pcan-set-placeholder { padding: 22px; border: 1px dashed var(--pc-line); border-radius: var(--pc-radius); color: var(--pc-muted); text-align: center; }
 [data-pcan-theme] .pcan-drag {
