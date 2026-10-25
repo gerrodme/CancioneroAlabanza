@@ -329,6 +329,10 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
     position: sticky; top: 0; display: flex; flex-direction: column; gap: 18px; height: calc(100dvh - var(--pc-admin)); padding: 18px 14px 14px;
     background: var(--pc-side-bg); color: var(--pc-side-ink); overflow-y: auto; border-right: 1px solid color-mix(in srgb, var(--pc-side-ink) 8%, transparent);
   }
+  /* En pantallas bajas (tableta apaisada con barras del navegador y de WordPress) la lista de próximos cultos se
+     desplaza dentro de su caja en lugar de salirse y tapar el botón del usuario. */
+  .pcan-side > * { flex-shrink: 0; }
+  .pcan-side > .pcan-side-section { flex-shrink: 1; min-height: 72px; overflow-y: auto; overscroll-behavior: contain; }
   .pcan:not(.is-app) .pcan-side { height: auto; min-height: 640px; border-radius: var(--pc-radius) 0 0 var(--pc-radius); }
   .pcan-tabbar, .pcan-fab, .pcan-top-brand, .pcan-top-avatar { display: none !important; }
   .pcan-top { padding: 0 24px; }

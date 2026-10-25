@@ -2,6 +2,11 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.7.1 · 2026-10-25
+
+En pantallas bajas (tableta apaisada) la lista de próximos cultos del menú lateral se desplaza dentro de su caja y ya no
+tapa el botón del usuario
+
 ## 1.7.0 · 2026-10-25
 
 Partitura principal marcable en la ficha, y papelera del cancionero para administradores: ver las canciones borradas,
