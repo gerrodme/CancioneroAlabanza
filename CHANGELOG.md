@@ -2,6 +2,10 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.7.4 · 2026-10-25
+
+El zip del plugin incluye el texto de la licencia GPL (`license.txt`)
+
 ## 1.7.3 · 2026-10-25
 
 Al vaciar la papelera se muestra una barra de progreso («Eliminando 3 de 20…»); restaurar y eliminar una canción muestran

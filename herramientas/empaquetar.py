@@ -1,4 +1,4 @@
-"""Genera dist/pieb-cancionero-<versión>.zip (p. ej. pieb-cancionero-1.7.3.zip), listo para Plugins → Añadir nuevo → Subir plugin en WordPress.
+"""Genera dist/pieb-cancionero-<versión>.zip (p. ej. pieb-cancionero-1.7.4.zip), con el texto de la GPL como license.txt, listo para Plugins → Añadir nuevo → Subir plugin en WordPress.
 
 Uso:  python herramientas/empaquetar.py
 """
@@ -26,6 +26,9 @@ def main():
                 # Dentro del zip todo cuelga de «pieb-cancionero/», como espera WordPress.
                 z.write(ruta, os.path.relpath(ruta, RAIZ).replace(os.sep, '/'))
                 archivos += 1
+        # La GPL pide entregar su texto con cada copia: va en el zip como license.txt, como en los plugins de WordPress.
+        z.write(os.path.join(RAIZ, 'LICENSE'), 'pieb-cancionero/license.txt')
+        archivos += 1
     print('Cancionero %s -> %s (%d archivos, %d KB)' % (version(), SALIDA, archivos, os.path.getsize(SALIDA) // 1024))
 
 
