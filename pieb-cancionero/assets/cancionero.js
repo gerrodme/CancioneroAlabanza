@@ -2243,11 +2243,11 @@
       h('strong', { text: 'Esta canción está en la papelera' }),
       h('span', { text: [textoBorrada(p), textoCaducidad(p)].join(' · ') }),
       h('div', { class: 'pcan-actions' },
-        h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-primary', onclick: function () { restaurarCancion(c.id, c.titulo, true); } }, icono('subir'), 'Restaurar'),
+        h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-primary', onclick: function () { restaurarDePapelera(c.id, c.titulo, true); } }, icono('subir'), 'Restaurar'),
         h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', onclick: function () { eliminarDefinitivo(c.id, c.titulo, true); } }, icono('borrar'), 'Eliminar para siempre')));
   }
 
-  function restaurarCancion(id, titulo, desdeFicha) {
+  function restaurarDePapelera(id, titulo, desdeFicha) {
     return api('papelera/' + id + '/restaurar', { json: {} }).then(function () {
       aviso('«' + titulo + '» restaurada');
       return cargar().then(function () {
@@ -2284,7 +2284,7 @@
               h('small', { text: [textoBorrada(it), textoCaducidad(it), it.archivos ? it.archivos + (it.archivos === 1 ? ' archivo' : ' archivos') : ''].filter(Boolean).join(' · ') })),
             h('div', { class: 'pcan-papelera-acciones' },
               h('a', { class: 'pcan-btn pcan-btn-sm', href: '#/cancion/' + it.id }, icono('abrir'), 'Ver'),
-              h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-primary', onclick: function () { restaurarCancion(it.id, it.titulo, false); } }, icono('subir'), 'Restaurar'),
+              h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-primary', onclick: function () { restaurarDePapelera(it.id, it.titulo, false); } }, icono('subir'), 'Restaurar'),
               h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', onclick: function () { eliminarDefinitivo(it.id, it.titulo, false); } }, icono('borrar'), 'Eliminar')));
         })));
         append(cuerpo, h('div', { class: 'pcan-actions' },

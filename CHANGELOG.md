@@ -2,6 +2,10 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.7.2 · 2026-10-25
+
+Corrige «Restaurar» en la papelera: llamaba por error a la función que restaura copias de seguridad
+
 ## 1.7.1 · 2026-10-25
 
 En pantallas bajas (tableta apaisada) la lista de próximos cultos del menú lateral se desplaza dentro de su caja y ya no
