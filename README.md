@@ -35,7 +35,7 @@ WordPress 6.0 o superior y PHP 7.4 o superior. No necesita plugins adicionales.
 
 ## Instalación
 
-1. Genera el zip: `python herramientas/empaquetar.py` → `dist/pieb-cancionero.zip` (o descarga el de las *Releases*).
+1. Genera el zip: `python herramientas/empaquetar.py` → `dist/pieb-cancionero-<versión>.zip` (o descarga el de las *Releases*).
 2. En WordPress: **Plugins → Añadir nuevo → Subir plugin** y selecciona el zip.
 3. Activa el plugin y crea una página con el shortcode `[cancionero]`.
 4. En **Ajustes y equipo** del propio cancionero: nombre, administradores, lista de correos del equipo, acceso con Google

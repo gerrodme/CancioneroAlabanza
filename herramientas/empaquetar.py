@@ -1,4 +1,4 @@
-"""Genera dist/pieb-cancionero.zip, listo para Plugins → Añadir nuevo → Subir plugin en WordPress.
+"""Genera dist/pieb-cancionero-<versión>.zip (p. ej. pieb-cancionero-1.7.3.zip), listo para Plugins → Añadir nuevo → Subir plugin en WordPress.
 
 Uso:  python herramientas/empaquetar.py
 """
@@ -8,9 +8,6 @@ import zipfile
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PLUGIN = os.path.join(RAIZ, 'pieb-cancionero')
-SALIDA = os.path.join(RAIZ, 'dist', 'pieb-cancionero.zip')
-
-
 def version():
     with open(os.path.join(PLUGIN, 'pieb-cancionero.php'), encoding='utf-8') as f:
         m = re.search(r"define\('PIEB_CAN_VERSION', '([^']+)'\)", f.read())
@@ -18,6 +15,8 @@ def version():
 
 
 def main():
+    # La versión va al final del nombre del archivo; dentro del zip la carpeta sigue llamándose «pieb-cancionero/».
+    SALIDA = os.path.join(RAIZ, 'dist', 'pieb-cancionero-%s.zip' % version())
     os.makedirs(os.path.dirname(SALIDA), exist_ok=True)
     archivos = 0
     with zipfile.ZipFile(SALIDA, 'w', zipfile.ZIP_DEFLATED) as z:

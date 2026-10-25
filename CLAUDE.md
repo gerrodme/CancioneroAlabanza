@@ -26,7 +26,7 @@ renombrada completa exigiría una migración de datos.
   `cultos.js`, `visor.js`, `login.js`, `cancionero.css`).
 - `banco-pruebas/` interfaz con datos simulados (`index.html`); `.claude/launch.json` define el servidor
   `banco-cancionero` (puerto 8765) para verla.
-- `herramientas/empaquetar.py` genera `dist/pieb-cancionero.zip`.
+- `herramientas/empaquetar.py` genera `dist/pieb-cancionero-<versión>.zip` (la versión va al final del nombre del archivo).
 
 ## Cómo trabajar
 
