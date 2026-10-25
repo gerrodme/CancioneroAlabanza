@@ -2,6 +2,11 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.7.3 · 2026-10-25
+
+Al vaciar la papelera se muestra una barra de progreso («Eliminando 3 de 20…»); restaurar y eliminar una canción muestran
+el botón como «en curso»
+
 ## 1.7.2 · 2026-10-25
 
 Corrige «Restaurar» en la papelera: llamaba por error a la función que restaura copias de seguridad

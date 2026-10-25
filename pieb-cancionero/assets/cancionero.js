@@ -2243,22 +2243,31 @@
       h('strong', { text: 'Esta canción está en la papelera' }),
       h('span', { text: [textoBorrada(p), textoCaducidad(p)].join(' · ') }),
       h('div', { class: 'pcan-actions' },
-        h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-primary', onclick: function () { restaurarDePapelera(c.id, c.titulo, true); } }, icono('subir'), 'Restaurar'),
-        h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', onclick: function () { eliminarDefinitivo(c.id, c.titulo, true); } }, icono('borrar'), 'Eliminar para siempre')));
+        h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-primary', onclick: function (e) { restaurarDePapelera(c.id, c.titulo, true, e.currentTarget); } }, icono('subir'), 'Restaurar'),
+        h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', onclick: function (e) { eliminarDefinitivo(c.id, c.titulo, true, e.currentTarget); } }, icono('borrar'), 'Eliminar para siempre')));
   }
 
-  function restaurarDePapelera(id, titulo, desdeFicha) {
+  // Deja un botón desactivado con un texto de «en curso» mientras dura la petición.
+  function ocupado(btn, texto) {
+    if (!btn) { return; }
+    btn.disabled = true;
+    if (btn.lastChild) { btn.lastChild.textContent = texto; }
+  }
+
+  function restaurarDePapelera(id, titulo, desdeFicha, btn) {
+    ocupado(btn, 'Restaurando…');
     return api('papelera/' + id + '/restaurar', { json: {} }).then(function () {
       aviso('«' + titulo + '» restaurada');
       return cargar().then(function () {
         pintarChips(); pintarLista();
         if (desdeFicha) { verCancion(id); } else { abrirPapelera(); }
       });
-    }).catch(function (e) { aviso(e.message, 'error'); });
+    }).catch(function (e) { aviso(e.message, 'error'); if (btn) { abrirPapelera(); } });
   }
 
-  function eliminarDefinitivo(id, titulo, desdeFicha) {
+  function eliminarDefinitivo(id, titulo, desdeFicha, btn) {
     if (!window.confirm('¿Eliminar «' + titulo + '» para siempre? Se borran también sus partituras y audios y no se puede deshacer.')) { return Promise.resolve(); }
+    ocupado(btn, 'Eliminando…');
     return api('papelera/' + id, { method: 'DELETE' }).then(function () {
       aviso('«' + titulo + '» eliminada para siempre');
       if (desdeFicha) { location.hash = '#/papelera'; } else { abrirPapelera(); }
@@ -2284,16 +2293,34 @@
               h('small', { text: [textoBorrada(it), textoCaducidad(it), it.archivos ? it.archivos + (it.archivos === 1 ? ' archivo' : ' archivos') : ''].filter(Boolean).join(' · ') })),
             h('div', { class: 'pcan-papelera-acciones' },
               h('a', { class: 'pcan-btn pcan-btn-sm', href: '#/cancion/' + it.id }, icono('abrir'), 'Ver'),
-              h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-primary', onclick: function () { restaurarDePapelera(it.id, it.titulo, false); } }, icono('subir'), 'Restaurar'),
-              h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', onclick: function () { eliminarDefinitivo(it.id, it.titulo, false); } }, icono('borrar'), 'Eliminar')));
+              h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-primary', onclick: function (e) { restaurarDePapelera(it.id, it.titulo, false, e.currentTarget); } }, icono('subir'), 'Restaurar'),
+              h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', onclick: function (e) { eliminarDefinitivo(it.id, it.titulo, false, e.currentTarget); } }, icono('borrar'), 'Eliminar')));
         })));
         append(cuerpo, h('div', { class: 'pcan-actions' },
           h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', onclick: function () {
             if (!window.confirm('¿Vaciar la papelera? Se eliminan para siempre ' + r.canciones.length + (r.canciones.length === 1 ? ' canción' : ' canciones') + ' con sus archivos. No se puede deshacer.')) { return; }
-            api('papelera/vaciar', { json: {} }).then(function (res) {
-              aviso(res.eliminadas + (res.eliminadas === 1 ? ' canción eliminada' : ' canciones eliminadas') + ' para siempre');
+            // Se elimina de una en una para poder enseñar el avance (cada canción borra también sus archivos).
+            var ids = r.canciones.map(function (c) { return c.id; });
+            var hechas = 0, fallos = 0;
+            var texto = h('p', { class: 'pcan-help', role: 'status', text: 'Eliminando 1 de ' + ids.length + '…' });
+            var relleno = h('span');
+            cuerpo.innerHTML = '';
+            append(cuerpo, [h('strong', { text: 'Vaciando la papelera' }), texto, h('div', { class: 'pcan-progress' }, relleno),
+              h('p', { class: 'pcan-help', text: 'No cierres esta ventana hasta que termine.' })]);
+            relleno.style.width = '0%';
+            ids.reduce(function (cadena, id) {
+              return cadena.then(function () {
+                texto.textContent = 'Eliminando ' + (hechas + 1) + ' de ' + ids.length + '…';
+                return api('papelera/' + id, { method: 'DELETE' }).then(null, function () { fallos++; }).then(function () {
+                  hechas++;
+                  relleno.style.width = Math.round(hechas / ids.length * 100) + '%';
+                });
+              });
+            }, Promise.resolve()).then(function () {
+              var ok = ids.length - fallos;
+              aviso(ok + (ok === 1 ? ' canción eliminada' : ' canciones eliminadas') + ' para siempre' + (fallos ? ' · ' + fallos + ' no se pudieron eliminar' : ''), fallos ? 'error' : undefined);
               abrirPapelera();
-            }).catch(function (e) { aviso(e.message, 'error'); });
+            });
           } }, icono('borrar'), 'Vaciar la papelera')));
       }
       abrirPanel([cabeceraPanel(h('h2', { text: 'Papelera' })), h('div', { class: 'pcan-panel-body' }, cuerpo)], 'Papelera', { modal: true });
