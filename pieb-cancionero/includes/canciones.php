@@ -56,14 +56,17 @@ const PIEB_CAN_MAX_EDITABLE = 10 * 1048576;
 function pieb_can_clase_archivo($tipo) {
     if ($tipo === 'audio') {
         return array('max' => PIEB_CAN_MAX_AUDIO, 'tipos' => PIEB_CAN_TIPOS_AUDIO, 'meta' => '_pieb_audio',
-            'error' => '«%s» no es un audio MP3, M4A, OGG, WAV o AAC.');
+            /* translators: %s: nombre del archivo */
+            'error' => __('«%s» no es un audio MP3, M4A, OGG, WAV o AAC.', 'pieb-cancionero'));
     }
     if ($tipo === 'editable') {
         return array('max' => PIEB_CAN_MAX_EDITABLE, 'tipos' => PIEB_CAN_TIPOS_EDITABLE, 'meta' => '_pieb_editable',
-            'error' => '«%s» no es una partitura editable (MuseScore, MusicXML, Sibelius, Finale, Dorico, Guitar Pro, Encore, Capella, LilyPond o MIDI).');
+            /* translators: %s: nombre del archivo */
+            'error' => __('«%s» no es una partitura editable (MuseScore, MusicXML, Sibelius, Finale, Dorico, Guitar Pro, Encore, Capella, LilyPond o MIDI).', 'pieb-cancionero'));
     }
     return array('max' => PIEB_CAN_MAX_PARTITURA, 'tipos' => PIEB_CAN_TIPOS_PARTITURA, 'meta' => '_pieb_partitura',
-        'error' => '«%s» no es un PDF ni una imagen JPG/PNG.');
+        /* translators: %s: nombre del archivo */
+        'error' => __('«%s» no es un PDF ni una imagen JPG/PNG.', 'pieb-cancionero'));
 }
 
 function pieb_can_campos_texto() {
@@ -284,7 +287,12 @@ function pieb_can_subir_archivo($files, $index, $post_id, $titulo, $tipo) {
     );
 
     if ($file['error'] !== UPLOAD_ERR_OK) {
-        return new WP_Error('pieb_subida', sprintf('No se pudo subir «%s» (error %d).', $file['name'], $file['error']));
+        return new WP_Error('pieb_subida', sprintf(
+            /* translators: 1: nombre del archivo, 2: código de error de PHP */
+            __('No se pudo subir «%1$s» (error %2$d).', 'pieb-cancionero'),
+            $file['name'],
+            $file['error']
+        ));
     }
 
     return pieb_can_adjuntar($file, $post_id, $titulo, $tipo);
@@ -302,7 +310,13 @@ function pieb_can_adjuntar($file, $post_id, $titulo, $tipo) {
 
     $clase = pieb_can_clase_archivo($tipo);
     if ((int) $file['size'] > $clase['max']) {
-        return new WP_Error('pieb_tamano', sprintf('«%s» pesa %s; el máximo es %s.', $file['name'], size_format($file['size'], 1), size_format($clase['max'])));
+        return new WP_Error('pieb_tamano', sprintf(
+            /* translators: 1: nombre del archivo, 2: tamaño del archivo, 3: tamaño máximo permitido */
+            __('«%1$s» pesa %2$s; el máximo es %3$s.', 'pieb-cancionero'),
+            $file['name'],
+            size_format($file['size'], 1),
+            size_format($clase['max'])
+        ));
     }
 
     // Los editables se aceptan por su extensión: su contenido (ZIP, XML, binario propio…) no lo reconoce WordPress.
@@ -390,7 +404,11 @@ function pieb_can_archivo_subido($id, $nombre) {
     $nombre = sanitize_file_name((string) $nombre);
     $ruta = preg_match('/^[a-f0-9]{32}$/', $id) ? pieb_can_ruta_trozo($id) : '';
     if (!$ruta || !is_file($ruta)) {
-        return new WP_Error('pieb_subida', sprintf('No se encontró «%s» en el servidor: vuelve a elegir el archivo.', $nombre));
+        return new WP_Error('pieb_subida', sprintf(
+            /* translators: %s: nombre del archivo */
+            __('No se encontró «%s» en el servidor: vuelve a elegir el archivo.', 'pieb-cancionero'),
+            $nombre
+        ));
     }
     return array('name' => $nombre, 'type' => '', 'tmp_name' => $ruta, 'error' => UPLOAD_ERR_OK, 'size' => filesize($ruta));
 }

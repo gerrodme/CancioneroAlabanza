@@ -11,23 +11,24 @@ if (!defined('ABSPATH')) {
 /**
  * Temas disponibles. «sitio» sigue los colores y la tipografía del tema activo de WordPress;
  * «colores» y «pentagrama» son estilos sobre esa misma base (ver pieb_can_atributos_raiz).
+ * Los nombres se traducen al llamar a la función, nunca antes de «init».
  */
 function pieb_can_temas() {
     return array(
-        'colores'    => 'Colores',
-        'pentagrama' => 'Pentagrama',
-        'sitio'      => 'Como la web',
-        'pulso'      => 'Pulso',
-        'claro'      => 'Estudio',
-        'escenario'  => 'Escenario',
-        'papel'      => 'Partitura',
+        'colores'    => __('Colores', 'pieb-cancionero'),
+        'pentagrama' => __('Pentagrama', 'pieb-cancionero'),
+        'sitio'      => __('Como la web', 'pieb-cancionero'),
+        'pulso'      => __('Pulso', 'pieb-cancionero'),
+        'claro'      => __('Estudio', 'pieb-cancionero'),
+        'escenario'  => __('Escenario', 'pieb-cancionero'),
+        'papel'      => __('Partitura', 'pieb-cancionero'),
     );
 }
 
 function pieb_can_ajustes() {
     $guardados = get_option('pieb_can_ajustes', array());
     $ajustes = wp_parse_args(is_array($guardados) ? $guardados : array(), array(
-        'nombre'           => 'Cancionero',
+        'nombre'           => '',
         'subtitulo'        => null,
         'papelera_dias'    => 30,
         'tema_defecto'     => 'colores',
@@ -36,8 +37,11 @@ function pieb_can_ajustes() {
         'administradores'  => array(),
         'dominio'          => '',
     ));
-    if (trim((string) $ajustes['nombre']) === '') {
-        $ajustes['nombre'] = 'Cancionero';
+    // Sin nombre propio se muestra el nombre por defecto en el idioma de quien mira («Cancionero» / «Songbook»). Las
+    // instalaciones que guardaron «Cancionero» antes de la 1.8.1 se tratan igual que las que no guardaron nada.
+    if (trim((string) $ajustes['nombre']) === '' || $ajustes['nombre'] === 'Cancionero') {
+        /* translators: nombre por defecto del cancionero cuando la instalación no le ha puesto uno propio (en inglés, «Songbook») */
+        $ajustes['nombre'] = __('Cancionero', 'pieb-cancionero');
     }
     // Sin subtítulo guardado se usa el nombre del sitio de WordPress; guardado vacío = sin subtítulo.
     if ($ajustes['subtitulo'] === null) {
@@ -49,7 +53,7 @@ function pieb_can_ajustes() {
     return $ajustes;
 }
 
-/** Nombre del cancionero, configurable en Ajustes (por defecto «Cancionero»). */
+/** Nombre del cancionero, configurable en Ajustes (por defecto «Cancionero», traducible). */
 function pieb_can_nombre() {
     return pieb_can_ajustes()['nombre'];
 }
@@ -147,8 +151,43 @@ function pieb_can_idioma_elegido() {
     return isset(pieb_can_idiomas_disponibles()[$elegido]) ? $elegido : '';
 }
 
-/** Idioma pedido: el que eligió el usuario o, si no, el de WordPress. */
+/**
+ * Idioma forzado temporalmente (ver pieb_can_en_idioma_del_sitio). Sin argumentos devuelve el actual (null = ninguno);
+ * con argumento lo fija y devuelve el anterior.
+ */
+function pieb_can_idioma_forzado($nuevo = false) {
+    static $forzado = null;
+    $anterior = $forzado;
+    if ($nuevo !== false) {
+        $forzado = $nuevo;
+    }
+    return $anterior;
+}
+
+/**
+ * Ejecuta $funcion con los textos del cancionero en el idioma del sitio (no en el que tenga elegido quien hace la
+ * petición) y vuelve al idioma normal. Se usa para los correos, cuya persona destinataria puede no tener cuenta aún.
+ * Recarga el dominio a mano porque switch_to_locale() no vuelve a cargar los plugins en WordPress anteriores a la 6.5.
+ */
+function pieb_can_en_idioma_del_sitio($funcion) {
+    $anterior = pieb_can_idioma_forzado(get_locale());
+    unload_textdomain('pieb-cancionero');
+    load_plugin_textdomain('pieb-cancionero', false, dirname(plugin_basename(PIEB_CAN_FILE)) . '/languages');
+    try {
+        return call_user_func($funcion);
+    } finally {
+        pieb_can_idioma_forzado($anterior);
+        unload_textdomain('pieb-cancionero');
+        load_plugin_textdomain('pieb-cancionero', false, dirname(plugin_basename(PIEB_CAN_FILE)) . '/languages');
+    }
+}
+
+/** Idioma pedido: el forzado, el que eligió el usuario o, si no, el de WordPress. */
 function pieb_can_idioma_pedido() {
+    $forzado = pieb_can_idioma_forzado();
+    if ($forzado) {
+        return (string) $forzado;
+    }
     $elegido = pieb_can_idioma_elegido();
     if ($elegido !== '') {
         return $elegido;
@@ -236,6 +275,19 @@ add_filter('load_script_translation_file', function ($archivo, $handle, $dominio
     return dirname($archivo) . '/pieb-cancionero-' . pieb_can_idioma() . '-' . substr($nombre, strlen($prefijo));
 }, 10, 3);
 
+/**
+ * Guarda los ajustes. Si el nombre es el por defecto (el traducido de cualquier idioma o «Cancionero») se guarda vacío,
+ * para que siga siendo «el de por defecto» y cada persona lo vea en su idioma, no el de quien guardó.
+ */
+function pieb_can_guardar_ajustes($ajustes) {
+    $nombre = trim((string) $ajustes['nombre']);
+    if ($nombre === 'Cancionero' || $nombre === __('Cancionero', 'pieb-cancionero')) {
+        $nombre = '';
+    }
+    $ajustes['nombre'] = $nombre;
+    update_option('pieb_can_ajustes', $ajustes, false);
+}
+
 function pieb_can_normalizar_emails($texto) {
     $emails = array();
     foreach (preg_split('/[\s,;]+/', strtolower((string) $texto)) as $e) {
@@ -291,7 +343,7 @@ function pieb_can_rest_preferencias(WP_REST_Request $request) {
     $notacion = (string) $request->get_param('notacion');
 
     if ($tiene_tema && !isset(pieb_can_temas()[$tema])) {
-        return new WP_Error('pieb_tema', 'Tema desconocido.', array('status' => 400));
+        return new WP_Error('pieb_tema', __('Tema desconocido.', 'pieb-cancionero'), array('status' => 400));
     }
     if ($tiene_idioma && $idioma !== '' && !isset(pieb_can_idiomas_disponibles()[$idioma])) {
         return new WP_Error('pieb_idioma', __('Idioma desconocido.', 'pieb-cancionero'), array('status' => 400));
@@ -378,7 +430,7 @@ function pieb_can_rest_ajustes_guardar(WP_REST_Request $request) {
 
     if ($request->has_param('nombre')) {
         $nombre = trim(sanitize_text_field((string) $request->get_param('nombre')));
-        $ajustes['nombre'] = $nombre === '' ? 'Cancionero' : mb_substr($nombre, 0, 40);
+        $ajustes['nombre'] = mb_substr($nombre, 0, 40);
     }
     if ($request->has_param('subtitulo')) {
         $ajustes['subtitulo'] = mb_substr(trim(sanitize_text_field((string) $request->get_param('subtitulo'))), 0, 60);
@@ -393,7 +445,7 @@ function pieb_can_rest_ajustes_guardar(WP_REST_Request $request) {
     if ($request->has_param('googleClientId')) {
         $client = trim((string) $request->get_param('googleClientId'));
         if ($client !== '' && !preg_match('/^[0-9a-z-]+\.apps\.googleusercontent\.com$/i', $client)) {
-            return new WP_Error('pieb_client', 'El Client ID de Google no tiene el formato esperado (…apps.googleusercontent.com).', array('status' => 400));
+            return new WP_Error('pieb_client', __('El Client ID de Google no tiene el formato esperado (…apps.googleusercontent.com).', 'pieb-cancionero'), array('status' => 400));
         }
         $ajustes['google_client_id'] = $client;
     }
@@ -410,7 +462,7 @@ function pieb_can_rest_ajustes_guardar(WP_REST_Request $request) {
         $ajustes['emails'] = array_values(array_unique(array_merge($ajustes['emails'], $ajustes['administradores'])));
     }
 
-    update_option('pieb_can_ajustes', $ajustes, false);
+    pieb_can_guardar_ajustes($ajustes);
 
     // Aplica ya los cambios de administradores a las cuentas existentes.
     foreach (array_unique(array_merge($anterior['administradores'], $ajustes['administradores'])) as $email) {
@@ -719,7 +771,7 @@ function pieb_can_rest_copia_cancion(WP_REST_Request $request) {
     $con_archivos = !empty($p['conArchivos']);
     $titulo = sanitize_text_field(isset($c['titulo']) ? (string) $c['titulo'] : '');
     if ($titulo === '') {
-        return new WP_Error('pieb_titulo', 'Hay una canción sin título en la copia.', array('status' => 400));
+        return new WP_Error('pieb_titulo', __('Hay una canción sin título en la copia.', 'pieb-cancionero'), array('status' => 400));
     }
 
     $id = pieb_can_copia_buscar('cancion', $c);
@@ -822,7 +874,7 @@ function pieb_can_rest_copia_culto(WP_REST_Request $request) {
     $fecha = sanitize_text_field(isset($c['fecha']) ? (string) $c['fecha'] : '');
     $d = DateTime::createFromFormat('Y-m-d', $fecha);
     if ($titulo === '' || !$d || $d->format('Y-m-d') !== $fecha) {
-        return new WP_Error('pieb_culto', 'Hay un culto sin título o con una fecha no válida en la copia.', array('status' => 400));
+        return new WP_Error('pieb_culto', __('Hay un culto sin título o con una fecha no válida en la copia.', 'pieb-cancionero'), array('status' => 400));
     }
 
     $id = pieb_can_copia_buscar('culto', $c);
@@ -897,7 +949,7 @@ function pieb_can_rest_copia_ajustes(WP_REST_Request $request) {
     }
     $emails = isset($a['emails']) ? (array) $a['emails'] : array();
     $ajustes['emails'] = pieb_can_normalizar_emails(implode(' ', array_merge($ajustes['emails'], $emails)));
-    update_option('pieb_can_ajustes', $ajustes, false);
+    pieb_can_guardar_ajustes($ajustes);
 
     return rest_ensure_response(array('estado' => 'actualizados', 'emails' => count($ajustes['emails'])));
 }

@@ -59,7 +59,7 @@ FUNCIONES = {
 }
 RE_LLAMADA = re.compile(r'(?<![\w$.>:\\])(' + '|'.join(sorted(FUNCIONES, key=len, reverse=True)) + r')\s*\(')
 RE_CADENA = re.compile(r"""^(?:'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)")$""", re.S)
-RE_TRANSLATORS = re.compile(r'(?:/\*+\s*translators:\s*((?s:.*?))\s*\*/|//\s*translators:\s*([^\n]*?))\s*$', re.I)
+RE_TRANSLATORS = re.compile(r'(?:/\*+\s*translators:\s*((?s:(?:(?!\*/).)*?))\s*\*/|//\s*translators:\s*([^\n]*?))\s*$', re.I)
 
 
 # ---------------------------------------------------------------- extracción

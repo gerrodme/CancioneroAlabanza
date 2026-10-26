@@ -2,6 +2,10 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.8.1 · 2026-10-26
+
+Textos del servidor (mensajes, correos, avisos) preparados para traducirse
+
 ## 1.8.0 · 2026-10-26
 
 Preparado para traducciones: idioma y notación de las tonalidades elegibles por usuario (Do-Re-Mi o C-D-E, en el menú del

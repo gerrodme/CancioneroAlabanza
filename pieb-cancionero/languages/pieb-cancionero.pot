@@ -1,9 +1,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Cancionero 1.8.0\n"
+"Project-Id-Version: Cancionero 1.8.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 10:09+0000\n"
+"POT-Creation-Date: 2026-10-26 10:19+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -29,10 +29,396 @@ msgstr ""
 msgid "Automática"
 msgstr ""
 
-#: includes/ajustes.php:297
+#: includes/ajustes.php:18
+msgid "Colores"
+msgstr ""
+
+#: includes/ajustes.php:19
+msgid "Pentagrama"
+msgstr ""
+
+#: includes/ajustes.php:20
+msgid "Como la web"
+msgstr ""
+
+#: includes/ajustes.php:21
+msgid "Pulso"
+msgstr ""
+
+#: includes/ajustes.php:22
+msgid "Estudio"
+msgstr ""
+
+#: includes/ajustes.php:23
+msgid "Escenario"
+msgstr ""
+
+#: includes/ajustes.php:24
+msgid "Partitura"
+msgstr ""
+
+#. nombre por defecto del cancionero cuando la instalación no le ha puesto uno propio (en inglés, «Songbook»)
+#: includes/ajustes.php:44 includes/ajustes.php:284
+msgid "Cancionero"
+msgstr ""
+
+#: includes/ajustes.php:346
+msgid "Tema desconocido."
+msgstr ""
+
+#: includes/ajustes.php:349
 msgid "Idioma desconocido."
 msgstr ""
 
-#: includes/ajustes.php:300
+#: includes/ajustes.php:352
 msgid "Notación desconocida."
+msgstr ""
+
+#: includes/ajustes.php:448
+msgid "El Client ID de Google no tiene el formato esperado (…apps.googleusercontent.com)."
+msgstr ""
+
+#: includes/ajustes.php:774
+msgid "Hay una canción sin título en la copia."
+msgstr ""
+
+#: includes/ajustes.php:877
+msgid "Hay un culto sin título o con una fecha no válida en la copia."
+msgstr ""
+
+#: includes/archivos.php:120
+msgid "Inicia sesión en el cancionero para ver este archivo."
+msgstr ""
+
+#: includes/archivos.php:123 includes/archivos.php:128 includes/archivos.php:146
+msgid "Archivo no encontrado."
+msgstr ""
+
+#: includes/archivos.php:328
+msgid "El archivo no está en el servidor."
+msgstr ""
+
+#: includes/archivos.php:334
+msgid "No se pudo mover (permisos del servidor)."
+msgstr ""
+
+#. %s: nombre del archivo
+#: includes/canciones.php:60
+#, php-format
+msgid "«%s» no es un audio MP3, M4A, OGG, WAV o AAC."
+msgstr ""
+
+#. %s: nombre del archivo
+#: includes/canciones.php:65
+#, php-format
+msgid "«%s» no es una partitura editable (MuseScore, MusicXML, Sibelius, Finale, Dorico, Guitar Pro, Encore, Capella, LilyPond o MIDI)."
+msgstr ""
+
+#. %s: nombre del archivo
+#: includes/canciones.php:69
+#, php-format
+msgid "«%s» no es un PDF ni una imagen JPG/PNG."
+msgstr ""
+
+#. 1: nombre del archivo, 2: código de error de PHP
+#: includes/canciones.php:292
+#, php-format
+msgid "No se pudo subir «%1$s» (error %2$d)."
+msgstr ""
+
+#. 1: nombre del archivo, 2: tamaño del archivo, 3: tamaño máximo permitido
+#: includes/canciones.php:315 includes/rest.php:83
+#, php-format
+msgid "«%1$s» pesa %2$s; el máximo es %3$s."
+msgstr ""
+
+#. %s: nombre del archivo
+#: includes/canciones.php:409
+#, php-format
+msgid "No se encontró «%s» en el servidor: vuelve a elegir el archivo."
+msgstr ""
+
+#: includes/cultos.php:21
+msgid "Cultos"
+msgstr ""
+
+#: includes/cultos.php:22
+msgid "Culto"
+msgstr ""
+
+#: includes/cultos.php:23
+msgid "Cultos y setlists"
+msgstr ""
+
+#: includes/cultos.php:24
+msgid "Editar culto"
+msgstr ""
+
+#: includes/cultos.php:25
+msgid "No hay cultos"
+msgstr ""
+
+#: includes/cultos.php:142
+msgid "El culto no existe."
+msgstr ""
+
+#: includes/cultos.php:176 includes/rest.php:156 includes/rest.php:194
+msgid "El título es obligatorio."
+msgstr ""
+
+#: includes/cultos.php:180
+msgid "La fecha no es válida."
+msgstr ""
+
+#: includes/cultos.php:236
+msgid "Solo quien creó el culto o un administrador puede borrarlo."
+msgstr ""
+
+#: includes/google.php:27
+msgid "No se pudo contactar con Google. Inténtalo de nuevo."
+msgstr ""
+
+#: includes/google.php:31
+msgid "Google no ha validado el inicio de sesión."
+msgstr ""
+
+#: includes/google.php:40
+msgid "El inicio de sesión de Google no es válido para este sitio."
+msgstr ""
+
+#: includes/google.php:58
+msgid "El acceso con Google no está configurado."
+msgstr ""
+
+#: includes/google.php:63
+msgid "Falta la credencial de Google."
+msgstr ""
+
+#. %s: correo electrónico
+#: includes/google.php:79
+#, php-format
+msgid "La cuenta %s no está en la lista del equipo. Pide a un responsable que la añada."
+msgstr ""
+
+#. %s: motivo del error devuelto por WordPress
+#: includes/google.php:104
+#, php-format
+msgid "No se pudo crear la cuenta: %s"
+msgstr ""
+
+#: includes/google.php:113
+msgid "Las cuentas de administración entran con usuario y contraseña."
+msgstr ""
+
+#: includes/google.php:118
+msgid "Esta cuenta está vinculada a otro usuario de Google."
+msgstr ""
+
+#: includes/google.php:187
+msgid "Si tu correo está en la lista del equipo, en un momento recibirás un enlace para entrar. Revisa también la carpeta de spam."
+msgstr ""
+
+#: includes/google.php:191
+msgid "Escribe un correo válido."
+msgstr ""
+
+#: includes/google.php:195
+msgid "Demasiados intentos. Prueba de nuevo dentro de un rato."
+msgstr ""
+
+#: includes/google.php:212
+msgid "Tu enlace para entrar al Cancionero"
+msgstr ""
+
+#: includes/google.php:213
+msgid "Hola:"
+msgstr ""
+
+#. %s: nombre del sitio web
+#: includes/google.php:216
+#, php-format
+msgid "Pulsa este enlace para entrar al Cancionero de %s:"
+msgstr ""
+
+#. %d: minutos de validez del enlace
+#: includes/google.php:222
+#, php-format
+msgid "Sirve una sola vez y caduca en %d minuto."
+msgid_plural "Sirve una sola vez y caduca en %d minutos."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/google.php:225
+msgid "Si no lo has pedido tú, puedes ignorar este correo."
+msgstr ""
+
+#: includes/google.php:230
+msgid "El servidor no ha podido enviar el correo. Avisa a un responsable del equipo."
+msgstr ""
+
+#: includes/google.php:239
+msgid "Prueba de correo del Cancionero"
+msgstr ""
+
+#: includes/google.php:240
+msgid "Si lees esto, el servidor puede enviar los enlaces de acceso del Cancionero."
+msgstr ""
+
+#: includes/google.php:243
+msgid "El servidor no ha podido enviar el correo: hace falta configurar un servicio de envío (SMTP)."
+msgstr ""
+
+#: includes/papelera.php:128
+msgid "Esa canción no está en la papelera."
+msgstr ""
+
+#: includes/rest.php:78
+msgid "Petición de subida no válida."
+msgstr ""
+
+#: includes/rest.php:96
+msgid "No llegó el trozo del archivo."
+msgstr ""
+
+#: includes/rest.php:107
+msgid "La subida se interrumpió; vuelve a intentarlo."
+msgstr ""
+
+#: includes/rest.php:111
+msgid "El trozo recibido no cuadra con el tamaño del archivo."
+msgstr ""
+
+#: includes/rest.php:114
+msgid "El servidor no pudo guardar el archivo."
+msgstr ""
+
+#: includes/rest.php:126
+msgid "La canción no existe."
+msgstr ""
+
+#: includes/rest.php:162 includes/rest.php:260
+msgid "Toda canción necesita al menos una partitura."
+msgstr ""
+
+#: includes/rest.php:213
+msgid "Solo quien subió la canción o un administrador puede borrarla."
+msgstr ""
+
+#: pieb-cancionero.php:58
+msgid "Canciones"
+msgstr ""
+
+#: pieb-cancionero.php:59
+msgid "Canción"
+msgstr ""
+
+#: pieb-cancionero.php:61
+msgid "Todas las canciones"
+msgstr ""
+
+#: pieb-cancionero.php:62
+msgid "Editar canción"
+msgstr ""
+
+#: pieb-cancionero.php:63
+msgid "Buscar canciones"
+msgstr ""
+
+#: pieb-cancionero.php:64
+msgid "No hay canciones"
+msgstr ""
+
+#: pieb-cancionero.php:93
+msgid "Etiquetas de canción"
+msgstr ""
+
+#: pieb-cancionero.php:94
+msgid "Etiqueta"
+msgstr ""
+
+#: pieb-cancionero.php:95
+msgid "Etiquetas"
+msgstr ""
+
+#: pieb-cancionero.php:134
+msgctxt "User role"
+msgid "Equipo de adoración"
+msgstr ""
+
+#: pieb-cancionero.php:135
+msgctxt "User role"
+msgid "Administrador del cancionero"
+msgstr ""
+
+#: pieb-cancionero.php:261
+msgid "Sin acceso al cancionero"
+msgstr ""
+
+#: pieb-cancionero.php:262
+msgid "Tu cuenta no está en la lista del equipo de adoración. Pide a un responsable que añada tu correo."
+msgstr ""
+
+#: pieb-cancionero.php:263
+msgid "Salir y entrar con otra cuenta"
+msgstr ""
+
+#: pieb-cancionero.php:305
+msgid "Cargando cancionero…"
+msgstr ""
+
+#: pieb-cancionero.php:325
+msgid "Pulsa el botón para entrar."
+msgstr ""
+
+#: pieb-cancionero.php:329
+msgid "Entrar al cancionero"
+msgstr ""
+
+#: pieb-cancionero.php:352
+msgid "Ese enlace ya se ha usado o ha caducado. Pide uno nuevo."
+msgstr ""
+
+#: pieb-cancionero.php:354
+msgid "No se ha podido iniciar la sesión. Inténtalo de nuevo o avisa a un responsable."
+msgstr ""
+
+#: pieb-cancionero.php:357
+msgid "Escribe tu correo y te enviaremos un enlace para entrar. Sin contraseñas."
+msgstr ""
+
+#: pieb-cancionero.php:359
+msgid "Tu correo"
+msgstr ""
+
+#: pieb-cancionero.php:360
+msgid "tu@correo.com"
+msgstr ""
+
+#: pieb-cancionero.php:361
+msgid "Enviarme el enlace"
+msgstr ""
+
+#: pieb-cancionero.php:367
+msgctxt "separador entre el acceso por correo y el acceso con Google"
+msgid "o"
+msgstr ""
+
+#: pieb-cancionero.php:373
+msgid "Usuario o correo"
+msgstr ""
+
+#: pieb-cancionero.php:374
+msgid "Contraseña"
+msgstr ""
+
+#: pieb-cancionero.php:375
+msgid "Recordarme en este dispositivo"
+msgstr ""
+
+#: pieb-cancionero.php:376
+msgid "Entrar"
+msgstr ""
+
+#: pieb-cancionero.php:378
+msgid "Entrar con usuario y contraseña"
 msgstr ""

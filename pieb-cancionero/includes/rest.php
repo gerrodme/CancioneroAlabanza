@@ -75,10 +75,16 @@ function pieb_can_rest_trozo(WP_REST_Request $request) {
     $max = $clase['max'];
 
     if (!preg_match('/^[a-f0-9]{32}$/', $id) || $nombre === '' || $total <= 0 || $desde < 0) {
-        return new WP_Error('pieb_subida', 'Petición de subida no válida.', array('status' => 400));
+        return new WP_Error('pieb_subida', __('Petición de subida no válida.', 'pieb-cancionero'), array('status' => 400));
     }
     if ($total > $max) {
-        return new WP_Error('pieb_tamano', sprintf('«%s» pesa %s; el máximo es %s.', $nombre, size_format($total, 1), size_format($max)), array('status' => 400));
+        return new WP_Error('pieb_tamano', sprintf(
+            /* translators: 1: nombre del archivo, 2: tamaño del archivo, 3: tamaño máximo permitido */
+            __('«%1$s» pesa %2$s; el máximo es %3$s.', 'pieb-cancionero'),
+            $nombre,
+            size_format($total, 1),
+            size_format($max)
+        ), array('status' => 400));
     }
     $extension = wp_check_filetype($nombre, $clase['tipos']);
     if (empty($extension['ext'])) {
@@ -87,7 +93,7 @@ function pieb_can_rest_trozo(WP_REST_Request $request) {
 
     $files = $request->get_file_params();
     if (empty($files['trozo']['tmp_name']) || $files['trozo']['error'] !== UPLOAD_ERR_OK) {
-        return new WP_Error('pieb_subida', 'No llegó el trozo del archivo.', array('status' => 400));
+        return new WP_Error('pieb_subida', __('No llegó el trozo del archivo.', 'pieb-cancionero'), array('status' => 400));
     }
 
     $ruta = pieb_can_ruta_trozo($id);
@@ -98,14 +104,14 @@ function pieb_can_rest_trozo(WP_REST_Request $request) {
     clearstatcache(true, $ruta);
     $actual = is_file($ruta) ? filesize($ruta) : 0;
     if ($actual !== $desde) {
-        return new WP_Error('pieb_orden', 'La subida se interrumpió; vuelve a intentarlo.', array('status' => 409, 'recibido' => $actual));
+        return new WP_Error('pieb_orden', __('La subida se interrumpió; vuelve a intentarlo.', 'pieb-cancionero'), array('status' => 409, 'recibido' => $actual));
     }
     $trozo = file_get_contents($files['trozo']['tmp_name']);
     if ($trozo === false || $actual + strlen($trozo) > $total) {
-        return new WP_Error('pieb_subida', 'El trozo recibido no cuadra con el tamaño del archivo.', array('status' => 400));
+        return new WP_Error('pieb_subida', __('El trozo recibido no cuadra con el tamaño del archivo.', 'pieb-cancionero'), array('status' => 400));
     }
     if (file_put_contents($ruta, $trozo, FILE_APPEND | LOCK_EX) === false) {
-        return new WP_Error('pieb_subida', 'El servidor no pudo guardar el archivo.', array('status' => 500));
+        return new WP_Error('pieb_subida', __('El servidor no pudo guardar el archivo.', 'pieb-cancionero'), array('status' => 500));
     }
 
     $recibido = $actual + strlen($trozo);
@@ -117,7 +123,7 @@ function pieb_can_rest_cancion($id, $con_papelera = false) {
     $post = get_post((int) $id);
     $estado_ok = $post && ($post->post_status === 'publish' || ($con_papelera && $post->post_status === 'trash' && current_user_can(PIEB_CAN_CAP_GESTIONAR)));
     if (!$post || $post->post_type !== PIEB_CAN_CPT || !$estado_ok) {
-        return new WP_Error('pieb_no_existe', 'La canción no existe.', array('status' => 404));
+        return new WP_Error('pieb_no_existe', __('La canción no existe.', 'pieb-cancionero'), array('status' => 404));
     }
     return $post;
 }
@@ -147,13 +153,13 @@ function pieb_can_rest_ver(WP_REST_Request $request) {
 function pieb_can_rest_crear(WP_REST_Request $request) {
     $titulo = sanitize_text_field((string) $request->get_param('titulo'));
     if ($titulo === '') {
-        return new WP_Error('pieb_titulo', 'El título es obligatorio.', array('status' => 400));
+        return new WP_Error('pieb_titulo', __('El título es obligatorio.', 'pieb-cancionero'), array('status' => 400));
     }
 
     $files = $request->get_file_params();
     $subidas = json_decode((string) $request->get_param('nuevasSubidas'), true);
     if (empty($files['nuevas']['name'][0]) && empty($subidas)) {
-        return new WP_Error('pieb_partitura', 'Toda canción necesita al menos una partitura.', array('status' => 400));
+        return new WP_Error('pieb_partitura', __('Toda canción necesita al menos una partitura.', 'pieb-cancionero'), array('status' => 400));
     }
 
     $post_id = wp_insert_post(array(
@@ -185,7 +191,7 @@ function pieb_can_rest_actualizar(WP_REST_Request $request) {
 
     $titulo = sanitize_text_field((string) $request->get_param('titulo'));
     if ($titulo === '') {
-        return new WP_Error('pieb_titulo', 'El título es obligatorio.', array('status' => 400));
+        return new WP_Error('pieb_titulo', __('El título es obligatorio.', 'pieb-cancionero'), array('status' => 400));
     }
 
     $resultado = pieb_can_guardar($post->ID, $request, false);
@@ -204,7 +210,7 @@ function pieb_can_rest_borrar(WP_REST_Request $request) {
         return $post;
     }
     if (!pieb_can_usuario_puede_borrar($post)) {
-        return new WP_Error('pieb_permiso', 'Solo quien subió la canción o un administrador puede borrarla.', array('status' => 403));
+        return new WP_Error('pieb_permiso', __('Solo quien subió la canción o un administrador puede borrarla.', 'pieb-cancionero'), array('status' => 403));
     }
 
     // A la papelera del cancionero: un administrador puede verla, restaurarla o eliminarla para siempre.
@@ -251,7 +257,7 @@ function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
     $hay_nuevas = !empty($files['nuevas']['name'][0]) || $subidas;
 
     if (!$conservar && !$hay_nuevas) {
-        return new WP_Error('pieb_partitura', 'Toda canción necesita al menos una partitura.', array('status' => 400));
+        return new WP_Error('pieb_partitura', __('Toda canción necesita al menos una partitura.', 'pieb-cancionero'), array('status' => 400));
     }
 
     $nuevas = array();

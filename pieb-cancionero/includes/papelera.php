@@ -125,7 +125,7 @@ add_action('rest_api_init', function () {
 function pieb_can_cancion_en_papelera($id) {
     $post = get_post((int) $id);
     if (!$post || $post->post_type !== PIEB_CAN_CPT || $post->post_status !== 'trash') {
-        return new WP_Error('pieb_no_papelera', 'Esa canción no está en la papelera.', array('status' => 404));
+        return new WP_Error('pieb_no_papelera', __('Esa canción no está en la papelera.', 'pieb-cancionero'), array('status' => 404));
     }
     return $post;
 }

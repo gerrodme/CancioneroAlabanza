@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Cancionero
  * Description: Cancionero para equipos de música y alabanza: canciones con partitura, letra, audios y YouTube, setlists de cultos, visor para tableta, temas propios y acceso con Google. Shortcode [cancionero].
- * Version: 1.8.0
+ * Version: 1.8.1
  * Author: Gerson Rodrigo Menéndez
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PIEB_CAN_VERSION', '1.8.0');
+define('PIEB_CAN_VERSION', '1.8.1');
 define('PIEB_CAN_FILE', __FILE__);
 define('PIEB_CAN_DIR', plugin_dir_path(__FILE__));
 define('PIEB_CAN_URL', plugin_dir_url(__FILE__));
@@ -32,6 +32,13 @@ const PIEB_CAN_ROLE_ADMIN = 'administrador_cancionero';
 const PIEB_CAN_CAP_ACCESO     = 'pieb_cancionero_acceso';
 const PIEB_CAN_CAP_GESTIONAR  = 'pieb_cancionero_gestionar';
 
+// Traducciones del plugin (el idioma de cada usuario se decide en el filtro plugin_locale, ver includes/ajustes.php).
+// Prioridad 1 y registrado antes de incluir el resto de archivos: así se carga antes que cualquier otro gancho de «init»
+// (p. ej. la entrega de archivos privados) y antes de registrar los tipos de contenido, cuyas etiquetas ya usan el dominio.
+add_action('init', function () {
+    load_plugin_textdomain('pieb-cancionero', false, dirname(plugin_basename(PIEB_CAN_FILE)) . '/languages');
+}, 1);
+
 require_once PIEB_CAN_DIR . 'includes/canciones.php';
 require_once PIEB_CAN_DIR . 'includes/archivos.php';
 require_once PIEB_CAN_DIR . 'includes/papelera.php';
@@ -41,12 +48,6 @@ require_once PIEB_CAN_DIR . 'includes/cultos.php';
 require_once PIEB_CAN_DIR . 'includes/ajustes.php';
 require_once PIEB_CAN_DIR . 'includes/google.php';
 
-// Traducciones del plugin (el idioma de cada usuario se decide en el filtro plugin_locale, ver includes/ajustes.php).
-// Prioridad 1: antes de registrar los tipos de contenido, cuyas etiquetas ya usarán el dominio.
-add_action('init', function () {
-    load_plugin_textdomain('pieb-cancionero', false, dirname(plugin_basename(PIEB_CAN_FILE)) . '/languages');
-}, 1);
-
 add_action('init', 'pieb_can_registrar_tipos');
 
 function pieb_can_registrar_tipos() {
@@ -54,13 +55,13 @@ function pieb_can_registrar_tipos() {
 
     register_post_type(PIEB_CAN_CPT, array(
         'labels' => array(
-            'name'          => 'Canciones',
-            'singular_name' => 'Canción',
+            'name'          => __('Canciones', 'pieb-cancionero'),
+            'singular_name' => __('Canción', 'pieb-cancionero'),
             'menu_name'     => pieb_can_nombre(),
-            'all_items'     => 'Todas las canciones',
-            'edit_item'     => 'Editar canción',
-            'search_items'  => 'Buscar canciones',
-            'not_found'     => 'No hay canciones',
+            'all_items'     => __('Todas las canciones', 'pieb-cancionero'),
+            'edit_item'     => __('Editar canción', 'pieb-cancionero'),
+            'search_items'  => __('Buscar canciones', 'pieb-cancionero'),
+            'not_found'     => __('No hay canciones', 'pieb-cancionero'),
         ),
         'public'              => false,
         'show_ui'             => true,
@@ -89,9 +90,9 @@ function pieb_can_registrar_tipos() {
 
     register_taxonomy(PIEB_CAN_TAX, PIEB_CAN_CPT, array(
         'labels' => array(
-            'name'          => 'Etiquetas de canción',
-            'singular_name' => 'Etiqueta',
-            'menu_name'     => 'Etiquetas',
+            'name'          => __('Etiquetas de canción', 'pieb-cancionero'),
+            'singular_name' => __('Etiqueta', 'pieb-cancionero'),
+            'menu_name'     => __('Etiquetas', 'pieb-cancionero'),
         ),
         'public'            => false,
         'show_ui'           => true,
@@ -122,6 +123,18 @@ add_action('admin_init', function () {
         update_option('pieb_can_version', PIEB_CAN_VERSION);
     }
 });
+
+/**
+ * Nombres de los roles del plugin para mostrarlos. Lo que se guarda con add_role() se queda en español (es lo que ya hay
+ * en la base de datos); al mostrarlos se traducen con el contexto «User role», el mismo que usa translate_user_role().
+ * Se llama siempre en tiempo de ejecución (nunca al incluir el archivo ni antes de «init»).
+ */
+function pieb_can_nombres_roles() {
+    return array(
+        PIEB_CAN_ROLE       => _x('Equipo de adoración', 'User role', 'pieb-cancionero'),
+        PIEB_CAN_ROLE_ADMIN => _x('Administrador del cancionero', 'User role', 'pieb-cancionero'),
+    );
+}
 
 function pieb_can_instalar_roles() {
     $caps_equipo = array(
@@ -245,9 +258,9 @@ function pieb_can_shortcode() {
     $tema = pieb_can_tema_usuario();
 
     if (!current_user_can(PIEB_CAN_CAP_ACCESO)) {
-        return '<div ' . pieb_can_atributos_raiz($tema) . '><div class="pcan-login-card"><h2>Sin acceso al cancionero</h2>'
-            . '<p>Tu cuenta no está en la lista del equipo de adoración. Pide a un responsable que añada tu correo.</p>'
-            . '<p><a class="pcan-btn" href="' . esc_url(wp_logout_url(get_permalink())) . '">Salir y entrar con otra cuenta</a></p></div></div>';
+        return '<div ' . pieb_can_atributos_raiz($tema) . '><div class="pcan-login-card"><h2>' . esc_html__('Sin acceso al cancionero', 'pieb-cancionero') . '</h2>'
+            . '<p>' . esc_html__('Tu cuenta no está en la lista del equipo de adoración. Pide a un responsable que añada tu correo.', 'pieb-cancionero') . '</p>'
+            . '<p><a class="pcan-btn" href="' . esc_url(wp_logout_url(get_permalink())) . '">' . esc_html__('Salir y entrar con otra cuenta', 'pieb-cancionero') . '</a></p></div></div>';
     }
 
     wp_enqueue_script('pieb-cancionero', PIEB_CAN_URL . 'assets/cancionero.js', array('wp-i18n'), PIEB_CAN_VERSION, true);
@@ -289,7 +302,7 @@ function pieb_can_shortcode() {
     // wp_add_inline_script conserva los tipos (booleanos, números), a diferencia de wp_localize_script.
     wp_add_inline_script('pieb-cancionero', 'window.PIEB_CANCIONERO = ' . wp_json_encode($config) . ';', 'before');
 
-    return '<div id="pieb-cancionero" ' . pieb_can_atributos_raiz($tema) . '><div class="pcan-cargando">Cargando cancionero…</div></div>';
+    return '<div id="pieb-cancionero" ' . pieb_can_atributos_raiz($tema) . '><div class="pcan-cargando">' . esc_html__('Cargando cancionero…', 'pieb-cancionero') . '</div></div>';
 }
 
 function pieb_can_render_login() {
@@ -309,11 +322,11 @@ function pieb_can_render_login() {
 
     // Llegada desde el enlace del correo: se pide un clic para no gastar el enlace con los filtros antispam.
     if ($token) {
-        $html .= '<p>Pulsa el botón para entrar.</p>';
+        $html .= '<p>' . esc_html__('Pulsa el botón para entrar.', 'pieb-cancionero') . '</p>';
         $html .= '<form method="post" action="' . esc_url($volver) . '" class="pcan-enlace-form">';
         $html .= '<input type="hidden" name="pcan_enlace" value="' . esc_attr($token) . '">';
         $html .= '<input type="hidden" name="pcan_volver" value="' . esc_attr($volver) . '">';
-        $html .= '<button type="submit" class="pcan-btn pcan-btn-primary pcan-btn-lg">Entrar al cancionero</button>';
+        $html .= '<button type="submit" class="pcan-btn pcan-btn-primary pcan-btn-lg">' . esc_html__('Entrar al cancionero', 'pieb-cancionero') . '</button>';
         $html .= '</form></div></div>';
         // Se entra sin dejar esta pantalla en el historial: así «atrás» desde el cancionero no vuelve aquí.
         $html .= '<script>(function(){var f=document.querySelector(".pcan-enlace-form");if(!f||!window.fetch){return;}'
@@ -336,33 +349,33 @@ function pieb_can_render_login() {
     )) . ';', 'before');
 
     if ($aviso === 'caducado') {
-        $html .= '<p class="pcan-form-error" role="alert">Ese enlace ya se ha usado o ha caducado. Pide uno nuevo.</p>';
+        $html .= '<p class="pcan-form-error" role="alert">' . esc_html__('Ese enlace ya se ha usado o ha caducado. Pide uno nuevo.', 'pieb-cancionero') . '</p>';
     } elseif ($aviso === 'error') {
-        $html .= '<p class="pcan-form-error" role="alert">No se ha podido iniciar la sesión. Inténtalo de nuevo o avisa a un responsable.</p>';
+        $html .= '<p class="pcan-form-error" role="alert">' . esc_html__('No se ha podido iniciar la sesión. Inténtalo de nuevo o avisa a un responsable.', 'pieb-cancionero') . '</p>';
     }
 
-    $html .= '<p>Escribe tu correo y te enviaremos un enlace para entrar. Sin contraseñas.</p>';
+    $html .= '<p>' . esc_html__('Escribe tu correo y te enviaremos un enlace para entrar. Sin contraseñas.', 'pieb-cancionero') . '</p>';
     $html .= '<form id="pcan-enlace-form" class="pcan-enlace-form" novalidate>';
-    $html .= '<label for="pcan-enlace-email" class="screen-reader-text">Tu correo</label>';
-    $html .= '<input type="email" id="pcan-enlace-email" class="pcan-input" autocomplete="email" inputmode="email" required placeholder="tu@correo.com">';
-    $html .= '<button type="submit" class="pcan-btn pcan-btn-primary pcan-btn-lg">Enviarme el enlace</button>';
+    $html .= '<label for="pcan-enlace-email" class="screen-reader-text">' . esc_html__('Tu correo', 'pieb-cancionero') . '</label>';
+    $html .= '<input type="email" id="pcan-enlace-email" class="pcan-input" autocomplete="email" inputmode="email" required placeholder="' . esc_attr__('tu@correo.com', 'pieb-cancionero') . '">';
+    $html .= '<button type="submit" class="pcan-btn pcan-btn-primary pcan-btn-lg">' . esc_html__('Enviarme el enlace', 'pieb-cancionero') . '</button>';
     $html .= '</form>';
     $html .= '<p id="pcan-enlace-ok" class="pcan-login-ok" role="status" hidden></p>';
     $html .= '<p id="pcan-login-error" class="pcan-form-error" role="alert" hidden></p>';
 
     if ($client_id) {
-        $html .= '<p class="pcan-login-o"><span>o</span></p><div id="pcan-google-btn" class="pcan-google-btn"></div>';
+        $html .= '<p class="pcan-login-o"><span>' . esc_html_x('o', 'separador entre el acceso por correo y el acceso con Google', 'pieb-cancionero') . '</span></p><div id="pcan-google-btn" class="pcan-google-btn"></div>';
     }
 
     $form = wp_login_form(array(
         'echo'           => false,
         'redirect'       => $volver,
-        'label_username' => 'Usuario o correo',
-        'label_password' => 'Contraseña',
-        'label_remember' => 'Recordarme en este dispositivo',
-        'label_log_in'   => 'Entrar',
+        'label_username' => __('Usuario o correo', 'pieb-cancionero'),
+        'label_password' => __('Contraseña', 'pieb-cancionero'),
+        'label_remember' => __('Recordarme en este dispositivo', 'pieb-cancionero'),
+        'label_log_in'   => __('Entrar', 'pieb-cancionero'),
     ));
-    $html .= '<details class="pcan-login-alt"><summary>Entrar con usuario y contraseña</summary>' . $form . '</details>';
+    $html .= '<details class="pcan-login-alt"><summary>' . esc_html__('Entrar con usuario y contraseña', 'pieb-cancionero') . '</summary>' . $form . '</details>';
 
     $html .= '</div></div>';
     return $html;

@@ -24,11 +24,11 @@ add_action('rest_api_init', function () {
 function pieb_can_google_verificar($credential, $client_id) {
     $respuesta = wp_remote_get('https://oauth2.googleapis.com/tokeninfo?id_token=' . rawurlencode($credential), array('timeout' => 10));
     if (is_wp_error($respuesta)) {
-        return new WP_Error('pieb_google', 'No se pudo contactar con Google. Inténtalo de nuevo.', array('status' => 502));
+        return new WP_Error('pieb_google', __('No se pudo contactar con Google. Inténtalo de nuevo.', 'pieb-cancionero'), array('status' => 502));
     }
     $datos = json_decode(wp_remote_retrieve_body($respuesta), true);
     if (wp_remote_retrieve_response_code($respuesta) !== 200 || !is_array($datos)) {
-        return new WP_Error('pieb_google', 'Google no ha validado el inicio de sesión.', array('status' => 401));
+        return new WP_Error('pieb_google', __('Google no ha validado el inicio de sesión.', 'pieb-cancionero'), array('status' => 401));
     }
 
     $iss_ok = in_array(isset($datos['iss']) ? $datos['iss'] : '', array('accounts.google.com', 'https://accounts.google.com'), true);
@@ -37,7 +37,7 @@ function pieb_can_google_verificar($credential, $client_id) {
     $email_ok = isset($datos['email'], $datos['email_verified']) && in_array($datos['email_verified'], array(true, 'true'), true);
 
     if (!$iss_ok || !$aud_ok || !$exp_ok || !$email_ok || empty($datos['sub'])) {
-        return new WP_Error('pieb_google', 'El inicio de sesión de Google no es válido para este sitio.', array('status' => 401));
+        return new WP_Error('pieb_google', __('El inicio de sesión de Google no es válido para este sitio.', 'pieb-cancionero'), array('status' => 401));
     }
     return $datos;
 }
@@ -55,12 +55,12 @@ function pieb_can_email_permitido($email, $ajustes) {
 function pieb_can_rest_google(WP_REST_Request $request) {
     $ajustes = pieb_can_ajustes();
     if (!$ajustes['google_client_id']) {
-        return new WP_Error('pieb_google', 'El acceso con Google no está configurado.', array('status' => 400));
+        return new WP_Error('pieb_google', __('El acceso con Google no está configurado.', 'pieb-cancionero'), array('status' => 400));
     }
 
     $credential = (string) $request->get_param('credential');
     if ($credential === '') {
-        return new WP_Error('pieb_google', 'Falta la credencial de Google.', array('status' => 400));
+        return new WP_Error('pieb_google', __('Falta la credencial de Google.', 'pieb-cancionero'), array('status' => 400));
     }
 
     $datos = pieb_can_google_verificar($credential, $ajustes['google_client_id']);
@@ -74,7 +74,11 @@ function pieb_can_rest_google(WP_REST_Request $request) {
 
     $permitido = pieb_can_email_permitido($email, $ajustes) || ($user && user_can($user, PIEB_CAN_CAP_ACCESO));
     if (!$permitido) {
-        return new WP_Error('pieb_google', 'La cuenta ' . $email . ' no está en la lista del equipo. Pide a un responsable que la añada.', array('status' => 403));
+        return new WP_Error('pieb_google', sprintf(
+            /* translators: %s: correo electrónico */
+            __('La cuenta %s no está en la lista del equipo. Pide a un responsable que la añada.', 'pieb-cancionero'),
+            $email
+        ), array('status' => 403));
     }
 
     if (!$user) {
@@ -95,19 +99,23 @@ function pieb_can_rest_google(WP_REST_Request $request) {
             'role'         => PIEB_CAN_ROLE,
         ));
         if (is_wp_error($user_id)) {
-            return new WP_Error('pieb_google', 'No se pudo crear la cuenta: ' . $user_id->get_error_message(), array('status' => 500));
+            return new WP_Error('pieb_google', sprintf(
+                /* translators: %s: motivo del error devuelto por WordPress */
+                __('No se pudo crear la cuenta: %s', 'pieb-cancionero'),
+                $user_id->get_error_message()
+            ), array('status' => 500));
         }
         $user = get_userdata($user_id);
         pieb_can_sincronizar_administrador($user);
     } else {
         // Las cuentas de administración siguen entrando con contraseña: Google solo da acceso al equipo.
         if (user_can($user, 'manage_options')) {
-            return new WP_Error('pieb_google', 'Las cuentas de administración entran con usuario y contraseña.', array('status' => 403));
+            return new WP_Error('pieb_google', __('Las cuentas de administración entran con usuario y contraseña.', 'pieb-cancionero'), array('status' => 403));
         }
         // Una cuenta ya vinculada a otro usuario de Google no se puede usar con un correo reasignado.
         $sub_guardado = get_user_meta($user->ID, 'pieb_can_google_sub', true);
         if ($sub_guardado && !hash_equals($sub_guardado, $sub)) {
-            return new WP_Error('pieb_google', 'Esta cuenta está vinculada a otro usuario de Google.', array('status' => 403));
+            return new WP_Error('pieb_google', __('Esta cuenta está vinculada a otro usuario de Google.', 'pieb-cancionero'), array('status' => 403));
         }
         if (!user_can($user, PIEB_CAN_CAP_ACCESO)) {
             $user->add_role(PIEB_CAN_ROLE);
@@ -176,15 +184,15 @@ function pieb_can_rest_enlace(WP_REST_Request $request) {
     $volver = wp_validate_redirect(esc_url_raw((string) $request->get_param('volver')), home_url('/'));
     $generico = rest_ensure_response(array(
         'ok'      => true,
-        'mensaje' => 'Si tu correo está en la lista del equipo, en un momento recibirás un enlace para entrar. Revisa también la carpeta de spam.',
+        'mensaje' => __('Si tu correo está en la lista del equipo, en un momento recibirás un enlace para entrar. Revisa también la carpeta de spam.', 'pieb-cancionero'),
     ));
 
     if (!is_email($email)) {
-        return new WP_Error('pieb_enlace', 'Escribe un correo válido.', array('status' => 400));
+        return new WP_Error('pieb_enlace', __('Escribe un correo válido.', 'pieb-cancionero'), array('status' => 400));
     }
     $ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '';
     if (!pieb_can_limite('ip' . $ip, 30, HOUR_IN_SECONDS)) {
-        return new WP_Error('pieb_enlace', 'Demasiados intentos. Prueba de nuevo dentro de un rato.', array('status' => 429));
+        return new WP_Error('pieb_enlace', __('Demasiados intentos. Prueba de nuevo dentro de un rato.', 'pieb-cancionero'), array('status' => 429));
     }
     // La respuesta es la misma tanto si el correo está en la lista como si no: así no se puede averiguar quién está.
     if (!pieb_can_email_con_acceso($email) || !pieb_can_limite('mail' . $email, 3, PIEB_CAN_ENLACE_MINUTOS * MINUTE_IN_SECONDS)) {
@@ -196,23 +204,43 @@ function pieb_can_rest_enlace(WP_REST_Request $request) {
 
     $url = add_query_arg('pcan_enlace', $token, $volver);
     $sitio = wp_specialchars_decode(get_bloginfo('name'), ENT_QUOTES);
-    $cuerpo = "Hola:\n\n"
-        . "Pulsa este enlace para entrar al Cancionero de " . $sitio . ":\n\n"
-        . $url . "\n\n"
-        . "Sirve una sola vez y caduca en " . PIEB_CAN_ENLACE_MINUTOS . " minutos.\n"
-        . "Si no lo has pedido tú, puedes ignorar este correo.\n";
 
-    if (!wp_mail($email, 'Tu enlace para entrar al Cancionero', $cuerpo)) {
-        return new WP_Error('pieb_enlace', 'El servidor no ha podido enviar el correo. Avisa a un responsable del equipo.', array('status' => 500));
+    // El correo va en el idioma del sitio, no en el que tenga elegido quien haga la petición: quien lo recibe puede no
+    // tener aún cuenta ni idioma propio. Se compone dentro de pieb_can_en_idioma_del_sitio().
+    $mensaje = pieb_can_en_idioma_del_sitio(function () use ($url, $sitio) {
+        return array(
+            'asunto' => __('Tu enlace para entrar al Cancionero', 'pieb-cancionero'),
+            'cuerpo' => __('Hola:', 'pieb-cancionero') . "\n\n"
+                . sprintf(
+                    /* translators: %s: nombre del sitio web */
+                    __('Pulsa este enlace para entrar al Cancionero de %s:', 'pieb-cancionero'),
+                    $sitio
+                ) . "\n\n"
+                . $url . "\n\n"
+                . sprintf(
+                    /* translators: %d: minutos de validez del enlace */
+                    _n('Sirve una sola vez y caduca en %d minuto.', 'Sirve una sola vez y caduca en %d minutos.', PIEB_CAN_ENLACE_MINUTOS, 'pieb-cancionero'),
+                    PIEB_CAN_ENLACE_MINUTOS
+                ) . "\n"
+                . __('Si no lo has pedido tú, puedes ignorar este correo.', 'pieb-cancionero') . "\n",
+        );
+    });
+
+    if (!wp_mail($email, $mensaje['asunto'], $mensaje['cuerpo'])) {
+        return new WP_Error('pieb_enlace', __('El servidor no ha podido enviar el correo. Avisa a un responsable del equipo.', 'pieb-cancionero'), array('status' => 500));
     }
     return $generico;
 }
 
 function pieb_can_rest_correo_prueba() {
     $user = wp_get_current_user();
-    $ok = wp_mail($user->user_email, 'Prueba de correo del Cancionero', "Si lees esto, el servidor puede enviar los enlaces de acceso del Cancionero.\n");
+    $ok = wp_mail(
+        $user->user_email,
+        __('Prueba de correo del Cancionero', 'pieb-cancionero'),
+        __('Si lees esto, el servidor puede enviar los enlaces de acceso del Cancionero.', 'pieb-cancionero') . "\n"
+    );
     if (!$ok) {
-        return new WP_Error('pieb_correo', 'El servidor no ha podido enviar el correo: hace falta configurar un servicio de envío (SMTP).', array('status' => 500));
+        return new WP_Error('pieb_correo', __('El servidor no ha podido enviar el correo: hace falta configurar un servicio de envío (SMTP).', 'pieb-cancionero'), array('status' => 500));
     }
     return rest_ensure_response(array('ok' => true, 'destino' => $user->user_email));
 }

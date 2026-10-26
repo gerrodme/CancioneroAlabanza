@@ -18,11 +18,11 @@ add_action('init', function () {
 
     register_post_type(PIEB_CAN_CULTO, array(
         'labels' => array(
-            'name'          => 'Cultos',
-            'singular_name' => 'Culto',
-            'all_items'     => 'Cultos y setlists',
-            'edit_item'     => 'Editar culto',
-            'not_found'     => 'No hay cultos',
+            'name'          => __('Cultos', 'pieb-cancionero'),
+            'singular_name' => __('Culto', 'pieb-cancionero'),
+            'all_items'     => __('Cultos y setlists', 'pieb-cancionero'),
+            'edit_item'     => __('Editar culto', 'pieb-cancionero'),
+            'not_found'     => __('No hay cultos', 'pieb-cancionero'),
         ),
         'public'              => false,
         'show_ui'             => true,
@@ -139,7 +139,7 @@ function pieb_can_culto_detalle($post) {
 function pieb_can_rest_culto_get($id) {
     $post = get_post((int) $id);
     if (!$post || $post->post_type !== PIEB_CAN_CULTO || $post->post_status !== 'publish') {
-        return new WP_Error('pieb_no_existe', 'El culto no existe.', array('status' => 404));
+        return new WP_Error('pieb_no_existe', __('El culto no existe.', 'pieb-cancionero'), array('status' => 404));
     }
     return $post;
 }
@@ -173,11 +173,11 @@ function pieb_can_rest_culto_guardar(WP_REST_Request $request) {
     $fecha  = isset($params['fecha']) ? sanitize_text_field($params['fecha']) : '';
 
     if ($titulo === '') {
-        return new WP_Error('pieb_titulo', 'El título es obligatorio.', array('status' => 400));
+        return new WP_Error('pieb_titulo', __('El título es obligatorio.', 'pieb-cancionero'), array('status' => 400));
     }
     $d = DateTime::createFromFormat('Y-m-d', $fecha);
     if (!$d || $d->format('Y-m-d') !== $fecha) {
-        return new WP_Error('pieb_fecha', 'La fecha no es válida.', array('status' => 400));
+        return new WP_Error('pieb_fecha', __('La fecha no es válida.', 'pieb-cancionero'), array('status' => 400));
     }
 
     $items = array();
@@ -233,7 +233,7 @@ function pieb_can_rest_culto_borrar(WP_REST_Request $request) {
         return $post;
     }
     if (!pieb_can_usuario_puede_borrar($post)) {
-        return new WP_Error('pieb_permiso', 'Solo quien creó el culto o un administrador puede borrarlo.', array('status' => 403));
+        return new WP_Error('pieb_permiso', __('Solo quien creó el culto o un administrador puede borrarlo.', 'pieb-cancionero'), array('status' => 403));
     }
     wp_trash_post($post->ID);
     return rest_ensure_response(array('borrado' => true, 'id' => $post->ID));

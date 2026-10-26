@@ -117,15 +117,15 @@ function pieb_can_servir_archivo() {
     $id = (int) $_GET['pcan_archivo'];
 
     if (!is_user_logged_in() || !current_user_can(PIEB_CAN_CAP_ACCESO)) {
-        pieb_can_error_archivo(403, 'Inicia sesión en el cancionero para ver este archivo.');
+        pieb_can_error_archivo(403, __('Inicia sesión en el cancionero para ver este archivo.', 'pieb-cancionero'));
     }
     if (!pieb_can_es_archivo_cancionero($id)) {
-        pieb_can_error_archivo(404, 'Archivo no encontrado.');
+        pieb_can_error_archivo(404, __('Archivo no encontrado.', 'pieb-cancionero'));
     }
     // Los archivos de canciones borradas solo los ve quien gestiona el cancionero.
     $padre = wp_get_post_parent_id($id);
     if ($padre && get_post_status($padre) === 'trash' && !current_user_can(PIEB_CAN_CAP_GESTIONAR)) {
-        pieb_can_error_archivo(404, 'Archivo no encontrado.');
+        pieb_can_error_archivo(404, __('Archivo no encontrado.', 'pieb-cancionero'));
     }
 
     $base = realpath(wp_upload_dir()['basedir']);
@@ -143,7 +143,7 @@ function pieb_can_servir_archivo() {
 
     $real = $ruta ? realpath($ruta) : false;
     if (!$real || !$base || strpos($real, $base) !== 0 || !is_file($real)) {
-        pieb_can_error_archivo(404, 'Archivo no encontrado.');
+        pieb_can_error_archivo(404, __('Archivo no encontrado.', 'pieb-cancionero'));
     }
 
     $editable = (bool) get_post_meta($id, '_pieb_editable', true);
@@ -325,13 +325,13 @@ function pieb_can_mover_a_privada($id, $privada) {
     $rel = (string) get_post_meta($id, '_wp_attached_file', true);
     $origen = $base . $rel;
     if ($rel === '' || !is_file($origen)) {
-        return 'El archivo no está en el servidor.';
+        return __('El archivo no está en el servidor.', 'pieb-cancionero');
     }
 
     $nombre = wp_unique_filename($privada, wp_basename($origen));
     if (!@rename($origen, $privada . '/' . $nombre)) {
         if (!@copy($origen, $privada . '/' . $nombre)) {
-            return 'No se pudo mover (permisos del servidor).';
+            return __('No se pudo mover (permisos del servidor).', 'pieb-cancionero');
         }
         @unlink($origen);
     }
