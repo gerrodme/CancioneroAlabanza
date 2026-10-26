@@ -1003,17 +1003,22 @@
     return true;
   }
 
+  /** Quita el punto de las abreviaturas («lun.», «sept.») sin tocar otros signos del idioma. */
+  function sinPunto(texto) {
+    return String(texto).replace(/\.(?=\s|$)/g, '');
+  }
+
   function fechaCorta(iso) {
     var p = String(iso || '').slice(0, 10).split('-');
     if (p.length < 3) { return ''; }
-    return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString(LOCALE, { day: 'numeric', month: 'short' }).replace('.', '');
+    return sinPunto(new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString(LOCALE, { day: 'numeric', month: 'short' }));
   }
 
   /** Fecha con año (26 oct 2026), en el idioma del usuario. */
   function fechaCompleta(iso) {
     var p = String(iso || '').slice(0, 10).split('-');
     if (p.length < 3) { return ''; }
-    return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString(LOCALE, { day: 'numeric', month: 'short', year: 'numeric' }).replace('.', '');
+    return sinPunto(new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString(LOCALE, { day: 'numeric', month: 'short', year: 'numeric' }));
   }
 
   /** Resumen de la biblioteca: cada cifra es también un filtro. */
@@ -2915,6 +2920,7 @@
     _x: _x,
     _nx: _nx,
     sprintf: sprintf,
+    sinPunto: sinPunto,
     conNodo: conNodo,
     pastillaTono: pastillaTono,
     ruta: function (re, fn) { rutasExtra.push({ re: re, fn: fn }); },

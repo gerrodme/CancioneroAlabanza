@@ -6,7 +6,7 @@
   if (!P) { return; }
   var h = P.h, append = P.append, icono = P.icono, api = P.api, aviso = P.aviso;
   // Atajos de traducción compartidos por cancionero.js y el idioma del usuario para fechas.
-  var __ = P.__, _n = P._n, _x = P._x, sprintf = P.sprintf, conNodo = P.conNodo;
+  var __ = P.__, _n = P._n, _x = P._x, sprintf = P.sprintf, conNodo = P.conNodo, sinPunto = P.sinPunto;
   var LOCALE = P.locale || 'es-ES';
 
   // Sugerencias de tipo de culto (el campo es libre: lo ya guardado en cada culto no se traduce, son datos del equipo).
@@ -54,11 +54,6 @@
   function fechaLarga(iso) {
     var s = fmt(iso, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     return s.charAt(0).toUpperCase() + s.slice(1);
-  }
-
-  /** Quita el punto de las abreviaturas («lun.», «sept.») sin tocar otros signos del idioma. */
-  function sinPunto(texto) {
-    return String(texto).replace(/\.(?=\s|$)/g, '');
   }
 
   function fechaCorta(iso) {
