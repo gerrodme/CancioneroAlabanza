@@ -1,0 +1,158 @@
+# Architecture
+
+*Versión en español: [arquitectura.md](arquitectura.md)*
+
+A technical summary of the **Cancionero** plugin for anyone new to the code.
+
+## Pieces
+
+| File | Responsibility |
+|---|---|
+| `pieb-cancionero.php` | Plugin header, constants, roles and capabilities, the `[cancionero]` shortcode, loading of scripts and of the `PIEB_CANCIONERO` object that the interface reads. |
+| `includes/canciones.php` | The song content type, reading/writing metadata, file uploads, size limits. |
+| `includes/rest.php` | The `pieb/v1` REST API: list, view, create, update and delete songs; chunked file uploads. |
+| `includes/cultos.php` | Services and setlists (content type and API). |
+| `includes/ajustes.php` | Themes, settings, the team list, per-user preferences (theme, language, notation), backups (export/import). |
+| `includes/google.php` | Sign-in with Google (ID token) and with an email link. |
+| `includes/migracion.php` | Converts the PDFs of the previous plugin (`adoracion_culto_*`) into songs. Idempotent. |
+| `assets/cancionero.js` | The main interface (no dependencies or build step): list, song page, form, bulk upload, statistics, settings. |
+| `assets/cultos.js` | Service screens and the setlist editor. |
+| `assets/visor.js` | Viewer / play mode for tablets. |
+| `assets/login.js` | Sign-in screen. |
+| `assets/cancionero.css` | Styles and themes. Everything hangs off `[data-pcan-theme]` and `--pc-*` variables. |
+
+The interface is a single-page application inside the WordPress page; it navigates with `#/…`
+(`#/canciones`, `#/cancion/{id}`, `#/subir`, `#/cultos`, `#/estadisticas`, …).
+
+## Data model
+
+- Content types: `pieb_cancion` (song), `pieb_culto` (service). Tag taxonomy: `pieb_etiqueta`.
+- Roles: `equipo_adoracion` ("Worship team": capability `pieb_cancionero_acceso`, view, upload and edit songs) and
+  `administrador_cancionero` ("Songbook administrator": access + `pieb_cancionero_gestionar`, that is, settings, team and
+  deleting any song). WordPress administrators and editors have both capabilities; backups, restoring and settings
+  require `pieb_cancionero_gestionar`. The "team" and "administrators" email lists are in the settings: when someone
+  signs in (Google or link) or when the settings are saved, the administrator role is granted or removed according to
+  that list (`pieb_can_sincronizar_administrador`).
+- **Internal prefix `pieb`:** the internal keys (types `pieb_cancion`, metadata `_pieb_*`, REST route `pieb/v1`,
+  functions `pieb_can_*`) keep the historical prefix so as not to break the data of existing installations. It is only a
+  technical identifier; the visible product name is "Cancionero".
+- **Song** metadata (in `post_meta`):
+
+  | Key | Content |
+  |---|---|
+  | `_pieb_numero` | Hymnal number (text). |
+  | `_pieb_autor` | Author / composer. |
+  | `_pieb_tonalidad` | Key in Spanish (Latin) notation: `Do`, `Fa#`, `Sib`, `Mim`… |
+  | `_pieb_tempo` | Integer, beats per minute. |
+  | `_pieb_letra`, `_pieb_notas` | Plain text (lyrics, notes). |
+  | `_pieb_partituras` | List of `{id (attachment), label}`; at least 1. PDF, JPG or PNG, max. 4 MB. |
+  | `_pieb_youtube` | List of `{url, label}`; only valid YouTube links are accepted. |
+  | `_pieb_audios` | List of `{id, nombre, descripcion}`. MP3/M4A/OGG/WAV/AAC, max. 10 MB. |
+  | `_pieb_editables` | List of `{id, descripcion}`: MuseScore, MusicXML… max. 10 MB. |
+
+- **Service** metadata: `_pieb_fecha`, `_pieb_tipo`, `_pieb_notas`, `_pieb_items` (ordered list of
+  `{cancion, tonalidad, nota, partitura}`; `partitura` is the ID of the attachment chosen for that service, 0 = the main
+  one (the first of the song). When the service is served, the chosen one is placed first in `datos.partituras`, which is
+  the one used by play mode and the PDF).
+- WordPress options: `pieb_can_ajustes` (settings: `nombre`, `tema_defecto`, `google_client_id`, `emails`,
+  `administradores`, `dominio`), `pieb_can_version`, `pieb_can_migrado`.
+
+## REST API (`/wp-json/pieb/v1/`)
+
+All routes require a signed-in session with the `pieb_cancionero_acceso` capability and the `X-WP-Nonce` header (the
+interface receives it in `PIEB_CANCIONERO.nonce`; the API base is in `PIEB_CANCIONERO.api`).
+
+| Route | Methods | Notes |
+|---|---|---|
+| `/canciones` | GET, POST | GET returns a **summary** of all songs (`id, titulo, numero, autor, tonalidad, tempo, etiquetas, letra, miniatura, creada, modificada` and the **counts** `partituras`, `youtube` and `audios`). POST creates. |
+| `/canciones/{id}` | GET, POST, DELETE | GET returns the full record (scores with `archivo`/`url`, audio, `youtube` with `videoId`, notes…). POST **updates by replacing everything** (see below). DELETE sends it to the trash. |
+| `/subidas` | POST | **Chunked** file upload (a 10 MB audio fits even if PHP limits requests to 2 MB). |
+| `/cultos`, `/cultos/{id}` | GET, POST, DELETE | Services and setlists. |
+| `/etiquetas`, `/preferencias`, `/ajustes`, `/huerfanos` | various | Tags with color, user preferences (`tema`, `idioma` and `notacion`, all optional; empty = automatic), settings, unused files. |
+| `/google`, `/enlace`, `/correo-prueba` | POST | Google sign-in, email link and a test email. |
+
+### Updating a song (`POST /canciones/{id}`)
+
+A `multipart/form-data` body with all of these fields (missing ones are **emptied**):
+
+`titulo, numero, autor, tonalidad, tempo, etiquetas` (comma-separated), `letra, notas`,
+`youtube` (JSON `[{url,label}]`), `partituras` (JSON `[{id,label}]` of the ones that are kept),
+`nuevasSubidas` (JSON, files already uploaded in chunks), `audios`, `audiosSubidos`, `editables`,
+`editablesSubidos`. A song needs **at least one score**.
+
+To change a single value: `GET` the record, rebuild all the fields from it and modify only the one you want. Recipe in
+[carga-masiva.en.md](carga-masiva.en.md).
+
+## Trash
+
+`includes/papelera.php`. Deleting a song (`DELETE /canciones/{id}`) sends it to the WordPress trash (`wp_trash_post`) and
+records who deleted it (`_pieb_borrada_por`). Songbook administrators manage it at `#/papelera`: `GET /papelera` (list
+with date, who deleted it and days left), `POST /papelera/{id}/restaurar` (back to published), `DELETE /papelera/{id}`
+(delete for good) and `POST /papelera/vaciar`. `GET /canciones/{id}` also returns deleted songs to those who manage (with
+`enPapelera` and `papelera`), and their files are only served to those users.
+
+Cleanup: the `papelera_dias` setting (30 by default; 0 = never) overrides WordPress's cleanup (filter `pre_delete_post`
+during `wp_scheduled_delete`), and there is a daily task of its own (`pieb_can_limpiar_papelera`). When a song is deleted
+for good, by any route, `before_delete_post` also deletes its scores, audio and editable files.
+
+## Private files
+
+`includes/archivos.php`. Everything the plugin uploads goes, through the `upload_dir` filter, to
+`uploads/cancionero-privado/` (with `.htaccess` and `index.php`). It is served at
+`/?pcan_archivo=ID[&t=thumbnail|medium|large][&descargar=1]` (`pieb_can_servir_archivo`, on `init`): it requires a
+session and the `pieb_cancionero_acceso` capability, checks that the attachment belongs to the songbook
+(`_pieb_partitura`, `_pieb_audio`, `_pieb_editable` or a child of a song), supports partial requests (`Range`) and
+replies with `Cache-Control: private`. Editable files are always delivered as a download. The REST API is not used
+because `<img>`, `<audio>` and `<iframe>` cannot send the nonce.
+
+The addresses the interface sees (`url`, `miniatura`) are generated by `pieb_can_url_archivo()` /
+`pieb_can_url_miniatura()`; **do not use `wp_get_attachment_url()`** for songbook files. Files from before 1.5.0 are moved
+with `POST /archivos/proteger` (batches of 50; `GET /archivos/estado` reports what is pending and whether the server
+hands out the folder without a session: `protegido`, `expuesto` or `desconocido`). Both routes require
+`pieb_cancionero_gestionar`.
+
+## Bulk upload
+
+`#/subir`: the user drags files; the title, hymnal number and key are worked out from the name (`datosDesdeArchivo` in
+`cancionero.js`). Some patterns: `051 - Cristo coronad.pdf` → 51 · Cristo coronad; `Todas las promesas 13 A.pdf` → 13 ·
+Todas las promesas · La; `Cuán grande es Él - Sib.pdf` → key Sib. The key is accepted in American notation (`F#m`, `Bb`)
+or Spanish and is stored in Spanish. Each file is uploaded in chunks and creates a song (`youtube` empty). A button
+removes the ones that already exist from the list.
+
+## Translations
+
+Text domain `pieb-cancionero`, files in `pieb-cancionero/languages/` (the `Domain Path` header). The **base language is
+Spanish**: the texts in the code are in Spanish, and without a translation file the interface shows Spanish whatever the
+WordPress language is. Each language adds a `.po` (what the translator edits), its `.mo` (PHP) and one `.json` per
+JavaScript file. How to translate: [translate.en.md](translate.en.md).
+
+- **Each user's language** (`includes/ajustes.php`): the user meta `pieb_idioma` ('' = the site's) is chosen in the
+  account menu and saved with `POST /preferencias` (`idioma`). The languages offered are Spanish plus every
+  `languages/pieb-cancionero-<locale>.mo` (`pieb_can_idiomas_disponibles`). `pieb_can_idioma()` works out the effective
+  locale with a fallback by language: if there is no file for `en_GB`, `en_US` is used; if there is none of that
+  language, base Spanish. It only affects the `pieb-cancionero` domain, through the filters `plugin_locale` (for the
+  `.mo`, also on REST requests, so API errors come out in the user's language) and `load_script_translation_file`
+  (changes the locale in the name of the JSON that WordPress looks for). The sign-in link email is sent in the site's
+  language (`pieb_can_en_idioma_del_sitio`). Only `.mo` files inside the plugin's own `languages/` folder are seen.
+- **JavaScript:** `wp-i18n` with `wp_set_script_translations()` for `cancionero`, `cultos` and `visor` (and `login`).
+  Each JSON is named `pieb-cancionero-<locale>-<md5 of "assets/file.js">.json`, in Jed format. The `PIEB_CANCIONERO`
+  configuration carries `idioma` (BCP 47, for `Intl`: dates and numbers), `idiomas`, `notacion` and
+  `idiomaElegido`/`notacionElegida`.
+- **Key notation:** what is stored never changes (`Sol`, `Mib`, `La m`). The user meta `pieb_notacion` ('' = automatic,
+  `latina` or `americana`; `POST /preferencias`, `notacion`) decides how keys are shown: automatically, Do-Re-Mi for
+  Spanish and C-D-E for every other language. In JavaScript, `tonoVer()` (exposed to the other files as `P.tono()`)
+  converts when displaying and `tonoGuardar()` when saving; use them every time a key is shown or edited.
+- **Conventions for developers:** every visible text goes in `__()`, `_n()`, `_x()`, `esc_html__()`… with the domain
+  `'pieb-cancionero'`, written in Spanish. Never concatenate sentences: use placeholders (`sprintf(__('%1$s de %2$s',
+  …), …)`, numbered when there is more than one) and `_n()` for plurals. A `/* translators: … */` comment right before the
+  call explains each placeholder or the ambiguity (it goes into the `.pot`). In JS, `__`, `_n`, `_x` and `_nx` are
+  shortcuts defined in `cancionero.js` (the other files use them as `P.__`…) that already carry the domain, so it is
+  omitted. Only string literals are extracted. Afterwards: `python herramientas/i18n.py extraer` and `compilar`. Team data
+  (titles, tags, service types already saved) is not translated; the predefined suggestions and role names are.
+
+## Themes
+
+CSS `--pc-*` variables per theme: `colores` (default, "Colors"), `pentagrama` ("Staff"), `sitio` ("Like the site",
+follows the WordPress theme), `pulso` ("Pulse"), `claro` ("Studio"), `escenario` ("Stage"), `papel` ("Score"). The theme
+is set in `data-pcan-theme` and the extra style in `data-pcan-estilo`. The test bench accepts `?tema=`, `?idioma=` and
+`?notacion=`.

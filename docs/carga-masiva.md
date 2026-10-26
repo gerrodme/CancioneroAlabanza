@@ -1,5 +1,7 @@
 # Carga masiva y enriquecimiento de datos
 
+*English version: [carga-masiva.en.md](carga-masiva.en.md)*
+
 Cómo se cargó y completó el cancionero a partir de carpetas de archivos, para poder repetirlo o continuarlo. No
 requiere cambiar el plugin: se hace con la propia API REST desde un navegador con la sesión iniciada.
 

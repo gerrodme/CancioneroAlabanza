@@ -2,6 +2,10 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.9.1 · 2026-10-26
+
+Documentación en inglés y guía para traducir el Cancionero a otros idiomas
+
 ## 1.9.0 · 2026-10-26
 
 Cancionero en inglés: cada usuario elige su idioma en el menú; en inglés las tonalidades salen por defecto en notación americana

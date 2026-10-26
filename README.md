@@ -1,11 +1,13 @@
 # Cancionero
 
+*English version: [README.en.md](README.en.md)*
+
 Plugin de WordPress para gestionar el **cancionero de un equipo de adoración**: canciones con partitura (PDF o imagen),
 letra, audios, partituras editables, tempo, tonalidad y enlaces de YouTube; **cultos con su setlist**; un **modo culto**
 para tocar desde la tableta; estadísticas; copias de seguridad; y acceso del equipo con Google o con enlace por correo.
 
 Es software libre pensado para que cualquier iglesia o grupo musical gestione sus propias partituras. El plugin es solo
-la herramienta: **no incluye ninguna canción ni partitura**; cada instalación aporta las suyas. La interfaz está en **español**.
+la herramienta: **no incluye ninguna canción ni partitura**; cada instalación aporta las suyas. La interfaz está en español e inglés, y se puede traducir a otros idiomas.
 
 ![Lista de canciones de Cancionero, con filtros por etiqueta, tonalidad y recursos](docs/imagenes/lista-canciones.png)
 
@@ -27,6 +29,9 @@ la herramienta: **no incluye ninguna canción ni partitura**; cada instalación 
   **Ajustes y equipo**. Pueden cambiar los ajustes, gestionar el equipo y borrar canciones (a la papelera de WordPress).
 - **Nombre propio:** el nombre del cancionero («Cancionero de la iglesia», etc.) se cambia en **Ajustes y equipo → General**.
 - **Temas visuales:** Colores (por defecto), Pentagrama, Como la web, Pulso, Estudio, Escenario y Partitura.
+- **Idiomas:** español e inglés. Cada persona elige su idioma y la notación de las tonalidades (Do-Re-Mi o C-D-E) en el
+  menú de su cuenta; por defecto se usa el idioma de WordPress. Se pueden añadir más idiomas (ver
+  [docs/traducir.md](docs/traducir.md)).
 - **Copias de seguridad:** exportar e importar todo el contenido desde el menú de la cuenta (administradores del cancionero y de WordPress).
 
 Se muestra en cualquier página con el shortcode `[cancionero]`.
@@ -93,8 +98,9 @@ de WordPress, solo a quien ha iniciado sesión y tiene acceso al cancionero.
 | `pieb-cancionero/` | El plugin (la carpeta se llama como el plugin en WordPress). |
 | `banco-pruebas/` | Página local con datos simulados para probar la interfaz sin WordPress. |
 | `tutorial/` | Tutorial animado con locución (HTML autocontenido). El vídeo MP4 no se versiona. |
-| `docs/` | Guías: [arquitectura](docs/arquitectura.md), [carga masiva y enriquecimiento de datos](docs/carga-masiva.md), [recuperar el cancionero](docs/guia-recuperar-cancionero.html). |
-| `herramientas/` | Empaquetar el plugin y regenerar la locución y el vídeo del tutorial. |
+| `docs/` | Guías: [arquitectura](docs/arquitectura.md), [carga masiva y enriquecimiento de datos](docs/carga-masiva.md), [recuperar el cancionero](docs/guia-recuperar-cancionero.html), [traducir el cancionero](docs/traducir.md). Cada guía tiene versión en inglés (`.en`). |
+| `pieb-cancionero/languages/` | Traducciones: plantilla `.pot` y, por idioma, `.po`, `.mo` y `.json`. Ver [cómo traducir](docs/traducir.md). |
+| `herramientas/` | Empaquetar el plugin, gestionar las traducciones (`i18n.py`) y regenerar la locución y el vídeo del tutorial. |
 | `CLAUDE.md` | Contexto del proyecto para retomar el trabajo (también útil para cualquier persona nueva). |
 | `CHANGELOG.md` | Historial de versiones. |
 | `dist/` | El `.zip` generado (no se versiona). |
@@ -107,8 +113,14 @@ de WordPress, solo a quien ha iniciado sesión y tiene acceso al cancionero.
 - **Regenerar las capturas** de `docs/imagenes/` (y la imagen para compartir el repositorio): `python herramientas/capturas.py`
   (necesita `pip install playwright pillow` y Microsoft Edge). Usa solo el banco de pruebas, nunca datos ni partituras reales.
 - **Probar la interfaz sin WordPress:** `python -m http.server 8765 --bind 127.0.0.1` en la raíz del repositorio y abre
-  `http://127.0.0.1:8765/banco-pruebas/index.html`. Admite `?tema=colores|pentagrama|sitio|pulso|claro|escenario|papel`.
+  `http://127.0.0.1:8765/banco-pruebas/index.html`. Admite `?tema=colores|pentagrama|sitio|pulso|claro|escenario|papel`,
+  `?idioma=en_US` (o cualquier idioma con traducción compilada) y `?notacion=americana|latina`.
   Las subidas de archivos y todo lo que dependa de PHP solo se prueban en un WordPress real.
+- **Traducciones:** los textos del código están en español y se traducen con gettext (dominio `pieb-cancionero`).
+  `python herramientas/i18n.py extraer` actualiza la plantilla y los `.po` con los textos nuevos, `compilar` genera los
+  `.mo`, los `.json` de JavaScript y los diccionarios del banco de pruebas, y `estado` muestra qué porcentaje está
+  traducido (necesita `pip install -r herramientas/requirements.txt`). `empaquetar.py` ya ejecuta `compilar`. Para
+  añadir un idioma: [docs/traducir.md](docs/traducir.md).
 - **PHP:** no hay entorno PHP local en el equipo de desarrollo original: el código PHP se revisa a mano y se prueba en
   WordPress. Si tienes PHP, `php -l` sobre cada archivo es un buen primer filtro.
 - Más detalle (modelo de datos, API REST, convenciones): [docs/arquitectura.md](docs/arquitectura.md) y
@@ -145,4 +157,4 @@ y solo los textos y el tutorial con Creative Commons.
 
 ## Contribuir
 
-Ver [CONTRIBUTING.md](CONTRIBUTING.md). Las ideas, errores y mejoras son bienvenidos en *Issues* y *Pull requests*.
+Ver [CONTRIBUTING.md](CONTRIBUTING.md). Para traducir el cancionero a otro idioma, [docs/traducir.md](docs/traducir.md). Las ideas, errores y mejoras son bienvenidos en *Issues* y *Pull requests*.

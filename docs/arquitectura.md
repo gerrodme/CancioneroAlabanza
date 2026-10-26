@@ -1,5 +1,7 @@
 # Arquitectura
 
+*English version: [arquitectura.en.md](arquitectura.en.md)*
+
 Resumen técnico del plugin **Cancionero** para quien llegue nuevo al código.
 
 ## Piezas
@@ -65,7 +67,7 @@ Todas las rutas exigen sesión iniciada con la capacidad `pieb_cancionero_acceso
 | `/canciones/{id}` | GET, POST, DELETE | GET devuelve la ficha completa (partituras con `archivo`/`url`, audios, `youtube` con `videoId`, notas…). POST **actualiza reemplazando todo** (ver abajo). DELETE manda a la papelera. |
 | `/subidas` | POST | Subida de archivos **por trozos** (un audio de 10 MB cabe aunque PHP limite a 2 MB por petición). |
 | `/cultos`, `/cultos/{id}` | GET, POST, DELETE | Cultos y setlists. |
-| `/etiquetas`, `/preferencias`, `/ajustes`, `/huerfanos` | varios | Etiquetas con color, preferencias del usuario, ajustes, archivos sin usar. |
+| `/etiquetas`, `/preferencias`, `/ajustes`, `/huerfanos` | varios | Etiquetas con color, preferencias del usuario (`tema`, `idioma` y `notacion`, todos opcionales; vacío = automático), ajustes, archivos sin usar. |
 | `/google`, `/enlace`, `/correo-prueba` | POST | Acceso con Google, enlace por correo y prueba de envío. |
 
 ### Actualizar una canción (`POST /canciones/{id}`)
@@ -115,8 +117,38 @@ la carpeta sin sesión: `protegido`, `expuesto` o `desconocido`). Ambas rutas re
 tonalidad se acepta en notación americana (`F#m`, `Bb`) o española y se guarda en española. Cada archivo se sube por
 trozos y crea una canción (`youtube` vacío). Un botón quita de la lista las que ya existen.
 
+## Traducciones
+
+Dominio de texto `pieb-cancionero`, archivos en `pieb-cancionero/languages/` (cabecera `Domain Path`). El **idioma base es
+el español**: los textos del código están en español y sin archivo de traducción se ve en español, sea cual sea el
+idioma de WordPress. Cada idioma añade un `.po` (lo que edita el traductor), su `.mo` (PHP) y un `.json` por archivo
+JavaScript. Cómo traducir: [traducir.md](traducir.md).
+
+- **Idioma de cada usuario** (`includes/ajustes.php`): la meta de usuario `pieb_idioma` ('' = el del sitio) se elige
+  en el menú de la cuenta y se guarda con `POST /preferencias` (`idioma`). Los idiomas ofrecidos son el español más cada
+  `languages/pieb-cancionero-<locale>.mo` (`pieb_can_idiomas_disponibles`). `pieb_can_idioma()` calcula el locale
+  efectivo con respaldo por idioma: si no hay archivo para `en_GB` se usa `en_US`; si no hay ninguno de esa lengua, el
+  español base. Solo afecta al dominio `pieb-cancionero`, mediante los filtros `plugin_locale` (para el `.mo`, también en
+  las peticiones REST, así que los errores de la API salen en el idioma del usuario) y `load_script_translation_file`
+  (cambia el locale del nombre del JSON que WordPress busca). El correo con el enlace de acceso se envía en el idioma del
+  sitio (`pieb_can_en_idioma_del_sitio`). Solo se ven los `.mo` que están dentro de la carpeta `languages/` del plugin.
+- **JavaScript:** `wp-i18n` con `wp_set_script_translations()` para `cancionero`, `cultos`, `visor` y `login`. Cada JSON
+  se llama `pieb-cancionero-<locale>-<md5 de "assets/archivo.js">.json`, formato Jed. La configuración `PIEB_CANCIONERO`
+  lleva `idioma` (BCP 47, para `Intl`: fechas y números), `idiomas`, `notacion` y `idiomaElegido`/`notacionElegida`.
+- **Notación de las tonalidades:** lo guardado no cambia nunca (`Sol`, `Mib`, `La m`). La meta `pieb_notacion` ('' =
+  automática, `latina` o `americana`; `POST /preferencias`, `notacion`) decide cómo se muestran: en automático, Do-Re-Mi
+  para el español y C-D-E para el resto. En JavaScript, `tonoVer()` (expuesta a los demás archivos como `P.tono()`)
+  convierte al mostrar y `tonoGuardar()` al guardar; hay que usarlas siempre que se muestre o se edite una tonalidad.
+- **Convenciones para quien programe:** todo texto visible va en `__()`, `_n()`, `_x()`, `esc_html__()`… con el dominio
+  `'pieb-cancionero'` y en español. Nada de concatenar frases: usar marcadores (`sprintf(__('%1$s de %2$s', …), …)`,
+  numerados si hay más de uno) y `_n()` para los plurales. Un comentario `/* translators: … */` justo antes de la llamada
+  explica cada marcador o la ambigüedad (pasa al `.pot`). En JS, `__`, `_n`, `_x` y `_nx` son atajos de `cancionero.js`
+  (los demás archivos los usan como `P.__`…) que ya llevan el dominio, así que se omite. Solo se extraen literales
+  entre comillas. Después: `python herramientas/i18n.py extraer` y `compilar`. Los datos del equipo (títulos, etiquetas,
+  tipos de culto ya guardados) no se traducen; las sugerencias predefinidas y los nombres de los roles sí.
+
 ## Temas
 
 Variables CSS `--pc-*` por tema: `colores` (por defecto), `pentagrama`, `sitio` (sigue el tema de WordPress), `pulso`,
 `claro` (Estudio), `escenario`, `papel` (Partitura). El tema se fija en `data-pcan-theme` y el estilo extra en
-`data-pcan-estilo`. El banco de pruebas acepta `?tema=`.
+`data-pcan-estilo`. El banco de pruebas acepta `?tema=`, `?idioma=` y `?notacion=`.

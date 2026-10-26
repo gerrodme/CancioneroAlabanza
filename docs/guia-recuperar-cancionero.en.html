@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recover the Songbook</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: a single column of numbered steps; each step says which site it happens on, the exact path and how to tell it worked. */
+:root {
+  --bg: #eef0f5;
+  --card: #ffffff;
+  --ink: #16203a;
+  --muted: #5b6480;
+  --line: #dfe3ec;
+  --navy: #192e59;
+  --sky: #6f9abf;
+  --old: #8a5a12;
+  --old-bg: #fbf1df;
+  --new: #1d6b4a;
+  --new-bg: #e2f3ea;
+  --code-bg: #f3f5f9;
+  --font-display: "Bricolage Grotesque", "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Figtree", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1322; --card: #172036; --ink: #e9edf6; --muted: #a2abc4; --line: #2b3652; --navy: #9cbbe0; --sky: #6f9abf;
+    --old: #f0c27a; --old-bg: #3a2c14; --new: #8fdcb6; --new-bg: #163628; --code-bg: #1e2942; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1322; --card: #172036; --ink: #e9edf6; --muted: #a2abc4; --line: #2b3652; --navy: #9cbbe0; --sky: #6f9abf;
+  --old: #f0c27a; --old-bg: #3a2c14; --new: #8fdcb6; --new-bg: #163628; --code-bg: #1e2942; color-scheme: dark;
+}
+
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.55; }
+.pagina { max-width: 860px; margin: 0 auto; padding-block: 32px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 28px; }
+
+/* header */
+.cab { display: grid; gap: 14px; }
+.kicker { margin: 0; color: var(--sky); font-size: 13px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+h1 { margin: 0; font-family: var(--font-display); font-size: clamp(34px, 6vw, 56px); font-weight: 800; line-height: 1; letter-spacing: -0.035em; text-wrap: balance; }
+.cab p { margin: 0; max-width: 60ch; color: var(--muted); font-size: 17px; }
+
+/* journey: old site → backup → new site */
+.viaje { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; gap: 10px; padding: 18px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); }
+.parada { display: grid; justify-items: center; gap: 6px; text-align: center; font-size: 14px; font-weight: 700; min-width: 0; }
+.parada small { color: var(--muted); font-weight: 500; font-size: 12.5px; }
+.parada .ico { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 12px; }
+.parada .ico svg { width: 24px; height: 24px; fill: currentColor; }
+.ico.old { background: var(--old-bg); color: var(--old); }
+.ico.zip { background: var(--code-bg); color: var(--navy); }
+.ico.new { background: var(--new-bg); color: var(--new); }
+.flecha { color: var(--muted); font-size: 22px; }
+@media (max-width: 520px) {
+  .viaje { grid-template-columns: 1fr; }
+  .flecha { justify-self: center; transform: rotate(90deg); }
+}
+
+/* progress */
+.progreso { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--muted); font-weight: 600; }
+.progreso .barra { flex: 1; height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.progreso .barra i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--new); transition: width .3s; }
+
+/* steps */
+.pasos { display: grid; gap: 16px; margin: 0; padding: 0; list-style: none; }
+.paso { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 16px; padding: 20px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); transition: opacity .2s, border-color .2s; }
+.paso.hecho { opacity: .62; border-color: var(--new); }
+.num { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 14px; background: var(--navy); color: var(--card); font-family: var(--font-display); font-size: 28px; font-weight: 800; }
+.paso.hecho .num { background: var(--new); }
+.cuerpo { display: grid; gap: 10px; min-width: 0; }
+.fila { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; justify-content: space-between; }
+h2 { margin: 0; font-size: 21px; font-weight: 800; letter-spacing: -0.02em; text-wrap: balance; }
+.donde { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 800; letter-spacing: .02em; }
+.donde.old { background: var(--old-bg); color: var(--old); }
+.donde.new { background: var(--new-bg); color: var(--new); }
+.ruta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 0; padding: 0; list-style: none; font-size: 14px; }
+.ruta li { padding: 3px 9px; border-radius: 6px; background: var(--code-bg); font-weight: 600; }
+.ruta li + li::before { content: "›"; margin: 0 6px 0 -2px; color: var(--muted); font-weight: 400; }
+.cuerpo p { margin: 0; max-width: 62ch; }
+.cuerpo ul.puntos { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.ok { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; background: var(--new-bg); color: var(--new); font-size: 14.5px; font-weight: 600; }
+.ok svg { width: 18px; height: 18px; flex: 0 0 auto; margin-top: 2px; fill: currentColor; }
+.nota { color: var(--muted); font-size: 14px; }
+
+/* copyable code */
+.copiar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+code { padding: 3px 8px; border-radius: 6px; background: var(--code-bg); font-family: var(--font-mono); font-size: 14.5px; overflow-wrap: anywhere; }
+.btn { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink); font: 700 13px var(--font-body); cursor: pointer; }
+.btn:hover { border-color: var(--navy); }
+.btn:focus-visible, .marca input:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+
+/* email settings */
+.datos { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; margin: 0; padding: 12px 14px; border-radius: 10px; background: var(--code-bg); font-size: 14.5px; }
+.datos dt { color: var(--muted); font-weight: 600; }
+.datos dd { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
+
+/* done checkbox */
+.marca { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--muted); cursor: pointer; user-select: none; }
+.marca input { width: 20px; height: 20px; margin: 0; accent-color: var(--new); }
+
+/* ending */
+.fin { padding: 22px; border-radius: 16px; background: var(--navy); color: var(--card); display: grid; gap: 8px; }
+.fin h2 { color: var(--card); }
+.fin p { margin: 0; max-width: 62ch; opacity: .9; }
+
+@media (max-width: 520px) {
+  .paso { grid-template-columns: 1fr; padding: 16px; }
+  .num { width: 44px; height: 44px; font-size: 22px; border-radius: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<main class="pagina">
+  <header class="cab">
+    <p class="kicker">Your church · Worship and services</p>
+    <h1>Recover the Songbook on a new WordPress</h1>
+    <p>Seven steps to move songs, scores, audio, services and team to a new site. You do not need the rest of the WordPress site.</p>
+    <p class="nota"><a href="guia-recuperar-cancionero.html" hreflang="es">Versión en español</a></p>
+  </header>
+
+  <section class="viaje" aria-label="The journey">
+    <div class="parada"><span class="ico old"><svg viewBox="0 0 24 24"><path d="M3 4h18v13H3V4zm2 2v9h14V6H5zm3 13h8v2H8v-2z"/></svg></span>Current site<small>your site</small></div>
+    <span class="flecha" aria-hidden="true">→</span>
+    <div class="parada"><span class="ico zip"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6V2zm8 1.5V8h4.5L14 3.5zM10 4v2h2V4h-2zm0 3v2h2V7h-2zm0 3v2h2v-2h-2zm-1 4v4h4v-4H9z"/></svg></span>.zip backup<small>on your computer</small></div>
+    <span class="flecha" aria-hidden="true">→</span>
+    <div class="parada"><span class="ico new"><svg viewBox="0 0 24 24"><path d="M3 4h18v13H3V4zm2 2v9h14V6H5zm3 13h8v2H8v-2zm3-11h2v2h2v2h-2v2h-2v-2H9v-2h2V8z"/></svg></span>New WordPress<small>freshly installed</small></div>
+  </section>
+
+  <div class="progreso" aria-live="polite"><span id="contador">0 of 7 done</span><span class="barra"><i id="barra"></i></span></div>
+
+  <ol class="pasos">
+    <li class="paso" data-paso="1">
+      <span class="num" aria-hidden="true">1</span>
+      <div class="cuerpo">
+        <div class="fila"><h2>Download a backup</h2><span class="donde old">Current site</span></div>
+        <ul class="ruta"><li>Songbook</li><li>Your account menu</li><li>Backups</li><li>Download backup</li></ul>
+        <p>Leave all four options checked: songs, scores and audio, services, and settings.</p>
+        <div class="ok"><svg viewBox="0 0 24 24"><path d="M9.5 16.2 5.3 12l-1.4 1.4 5.6 5.6L20.1 8.4 18.7 7z"/></svg>It downloads <strong>cancionero-copia-YYYY-MM-DD.zip</strong> (about 13 MB).</div>
+        <label class="marca"><input type="checkbox" id="p1"> Done</label>
+      </div>
+    </li>
+
+    <li class="paso" data-paso="2">
+      <span class="num" aria-hidden="true">2</span>
+      <div class="cuerpo">
+        <div class="fila"><h2>Install the plugin</h2><span class="donde new">New WordPress</span></div>
+        <ul class="ruta"><li>Plugins</li><li>Add New</li><li>Upload Plugin</li></ul>
+        <p>Choose the plugin file, click <strong>Install Now</strong> and then <strong>Activate</strong>.</p>
+        <div class="copiar"><code id="c-zip">dist\pieb-cancionero-&lt;version&gt;.zip</code><button class="btn" type="button" data-copia="c-zip">Copy path</button></div>
+        <div class="ok"><svg viewBox="0 0 24 24"><path d="M9.5 16.2 5.3 12l-1.4 1.4 5.6 5.6L20.1 8.4 18.7 7z"/></svg>In the plugin list, <strong>Cancionero</strong> appears as active, with the latest version.</div>
+        <label class="marca"><input type="checkbox" id="p2"> Done</label>
+      </div>
+    </li>
+
+    <li class="paso" data-paso="3">
+      <span class="num" aria-hidden="true">3</span>
+      <div class="cuerpo">
+        <div class="fila"><h2>Turn on permalinks</h2><span class="donde new">WordPress nuevo</span></div>
+        <ul class="ruta"><li>Settings</li><li>Permalinks</li></ul>
+        <p>Choose <strong>Post name</strong> and click <strong>Save Changes</strong>. This keeps the addresses clean.</p>
+        <label class="marca"><input type="checkbox" id="p3"> Done</label>
+      </div>
+    </li>
+
+    <li class="paso" data-paso="4">
+      <span class="num" aria-hidden="true">4</span>
+      <div class="cuerpo">
+        <div class="fila"><h2>Create the songbook page</h2><span class="donde new">WordPress nuevo</span></div>
+        <ul class="ruta"><li>Pages</li><li>Add New</li></ul>
+        <ul class="puntos">
+          <li>Title: <strong>Songbook</strong></li>
+          <li>Add a <strong>Shortcode</strong> block (its icon is <strong>[/]</strong>) and type inside it:</li>
+        </ul>
+        <div class="copiar"><code id="c-sc">[cancionero]</code><button class="btn" type="button" data-copia="c-sc">Copy</button></div>
+        <p>Click <strong>Publish</strong>.</p>
+        <p class="nota">Do not use the <strong>Code</strong> or <strong>Preformatted</strong> block: they show <code>[cancionero]</code> as text in a gray box. If that happens, delete that block and type <code>[cancionero]</code> in a normal paragraph: that works too.</p>
+        <div class="ok"><svg viewBox="0 0 24 24"><path d="M9.5 16.2 5.3 12l-1.4 1.4 5.6 5.6L20.1 8.4 18.7 7z"/></svg>When you open the page you see the empty songbook, with its menu on the left.</div>
+        <label class="marca"><input type="checkbox" id="p4"> Done</label>
+      </div>
+    </li>
+
+    <li class="paso" data-paso="5">
+      <span class="num" aria-hidden="true">5</span>
+      <div class="cuerpo">
+        <div class="fila"><h2>Restore the backup</h2><span class="donde new">WordPress nuevo</span></div>
+        <ul class="ruta"><li>Songbook page</li><li>Your account menu</li><li>Backups</li><li>Restore from a backup</li></ul>
+        <ul class="puntos">
+          <li>Choose the <strong>.zip</strong> from step 1. Everything shows up as <strong>New</strong>.</li>
+          <li>Click <strong>Restore 48 songs, 3 services, the settings</strong> and confirm.</li>
+          <li>Wait for the log to finish: the scores are uploaded one by one.</li>
+        </ul>
+        <div class="ok"><svg viewBox="0 0 24 24"><path d="M9.5 16.2 5.3 12l-1.4 1.4 5.6 5.6L20.1 8.4 18.7 7z"/></svg>You see “Backup restored”. Click <strong>View the restored songbook</strong> and your songs and services appear.</div>
+        <p class="nota">Do this while signed in as an administrator: only administrators see “Backups”.</p>
+        <label class="marca"><input type="checkbox" id="p5"> Done</label>
+      </div>
+    </li>
+
+    <li class="paso" data-paso="6">
+      <span class="num" aria-hidden="true">6</span>
+      <div class="cuerpo">
+        <div class="fila"><h2>Set up email</h2><span class="donde new">WordPress nuevo</span></div>
+        <p>Without this, the sign-in links do not arrive. Install the <strong>FluentSMTP</strong> plugin and create an <strong>Other SMTP</strong> connection:</p>
+        <dl class="datos">
+          <dt>Server</dt><dd>smtp.gmail.com</dd>
+          <dt>Port</dt><dd>587</dd>
+          <dt>Encryption</dt><dd>TLS</dd>
+          <dt>Username</dt><dd>the group’s Gmail account</dd>
+          <dt>Password</dt><dd>its app password</dd>
+        </dl>
+        <ul class="ruta"><li>Songbook</li><li>Settings and team</li><li>Send me a test email</li></ul>
+        <div class="ok"><svg viewBox="0 0 24 24"><path d="M9.5 16.2 5.3 12l-1.4 1.4 5.6 5.6L20.1 8.4 18.7 7z"/></svg>The test email arrives. The team list already comes in the backup: each person signs in with their link and their account is created automatically.</div>
+        <label class="marca"><input type="checkbox" id="p6"> Done</label>
+      </div>
+    </li>
+
+    <li class="paso" data-paso="7">
+      <span class="num" aria-hidden="true">7</span>
+      <div class="cuerpo">
+        <div class="fila"><h2>Choose the look</h2><span class="donde new">WordPress nuevo</span></div>
+        <ul class="ruta"><li>Settings and team</li><li>Default theme</li></ul>
+        <p>“Like the site” takes its color from the WordPress theme you have installed, so the navy blue from before may not appear. If you do not like it, choose <strong>Pulse</strong> or any other.</p>
+        <label class="marca"><input type="checkbox" id="p7"> Done</label>
+      </div>
+    </li>
+  </ol>
+
+  <section class="fin">
+    <h2>Does something not look like this?</h2>
+    <p>Note which step you were on and what message appeared. The restore log (step 5) says exactly which song or service failed and why.</p>
+  </section>
+</main>
+
+<script>
+(function () {
+  var CLAVE = 'songbook-guide-done';
+  var guardado = {};
+  try { guardado = JSON.parse(localStorage.getItem(CLAVE) || '{}') || {}; } catch (e) { guardado = {}; }
+  var casillas = Array.prototype.slice.call(document.querySelectorAll('.marca input'));
+  function pintar() {
+    var n = 0;
+    casillas.forEach(function (c) {
+      var paso = c.closest('.paso');
+      paso.classList.toggle('hecho', c.checked);
+      if (c.checked) { n++; }
+    });
+    document.getElementById('contador').textContent = n + ' of ' + casillas.length + ' done';
+    document.getElementById('barra').style.width = (n / casillas.length * 100) + '%';
+  }
+  casillas.forEach(function (c) {
+    c.checked = !!guardado[c.id];
+    c.addEventListener('change', function () {
+      guardado[c.id] = c.checked;
+      try { localStorage.setItem(CLAVE, JSON.stringify(guardado)); } catch (e) { /* no storage: it only lasts for this visit */ }
+      pintar();
+    });
+  });
+  pintar();
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-copia]'), function (b) {
+    b.addEventListener('click', function () {
+      var el = document.getElementById(b.getAttribute('data-copia'));
+      var texto = el.textContent, original = b.textContent;
+      var hecho = function () { b.textContent = 'Copied'; setTimeout(function () { b.textContent = original; }, 1500); };
+      var seleccionar = function () { var r = document.createRange(); r.selectNodeContents(el); var s = getSelection(); s.removeAllRanges(); s.addRange(r); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(texto).then(hecho, seleccionar);
+      } else { seleccionar(); }
+    });
+  });
+})();
+</script>
