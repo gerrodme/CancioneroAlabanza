@@ -101,16 +101,25 @@ function pieb_can_lengua($locale) {
     return $partes[0];
 }
 
-/** Locales que tienen traducción propia: uno por cada languages/pieb-cancionero-<locale>.mo. */
+/**
+ * Locales que tienen traducción propia: uno por cada pieb-cancionero-<locale>.mo, ya sea en la carpeta del plugin
+ * (languages/) o en la del sistema (wp-content/languages/plugins/: Loco Translate «System», translate.wordpress.org).
+ */
 function pieb_can_locales_con_traduccion() {
     static $locales = null;
     if ($locales === null) {
         $locales = array();
-        $archivos = glob(PIEB_CAN_DIR . 'languages/pieb-cancionero-*.mo');
-        foreach ((array) $archivos as $archivo) {
-            $locale = substr(basename($archivo, '.mo'), strlen('pieb-cancionero-'));
-            if ($locale !== '' && preg_match('/^[A-Za-z0-9_@-]+$/', $locale)) {
-                $locales[] = $locale;
+        $carpetas = array(PIEB_CAN_DIR . 'languages');
+        if (defined('WP_LANG_DIR')) {
+            $carpetas[] = rtrim(WP_LANG_DIR, '/\\') . '/plugins';
+        }
+        foreach ($carpetas as $carpeta) {
+            $archivos = glob($carpeta . '/pieb-cancionero-*.mo');
+            foreach ((array) $archivos as $archivo) {
+                $locale = substr(basename($archivo, '.mo'), strlen('pieb-cancionero-'));
+                if ($locale !== '' && preg_match('/^[A-Za-z0-9_@-]+$/', $locale) && !in_array($locale, $locales, true)) {
+                    $locales[] = $locale;
+                }
             }
         }
         sort($locales);
@@ -260,11 +269,21 @@ add_filter('plugin_locale', function ($locale, $domain) {
 }, 10, 2);
 
 // Los JSON de las traducciones de JS se buscan con el locale del sitio; aquí se cambia por el del usuario (solo los nuestros).
+// WordPress llama a este filtro una vez por cada ruta que prueba: primero la de la carpeta del plugin (el $path que
+// pasa wp_set_script_translations) y después wp-content/languages/plugins. Para que la carpeta del sistema tenga
+// preferencia (igual que con los .mo) y funcione en cualquiera de los dos intentos, se busca el archivo con el locale
+// del usuario primero allí y luego en la del plugin; si no está en ninguna, se deja en la carpeta del intento.
 add_filter('load_script_translation_file', function ($archivo, $handle, $dominio) {
     if ($dominio !== 'pieb-cancionero' || !is_string($archivo) || $archivo === '') {
         return $archivo;
     }
-    if (wp_normalize_path(dirname($archivo)) !== wp_normalize_path(rtrim(PIEB_CAN_DIR, '/\\') . '/languages')) {
+    $carpeta = wp_normalize_path(dirname($archivo));
+    $carpetas = array();
+    if (defined('WP_LANG_DIR')) {
+        $carpetas[] = wp_normalize_path(rtrim(WP_LANG_DIR, '/\\') . '/plugins');
+    }
+    $carpetas[] = wp_normalize_path(rtrim(PIEB_CAN_DIR, '/\\') . '/languages');
+    if (!in_array($carpeta, $carpetas, true)) {
         return $archivo;
     }
     $nombre = basename($archivo);
@@ -272,7 +291,13 @@ add_filter('load_script_translation_file', function ($archivo, $handle, $dominio
     if (strpos($nombre, $prefijo) !== 0) {
         return $archivo;
     }
-    return dirname($archivo) . '/pieb-cancionero-' . pieb_can_idioma() . '-' . substr($nombre, strlen($prefijo));
+    $nuevo = 'pieb-cancionero-' . pieb_can_idioma() . '-' . substr($nombre, strlen($prefijo));
+    foreach ($carpetas as $candidata) {
+        if (file_exists($candidata . '/' . $nuevo)) {
+            return $candidata . '/' . $nuevo;
+        }
+    }
+    return $carpeta . '/' . $nuevo;
 }, 10, 3);
 
 /**

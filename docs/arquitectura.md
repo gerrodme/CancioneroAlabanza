@@ -126,12 +126,15 @@ JavaScript. Cómo traducir: [traducir.md](traducir.md).
 
 - **Idioma de cada usuario** (`includes/ajustes.php`): la meta de usuario `pieb_idioma` ('' = el del sitio) se elige
   en el menú de la cuenta y se guarda con `POST /preferencias` (`idioma`). Los idiomas ofrecidos son el español más cada
-  `languages/pieb-cancionero-<locale>.mo` (`pieb_can_idiomas_disponibles`). `pieb_can_idioma()` calcula el locale
+  `pieb-cancionero-<locale>.mo` de `wp-content/languages/plugins/` o de `languages/` del plugin
+  (`pieb_can_idiomas_disponibles`). `pieb_can_idioma()` calcula el locale
   efectivo con respaldo por idioma: si no hay archivo para `en_GB` se usa `en_US`; si no hay ninguno de esa lengua, el
   español base. Solo afecta al dominio `pieb-cancionero`, mediante los filtros `plugin_locale` (para el `.mo`, también en
   las peticiones REST, así que los errores de la API salen en el idioma del usuario) y `load_script_translation_file`
   (cambia el locale del nombre del JSON que WordPress busca). El correo con el enlace de acceso se envía en el idioma del
-  sitio (`pieb_can_en_idioma_del_sitio`). Solo se ven los `.mo` que están dentro de la carpeta `languages/` del plugin.
+  sitio (`pieb_can_en_idioma_del_sitio`). Se leen las dos carpetas (la del sistema, donde guardan Loco Translate
+  «System» y translate.wordpress.org, y la del plugin) y la del sistema tiene preferencia, tanto para el `.mo`
+  (`load_plugin_textdomain` ya la mira primero) como para los `.json` (el filtro los busca primero allí).
 - **JavaScript:** `wp-i18n` con `wp_set_script_translations()` para `cancionero`, `cultos`, `visor` y `login`. Cada JSON
   se llama `pieb-cancionero-<locale>-<md5 de "assets/archivo.js">.json`, formato Jed. La configuración `PIEB_CANCIONERO`
   lleva `idioma` (BCP 47, para `Intl`: fechas y números), `idiomas`, `notacion` y `idiomaElegido`/`notacionElegida`.

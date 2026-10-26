@@ -15,7 +15,7 @@ código. Cada persona elige su idioma en el menú de su cuenta (**Idioma**), y p
 | `pieb-cancionero-<locale>-<hash>.json` | Los mismos textos para JavaScript (uno por archivo `.js`; el `<hash>` es el md5 de su ruta). Se generan, no se editan. |
 
 El `<locale>` es el código de WordPress: `idioma_PAÍS`, como `en_US`, `pt_BR`, `fr_FR`, `de_DE` o `it_IT`. El menú de la
-cuenta ofrece el español y cada idioma que tenga su `.mo` en esta carpeta. Si alguien usa `en_GB` y no hay ese archivo,
+cuenta ofrece el español y cada idioma que tenga su `.mo` en esta carpeta o en `wp-content/languages/plugins/`. Si alguien usa `en_GB` y no hay ese archivo,
 se le muestra el primero de la misma lengua (`en_US`).
 
 ## Tres maneras de traducir
@@ -24,18 +24,19 @@ se le muestra el primero de la misma lengua (`en_US`).
 
 1. Instala y activa el plugin gratuito **Loco Translate**.
 2. Ve a **Loco Translate → Plugins → Cancionero** y pulsa **New language** (Nuevo idioma). La plantilla `.pot` se elige sola.
-3. Elige el idioma y, como ubicación del archivo, la carpeta del propio plugin (la que Loco llama *Author*:
-   `wp-content/plugins/pieb-cancionero/languages/`). El Cancionero solo ofrece los idiomas que tienen su `.mo` en esa
-   carpeta: los archivos guardados en `wp-content/languages/plugins/` (*System*) o en la carpeta propia de Loco no se
-   detectan.
+3. Elige el idioma y, como ubicación del archivo, la carpeta del sistema (la que Loco llama *System*:
+   `wp-content/languages/plugins/`), que **sobrevive a las actualizaciones del plugin**. El Cancionero lee las dos
+   carpetas, la del sistema y la del propio plugin (*Author*: `wp-content/plugins/pieb-cancionero/languages/`), y ofrece
+   los idiomas que tengan su `.mo` en cualquiera de ellas. Si un idioma está en las dos, la del sistema tiene preferencia.
+   La carpeta propia de Loco (*Custom*) no se detecta.
 4. Traduce cada texto en el editor y pulsa **Save** (Guardar). Loco crea el `.po` y el `.mo`. Los textos de JavaScript
    necesitan además los `.json`: las versiones recientes de Loco los generan al guardar; si no aparecen en la carpeta,
    compila el `.po` con el método c.
 5. Entra en el cancionero, abre el menú de tu cuenta y elige el idioma nuevo en **Idioma**.
 
 **Ojo con las actualizaciones:** al actualizar el plugin («Reemplazar el actual con el subido») WordPress sustituye la
-carpeta del plugin y los archivos que no vengan en el zip desaparecen. Antes de actualizar, **descarga el `.po`** desde
-el editor de Loco (**Download .po**) y guárdalo. Si lo envías al proyecto (ver «Cómo enviarlo»), se incluirá en las
+carpeta del plugin y los archivos que no vengan en el zip desaparecen. Con la ubicación *System* no hay problema; si
+usaste *Author*, **descarga el `.po`** desde el editor de Loco (**Download .po**) antes de actualizar y guárdalo. Si lo envías al proyecto (ver «Cómo enviarlo»), se incluirá en las
 versiones siguientes y no tendrás que preocuparte. Esa descarga del `.po` es también la forma de **compartirlo**.
 
 ### b) Poedit, a partir de la plantilla

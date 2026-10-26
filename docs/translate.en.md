@@ -16,7 +16,7 @@ WordPress language is used.
 | `pieb-cancionero-<locale>-<hash>.json` | The same texts for JavaScript (one per `.js` file; the `<hash>` is the md5 of its path). Generated, not edited. |
 
 The `<locale>` is the WordPress code: `language_COUNTRY`, such as `en_US`, `pt_BR`, `fr_FR`, `de_DE` or `it_IT`. The
-account menu offers Spanish plus every language that has its `.mo` in this folder. If someone uses `en_GB` and there is
+account menu offers Spanish plus every language that has its `.mo` in this folder or in `wp-content/languages/plugins/`. If someone uses `en_GB` and there is
 no such file, they get the first one of the same language (`en_US`).
 
 ## Three ways to translate
@@ -25,17 +25,19 @@ no such file, they get the first one of the same language (`en_US`).
 
 1. Install and activate the free **Loco Translate** plugin.
 2. Go to **Loco Translate → Plugins → Cancionero** and click **New language**. The `.pot` template is picked automatically.
-3. Choose the language and, as the file location, the plugin's own folder (called *Author* in Loco:
-   `wp-content/plugins/pieb-cancionero/languages/`). Cancionero only offers the languages that have their `.mo` in that
-   folder: files saved in `wp-content/languages/plugins/` (*System*) or in Loco's own folder are not detected.
+3. Choose the language and, as the file location, the system folder (called *System* in Loco:
+   `wp-content/languages/plugins/`), which **survives plugin updates**. Cancionero reads both folders, the system one and
+   the plugin's own (*Author*: `wp-content/plugins/pieb-cancionero/languages/`), and offers every language that has its
+   `.mo` in either. If a language is in both, the system folder takes precedence. Loco's own folder (*Custom*) is not
+   detected.
 4. Translate each text in the editor and click **Save**. Loco creates the `.po` and the `.mo`. JavaScript texts also need
    the `.json` files: recent versions of Loco generate them on save; if they do not show up in the folder, compile the
    `.po` with method c.
 5. Open the songbook, open your account menu and choose the new language under **Language**.
 
 **Watch out for updates:** when the plugin is updated ("Replace current with uploaded"), WordPress replaces the plugin
-folder, and files that are not in the zip disappear. Before updating, **download the `.po`** from the Loco editor
-(**Download .po**) and keep it. If you send it to the project (see "How to send it"), it will be included in future
+folder, and files that are not in the zip disappear. With the *System* location there is no problem; if you used
+*Author*, **download the `.po`** from the Loco editor (**Download .po**) before updating and keep it. If you send it to the project (see "How to send it"), it will be included in future
 versions and you will not have to worry. Downloading the `.po` is also how you **share** it.
 
 ### b) Poedit, starting from the template

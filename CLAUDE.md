@@ -37,6 +37,9 @@ renombrada completa exigiría una migración de datos.
 - **Cada cambio publicable sube la versión** en `pieb-cancionero.php` (cabecera y `PIEB_CAN_VERSION`), se anota en
   `CHANGELOG.md`, se ejecuta `python herramientas/empaquetar.py` y se hace commit con el formato
   `Descripción corta en español (1.x.y)`. El usuario sube el zip a WordPress (Plugins → Subir plugin → Reemplazar).
+- **Textos traducibles** (ver [docs/traducir.md](docs/traducir.md)): todo texto visible va con `__()`/`_n()` del dominio
+  `pieb-cancionero` (en JS, los atajos de `P`, con marcadores y comentario `translators:`); las tonalidades siempre con
+  `P.tono()`. Tras cambiar textos: `python herramientas/i18n.py extraer`, traducir `en_US.po` y `compilar` (el zip ya compila).
 - No hacer `git push` ni tocar ajustes de seguridad (p. ej. el bloqueo de archivos de Word) sin que el usuario lo pida.
 - Preferencias del usuario: cambios pequeños y concretos; botones con texto claro (no solo iconos); acciones
   destructivas en rojo; barras de progreso siempre visibles.
@@ -64,7 +67,3 @@ usuario** y `fetch` desde la consola con `PIEB_CANCIONERO.api` y `PIEB_CANCIONER
 ## Ideas no hechas
 
 Detectar duplicados desde la propia interfaz, completar tempos desde otras fuentes, publicar *Releases* con el zip.
-
-- **Idioma inglés** (valorado, aplazado por el autor): mecanismo `t('clave')` con diccionarios `es`/`en` en JS (~520 textos),
-  `__()`/`.po` en PHP (~80), idioma por defecto el de WordPress y elección por usuario (como el tema), fechas con `Intl`
-  y plurales adaptados. Documentación en inglés opcional. Hacerlo por fases, una versión por fase.
