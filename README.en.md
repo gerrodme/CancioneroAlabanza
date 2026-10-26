@@ -18,7 +18,7 @@ can be translated into other languages. In English, an installation without a na
   colored tags, key, tempo (BPM), hymnal number and YouTube videos.
 - **Main score:** if a song has several scores, the first one is the main one (the one used by default); change it with
   "Make main" on the song page.
-- **Trash:** deleted songs go to a trash that administrators see in the menu: they can open them, restore them or delete
+- **Trash:** deleted songs go to a trash that administrators see in Settings and team → Trash: they can open them, restore them or delete
   them for good. The trash empties itself after N days (30 by default, configurable; 0 = never).
 - **Bulk import:** "Bulk upload" (drag many PDFs/images at once; the title, hymnal number and key are worked out from the
   file name).
@@ -34,7 +34,7 @@ can be translated into other languages. In English, an installation without a na
 - **Languages:** Spanish and English. Each person chooses their language and the notation for keys (Do-Re-Mi or C-D-E) in
   their account menu; by default the WordPress language is used. More languages can be added (see
   [docs/translate.en.md](docs/translate.en.md)).
-- **Backups:** export and import all the content from the account menu (songbook and WordPress administrators).
+- **Backups:** export and import all the content from Settings and team → Backups (songbook and WordPress administrators).
 
 It is shown on any page with the `[cancionero]` shortcode.
 
@@ -86,7 +86,7 @@ only to people who are signed in and have access to the songbook.
   location ^~ /wp-content/uploads/cancionero-privado/ { deny all; }
   ```
 
-- **Check:** under **Settings and team → File protection** the plugin checks whether the server hands out the files
+- **Check:** under **Settings and team → Files** the plugin checks whether the server hands out the files
   without a session and warns you in red if it does.
 - **Files from before 1.5.0:** the same section has a **Protect existing files** button, which moves them to the private
   folder in batches of 50. Make a backup first. Old direct links stop working.
@@ -144,7 +144,7 @@ only to people who are signed in and have access to the songbook.
 
 The content (songs, scores, services, settings) lives in WordPress, **not in this repository**. Scores may be under
 copyright: you are responsible for the ones you upload to your installation. To keep the songbook safe or move it to
-another site: account menu → **Backups** (songbook and WordPress administrators). See
+another site: Settings and team → **Backups** (songbook and WordPress administrators). See
 [docs/guia-recuperar-cancionero.en.html](docs/guia-recuperar-cancionero.en.html).
 
 To load or complete many songs from a folder of files, see [docs/carga-masiva.en.md](docs/carga-masiva.en.md).

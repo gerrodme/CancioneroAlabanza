@@ -182,7 +182,9 @@
     puntos: 'M5 10.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm7 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm7 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z',
     'salir-web': 'M5 4h7v2H7v12h5v2H5V4zm9.6 3.6L16 6l6 6-6 6-1.4-1.6 3.4-3.4H9v-2h9z',
     grafica: 'M4 20h16v-2H4v2zm1-4h3V9H5v7zm5 0h3V4h-3v12zm5 0h3v-5h-3v5z',
-    editable: 'M6 2h8l6 6v5h-2V9h-5V4H6v16h6v2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm12.6 12 2.4 2.4-5.6 5.6H13v-2.4l5.6-5.6z'
+    editable: 'M6 2h8l6 6v5h-2V9h-5V4H6v16h6v2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm12.6 12 2.4 2.4-5.6 5.6H13v-2.4l5.6-5.6z',
+    equipo: 'M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm-8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 2c-2.3 0-7 1.2-7 3.5V19h14v-2.5c0-2.3-4.7-3.5-7-3.5zm8 0c-.3 0-.6 0-1 .1 1.2.8 2 2 2 3.4V19h6v-2.5c0-2.3-4.7-3.5-7-3.5z',
+    acceso: 'M12.7 10A6 6 0 1 0 7 18a6 6 0 0 0 5.7-4H17v4h4v-4h2v-4H12.7zM7 14a2 2 0 1 1 0-4 2 2 0 0 1 0 4z'
   };
 
   function icono(nombre) {
@@ -651,9 +653,7 @@
         ui.menuNotacion,
         CFG.gestionar ? h('div', { class: 'pcan-menu-grupo' },
           h('p', { class: 'pcan-menu-label', text: __('Administración') }),
-          enlaceMenu('#/ajustes', 'ajustes', __('Ajustes y equipo')),
-          enlaceMenu('#/papelera', 'borrar', __('Papelera')),
-          enlaceMenu('#/copias', 'descargar', __('Copias de seguridad'))) : null),
+          enlaceMenu('#/ajustes', 'ajustes', __('Ajustes y equipo'))) : null),
       h('div', { class: 'pcan-menu-pie' },
         enlaceMenu(CFG.homeUrl, 'salir-web', __('Volver a la web')),
         enlaceMenu(CFG.logoutUrl, 'salir', __('Cerrar sesión')),
@@ -894,7 +894,13 @@
       { titulo: __('Subir varias canciones'), sub: __('Una canción por archivo, con su nombre como título'), icono: 'subir', href: '#/subir' },
       { titulo: __('Nuevo culto'), sub: __('Preparar un setlist'), icono: 'calendario', href: '#/culto/nuevo' },
       { titulo: __('Estadísticas'), sub: __('Qué tocamos y qué no'), icono: 'grafica', href: '#/estadisticas' }
-    ].concat(CFG.gestionar ? [{ titulo: __('Ajustes y equipo'), sub: __('Acceso con Google, tema por defecto'), icono: 'ajustes', href: '#/ajustes' }] : [])
+    ].concat(CFG.gestionar ? [
+      { titulo: __('Ajustes y equipo'), sub: __('Nombre, tema por defecto, plazo de la papelera'), icono: 'ajustes', href: '#/ajustes' },
+      { titulo: __('Equipo'), sub: __('Correos con acceso, administradores y dominio'), icono: 'equipo', href: '#/ajustes/equipo' },
+      { titulo: __('Acceso con Google'), sub: __('Client ID de Google'), icono: 'acceso', href: '#/ajustes/google' },
+      { titulo: __('Archivos'), sub: __('Protección y archivos sin usar'), icono: 'partitura', href: '#/ajustes/archivos' },
+      { titulo: __('Papelera'), sub: __('Restaurar o eliminar canciones borradas'), icono: 'borrar', href: '#/ajustes/papelera' },
+      { titulo: __('Copias de seguridad'), sub: __('Descargar o restaurar una copia'), icono: 'descargar', href: '#/ajustes/copias' }] : [])
       .concat(Object.keys(CFG.temas || {}).map(function (k) {
         return { titulo: sprintf(/* translators: %s: nombre del tema visual */ __('Tema: %s'), CFG.temas[k]), sub: __('Cambiar la apariencia'), icono: 'tema', fn: function () { aplicarTema(k, true); } };
       }));
@@ -913,6 +919,8 @@
       }
       ganchos.paleta.forEach(function (fn) { var g = fn(q); if (g && g.items.length) { grupos.push(g); } });
       var acc = acciones.filter(function (a) { return !nq || norm(a.titulo + ' ' + a.sub).indexOf(nq) !== -1; });
+      // Primero las acciones cuyo título coincide, después las que solo coinciden en la descripción.
+      if (nq) { acc = acc.filter(function (a) { return norm(a.titulo).indexOf(nq) !== -1; }).concat(acc.filter(function (a) { return norm(a.titulo).indexOf(nq) === -1; })); }
       if (acc.length) { grupos.push({ titulo: __('Acciones'), items: acc }); }
 
       if (!grupos.length) {
@@ -1342,7 +1350,7 @@
       document.documentElement.classList.remove('pcan-lock');
     } else {
       if ((panelModo === 'split' || panelModo === 'pagina') && panelVista) { vaciarDetalle(panelVista); }
-      ui.panel.className = 'pcan-panel-wrap' + (opciones.modal ? ' is-modal' : '');
+      ui.panel.className = 'pcan-panel-wrap' + (opciones.modal ? ' is-modal' : '') + (opciones.ancho ? ' is-ancho' : '');
       append(ui.panel, [h('div', { class: 'pcan-backdrop', onclick: function () { volverPanel(); } }), panel]);
       ui.panel.hidden = false;
       document.documentElement.classList.add('pcan-lock');
@@ -2199,13 +2207,29 @@
 
   // ---------------------------------------------------------------- ajustes (responsables)
 
-  function abrirAjustes() {
+  // Panel «Ajustes y equipo» abierto (null si no lo está) y turno de la última carga, para ignorar respuestas viejas.
+  var ajustesAbierto = null;
+  var turnoAjustes = 0;
+  var SECCIONES_AJUSTES = ['general', 'equipo', 'google', 'archivos', 'papelera', 'copias'];
+  var RUTA_AJUSTES = /^#\/(ajustes|papelera|copias)(\/|$)/;
+
+  /** Abre «Ajustes y equipo» en una sección (general, equipo, google, archivos, papelera o copias).
+   *  Si el panel ya está abierto solo cambia de sección: no se vuelven a pedir los datos. */
+  function abrirAjustes(seccion) {
     if (!CFG.gestionar) { location.hash = '#/'; return; }
-    abrirPanel(h('div', { class: 'pcan-panel-loading', text: __('Cargando ajustes…') }), __('Ajustes'), { modal: true });
-    api('ajustes').then(pintarAjustes).catch(function (e) { aviso(e.message, 'error'); cerrarPanel(); });
+    if (SECCIONES_AJUSTES.indexOf(seccion) === -1) { seccion = 'general'; }
+    if (ajustesAbierto && ajustesAbierto.raiz.isConnected) { ajustesAbierto.ir(seccion); return; }
+    var turno = ++turnoAjustes;
+    ajustesAbierto = null;
+    abrirPanel([cabeceraPanel(h('h2', { text: __('Ajustes y equipo') })), h('div', { class: 'pcan-panel-loading', text: __('Cargando ajustes…') })], __('Ajustes'), { modal: true, ancho: true });
+    api('ajustes').then(function (a) {
+      // Si mientras tanto se fue a otra pantalla, no se abre encima.
+      if (turno !== turnoAjustes || !RUTA_AJUSTES.test(location.hash)) { return; }
+      pintarAjustes(a, seccion);
+    }).catch(function (e) { aviso(e.message, 'error'); cerrarPanel(); });
   }
 
-  function pintarAjustes(a) {
+  function pintarAjustes(a, seccionInicial) {
     var fNombre = h('input', { type: 'text', class: 'pcan-input', value: a.nombre || '', maxlength: '40', placeholder: 'Cancionero', spellcheck: 'false' });
     var fSubtitulo = h('input', { type: 'text', class: 'pcan-input', value: a.subtitulo || '', maxlength: '60', placeholder: __('p. ej. Nombre de tu iglesia o grupo'), spellcheck: 'false' });
     var fPapelera = h('input', { type: 'number', class: 'pcan-input', min: '0', max: '3650', value: String(a.papeleraDias === undefined ? 30 : a.papeleraDias) });
@@ -2277,10 +2301,12 @@
           : __('Todos los archivos del cancionero están en la carpeta privada.') }),
         h('div', { class: 'pcan-actions' }, boton), progreso]);
     }
-    api('archivos/estado').then(pintarProteccion).catch(function (e) {
-      cajaProteccion.innerHTML = '';
-      append(cajaProteccion, h('p', { class: 'pcan-form-error', text: e.message }));
-    });
+    function cargarProteccion() {
+      api('archivos/estado').then(pintarProteccion).catch(function (e) {
+        cajaProteccion.innerHTML = '';
+        append(cajaProteccion, h('p', { class: 'pcan-form-error', text: e.message }));
+      });
+    }
 
     // Archivos sin usar: partituras y audios que ya no tiene ninguna canción.
     var cajaHuerfanos = h('div', { class: 'pcan-huerfanos' }, h('p', { class: 'pcan-help', text: __('Buscando archivos sin usar…') }));
@@ -2335,62 +2361,169 @@
         h('div', { class: 'pcan-actions' }, boton), confirmar, papelera]);
       actualizar();
     }
-    api('huerfanos').then(pintarHuerfanos).catch(function (e) {
-      cajaHuerfanos.innerHTML = '';
-      append(cajaHuerfanos, h('p', { class: 'pcan-form-error', text: e.message }));
+    function cargarHuerfanos() {
+      api('huerfanos').then(pintarHuerfanos).catch(function (e) {
+        cajaHuerfanos.innerHTML = '';
+        append(cajaHuerfanos, h('p', { class: 'pcan-form-error', text: e.message }));
+      });
+    }
+
+    // Secciones: General, Equipo y Google son un solo formulario con un único «Guardar ajustes»;
+    // Archivos, Papelera y Copias de seguridad tienen sus propias acciones y no muestran «Guardar».
+    var SEC_FORMULARIO = { general: true, equipo: true, google: true };
+    var etiquetas = {
+      general: [__('General'), 'ajustes'], equipo: [__('Equipo'), 'equipo'], google: [__('Acceso con Google'), 'acceso'],
+      archivos: [__('Archivos'), 'partitura'], papelera: [__('Papelera'), 'borrar'], copias: [__('Copias de seguridad'), 'descargar']
+    };
+    var cuerpoPapelera = h('div', { class: 'pcan-form' });
+    var cuerpoCopias = h('div', { class: 'pcan-ajustes-copias' });
+    // Lo que cada sección pide al servidor, solo la primera vez que se abre.
+    var cargadores = {
+      archivos: function () { cargarProteccion(); cargarHuerfanos(); },
+      papelera: function () { pintarPapelera(cuerpoPapelera); },
+      copias: function () { pintarCopias(cuerpoCopias); }
+    };
+    var cargadas = {};
+
+    var contenido = {
+      general: [
+        h('fieldset', { class: 'pcan-fieldset' },
+          h('legend', { text: __('General') }),
+          campo(__('Nombre del cancionero'), fNombre, __('Se muestra arriba a la izquierda y en la pantalla de acceso. Por ejemplo: «Cancionero de la iglesia».')),
+          campo(__('Línea bajo el nombre'), fSubtitulo, __('Texto pequeño debajo del nombre. Por defecto es el nombre de la web; déjalo vacío para no mostrar nada.'))),
+        h('fieldset', { class: 'pcan-fieldset' },
+          h('legend', { text: __('Apariencia') }),
+          campo(__('Tema por defecto'), fTema, __('Para quien aún no ha elegido tema. Cada persona puede cambiarlo en su menú.'))),
+        h('fieldset', { class: 'pcan-fieldset' },
+          h('legend', { text: __('Papelera') }),
+          campo(__('Días que se conservan las canciones borradas'), fPapelera, __('Pasado este plazo se eliminan solas, con sus partituras y audios. Pon 0 para no eliminarlas nunca automáticamente.')))],
+      equipo: [
+        h('fieldset', { class: 'pcan-fieldset' },
+          h('legend', { text: __('Equipo') }),
+          campo(__('Correos con acceso'), fEmails, __('Cada persona entra con un enlace que recibe en ese correo (o con Google, si lo configuras). Quien sale de la lista pierde el acceso.')),
+          campo(__('Administradores del cancionero'), fAdmins, __('Pueden cambiar los ajustes, gestionar el equipo y borrar canciones, sin ser administradores de la web. Entran como el resto del equipo (enlace por correo o Google).')),
+          campo(__('Dominio permitido'), fDominio, __('Opcional: cualquier cuenta de este dominio de Google Workspace podrá entrar.')),
+          miembros,
+          hayAdmin ? h('p', { class: 'pcan-aviso-admin' }, icono('aviso'), __('Los correos marcados son de cuentas de administración: no reciben enlaces por seguridad y entran con usuario y contraseña. Para probar el enlace, usa otro correo.')) : null,
+          h('div', { class: 'pcan-actions' },
+            h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function (e) {
+              var b = e.currentTarget;
+              b.disabled = true;
+              api('correo-prueba', { json: {} })
+                .then(function (r) { aviso(sprintf(/* translators: %s: dirección de correo */ __('Correo de prueba enviado a %s'), r.destino)); })
+                .catch(function (err) { aviso(err.message, 'error'); })
+                .then(function () { b.disabled = false; });
+            } }, icono('enlace'), __('Enviarme un correo de prueba')),
+            h('span', { class: 'pcan-help', text: __('Comprueba que el servidor puede enviar los enlaces de acceso.') })))],
+      google: [
+        h('fieldset', { class: 'pcan-fieldset' },
+          h('legend', { text: __('Acceso con Google (opcional)') }),
+          campo(__('Client ID de Google'), fClient),
+          h('details', { class: 'pcan-ayuda' },
+            h('summary', { text: __('Cómo obtenerlo (5 minutos)') }),
+            h('ol', null,
+              h('li', null, conNodo(/* translators: %s: enlace «Google Cloud Console → Credenciales» */ __('Entra en %s con una cuenta de la iglesia.'), h('a', { href: 'https://console.cloud.google.com/apis/credentials', target: '_blank', rel: 'noopener', text: __('Google Cloud Console → Credenciales') }))),
+              h('li', { text: __('Configura la «Pantalla de consentimiento de OAuth» (tipo Externo, nombre «Cancionero»).') }),
+              h('li', { text: __('Crear credenciales → ID de cliente de OAuth → Aplicación web.') }),
+              h('li', null, conNodo(/* translators: %s: dirección web de este sitio */ __('En «Orígenes de JavaScript autorizados» añade: %s'), h('code', { text: a.origen }))),
+              h('li', { text: __('Copia el ID de cliente y pégalo aquí.') }))))],
+      archivos: [
+        h('fieldset', { class: 'pcan-fieldset' },
+          h('legend', { text: __('Protección de los archivos') }),
+          cajaProteccion),
+        h('fieldset', { class: 'pcan-fieldset' },
+          h('legend', { text: __('Archivos sin usar') }),
+          cajaHuerfanos)],
+      papelera: [h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: __('Papelera') }), cuerpoPapelera)],
+      copias: [cuerpoCopias]
+    };
+
+    var tabs = {}, secciones = {};
+    var actual = null;
+    function hashSeccion(id) { return '#/ajustes/' + id; }
+
+    var lista = h('div', { class: 'pcan-ajustes-tabs', role: 'tablist', 'aria-label': __('Secciones de los ajustes') }, SECCIONES_AJUSTES.map(function (id) {
+      tabs[id] = h('a', {
+        class: 'pcan-ajustes-tab', role: 'tab', id: 'pcan-aj-t-' + id, href: hashSeccion(id), 'aria-controls': 'pcan-aj-p-' + id,
+        onclick: function (e) { e.preventDefault(); ir(id); }
+      }, icono(etiquetas[id][1]), h('span', { text: etiquetas[id][0] }));
+      return tabs[id];
+    }));
+    // Flechas, Inicio y Fin recorren las secciones (se activan al enfocarlas).
+    lista.addEventListener('keydown', function (e) {
+      var n = SECCIONES_AJUSTES.length, i = SECCIONES_AJUSTES.indexOf(actual), nuevo = -1;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { nuevo = (i + 1) % n; }
+      else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') { nuevo = (i + n - 1) % n; }
+      else if (e.key === 'Home') { nuevo = 0; }
+      else if (e.key === 'End') { nuevo = n - 1; }
+      if (nuevo < 0) { return; }
+      e.preventDefault();
+      ir(SECCIONES_AJUSTES[nuevo]);
+      tabs[SECCIONES_AJUSTES[nuevo]].focus();
     });
 
-    var form = h('form', { class: 'pcan-form', novalidate: true },
-      h('fieldset', { class: 'pcan-fieldset' },
-        h('legend', { text: __('General') }),
-        campo(__('Nombre del cancionero'), fNombre, __('Se muestra arriba a la izquierda y en la pantalla de acceso. Por ejemplo: «Cancionero de la iglesia».')),
-        campo(__('Línea bajo el nombre'), fSubtitulo, __('Texto pequeño debajo del nombre. Por defecto es el nombre de la web; déjalo vacío para no mostrar nada.')),
-        campo(__('Días que se conservan las canciones borradas'), fPapelera, __('Pasado este plazo se eliminan solas, con sus partituras y audios. Pon 0 para no eliminarlas nunca automáticamente.'))),
-      h('fieldset', { class: 'pcan-fieldset' },
-        h('legend', { text: __('Equipo') }),
-        campo(__('Correos con acceso'), fEmails, __('Cada persona entra con un enlace que recibe en ese correo (o con Google, si lo configuras). Quien sale de la lista pierde el acceso.')),
-        campo(__('Administradores del cancionero'), fAdmins, __('Pueden cambiar los ajustes, gestionar el equipo y borrar canciones, sin ser administradores de la web. Entran como el resto del equipo (enlace por correo o Google).')),
-        campo(__('Dominio permitido'), fDominio, __('Opcional: cualquier cuenta de este dominio de Google Workspace podrá entrar.')),
-        miembros,
-        hayAdmin ? h('p', { class: 'pcan-aviso-admin' }, icono('aviso'), __('Los correos marcados son de cuentas de administración: no reciben enlaces por seguridad y entran con usuario y contraseña. Para probar el enlace, usa otro correo.')) : null,
-        h('div', { class: 'pcan-actions' },
-          h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function (e) {
-            var b = e.currentTarget;
-            b.disabled = true;
-            api('correo-prueba', { json: {} })
-              .then(function (r) { aviso(sprintf(/* translators: %s: dirección de correo */ __('Correo de prueba enviado a %s'), r.destino)); })
-              .catch(function (err) { aviso(err.message, 'error'); })
-              .then(function () { b.disabled = false; });
-          } }, icono('enlace'), __('Enviarme un correo de prueba')),
-          h('span', { class: 'pcan-help', text: __('Comprueba que el servidor puede enviar los enlaces de acceso.') }))),
-      h('fieldset', { class: 'pcan-fieldset' },
-        h('legend', { text: __('Acceso con Google (opcional)') }),
-        campo(__('Client ID de Google'), fClient),
-        h('details', { class: 'pcan-ayuda' },
-          h('summary', { text: __('Cómo obtenerlo (5 minutos)') }),
-          h('ol', null,
-            h('li', null, conNodo(/* translators: %s: enlace «Google Cloud Console → Credenciales» */ __('Entra en %s con una cuenta de la iglesia.'), h('a', { href: 'https://console.cloud.google.com/apis/credentials', target: '_blank', rel: 'noopener', text: __('Google Cloud Console → Credenciales') }))),
-            h('li', { text: __('Configura la «Pantalla de consentimiento de OAuth» (tipo Externo, nombre «Cancionero»).') }),
-            h('li', { text: __('Crear credenciales → ID de cliente de OAuth → Aplicación web.') }),
-            h('li', null, conNodo(/* translators: %s: dirección web de este sitio */ __('En «Orígenes de JavaScript autorizados» añade: %s'), h('code', { text: a.origen }))),
-            h('li', { text: __('Copia el ID de cliente y pégalo aquí.') })))),
-      h('fieldset', { class: 'pcan-fieldset' },
-        h('legend', { text: __('Protección de los archivos') }),
-        cajaProteccion),
-      h('fieldset', { class: 'pcan-fieldset' },
-        h('legend', { text: __('Archivos sin usar') }),
-        cajaHuerfanos),
-      h('fieldset', { class: 'pcan-fieldset' },
-        h('legend', { text: __('Apariencia') }),
-        campo(__('Tema por defecto'), fTema, __('Para quien aún no ha elegido tema. Cada persona puede cambiarlo en su menú.'))),
-      h('p', { class: 'pcan-help pcan-version', text: sprintf(/* translators: %s: número de versión del plugin */ __('Cancionero · versión %s'), a.version || CFG.version) }),
-      errorBox,
-      h('div', { class: 'pcan-form-actions' }, guardar,
-        h('button', { type: 'button', class: 'pcan-btn', onclick: function () { cerrarPanel(); } }, __('Cancelar'))));
+    // Barra fija de abajo: solo en las secciones del formulario. Avisa si hay cambios sin guardar.
+    var estado = h('span', { class: 'pcan-ajustes-estado', role: 'status' });
+    var barra = h('div', { class: 'pcan-ajustes-barra' },
+      errorBox, estado,
+      h('div', { class: 'pcan-ajustes-botones' },
+        h('button', { type: 'button', class: 'pcan-btn', onclick: function () { cerrarPanel(); } }, __('Cancelar')),
+        guardar));
 
+    var zona = h('div', { class: 'pcan-ajustes-scroll' }, SECCIONES_AJUSTES.map(function (id) {
+      secciones[id] = h('section', { class: 'pcan-ajustes-sec', id: 'pcan-aj-p-' + id, role: 'tabpanel', 'aria-labelledby': 'pcan-aj-t-' + id, hidden: true }, contenido[id]);
+      return secciones[id];
+    }));
+    var form = h('form', { class: 'pcan-ajustes-main', novalidate: true }, zona, barra);
+
+    function valores() {
+      return JSON.stringify([fNombre.value, fSubtitulo.value, fPapelera.value, fAdmins.value, fTema.value, fClient.value, fDominio.value, fEmails.value]);
+    }
+    var inicial = valores();
+    // El aviso de «cambios sin guardar» al cerrar lo da panelSucio; aquí se calcula comparando con lo cargado.
+    function alCambiar(e) {
+      e.stopPropagation();
+      if (e.target.classList) { e.target.classList.remove('is-invalid'); }
+      errorBox.hidden = true;
+      var sucio = valores() !== inicial;
+      panelSucio = sucio;
+      estado.textContent = sucio ? __('Hay cambios sin guardar') : '';
+      barra.classList.toggle('is-sucio', sucio);
+    }
+    form.addEventListener('input', alCambiar);
+    form.addEventListener('change', alCambiar);
+
+    /** Cambia de sección. La dirección cambia (para poder enlazarla) sin añadir entradas al historial:
+     *  así «Atrás» cierra el panel en vez de recorrer cada sección. */
+    function ir(id) {
+      if (!tabs[id]) { id = 'general'; }
+      actual = id;
+      SECCIONES_AJUSTES.forEach(function (s) {
+        var activa = s === id;
+        tabs[s].setAttribute('aria-selected', activa ? 'true' : 'false');
+        tabs[s].tabIndex = activa ? 0 : -1;
+        tabs[s].classList.toggle('is-active', activa);
+        secciones[s].hidden = !activa;
+      });
+      barra.hidden = !SEC_FORMULARIO[id];
+      zona.scrollTop = 0;
+      // En el móvil las pestañas se desplazan: la activa debe quedar a la vista.
+      if (tabs[id].scrollIntoView) { tabs[id].scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
+      var destino = id === 'general' && location.hash === '#/ajustes' ? '#/ajustes' : hashSeccion(id);
+      if (location.hash !== destino) {
+        history.replaceState(history.state, '', location.pathname + location.search + destino);
+        hashes[posicion] = destino;
+      }
+      if (cargadores[id] && !cargadas[id]) { cargadas[id] = true; cargadores[id](); }
+    }
+
+    // Un error del servidor sobre un campo lleva a su sección y lo enfoca.
+    var CAMPOS_ERROR = { pieb_client: ['google', fClient] };
     form.addEventListener('submit', function (e) {
       e.preventDefault();
+      if (!SEC_FORMULARIO[actual]) { return; }
       guardar.disabled = true;
+      errorBox.hidden = true;
       api('ajustes', { json: {
         nombre: fNombre.value.trim(),
         subtitulo: fSubtitulo.value.trim(),
@@ -2405,13 +2538,30 @@
         aviso(__('Ajustes guardados'));
         cerrarPanel();
       }).catch(function (err) {
+        guardar.disabled = false;
         errorBox.textContent = err.message;
         errorBox.hidden = false;
-        guardar.disabled = false;
+        var destino = CAMPOS_ERROR[err.codigo];
+        if (destino) {
+          ir(destino[0]);
+          destino[1].classList.add('is-invalid');
+          destino[1].focus();
+        }
       });
     });
 
-    abrirPanel([cabeceraPanel(h('h2', { text: __('Ajustes y equipo') })), h('div', { class: 'pcan-panel-body' }, form)], __('Ajustes'), { modal: true });
+    var raiz = h('div', { class: 'pcan-panel-body pcan-ajustes' },
+      h('div', { class: 'pcan-ajustes-nav' }, lista,
+        h('p', { class: 'pcan-help pcan-ajustes-version', text: sprintf(/* translators: %s: número de versión del plugin */ __('Cancionero · versión %s'), a.version || CFG.version) })),
+      form);
+    abrirPanel([cabeceraPanel(h('h2', { text: __('Ajustes y equipo') })), raiz], __('Ajustes'), { modal: true, ancho: true });
+    ajustesAbierto = {
+      raiz: raiz,
+      ir: ir,
+      recargar: function (id) { if (cargadores[id]) { cargadas[id] = true; cargadores[id](); } }
+    };
+    alCerrarPanel.push(function () { if (ajustesAbierto && ajustesAbierto.raiz === raiz) { ajustesAbierto = null; } });
+    ir(seccionInicial);
   }
 
   // ---------------------------------------------------------------- papelera (administradores)
@@ -2452,9 +2602,9 @@
       aviso(sprintf(/* translators: %s: título de la canción */ __('«%s» restaurada'), titulo));
       return cargar().then(function () {
         pintarChips(); pintarLista();
-        if (desdeFicha) { verCancion(id); } else { abrirPapelera(); }
+        if (desdeFicha) { verCancion(id); } else { refrescarPapelera(); }
       });
-    }).catch(function (e) { aviso(e.message, 'error'); if (btn) { abrirPapelera(); } });
+    }).catch(function (e) { aviso(e.message, 'error'); if (btn) { refrescarPapelera(); } });
   }
 
   function eliminarDefinitivo(id, titulo, desdeFicha, btn) {
@@ -2462,19 +2612,30 @@
     ocupado(btn, __('Eliminando…'));
     return api('papelera/' + id, { method: 'DELETE' }).then(function () {
       aviso(sprintf(/* translators: %s: título de la canción */ __('«%s» eliminada para siempre'), titulo));
-      if (desdeFicha) { location.hash = '#/papelera'; } else { abrirPapelera(); }
+      if (desdeFicha) { location.hash = '#/ajustes/papelera'; } else { refrescarPapelera(); }
     }).catch(function (e) { aviso(e.message, 'error'); });
   }
 
-  function abrirPapelera() {
-    if (!CFG.gestionar) { location.hash = '#/'; return; }
-    abrirPanel(h('div', { class: 'pcan-panel-loading', text: __('Cargando la papelera…') }), __('Papelera'), { modal: true });
+  /** La papelera es una sección de «Ajustes y equipo». */
+  function abrirPapelera() { abrirAjustes('papelera'); }
+
+  /** Vuelve a pedir la papelera (tras restaurar o eliminar). Si el panel ya no está abierto, lo abre. */
+  function refrescarPapelera() {
+    if (ajustesAbierto && ajustesAbierto.raiz.isConnected) { ajustesAbierto.recargar('papelera'); }
+    else { abrirPapelera(); }
+  }
+
+  /** Pinta la papelera dentro de `cuerpo` (la sección «Papelera» de los ajustes). */
+  function pintarPapelera(cuerpo) {
+    cuerpo.innerHTML = '';
+    append(cuerpo, h('p', { class: 'pcan-help', text: __('Cargando la papelera…') }));
     api('papelera').then(function (r) {
-      var cuerpo = h('div', { class: 'pcan-form' });
+      cuerpo.innerHTML = '';
       var ayuda = r.dias
-        ? sprintf(_n('Las canciones borradas se conservan %d día y después se eliminan solas, con sus partituras y audios. Puedes cambiar el plazo en «Ajustes y equipo».', 'Las canciones borradas se conservan %d días y después se eliminan solas, con sus partituras y audios. Puedes cambiar el plazo en «Ajustes y equipo».', r.dias), r.dias)
-        : __('Las canciones borradas se conservan hasta que un administrador las elimine (el borrado automático está desactivado en «Ajustes y equipo»).');
-      append(cuerpo, h('p', { class: 'pcan-help', text: ayuda }));
+        ? sprintf(_n('Las canciones borradas se conservan %d día y después se eliminan solas, con sus partituras y audios.', 'Las canciones borradas se conservan %d días y después se eliminan solas, con sus partituras y audios.', r.dias), r.dias)
+        : __('Las canciones borradas se conservan hasta que un administrador las elimine (el borrado automático está desactivado).');
+      append(cuerpo, h('p', { class: 'pcan-help' }, ayuda + ' ',
+        h('a', { href: '#/ajustes/general', onclick: function (e) { e.preventDefault(); if (ajustesAbierto) { ajustesAbierto.ir('general'); } }, text: __('Cambiar el plazo') })));
       if (!r.canciones.length) {
         append(cuerpo, h('p', { class: 'pcan-help', text: __('La papelera está vacía.') }));
       } else {
@@ -2511,12 +2672,14 @@
             }, Promise.resolve()).then(function () {
               var ok = ids.length - fallos;
               aviso(sprintf(_n('%d canción eliminada para siempre', '%d canciones eliminadas para siempre', ok), ok) + (fallos ? ' · ' + sprintf(_n('%d no se pudo eliminar', '%d no se pudieron eliminar', fallos), fallos) : ''), fallos ? 'error' : undefined);
-              abrirPapelera();
+              pintarPapelera(cuerpo);
             });
           } }, icono('borrar'), __('Vaciar la papelera'))));
       }
-      abrirPanel([cabeceraPanel(h('h2', { text: __('Papelera') })), h('div', { class: 'pcan-panel-body' }, cuerpo)], __('Papelera'), { modal: true });
-    }).catch(function (e) { aviso(e.message, 'error'); cerrarPanel(); });
+    }).catch(function (e) {
+      cuerpo.innerHTML = '';
+      append(cuerpo, h('p', { class: 'pcan-form-error', text: e.message }));
+    });
   }
 
   // ---------------------------------------------------------------- copias de seguridad (administradores)
@@ -2554,7 +2717,7 @@
   }
 
   function leeme() {
-    return __('Copia de seguridad del Cancionero (plugin Cancionero).\n\ncopia.json  canciones, cultos y ajustes\narchivos/   partituras, audios y partituras editables de cada canción\n\nPara restaurarla: instala el plugin en WordPress, entra como administrador en el cancionero\ny abre el menú de tu cuenta → Copias de seguridad → Restaurar desde una copia.\n');
+    return __('Copia de seguridad del Cancionero (plugin Cancionero).\n\ncopia.json  canciones, cultos y ajustes\narchivos/   partituras, audios y partituras editables de cada canción\n\nPara restaurarla: instala el plugin en WordPress, entra como administrador en el cancionero\ny abre Ajustes y equipo → Copias de seguridad → Restaurar desde una copia.\n');
   }
 
   /** Monta la copia en el navegador: datos del servidor + cada archivo descargado, en un ZIP. */
@@ -2656,10 +2819,7 @@
   }
 
   function abrirCopias() {
-    if (!CFG.gestionar) { location.hash = '#/'; return; }
-    var cuerpo = h('div', { class: 'pcan-panel-body' });
-    abrirPanel([cabeceraPanel(h('h2', { text: __('Copias de seguridad') })), cuerpo], __('Copias de seguridad'), { modal: true });
-    pintarCopias(cuerpo);
+    abrirAjustes('copias');
   }
 
   function pintarCopias(cuerpo) {
@@ -2896,7 +3056,7 @@
     if ((m = hash.match(/^cancion\/(\d+)$/))) { verCancion(m[1]); }
     else if (hash === 'nueva') { pintarFormulario(null); }
     else if ((m = hash.match(/^editar\/(\d+)$/))) { abrirFormulario(m[1]); }
-    else if (hash === 'ajustes') { abrirAjustes(); }
+    else if ((m = hash.match(/^ajustes(?:\/([a-z]*))?$/))) { abrirAjustes(m[1] || 'general'); }
     else if (hash === 'copias') { abrirCopias(); }
     else if (hash === 'papelera') { abrirPapelera(); }
     else if (hash === 'subir') { abrirSubidaMultiple(); }

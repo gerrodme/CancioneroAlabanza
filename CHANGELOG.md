@@ -2,6 +2,10 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.10.1 · 2026-10-26
+
+Ajustes y equipo por secciones (General, Equipo, Acceso con Google, Archivos, Papelera y Copias de seguridad), cada una con su dirección; la Papelera y las Copias se abren desde ahí
+
 ## 1.10.0 · 2026-10-26
 
 Menú del usuario más compacto: temas en rejilla, idioma en un desplegable y notación en un selector; en el móvil se abre desde abajo

@@ -922,6 +922,50 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
 .pcan-miembro-main { display: flex; flex-direction: column; flex: 1; min-width: 0; font-size: 14px; }
 .pcan-miembro-main span { color: var(--pc-muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; }
 .pcan-estado { flex: 0 0 auto; padding: 2px 9px; border-radius: 999px; background: var(--pc-surface-2); color: var(--pc-muted); font-size: 12px; font-weight: 600; }
+/* Ajustes y equipo por secciones: navegación a la izquierda (pestañas arriba en el móvil) y barra de guardado fija abajo */
+.pcan-panel-wrap.is-ancho .pcan-panel { width: min(960px, 92vw); height: min(760px, calc(100dvh - 32px)); overflow: hidden; }
+@media (min-width: 761px) { .admin-bar .pcan-panel-wrap.is-ancho .pcan-panel { height: min(760px, calc(100dvh - 32px - var(--wp-admin--admin-bar--height, 32px))); } }
+.pcan-panel-wrap.is-ancho .pcan-panel-loading { flex: 1; display: grid; place-items: center; padding: 24px; }
+.pcan-panel-body.pcan-ajustes { flex: 1; min-height: 0; display: grid; grid-template-columns: 224px minmax(0, 1fr); padding: 0; }
+.pcan-ajustes-nav { display: flex; flex-direction: column; gap: 12px; min-height: 0; padding: 12px 10px; overflow-y: auto; border-right: 1px solid var(--pc-line); background: var(--pc-surface-2); }
+.pcan-ajustes-tabs { display: flex; flex-direction: column; gap: 2px; }
+.pcan-ajustes-tab {
+  display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 12px; border-radius: var(--pc-radius-sm);
+  color: var(--pc-text); font-size: 14.5px; font-weight: 600; text-decoration: none;
+}
+.pcan-ajustes-tab .pcan-ico { flex: 0 0 auto; width: 20px; height: 20px; color: var(--pc-muted); }
+.pcan-ajustes-tab:hover { background: color-mix(in srgb, var(--pc-text) 6%, transparent); }
+.pcan-ajustes-tab.is-active { background: var(--pc-accent-soft); color: var(--pc-accent); }
+.pcan-ajustes-tab.is-active .pcan-ico { color: var(--pc-accent); }
+.pcan-ajustes-tab:focus-visible { outline: 3px solid var(--pc-focus); outline-offset: -2px; }
+.pcan-ajustes-version { margin: auto 0 0; padding: 0 12px; font-size: 12px; }
+.pcan-ajustes-main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.pcan-ajustes-scroll { flex: 1; min-height: 0; padding: 20px 24px 28px; overflow-y: auto; overscroll-behavior: contain; }
+.pcan-ajustes-sec { display: flex; flex-direction: column; gap: 18px; }
+.pcan-ajustes-sec[hidden], .pcan-ajustes-barra[hidden] { display: none; }
+.pcan-ajustes-barra {
+  display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: 10px 12px; padding: 12px 24px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--pc-line); background: var(--pc-surface);
+}
+.pcan-ajustes-barra .pcan-form-error { flex: 1 0 100%; }
+.pcan-ajustes-estado { flex: 1; min-width: 0; color: var(--pc-muted); font-size: 13.5px; font-weight: 600; }
+.pcan-ajustes-barra.is-sucio .pcan-ajustes-estado { display: flex; align-items: center; gap: 8px; color: var(--pc-text); }
+.pcan-ajustes-barra.is-sucio .pcan-ajustes-estado::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--pc-warn); }
+.pcan-ajustes-botones { display: flex; gap: 10px; margin-left: auto; }
+@media (max-width: 760px) {
+  .pcan-panel-body.pcan-ajustes { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .pcan-ajustes-nav { padding: 6px 8px; overflow: visible; border-right: 0; border-bottom: 1px solid var(--pc-line); }
+  .pcan-ajustes-tabs { flex-direction: row; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+  .pcan-ajustes-tabs::-webkit-scrollbar { display: none; }
+  .pcan-ajustes-tab { flex: none; min-height: 44px; padding: 6px 12px; white-space: nowrap; }
+  .pcan-ajustes-version { display: none; }
+  .pcan-ajustes-scroll { padding: 16px 14px 24px; }
+  .pcan-ajustes-barra { padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); }
+  .pcan-ajustes-estado { flex: 1 0 100%; }
+  .pcan-ajustes-estado:empty { display: none; }
+  .pcan-ajustes-botones { width: 100%; margin-left: 0; }
+  .pcan-ajustes-botones .pcan-btn { flex: 1; }
+}
 /* Ajustes · archivos sin usar */
 .pcan-huerfanos { display: grid; gap: 8px; }
 [data-pcan-theme] .pcan-huerfanos-lista { display: grid; gap: 4px; max-height: 320px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }

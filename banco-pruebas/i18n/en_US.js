@@ -175,9 +175,6 @@ window.PIEB_I18N = {
   "Qué tocamos y qué no": [
    "What gets played"
   ],
-  "Acceso con Google, tema por defecto": [
-   "Google sign-in, default theme"
-  ],
   "Tema: %s": [
    "Theme: %s"
   ],
@@ -1007,13 +1004,6 @@ window.PIEB_I18N = {
   "Cargando la papelera…": [
    "Loading the trash…"
   ],
-  "Las canciones borradas se conservan %d día y después se eliminan solas, con sus partituras y audios. Puedes cambiar el plazo en «Ajustes y equipo».": [
-   "Deleted songs are kept for %d day and then removed automatically, along with their scores and audio. You can change the period in “Settings and team”.",
-   "Deleted songs are kept for %d days and then removed automatically, along with their scores and audio. You can change the period in “Settings and team”."
-  ],
-  "Las canciones borradas se conservan hasta que un administrador las elimine (el borrado automático está desactivado en «Ajustes y equipo»).": [
-   "Deleted songs are kept until an administrator removes them (automatic deletion is turned off in “Settings and team”)."
-  ],
   "La papelera está vacía.": [
    "The trash is empty."
   ],
@@ -1053,9 +1043,6 @@ window.PIEB_I18N = {
   ],
   "No se pudo cargar el compresor de copias. Revisa la conexión.": [
    "Could not load the backup compressor. Check your connection."
-  ],
-  "Copia de seguridad del Cancionero (plugin Cancionero).\n\ncopia.json  canciones, cultos y ajustes\narchivos/   partituras, audios y partituras editables de cada canción\n\nPara restaurarla: instala el plugin en WordPress, entra como administrador en el cancionero\ny abre el menú de tu cuenta → Copias de seguridad → Restaurar desde una copia.\n": [
-   "Songbook backup (Cancionero plugin).\n\ncopia.json  songs, services and settings\narchivos/   scores, audio and editable scores for each song\n\nTo restore it: install the plugin in WordPress, sign in as an administrator, open the songbook\nand go to your account menu → Backups → Restore from a backup.\n"
   ],
   "Descargando archivo %1$d de %2$d: %3$s": [
    "Downloading file %1$d of %2$d: %3$s"
@@ -1808,6 +1795,46 @@ window.PIEB_I18N = {
   ],
   "notación automática\u0004Auto": [
    "Auto"
+  ],
+  "Nombre, tema por defecto, plazo de la papelera": [
+   "Name, default theme, trash retention"
+  ],
+  "Correos con acceso, administradores y dominio": [
+   "Emails with access, administrators and domain"
+  ],
+  "Acceso con Google": [
+   "Google sign-in"
+  ],
+  "Archivos": [
+   "Files"
+  ],
+  "Protección y archivos sin usar": [
+   "Protection and unused files"
+  ],
+  "Restaurar o eliminar canciones borradas": [
+   "Restore or delete removed songs"
+  ],
+  "Descargar o restaurar una copia": [
+   "Download or restore a backup"
+  ],
+  "Secciones de los ajustes": [
+   "Settings sections"
+  ],
+  "Hay cambios sin guardar": [
+   "You have unsaved changes"
+  ],
+  "Las canciones borradas se conservan %d día y después se eliminan solas, con sus partituras y audios.": [
+   "Deleted songs are kept for %d day and then removed automatically, along with their scores and audio.",
+   "Deleted songs are kept for %d days and then removed automatically, along with their scores and audio."
+  ],
+  "Las canciones borradas se conservan hasta que un administrador las elimine (el borrado automático está desactivado).": [
+   "Deleted songs are kept until an administrator removes them (automatic deletion is turned off)."
+  ],
+  "Cambiar el plazo": [
+   "Change the period"
+  ],
+  "Copia de seguridad del Cancionero (plugin Cancionero).\n\ncopia.json  canciones, cultos y ajustes\narchivos/   partituras, audios y partituras editables de cada canción\n\nPara restaurarla: instala el plugin en WordPress, entra como administrador en el cancionero\ny abre Ajustes y equipo → Copias de seguridad → Restaurar desde una copia.\n": [
+   "Songbook backup (Cancionero plugin).\n\ncopia.json  songs, services and settings\narchivos/   scores, audio and editable scores for each song\n\nTo restore it: install the plugin in WordPress, sign in as an administrator, open the songbook\nand go to Settings and team → Backups → Restore from a backup.\n"
   ]
  }
 };

@@ -17,7 +17,7 @@ la herramienta: **no incluye ninguna canción ni partitura**; cada instalación 
   etiquetas de color, tonalidad, tempo (BPM), número de himnario y vídeos de YouTube.
 - **Partitura principal:** si una canción tiene varias partituras, la primera es la principal (la que se usa por defecto);
   se cambia con «Hacer principal» en la ficha.
-- **Papelera:** las canciones borradas van a una papelera que los administradores ven en el menú: pueden abrirlas,
+- **Papelera:** las canciones borradas van a una papelera que los administradores ven en Ajustes y equipo → Papelera: pueden abrirlas,
   restaurarlas o eliminarlas para siempre. Se limpian solas pasados N días (30 por defecto, configurable; 0 = nunca).
 - **Importación masiva:** «Subida múltiple» (arrastrar muchos PDF/imágenes de una vez; el título, el número de himnario
   y la tonalidad se deducen del nombre del archivo).
@@ -32,7 +32,7 @@ la herramienta: **no incluye ninguna canción ni partitura**; cada instalación 
 - **Idiomas:** español e inglés. Cada persona elige su idioma y la notación de las tonalidades (Do-Re-Mi o C-D-E) en el
   menú de su cuenta; por defecto se usa el idioma de WordPress. Se pueden añadir más idiomas (ver
   [docs/traducir.md](docs/traducir.md)).
-- **Copias de seguridad:** exportar e importar todo el contenido desde el menú de la cuenta (administradores del cancionero y de WordPress).
+- **Copias de seguridad:** exportar e importar todo el contenido desde Ajustes y equipo → Copias de seguridad (administradores del cancionero y de WordPress).
 
 Se muestra en cualquier página con el shortcode `[cancionero]`.
 
@@ -84,7 +84,7 @@ de WordPress, solo a quien ha iniciado sesión y tiene acceso al cancionero.
   location ^~ /wp-content/uploads/cancionero-privado/ { deny all; }
   ```
 
-- **Comprobación:** en **Ajustes y equipo → Protección de los archivos** el plugin comprueba si el servidor entrega los
+- **Comprobación:** en **Ajustes y equipo → Archivos** el plugin comprueba si el servidor entrega los
   archivos sin sesión y te avisa en rojo si es así.
 - **Archivos de antes de la 1.5.0:** el mismo apartado tiene el botón **Proteger archivos existentes**, que los mueve a
   la carpeta privada por tandas de 50. Haz antes una copia de seguridad. Los enlaces directos antiguos dejan de funcionar.
@@ -140,7 +140,7 @@ de WordPress, solo a quien ha iniciado sesión y tiene acceso al cancionero.
 
 El contenido (canciones, partituras, cultos, ajustes) vive en WordPress, **no en este repositorio**. Las partituras
 pueden tener derechos de autor: eres responsable de las que subas a tu instalación. Para guardar o llevar el cancionero a otra web:
-menú de la cuenta → **Copias de seguridad** (administradores del cancionero y de WordPress). Ver
+Ajustes y equipo → **Copias de seguridad** (administradores del cancionero y de WordPress). Ver
 [docs/guia-recuperar-cancionero.html](docs/guia-recuperar-cancionero.html).
 
 Para cargar o completar muchas canciones desde una carpeta de archivos, ver [docs/carga-masiva.md](docs/carga-masiva.md).
