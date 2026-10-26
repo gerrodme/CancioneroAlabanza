@@ -415,7 +415,7 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
 /* ================================================================== menú de usuario y temas */
 
 .pcan-menu {
-  position: fixed; z-index: 99999; width: 268px; padding: 8px;
+  position: fixed; z-index: 99999; width: 268px; padding: 8px; max-height: calc(100vh - 16px); overflow-y: auto;
   border: 1px solid var(--pc-line); border-radius: var(--pc-radius); background: var(--pc-surface); color: var(--pc-text); box-shadow: var(--pc-shadow-lg);
 }
 .pcan-menu-user { display: flex; flex-direction: column; padding: 8px 10px 10px; border-bottom: 1px solid var(--pc-line); margin-bottom: 6px; }

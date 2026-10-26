@@ -4,7 +4,11 @@ Uso:  python herramientas/empaquetar.py
 """
 import os
 import re
+import sys
 import zipfile
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import i18n  # noqa: E402  (compila las traducciones antes de empaquetar)
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PLUGIN = os.path.join(RAIZ, 'pieb-cancionero')
@@ -15,6 +19,8 @@ def version():
 
 
 def main():
+    # Genera los .mo y los JSON de las traducciones (si no hay ningún .po, no hace nada).
+    i18n.compilar()
     # La versión va al final del nombre del archivo; dentro del zip la carpeta sigue llamándose «pieb-cancionero/».
     SALIDA = os.path.join(RAIZ, 'dist', 'pieb-cancionero-%s.zip' % version())
     os.makedirs(os.path.dirname(SALIDA), exist_ok=True)

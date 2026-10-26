@@ -6,6 +6,31 @@
   var root = document.getElementById('pieb-cancionero');
   if (!root || !CFG.api) { return; }
 
+  // ---------------------------------------------------------------- traducciones (wp.i18n)
+
+  // Atajos con el dominio de texto ya fijado; si wp.i18n no estuviera cargado devuelven el texto tal cual.
+  var WPI = window.wp && window.wp.i18n;
+  var DOMINIO = 'pieb-cancionero';
+
+  function __(texto) { return WPI && WPI.__ ? WPI.__(texto, DOMINIO) : texto; }
+  function _x(texto, contexto) { return WPI && WPI._x ? WPI._x(texto, contexto, DOMINIO) : texto; }
+  function _n(singular, plural, n) { return WPI && WPI._n ? WPI._n(singular, plural, n, DOMINIO) : (+n === 1 ? singular : plural); }
+  function _nx(singular, plural, n, contexto) { return WPI && WPI._nx ? WPI._nx(singular, plural, n, contexto, DOMINIO) : (+n === 1 ? singular : plural); }
+
+  /** Sustituye %s, %d y %1$s (respaldo sencillo del sprintf de WordPress). */
+  function sprintf(formato) {
+    if (WPI && WPI.sprintf) { return WPI.sprintf.apply(WPI, arguments); }
+    var args = arguments, sig = 1;
+    return String(formato).replace(/%(?:(\d+)\$)?([sd%])/g, function (m, pos, tipo) {
+      if (tipo === '%') { return '%'; }
+      var v = pos ? args[+pos] : args[sig++];
+      return tipo === 'd' ? String(parseInt(v, 10) || 0) : String(v);
+    });
+  }
+
+  /** Idioma para fechas y números (BCP 47), el del usuario. */
+  var LOCALE = CFG.idioma || 'es-ES';
+
   var TONALIDADES = ['Do', 'Do#', 'Reb', 'Re', 'Mib', 'Mi', 'Fa', 'Fa#', 'Solb', 'Sol', 'Lab', 'La', 'Sib', 'Si',
     'Do m', 'Do# m', 'Re m', 'Mib m', 'Mi m', 'Fa m', 'Fa# m', 'Sol m', 'Sol# m', 'La m', 'Sib m', 'Si m'];
 
@@ -28,6 +53,32 @@
     var base = { do: 0, re: 2, mi: 4, fa: 5, sol: 7, la: 9, si: 11, c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 }[m[1].toLowerCase()];
     var semitono = base + (/[#♯]/.test(m[2]) ? 1 : /[b♭]/.test(m[2]) ? -1 : 0) + (m[3] ? 3 : 0);
     return ((((semitono % 12) + 12) % 12) * 7) % 12;
+  }
+
+  // Notación de las tonalidades: lo guardado es siempre latino (Do, Mib, La m); al mostrarlo se pasa a la notación elegida.
+  var LETRAS_AMERICANAS = { do: 'C', re: 'D', mi: 'E', fa: 'F', sol: 'G', la: 'A', si: 'B' };
+  var NOTAS_LATINAS = { c: 'Do', d: 'Re', e: 'Mi', f: 'Fa', g: 'Sol', a: 'La', b: 'Si' };
+  var RE_TONO_LATINO = /^(do|re|mi|fa|sol|la|si)\s*([#♯b♭]?)\s*(m|menor)?$/i;
+  var RE_TONO_AMERICANO = /^([A-G])\s*([#♯b♭]?)\s*(m|min)?$/;
+
+  function alteracionAscii(a) { return a === '♯' ? '#' : a === '♭' ? 'b' : a; }
+
+  /** Tonalidad tal como se muestra: en notación americana (C, Ebm, G#m) si el usuario la eligió; si no, o si no se reconoce, igual. */
+  function tonoVer(valor) {
+    var v = String(valor === null || valor === undefined ? '' : valor).trim();
+    if (CFG.notacion !== 'americana') { return v; }
+    var m = v.match(RE_TONO_LATINO);
+    if (!m) { return v; }
+    return LETRAS_AMERICANAS[m[1].toLowerCase()] + alteracionAscii(m[2]) + (m[3] ? 'm' : '');
+  }
+
+  /** Lo contrario: lo que el usuario escribe (C, Eb, Am…) pasa a la forma guardada (Do, Mib, La m). Lo desconocido, tal cual. */
+  function tonoGuardar(texto) {
+    var v = String(texto === null || texto === undefined ? '' : texto).trim(), m;
+    if ((m = v.match(RE_TONO_AMERICANO))) {
+      return NOTAS_LATINAS[m[1].toLowerCase()] + alteracionAscii(m[2]) + (m[3] ? ' m' : '');
+    }
+    return v;
   }
 
   var state = {
@@ -72,9 +123,9 @@
   }
 
   /** Pastilla de tonalidad; con el estilo «Colores» cada tonalidad lleva su color (--tono-h, por el círculo de quintas). */
-  function pastillaTono(tono, attrs) {
-    var q = quintaDe(tono);
-    var a = { class: 'pcan-key', text: tono, style: q < 0 ? null : '--tono-h: ' + (q * 30) };
+  function pastillaTono(valorTono, attrs) {
+    var q = quintaDe(valorTono);
+    var a = { class: 'pcan-key', text: tonoVer(valorTono), style: q < 0 ? null : '--tono-h: ' + (q * 30) };
     Object.keys(attrs || {}).forEach(function (k) { a[k] = k === 'class' ? a.class + ' ' + attrs[k] : attrs[k]; });
     return h('span', a);
   }
@@ -327,7 +378,9 @@
           autor: norm(c.autor),
           etiquetas: norm(c.etiquetas.join(' ')),
           letra: norm(c.letra),
-          numero: String(c.numero || '').replace(/^0+/, '')
+          numero: String(c.numero || '').replace(/^0+/, ''),
+          // La tonalidad se encuentra escribiéndola en cualquier notación («Sol» o «G», «Mib» o «Eb»).
+          tonos: tonosBuscables(c.tonalidad)
         };
       });
       state.cargado = true;
@@ -362,8 +415,21 @@
       .map(function (e) { return { nombre: e, n: cuenta[e] }; });
   }
 
+  /** Formas en que se puede escribir una tonalidad al buscar: sin espacios ni mayúsculas, en latino y en americano. */
+  function tonosBuscables(valor) {
+    var v = String(valor || '').trim();
+    if (!v) { return []; }
+    var latino = tonoGuardar(v);
+    var americano = (function () {
+      var m = latino.match(RE_TONO_LATINO);
+      return m ? LETRAS_AMERICANAS[m[1].toLowerCase()] + alteracionAscii(m[2]) + (m[3] ? 'm' : '') : latino;
+    })();
+    return [latino, americano, v].map(function (t) { return t.toLowerCase().replace(/\s+/g, ''); });
+  }
+
   function buscar(query, etiqueta) {
     var q = norm(query);
+    var qTono = String(query || '').trim().toLowerCase().replace(/♯/g, '#').replace(/♭/g, 'b').replace(/\s+/g, '');
     var tokens = q ? q.split(' ') : [];
     var esNumero = /^\d+$/.test(q);
     var res = [];
@@ -378,6 +444,7 @@
         if (it.numero === q.replace(/^0+/, '')) { score = 100; }
         else if (it.numero.indexOf(q) === 0) { score = 60; }
       }
+      if (qTono && it.tonos.indexOf(qTono) !== -1) { score = Math.max(score, 45); }
       if (it.titulo.indexOf(q) === 0) { score = Math.max(score, 50); }
       else if (it.titulo.indexOf(q) !== -1) { score = Math.max(score, 40); }
 
@@ -414,7 +481,7 @@
     var n;
     switch (orden) {
       case 'numero': n = parseInt(c.numero, 10); return isNaN(n) ? null : n;
-      case 'tono': return c.tonalidad || null;
+      case 'tono': return c.tonalidad ? tonoVer(c.tonalidad) : null;
       case 'tempo': n = parseInt(c.tempo, 10); return isNaN(n) ? null : n;
       case 'etiquetas': return c.etiquetas.length ? c.etiquetas.slice().sort(function (x, y) { return x.localeCompare(y, 'es'); })[0] : null;
       case 'recientes': return c.creada;
@@ -546,10 +613,19 @@
 
     // Menú de usuario (temas y enlaces), compartido por la barra lateral y la superior.
     ui.menuTemas = h('div', { class: 'pcan-menu-temas', role: 'radiogroup', 'aria-label': 'Tema' });
+    // Idioma (solo si hay más de uno disponible) y notación de las tonalidades: se guardan y se recarga la página,
+    // porque cambiar el idioma exige cargar otras traducciones.
+    var idiomas = CFG.idiomas || {};
+    ui.menuIdioma = Object.keys(idiomas).length > 1 ? h('div', { class: 'pcan-menu-temas', role: 'radiogroup', 'aria-label': __('Idioma') }) : null;
+    ui.menuNotacion = h('div', { class: 'pcan-menu-temas', role: 'radiogroup', 'aria-label': __('Notación') });
     ui.menu = h('div', { class: 'pcan-menu', hidden: true },
       h('div', { class: 'pcan-menu-user' }, h('strong', { text: CFG.userName }), h('span', { text: CFG.sitio })),
       h('p', { class: 'pcan-menu-label', text: 'Tema' }),
       ui.menuTemas,
+      ui.menuIdioma ? h('p', { class: 'pcan-menu-label', text: __('Idioma') }) : null,
+      ui.menuIdioma,
+      h('p', { class: 'pcan-menu-label', text: __('Notación') }),
+      ui.menuNotacion,
       h('div', { class: 'pcan-menu-sep' }),
       CFG.gestionar ? h('a', { class: 'pcan-menu-item', href: '#/ajustes' }, icono('ajustes'), 'Ajustes y equipo') : null,
       CFG.gestionar ? h('a', { class: 'pcan-menu-item', href: '#/papelera' }, icono('borrar'), 'Papelera') : null,
@@ -558,6 +634,7 @@
       h('a', { class: 'pcan-menu-item', href: CFG.logoutUrl }, icono('salir'), 'Cerrar sesión'),
       CFG.version ? h('p', { class: 'pcan-menu-version', text: 'Cancionero ' + CFG.version }) : null);
     pintarMenuTemas();
+    pintarMenuPreferencias();
 
     // Vistas.
     ui.vistaInicio = h('section', { class: 'pcan-vista', 'data-vista': 'inicio' });
@@ -651,6 +728,33 @@
     });
   }
 
+  /** Guarda una preferencia del usuario (idioma o notación) y recarga para aplicarla. */
+  function guardarPreferencia(datos) {
+    api('preferencias', { json: datos }).then(function () { window.location.reload(); })
+      .catch(function () { aviso(__('No se pudo guardar la preferencia'), 'error'); });
+  }
+
+  function pintarMenuPreferencias() {
+    function opciones(cont, lista, elegido, clave) {
+      if (!cont) { return; }
+      cont.innerHTML = '';
+      lista.forEach(function (o) {
+        var activo = elegido === o[0];
+        append(cont, h('button', {
+          type: 'button', role: 'radio', 'aria-checked': activo ? 'true' : 'false', class: 'pcan-tema-opcion' + (activo ? ' is-active' : ''),
+          onclick: function (e) {
+            e.stopPropagation();
+            if (!activo) { var d = {}; d[clave] = o[0]; guardarPreferencia(d); }
+          }
+        }, h('span', { text: o[1] }), activo ? icono('check') : null));
+      });
+    }
+    var idiomas = CFG.idiomas || {};
+    opciones(ui.menuIdioma, [['', __('Automático (idioma del sitio)')]].concat(Object.keys(idiomas).map(function (k) { return [k, idiomas[k]]; })),
+      CFG.idiomaElegido || '', 'idioma');
+    opciones(ui.menuNotacion, [['', __('Automática')], ['latina', 'Do-Re-Mi'], ['americana', 'C-D-E']], CFG.notacionElegida || '', 'notacion');
+  }
+
   var menuOrigen = null;
 
   function alternarMenu(abrir, origen) {
@@ -729,7 +833,7 @@
       var canciones = q ? buscar(q, '').slice(0, 7) : state.canciones.slice().sort(function (a, b) { return b.creada.localeCompare(a.creada); }).slice(0, 5).map(function (c) { return { c: c }; });
       if (canciones.length) {
         grupos.push({ titulo: q ? 'Canciones' : 'Añadidas recientemente', items: canciones.map(function (r) {
-          return { titulo: r.c.titulo, sub: [r.c.numero ? 'Nº ' + r.c.numero : '', r.c.tonalidad, r.enLetra ? '«' + fragmentoLetra(r.c.letra, q) + '»' : ''].filter(Boolean).join(' · '), icono: 'nota', href: '#/cancion/' + r.c.id, num: r.c.numero };
+          return { titulo: r.c.titulo, sub: [r.c.numero ? 'Nº ' + r.c.numero : '', tonoVer(r.c.tonalidad), r.enLetra ? '«' + fragmentoLetra(r.c.letra, q) + '»' : ''].filter(Boolean).join(' · '), icono: 'nota', href: '#/cancion/' + r.c.id, num: r.c.numero };
         }) });
       }
       ganchos.paleta.forEach(function (fn) { var g = fn(q); if (g && g.items.length) { grupos.push(g); } });
@@ -827,7 +931,7 @@
   function pintarInicio() {
     var cont = ui.vistaInicio;
     cont.innerHTML = '';
-    var hoy = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+    var hoy = new Date().toLocaleDateString(LOCALE, { weekday: 'long', day: 'numeric', month: 'long' });
     var heroe = h('div', { class: 'pcan-home-hero' });
     var tarjetas = h('div', { class: 'pcan-home-grid' });
     ui.cifras = h('div', { class: 'pcan-home-cifras', 'aria-label': 'El repertorio en cifras' });
@@ -839,7 +943,7 @@
       recientes.length ? h('ul', { class: 'pcan-mini-lista' }, recientes.map(function (c) {
         return h('li', null, h('a', { href: '#/cancion/' + c.id },
           h('span', { class: 'pcan-num is-sm' + (c.numero ? '' : ' is-empty') }, c.numero ? c.numero : icono('nota')),
-          h('span', { class: 'pcan-mini-texto' }, h('strong', { text: c.titulo }), h('span', { text: [c.autor, c.tonalidad].filter(Boolean).join(' · ') || 'Sin datos adicionales' }))));
+          h('span', { class: 'pcan-mini-texto' }, h('strong', { text: c.titulo }), h('span', { text: [c.autor, tonoVer(c.tonalidad)].filter(Boolean).join(' · ') || 'Sin datos adicionales' }))));
       })) : h('p', { class: 'pcan-muted', text: 'Aún no hay canciones.' })));
 
     append(cont, h('div', { class: 'pcan-home' },
@@ -888,7 +992,7 @@
   function fechaCorta(iso) {
     var p = String(iso || '').slice(0, 10).split('-');
     if (p.length < 3) { return ''; }
-    return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }).replace('.', '');
+    return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString(LOCALE, { day: 'numeric', month: 'short' }).replace('.', '');
   }
 
   /** Resumen de la biblioteca: cada cifra es también un filtro. */
@@ -1483,8 +1587,8 @@
     var fNumero = h('input', { type: 'text', class: 'pcan-input', value: c.numero, inputmode: 'numeric', maxlength: '20' });
     var fTempo = h('input', { type: 'number', class: 'pcan-input', value: c.tempo || '', min: '20', max: '400', step: '1', inputmode: 'numeric', placeholder: 'p. ej. 72' });
     var fAutor = h('input', { type: 'text', class: 'pcan-input', value: c.autor, maxlength: '200' });
-    var listaTonos = h('datalist', { id: 'pcan-tonos' }, TONALIDADES.map(function (t) { return h('option', { value: t }); }));
-    var fTono = h('input', { type: 'text', class: 'pcan-input', value: c.tonalidad, list: 'pcan-tonos', maxlength: '20' });
+    var listaTonos = h('datalist', { id: 'pcan-tonos' }, TONALIDADES.map(function (t) { return h('option', { value: tonoVer(t) }); }));
+    var fTono = h('input', { type: 'text', class: 'pcan-input', value: tonoVer(c.tonalidad), list: 'pcan-tonos', maxlength: '20' });
     var fLetra = h('textarea', { class: 'pcan-input pcan-textarea', rows: '10' });
     fLetra.value = c.letra;
     var fNotas = h('textarea', { class: 'pcan-input pcan-textarea', rows: '3' });
@@ -1753,7 +1857,7 @@
       fd.append('titulo', fTitulo.value.trim());
       fd.append('numero', fNumero.value.trim());
       fd.append('autor', fAutor.value.trim());
-      fd.append('tonalidad', fTono.value.trim());
+      fd.append('tonalidad', tonoGuardar(fTono.value));
       fd.append('tempo', fTempo.value.trim());
       fd.append('etiquetas', etiquetas.join(','));
       fd.append('letra', fLetra.value);
@@ -1919,11 +2023,11 @@
                 onchange: function (e) { it.titulo = limpiarTitulo(e.target.value); e.target.value = it.titulo; marcarDup(); pintarResumen(); }
               }),
               h('input', {
-                type: 'text', class: 'pcan-input pcan-input-sm', value: it.tonalidad, placeholder: 'Tono', maxlength: '12',
+                type: 'text', class: 'pcan-input pcan-input-sm', value: tonoVer(it.tonalidad), placeholder: 'Tono', maxlength: '12',
                 'aria-label': 'Tonalidad de ' + it.file.name, disabled: bloqueado,
                 oninput: function (e) { it.tonalidad = e.target.value; },
                 // «C» y «Do» son lo mismo: se guarda en notación española.
-                onchange: function (e) { var t = tonoEspanol(e.target.value); it.tonalidad = t || limpiarTitulo(e.target.value); e.target.value = it.tonalidad; }
+                onchange: function (e) { var t = tonoEspanol(e.target.value); it.tonalidad = t || limpiarTitulo(e.target.value); e.target.value = tonoVer(it.tonalidad); }
               })),
             h('span', { class: 'pcan-lote-archivo', text: it.file.name + ' · ' + tamano(it.file.size) }),
             dup, estado),
@@ -2766,6 +2870,14 @@
     mostrarVista: mostrarVista,
     abrirPaleta: abrirPaleta,
     tonalidades: TONALIDADES,
+    tono: tonoVer,
+    tonoGuardar: tonoGuardar,
+    locale: LOCALE,
+    __: __,
+    _n: _n,
+    _x: _x,
+    _nx: _nx,
+    sprintf: sprintf,
     pastillaTono: pastillaTono,
     ruta: function (re, fn) { rutasExtra.push({ re: re, fn: fn }); },
     vista: function (nombre, fn) { ganchos.vistas[nombre] = fn; },

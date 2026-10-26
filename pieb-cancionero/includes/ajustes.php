@@ -1,7 +1,7 @@
 <?php
 /**
  * Ajustes del cancionero (tema por defecto, acceso con Google, lista del equipo)
- * y preferencias de cada usuario (tema elegido).
+ * y preferencias de cada usuario (tema, idioma y notación de las tonalidades).
  */
 
 if (!defined('ABSPATH')) {
@@ -64,6 +64,178 @@ function pieb_can_tema_usuario() {
     return isset(pieb_can_temas()[$tema]) ? $tema : pieb_can_ajustes()['tema_defecto'];
 }
 
+// ---------------------------------------------------------------- idioma y notación de cada usuario
+
+/**
+ * Nombres nativos de los idiomas más habituales, para el menú del usuario (sin consultar nada por red).
+ * Un idioma que no esté aquí se muestra con su nombre nativo según WordPress, si lo conoce, o con su código.
+ */
+function pieb_can_nombres_idiomas() {
+    return array(
+        'en_US' => 'English',
+        'en_GB' => 'English (UK)',
+        'es_ES' => 'Español',
+        'es_MX' => 'Español (México)',
+        'fr_FR' => 'Français',
+        'pt_BR' => 'Português (Brasil)',
+        'pt_PT' => 'Português (Portugal)',
+        'de_DE' => 'Deutsch',
+        'it_IT' => 'Italiano',
+        'ca'    => 'Català',
+        'gl_ES' => 'Galego',
+        'nl_NL' => 'Nederlands',
+        'ru_RU' => 'Русский',
+        'ko_KR' => '한국어',
+        'ja'    => '日本語',
+        'zh_CN' => '简体中文',
+    );
+}
+
+/** Código de lengua de un locale: «en_GB» → «en». */
+function pieb_can_lengua($locale) {
+    $partes = preg_split('/[_-]/', strtolower((string) $locale));
+    return $partes[0];
+}
+
+/** Locales que tienen traducción propia: uno por cada languages/pieb-cancionero-<locale>.mo. */
+function pieb_can_locales_con_traduccion() {
+    static $locales = null;
+    if ($locales === null) {
+        $locales = array();
+        $archivos = glob(PIEB_CAN_DIR . 'languages/pieb-cancionero-*.mo');
+        foreach ((array) $archivos as $archivo) {
+            $locale = substr(basename($archivo, '.mo'), strlen('pieb-cancionero-'));
+            if ($locale !== '' && preg_match('/^[A-Za-z0-9_@-]+$/', $locale)) {
+                $locales[] = $locale;
+            }
+        }
+        sort($locales);
+    }
+    return $locales;
+}
+
+/**
+ * Idiomas entre los que puede elegir un usuario: locale => nombre nativo. El español es el idioma base de los textos
+ * (no necesita archivo) y cada .mo de languages/ añade uno.
+ */
+function pieb_can_idiomas_disponibles() {
+    $conocidos = pieb_can_nombres_idiomas();
+    $idiomas = array('es_ES' => $conocidos['es_ES']);
+    foreach (pieb_can_locales_con_traduccion() as $locale) {
+        if (isset($idiomas[$locale])) {
+            continue;
+        }
+        if (isset($conocidos[$locale])) {
+            $idiomas[$locale] = $conocidos[$locale];
+        } elseif (function_exists('wp_get_available_translations')) {
+            $traducciones = wp_get_available_translations();
+            $idiomas[$locale] = isset($traducciones[$locale]['native_name']) ? $traducciones[$locale]['native_name'] : $locale;
+        } else {
+            $idiomas[$locale] = $locale;
+        }
+    }
+    return $idiomas;
+}
+
+/** Idioma que el usuario actual eligió en su menú ('' = el del sitio). */
+function pieb_can_idioma_elegido() {
+    $id = function_exists('get_current_user_id') ? get_current_user_id() : 0;
+    if (!$id) {
+        return '';
+    }
+    $elegido = (string) get_user_meta($id, 'pieb_idioma', true);
+    return isset(pieb_can_idiomas_disponibles()[$elegido]) ? $elegido : '';
+}
+
+/** Idioma pedido: el que eligió el usuario o, si no, el de WordPress. */
+function pieb_can_idioma_pedido() {
+    $elegido = pieb_can_idioma_elegido();
+    if ($elegido !== '') {
+        return $elegido;
+    }
+    $sitio = (string) determine_locale();
+    return $sitio !== '' ? $sitio : 'es_ES';
+}
+
+/**
+ * Locale efectivo del cancionero para el usuario actual (el de las traducciones que se cargan).
+ * Español: sin archivo, porque es el idioma base. Otros idiomas: su .mo; si no existe, el primero del mismo idioma
+ * (en_GB → en_US) y, si tampoco, el español base.
+ */
+function pieb_can_idioma() {
+    $pedido = pieb_can_idioma_pedido();
+    $lengua = pieb_can_lengua($pedido);
+    if ($lengua === 'es') {
+        return $pedido;
+    }
+    $disponibles = pieb_can_locales_con_traduccion();
+    if (in_array($pedido, $disponibles, true)) {
+        return $pedido;
+    }
+    foreach ($disponibles as $locale) {
+        if (pieb_can_lengua($locale) === $lengua) {
+            return $locale;
+        }
+    }
+    return 'es_ES';
+}
+
+/** Etiqueta BCP 47 para Intl en el navegador: «en_GB» → «en-GB». Si el locale pedido es del mismo idioma, se prefiere su región. */
+function pieb_can_idioma_bcp47() {
+    $locale = pieb_can_idioma();
+    $pedido = pieb_can_idioma_pedido();
+    if (pieb_can_lengua($pedido) === pieb_can_lengua($locale)) {
+        $locale = $pedido;
+    }
+    $partes = preg_split('/[_-]/', preg_replace('/@.*/', '', $locale));
+    $etiqueta = strtolower($partes[0]);
+    if (isset($partes[1]) && preg_match('/^([A-Za-z]{2}|[0-9]{3})$/', $partes[1])) {
+        $etiqueta .= '-' . strtoupper($partes[1]);
+    }
+    return $etiqueta;
+}
+
+/** Notación de tonalidades elegida por el usuario: '' (automática), 'latina' o 'americana'. */
+function pieb_can_notacion_elegida() {
+    $id = function_exists('get_current_user_id') ? get_current_user_id() : 0;
+    $elegida = $id ? (string) get_user_meta($id, 'pieb_notacion', true) : '';
+    return in_array($elegida, array('latina', 'americana'), true) ? $elegida : '';
+}
+
+/** Notación efectiva: la elegida o, en automático, latina para el español y americana para cualquier otro idioma. */
+function pieb_can_notacion() {
+    $elegida = pieb_can_notacion_elegida();
+    if ($elegida !== '') {
+        return $elegida;
+    }
+    return pieb_can_lengua(pieb_can_idioma()) === 'es' ? 'latina' : 'americana';
+}
+
+/*
+ * Cada usuario puede usar el cancionero en un idioma distinto al del sitio. Estos filtros afectan solo al dominio
+ * «pieb-cancionero», nunca al resto de WordPress. El usuario ya se conoce en «init» (también en las peticiones REST,
+ * por la cookie de sesión), así que los mensajes de la API salen en su idioma sin tener que recargar nada más.
+ */
+add_filter('plugin_locale', function ($locale, $domain) {
+    return $domain === 'pieb-cancionero' ? pieb_can_idioma() : $locale;
+}, 10, 2);
+
+// Los JSON de las traducciones de JS se buscan con el locale del sitio; aquí se cambia por el del usuario (solo los nuestros).
+add_filter('load_script_translation_file', function ($archivo, $handle, $dominio) {
+    if ($dominio !== 'pieb-cancionero' || !is_string($archivo) || $archivo === '') {
+        return $archivo;
+    }
+    if (wp_normalize_path(dirname($archivo)) !== wp_normalize_path(rtrim(PIEB_CAN_DIR, '/\\') . '/languages')) {
+        return $archivo;
+    }
+    $nombre = basename($archivo);
+    $prefijo = 'pieb-cancionero-' . determine_locale() . '-';
+    if (strpos($nombre, $prefijo) !== 0) {
+        return $archivo;
+    }
+    return dirname($archivo) . '/pieb-cancionero-' . pieb_can_idioma() . '-' . substr($nombre, strlen($prefijo));
+}, 10, 3);
+
 function pieb_can_normalizar_emails($texto) {
     $emails = array();
     foreach (preg_split('/[\s,;]+/', strtolower((string) $texto)) as $e) {
@@ -110,12 +282,47 @@ add_action('rest_api_init', function () {
 });
 
 function pieb_can_rest_preferencias(WP_REST_Request $request) {
-    $tema = (string) $request->get_param('tema');
-    if (!isset(pieb_can_temas()[$tema])) {
+    // Cada parámetro es opcional ('idioma' y 'notacion' vacíos = automático), pero debe llegar al menos uno.
+    $tiene_idioma   = $request->has_param('idioma');
+    $tiene_notacion = $request->has_param('notacion');
+    $tiene_tema     = $request->has_param('tema') || !($tiene_idioma || $tiene_notacion);
+    $tema     = (string) $request->get_param('tema');
+    $idioma   = (string) $request->get_param('idioma');
+    $notacion = (string) $request->get_param('notacion');
+
+    if ($tiene_tema && !isset(pieb_can_temas()[$tema])) {
         return new WP_Error('pieb_tema', 'Tema desconocido.', array('status' => 400));
     }
-    update_user_meta(get_current_user_id(), 'pieb_can_tema', $tema);
-    return rest_ensure_response(array('tema' => $tema));
+    if ($tiene_idioma && $idioma !== '' && !isset(pieb_can_idiomas_disponibles()[$idioma])) {
+        return new WP_Error('pieb_idioma', __('Idioma desconocido.', 'pieb-cancionero'), array('status' => 400));
+    }
+    if ($tiene_notacion && !in_array($notacion, array('', 'latina', 'americana'), true)) {
+        return new WP_Error('pieb_notacion', __('Notación desconocida.', 'pieb-cancionero'), array('status' => 400));
+    }
+
+    $usuario = get_current_user_id();
+    $respuesta = array();
+    if ($tiene_tema) {
+        update_user_meta($usuario, 'pieb_can_tema', $tema);
+        $respuesta['tema'] = $tema;
+    }
+    if ($tiene_idioma) {
+        if ($idioma === '') {
+            delete_user_meta($usuario, 'pieb_idioma');
+        } else {
+            update_user_meta($usuario, 'pieb_idioma', $idioma);
+        }
+        $respuesta['idioma'] = $idioma;
+    }
+    if ($tiene_notacion) {
+        if ($notacion === '') {
+            delete_user_meta($usuario, 'pieb_notacion');
+        } else {
+            update_user_meta($usuario, 'pieb_notacion', $notacion);
+        }
+        $respuesta['notacion'] = $notacion;
+    }
+    return rest_ensure_response($respuesta);
 }
 
 /** Miembros: correos de la lista más las cuentas que ya tienen el rol del equipo. */

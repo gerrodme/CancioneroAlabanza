@@ -2,6 +2,12 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.8.0 · 2026-10-26
+
+Preparado para traducciones: idioma y notación de las tonalidades elegibles por usuario (Do-Re-Mi o C-D-E, en el menú del
+usuario; lo guardado no cambia), fechas con el idioma del usuario, infraestructura de traducción de WordPress
+(`languages/`, `wp.i18n`) y herramienta `herramientas/i18n.py` para extraer y compilar los textos
+
 ## 1.7.4 · 2026-10-25
 
 El zip del plugin incluye el texto de la licencia GPL (`license.txt`)

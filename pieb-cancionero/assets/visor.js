@@ -374,7 +374,7 @@
         append(titulo, [
           canciones.length > 1 ? h('span', { class: 'pcan-lector-n', text: (est.cancion + 1) + '/' + canciones.length }) : null,
           h('strong', { text: (c.numero ? c.numero + ' · ' : '') + c.titulo }),
-          c.tono ? h('span', { class: 'pcan-tono', text: c.tono }) : null,
+          c.tono ? h('span', { class: 'pcan-tono', text: P.tono(c.tono) }) : null,
           c.tempo ? h('span', { class: 'pcan-lector-tempo', title: c.tempo + ' pulsaciones por minuto', text: '♩ = ' + c.tempo }) : null,
           c.nota ? h('span', { class: 'pcan-lector-nota', text: c.nota }) : null
         ]);

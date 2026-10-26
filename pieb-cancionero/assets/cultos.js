@@ -5,6 +5,9 @@
   var P = window.PCAN;
   if (!P) { return; }
   var h = P.h, append = P.append, icono = P.icono, api = P.api, aviso = P.aviso;
+  // Atajos de traducción compartidos por cancionero.js y el idioma del usuario para fechas.
+  var __ = P.__, _n = P._n, _x = P._x, sprintf = P.sprintf;
+  var LOCALE = P.locale || 'es-ES';
 
   var TIPOS = ['Culto dominical', 'Culto de oración', 'Santa Cena', 'Culto especial', 'Ensayo', 'Boda', 'Funeral'];
   var DIAS_REPETICION = 28;
@@ -41,7 +44,7 @@
   }
 
   function fmt(iso, opts) {
-    return fechaLocal(iso).toLocaleDateString('es-ES', opts);
+    return fechaLocal(iso).toLocaleDateString(LOCALE, opts);
   }
 
   function fechaLarga(iso) {
@@ -144,9 +147,9 @@
   function bloqueFecha(iso) {
     var d = fechaLocal(iso);
     return h('span', { class: 'pcan-culto-date', 'aria-hidden': 'true' },
-      h('span', { class: 'pcan-culto-dow', text: d.toLocaleDateString('es-ES', { weekday: 'short' }).replace('.', '') }),
+      h('span', { class: 'pcan-culto-dow', text: d.toLocaleDateString(LOCALE, { weekday: 'short' }).replace('.', '') }),
       h('span', { class: 'pcan-culto-day', text: String(d.getDate()) }),
-      h('span', { class: 'pcan-culto-mon', text: d.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '') }));
+      h('span', { class: 'pcan-culto-mon', text: d.toLocaleDateString(LOCALE, { month: 'short' }).replace('.', '') }));
   }
 
   function titulosDe(c) {
@@ -189,7 +192,7 @@
     proximos.forEach(function (c) {
       var d = fechaLocal(c.fecha);
       append(cont, h('a', { class: 'pcan-side-culto', href: '#/culto/' + c.id },
-        h('span', { class: 'pcan-side-culto-fecha' }, h('b', { text: String(d.getDate()) }), d.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '')),
+        h('span', { class: 'pcan-side-culto-fecha' }, h('b', { text: String(d.getDate()) }), d.toLocaleDateString(LOCALE, { month: 'short' }).replace('.', '')),
         h('span', { class: 'pcan-side-culto-texto' }, h('strong', { text: c.titulo }), h('small', { text: c.items.length + (c.items.length === 1 ? ' canción' : ' canciones') + ' · ' + haceTanto(c.fecha) }))));
     });
   }
@@ -352,7 +355,7 @@
       n++;
       var s = it.datos;
       var tono = it.tonalidad || s.tonalidad;
-      lineas.push(n + '. ' + s.titulo + (s.numero ? ' (nº ' + s.numero + ')' : '') + (tono ? ' — ' + tono : ''));
+      lineas.push(n + '. ' + s.titulo + (s.numero ? ' (nº ' + s.numero + ')' : '') + (tono ? ' — ' + P.tono(tono) : ''));
       if (it.nota) { lineas.push('   ' + it.nota); }
     });
     if (c.notas) { lineas.push('', c.notas); }
@@ -507,9 +510,9 @@
             h('span', { class: 'pcan-set-title' }, s && s.numero ? h('span', { class: 'pcan-set-num', text: s.numero }) : null, titulo),
             h('span', { class: 'pcan-set-fields' },
               h('input', {
-                type: 'text', class: 'pcan-input pcan-input-sm pcan-set-tono', list: 'pcan-tonos-set', value: it.tonalidad,
-                placeholder: s && s.tonalidad ? s.tonalidad : 'Tono', 'aria-label': 'Tonalidad de ' + titulo,
-                oninput: function (e) { it.tonalidad = e.target.value; }
+                type: 'text', class: 'pcan-input pcan-input-sm pcan-set-tono', list: 'pcan-tonos-set', value: P.tono(it.tonalidad),
+                placeholder: s && s.tonalidad ? P.tono(s.tonalidad) : 'Tono', 'aria-label': 'Tonalidad de ' + titulo,
+                oninput: function (e) { it.tonalidad = P.tonoGuardar(e.target.value); }
               }),
               h('input', {
                 type: 'text', class: 'pcan-input pcan-input-sm', value: it.nota, placeholder: 'Nota (p. ej. «solo estrofas 1 y 3»)',
@@ -584,7 +587,7 @@
 
     var errorBox = h('div', { class: 'pcan-form-error', role: 'alert', hidden: true });
     var guardar = h('button', { type: 'submit', class: 'pcan-btn pcan-btn-primary' }, editando ? 'Guardar cambios' : 'Crear culto');
-    var tonos = h('datalist', { id: 'pcan-tonos-set' }, P.tonalidades.map(function (t) { return h('option', { value: t }); }));
+    var tonos = h('datalist', { id: 'pcan-tonos-set' }, P.tonalidades.map(function (t) { return h('option', { value: P.tono(t) }); }));
 
     // En pantallas anchas los datos van en una fila y cada canción del setlist en una línea (ver «editor del culto» en el CSS).
     var form = h('form', { class: 'pcan-form pcan-form-culto', novalidate: true },
@@ -827,7 +830,7 @@
             n++;
             var s = it.datos;
             var tono = it.tonalidad || s.tonalidad;
-            pag.drawText(latin1(n + '.  ' + s.titulo + (s.numero ? '  (n.º ' + s.numero + ')' : '') + (tono ? '  -  ' + tono : '')), { x: 56, y: y, size: 14, font: negrita });
+            pag.drawText(latin1(n + '.  ' + s.titulo + (s.numero ? '  (n.º ' + s.numero + ')' : '') + (tono ? '  -  ' + P.tono(tono) : '')), { x: 56, y: y, size: 14, font: negrita });
             y -= 18;
             if (it.nota) { pag.drawText(latin1(it.nota), { x: 76, y: y, size: 11, font: normal, color: L.rgb(0.37, 0.43, 0.5) }); y -= 16; }
             y -= 8;
@@ -1043,7 +1046,7 @@
   function columnas(meses) {
     var max = meses.reduce(function (m, x) { return Math.max(m, x.canciones); }, 0);
     var etiquetaMes = function (m, larga) {
-      return m.fecha.toLocaleDateString('es-ES', larga ? { month: 'long', year: 'numeric' } : { month: 'short' }).replace('.', '');
+      return m.fecha.toLocaleDateString(LOCALE, larga ? { month: 'long', year: 'numeric' } : { month: 'short' }).replace('.', '');
     };
     var grafica = h('div', { class: 'pcan-columnas', role: 'img', 'aria-label': 'Canciones tocadas por mes' }, meses.map(function (m) {
       var pct = max ? Math.round(m.canciones / max * 100) : 0;

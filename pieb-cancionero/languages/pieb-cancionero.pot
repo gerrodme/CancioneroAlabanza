@@ -1,0 +1,38 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Cancionero 1.8.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-26 10:09+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Domain: pieb-cancionero\n"
+
+#: assets/cancionero.js:619 assets/cancionero.js:625
+msgid "Idioma"
+msgstr ""
+
+#: assets/cancionero.js:620 assets/cancionero.js:627
+msgid "Notación"
+msgstr ""
+
+#: assets/cancionero.js:734
+msgid "No se pudo guardar la preferencia"
+msgstr ""
+
+#: assets/cancionero.js:753
+msgid "Automático (idioma del sitio)"
+msgstr ""
+
+#: assets/cancionero.js:755
+msgid "Automática"
+msgstr ""
+
+#: includes/ajustes.php:297
+msgid "Idioma desconocido."
+msgstr ""
+
+#: includes/ajustes.php:300
+msgid "Notación desconocida."
+msgstr ""

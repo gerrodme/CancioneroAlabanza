@@ -2,20 +2,21 @@
 /**
  * Plugin Name: Cancionero
  * Description: Cancionero para equipos de música y alabanza: canciones con partitura, letra, audios y YouTube, setlists de cultos, visor para tableta, temas propios y acceso con Google. Shortcode [cancionero].
- * Version: 1.7.4
+ * Version: 1.8.0
  * Author: Gerson Rodrigo Menéndez
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Requires at least: 6.0
  * Requires PHP: 7.4
  * Text Domain: pieb-cancionero
+ * Domain Path: /languages
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PIEB_CAN_VERSION', '1.7.4');
+define('PIEB_CAN_VERSION', '1.8.0');
 define('PIEB_CAN_FILE', __FILE__);
 define('PIEB_CAN_DIR', plugin_dir_path(__FILE__));
 define('PIEB_CAN_URL', plugin_dir_url(__FILE__));
@@ -39,6 +40,12 @@ require_once PIEB_CAN_DIR . 'includes/migracion.php';
 require_once PIEB_CAN_DIR . 'includes/cultos.php';
 require_once PIEB_CAN_DIR . 'includes/ajustes.php';
 require_once PIEB_CAN_DIR . 'includes/google.php';
+
+// Traducciones del plugin (el idioma de cada usuario se decide en el filtro plugin_locale, ver includes/ajustes.php).
+// Prioridad 1: antes de registrar los tipos de contenido, cuyas etiquetas ya usarán el dominio.
+add_action('init', function () {
+    load_plugin_textdomain('pieb-cancionero', false, dirname(plugin_basename(PIEB_CAN_FILE)) . '/languages');
+}, 1);
 
 add_action('init', 'pieb_can_registrar_tipos');
 
@@ -243,9 +250,12 @@ function pieb_can_shortcode() {
             . '<p><a class="pcan-btn" href="' . esc_url(wp_logout_url(get_permalink())) . '">Salir y entrar con otra cuenta</a></p></div></div>';
     }
 
-    wp_enqueue_script('pieb-cancionero', PIEB_CAN_URL . 'assets/cancionero.js', array(), PIEB_CAN_VERSION, true);
-    wp_enqueue_script('pieb-cancionero-visor', PIEB_CAN_URL . 'assets/visor.js', array('pieb-cancionero'), PIEB_CAN_VERSION, true);
-    wp_enqueue_script('pieb-cancionero-cultos', PIEB_CAN_URL . 'assets/cultos.js', array('pieb-cancionero', 'pieb-cancionero-visor'), PIEB_CAN_VERSION, true);
+    wp_enqueue_script('pieb-cancionero', PIEB_CAN_URL . 'assets/cancionero.js', array('wp-i18n'), PIEB_CAN_VERSION, true);
+    wp_enqueue_script('pieb-cancionero-visor', PIEB_CAN_URL . 'assets/visor.js', array('pieb-cancionero', 'wp-i18n'), PIEB_CAN_VERSION, true);
+    wp_enqueue_script('pieb-cancionero-cultos', PIEB_CAN_URL . 'assets/cultos.js', array('pieb-cancionero', 'pieb-cancionero-visor', 'wp-i18n'), PIEB_CAN_VERSION, true);
+    foreach (array('pieb-cancionero', 'pieb-cancionero-visor', 'pieb-cancionero-cultos') as $script) {
+        wp_set_script_translations($script, 'pieb-cancionero', PIEB_CAN_DIR . 'languages');
+    }
 
     $user = wp_get_current_user();
     $config = array(
@@ -268,6 +278,13 @@ function pieb_can_shortcode() {
         'tema'       => $tema,
         'temas'      => pieb_can_temas(),
         'version'    => PIEB_CAN_VERSION,
+        // Idioma del usuario: etiqueta BCP 47 para fechas y números, idiomas disponibles (locale => nombre nativo)
+        // y el elegido en su menú ('' = el del sitio); notación de las tonalidades efectiva y elegida.
+        'idioma'          => pieb_can_idioma_bcp47(),
+        'idiomas'         => pieb_can_idiomas_disponibles(),
+        'idiomaElegido'   => pieb_can_idioma_elegido(),
+        'notacion'        => pieb_can_notacion(),
+        'notacionElegida' => pieb_can_notacion_elegida(),
     );
     // wp_add_inline_script conserva los tipos (booleanos, números), a diferencia de wp_localize_script.
     wp_add_inline_script('pieb-cancionero', 'window.PIEB_CANCIONERO = ' . wp_json_encode($config) . ';', 'before');
@@ -306,7 +323,8 @@ function pieb_can_render_login() {
         return $html;
     }
 
-    wp_enqueue_script('pieb-cancionero-login', PIEB_CAN_URL . 'assets/login.js', $client_id ? array('google-gsi') : array(), PIEB_CAN_VERSION, true);
+    wp_enqueue_script('pieb-cancionero-login', PIEB_CAN_URL . 'assets/login.js', $client_id ? array('wp-i18n', 'google-gsi') : array('wp-i18n'), PIEB_CAN_VERSION, true);
+    wp_set_script_translations('pieb-cancionero-login', 'pieb-cancionero', PIEB_CAN_DIR . 'languages');
     if ($client_id) {
         wp_enqueue_script('google-gsi', 'https://accounts.google.com/gsi/client', array(), null, true);
     }
