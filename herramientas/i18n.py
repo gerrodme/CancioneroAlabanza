@@ -126,7 +126,8 @@ def literal(arg, es_js):
 def comentario_previo(src, inicio):
     """Comentario `translators:` anterior a la llamada: en la misma línea (antes de ella) o justo en las líneas de encima."""
     ini_linea = src.rfind('\n', 0, inicio) + 1
-    misma = re.search(r'/\*+\s*translators:\s*(.*?)\s*\*/', src[ini_linea:inicio], re.S | re.I)
+    # En la misma línea, el comentario debe estar justo delante de la llamada (así no se contagia a otras de la línea).
+    misma = re.search(r'/\*+\s*translators:\s*((?:(?!\*/).)*?)\s*\*/\s*$', src[ini_linea:inicio], re.S | re.I)
     if misma:
         texto = misma.group(1)
     else:
