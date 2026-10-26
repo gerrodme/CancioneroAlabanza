@@ -297,45 +297,68 @@ def archivos_js_de(entrada):
     return sorted({ref for ref, _ in entrada.occurrences if ref.startswith('assets/') and ref.endswith('.js')})
 
 
+def fecha_revision(po, ruta):
+    """Fecha de la traducción para los JSON: la cabecera PO-Revision-Date del .po (normalizada) o, si no la tiene,
+    la fecha de modificación del .po. Nunca depende de la hora actual, para que compilar sea reproducible."""
+    bruta = (po.metadata.get('PO-Revision-Date') or '').strip()
+    m = re.match(r'(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?\s*([+-]\d{4})?', bruta)
+    if m:
+        h, mi = m.group(4) or '00', m.group(5) or '00'
+        return '%s-%s-%s %s:%s%s' % (m.group(1), m.group(2), m.group(3), h, mi, m.group(6) or '+0000')
+    return datetime.fromtimestamp(os.path.getmtime(ruta), timezone.utc).strftime('%Y-%m-%d %H:%M+0000')
+
+
+def escribir_si_cambia(ruta, contenido):
+    """Escribe el archivo (bytes) solo si su contenido cambia, para no tocar su fecha de modificación sin necesidad."""
+    if os.path.exists(ruta):
+        with open(ruta, 'rb') as f:
+            if f.read() == contenido:
+                return
+    with open(ruta, 'wb') as f:
+        f.write(contenido)
+
+
 def compilar():
     pos = lista_po()
     if not pos:
         print('No hay archivos .po en languages/: nada que compilar.')
         return
-    fecha = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M+0000')
     for ruta in pos:
         locale = locale_de(ruta)
         po = polib.pofile(ruta, wrapwidth=0)
         vivas = traducidas(po)
-        po.save_as_mofile(ruta[:-3] + '.mo')
+        fecha = fecha_revision(po, ruta)
+        escribir_si_cambia(ruta[:-3] + '.mo', po.to_binary())
 
         por_js = {}
         for e in vivas:
             for js in archivos_js_de(e):
                 por_js.setdefault(js, []).append(e)
-        # Se borran los JSON anteriores de este idioma (los de un archivo que ya no tenga textos sobrarían).
         prefijo = '%s-%s-' % (DOMINIO, locale)
-        for n in os.listdir(IDIOMAS):
-            if n.startswith(prefijo) and n.endswith('.json'):
-                os.remove(os.path.join(IDIOMAS, n))
+        nombres = set()
         for js, entradas in sorted(por_js.items()):
             nombre = '%s%s.json' % (prefijo, hashlib.md5(js.encode('utf-8')).hexdigest())
+            nombres.add(nombre)
             datos = {
-                'translation-revision-date': po.metadata.get('PO-Revision-Date', fecha),
+                'translation-revision-date': fecha,
                 'generator': 'cancionero-i18n',
                 'domain': 'messages',
                 'locale_data': {'messages': datos_jed(entradas, locale, po)},
             }
-            with open(os.path.join(IDIOMAS, nombre), 'w', encoding='utf-8', newline='\n') as f:
-                json.dump(datos, f, ensure_ascii=False, separators=(',', ':'))
+            escribir_si_cambia(os.path.join(IDIOMAS, nombre),
+                               json.dumps(datos, ensure_ascii=False, separators=(',', ':')).encode('utf-8'))
+        # Se borran los JSON anteriores de este idioma que ya no correspondan (archivos JS sin textos).
+        for n in os.listdir(IDIOMAS):
+            if n.startswith(prefijo) and n.endswith('.json') and n not in nombres:
+                os.remove(os.path.join(IDIOMAS, n))
 
         # Banco de pruebas: todas las cadenas de JS de este idioma en un solo archivo.
         todas_js = [e for e in vivas if archivos_js_de(e)]
         os.makedirs(BANCO_I18N, exist_ok=True)
-        with open(os.path.join(BANCO_I18N, locale + '.js'), 'w', encoding='utf-8', newline='\n') as f:
-            f.write('/* Generado por herramientas/i18n.py compilar: no editar. */\n')
-            f.write('window.PIEB_I18N = %s;\n' % json.dumps({'locale': locale, 'data': datos_jed(todas_js, locale, po)},
-                                                             ensure_ascii=False, indent=1))
+        cuerpo = ('/* Generado por herramientas/i18n.py compilar: no editar. */\n'
+                  'window.PIEB_I18N = %s;\n' % json.dumps({'locale': locale, 'data': datos_jed(todas_js, locale, po)},
+                                                         ensure_ascii=False, indent=1))
+        escribir_si_cambia(os.path.join(BANCO_I18N, locale + '.js'), cuerpo.encode('utf-8'))
         print('%s: %d textos (%d en JS, %d archivos JSON) -> .mo, .json y banco-pruebas/i18n/%s.js'
               % (locale, len(vivas), len(todas_js), len(por_js), locale))
 
