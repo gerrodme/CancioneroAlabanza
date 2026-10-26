@@ -2,6 +2,10 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.10.2 · 2026-10-26
+
+Al restaurar una copia, lo leído del archivo se muestra en una ventana emergente con el progreso siempre a la vista
+
 ## 1.10.1 · 2026-10-26
 
 Ajustes y equipo por secciones (General, Equipo, Acceso con Google, Archivos, Papelera y Copias de seguridad), cada una con su dirección; la Papelera y las Copias se abren desde ahí

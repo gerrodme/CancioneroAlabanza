@@ -2862,24 +2862,67 @@
 
     // --- restaurar
     var zonaRestaurar = h('div', { class: 'pcan-copia-restaurar' });
+    var leyendo = false;
     var elegir = zonaArchivos('.zip,application/zip', __('Elegir copia (.zip)'), __('El archivo que descargaste con «Descargar copia»'), function (files) {
       var archivo = files[0];
-      if (!archivo || ocupado) { return; }
+      if (!archivo || ocupado || leyendo) { return; }
+      leyendo = true;
       zonaRestaurar.innerHTML = '';
-      append(zonaRestaurar, h('p', { class: 'pcan-help', text: __('Abriendo la copia…') }));
+      append(zonaRestaurar, h('p', { class: 'pcan-help pcan-copia-leyendo', role: 'status' }, h('span', { class: 'pcan-copia-leyendo-ico', 'aria-hidden': 'true' }), __('Leyendo la copia…')));
       leerCopia(archivo).then(function (r) {
         return api('copia/estado', { json: {
           canciones: r.copia.canciones.map(function (c) { return { uid: c.uid, titulo: c.titulo, numero: c.numero }; }),
           cultos: r.copia.cultos.map(function (c) { return { uid: c.uid, titulo: c.titulo, fecha: c.fecha }; })
-        } }).then(function (existen) { pintarRestaurar(r.zip, r.copia, existen, archivo); });
+        } }).then(function (existen) {
+          zonaRestaurar.innerHTML = '';
+          leyendo = false;
+          pintarRestaurar(r.zip, r.copia, existen, archivo);
+        });
       }).catch(function (e) {
+        leyendo = false;
         zonaRestaurar.innerHTML = '';
         append(zonaRestaurar, h('p', { class: 'pcan-form-error', text: e.message }));
       });
     });
 
+    /** Ventana emergente encima del panel de ajustes. Devuelve { cuerpo, pie, cerrar, bloquear }.
+     *  Se cierra con Esc, la X, «Cancelar» o un clic fuera, salvo mientras se restaura (bloquear(true)). */
+    function abrirVentana(titulo, cabecera) {
+      var bloqueada = false;
+      var previo = document.activeElement;
+      var cuerpo = h('div', { class: 'pcan-modal-cuerpo' });
+      var pie = h('div', { class: 'pcan-modal-pie' });
+      var bX = h('button', { type: 'button', class: 'pcan-icon-btn pcan-modal-x', 'aria-label': __('Cerrar'), onclick: function () { cerrar(); } }, icono('cerrar'));
+      var idTitulo = 'pcan-modal-t-' + Date.now();
+      var ventana = h('div', { class: 'pcan-modal', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': idTitulo, tabindex: '-1' },
+        h('div', { class: 'pcan-modal-cab' }, h('div', { class: 'pcan-modal-titulo' }, h('h2', { id: idTitulo, text: titulo }), cabecera), bX),
+        cuerpo, pie);
+      var capa = h('div', { class: 'pcan-modal-capa', onclick: function (e) { if (e.target === capa) { if (bloqueada) { ventana.focus({ preventScroll: true }); } else { cerrar(); } } } }, ventana);
+      // Lo que se marca aquí no son cambios por guardar del panel de ajustes.
+      ['input', 'change'].forEach(function (ev) { capa.addEventListener(ev, function (e) { e.stopPropagation(); }); });
+      capa.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrar(); return; }
+        if (e.key === 'Tab') {
+          var f = Array.prototype.filter.call(ventana.querySelectorAll('a[href], button, input, select, textarea, [tabindex="0"]'), function (el) { return !el.disabled && el.offsetParent !== null; });
+          if (!f.length) { e.preventDefault(); ventana.focus(); return; }
+          var dentro = ventana.contains(document.activeElement) && document.activeElement !== ventana;
+          if (e.shiftKey && (!dentro || document.activeElement === f[0])) { e.preventDefault(); f[f.length - 1].focus(); }
+          else if (!e.shiftKey && (!dentro || document.activeElement === f[f.length - 1])) { e.preventDefault(); f[0].focus(); }
+        }
+      });
+      function cerrar() {
+        if (bloqueada) { return; }
+        if (capa.parentNode) { capa.parentNode.removeChild(capa); }
+        var input = elegir.querySelector('input');
+        try { (input || previo).focus(); } catch (err) { /* nada */ }
+      }
+      function bloquear(si) { bloqueada = si; bX.disabled = si; bX.hidden = si; }
+      append(ui.panel, capa);
+      ventana.focus({ preventScroll: true });
+      return { cuerpo: cuerpo, pie: pie, cerrar: cerrar, bloquear: bloquear, ventana: ventana };
+    }
+
     function pintarRestaurar(zip, copia, existen, file) {
-      zonaRestaurar.innerHTML = '';
       var elegidas = copia.canciones.map(function () { return true; });
       var elegidos = copia.cultos.map(function () { return true; });
       var modo = 'saltar';
@@ -2928,9 +2971,24 @@
 
       var aviso2 = h('p', { class: 'pcan-help' });
       var barra = progresoNuevo();
+      var estadoRestaurar = h('p', { class: 'pcan-help', role: 'status', hidden: true });
       var registro = h('ul', { class: 'pcan-copia-registro', hidden: true });
       var bRestaurar = h('button', { type: 'button', class: 'pcan-btn pcan-btn-primary' }, icono('subir'), h('span'));
       var confirmar = h('div', { class: 'pcan-confirmar', role: 'alert', hidden: true });
+      var resultado = h('div', { class: 'pcan-copia-resultado', role: 'status', hidden: true });
+      var opciones = h('div', { class: 'pcan-copia-opciones' });
+      var cuenta = { creados: 0, sustituidos: 0, iguales: 0 };
+      var errores = [];
+
+      var origen = h('div', { class: 'pcan-copia-origen' }, icono('descargar'),
+        h('span', null, h('strong', { text: file.name }),
+          h('small', { text: sprintf(copia.conArchivos
+            ? /* translators: 1: fecha de la copia, 2: dirección de la web de origen, 3: tamaño del archivo */ __('Copia del %1$s · %2$s · %3$s · con archivos')
+            : /* translators: 1: fecha de la copia, 2: dirección de la web de origen, 3: tamaño del archivo */ __('Copia del %1$s · %2$s · %3$s · solo datos'),
+          fechaCompleta(copia.fecha), String(copia.sitio || '').replace(/^https?:\/\//, '').replace(/\/$/, ''), tamano(file.size)) })));
+      var ventana = abrirVentana(__('Restaurar una copia'), origen);
+      var bCancelar = h('button', { type: 'button', class: 'pcan-btn', onclick: function () { ventana.cerrar(); } }, __('Cancelar'));
+      var acciones = h('div', { class: 'pcan-modal-acciones' }, bCancelar, bRestaurar);
 
       function resumen() {
         var nc = elegidas.filter(Boolean).length, nu = elegidos.filter(Boolean).length;
@@ -2941,26 +2999,53 @@
           ? (modo === 'saltar' ? __('Lo que ya existe se deja como está; solo se añade lo nuevo.') : copia.conArchivos ? __('Lo que ya existe se sustituirá por la versión de la copia, incluidas sus partituras y audios.') : __('Lo que ya existe se sustituirá por la versión de la copia (sus archivos actuales se conservan).'))
           : __('Nada de la copia existe todavía en esta web: se añadirá todo lo que marques.');
         confirmar.hidden = true;
+        acciones.hidden = false;
       }
       oAjustesR.input.addEventListener('change', resumen);
 
       function anotar(texto, error) {
         registro.hidden = false;
         append(registro, h('li', { class: error ? 'is-error' : '', text: texto }));
-        registro.scrollTop = registro.scrollHeight;
+        if (error) { errores.push(texto); }
+        ventana.cuerpo.scrollTop = ventana.cuerpo.scrollHeight;
+      }
+
+      function terminar() {
+        ocupado = false; panelSucio = false;
+        ventana.bloquear(false);
+        var titulo = errores.length ? sprintf(_n('Restauración terminada con %d aviso', 'Restauración terminada con %d avisos', errores.length), errores.length) : __('Copia restaurada');
+        barra.hidden = true;
+        estadoRestaurar.hidden = true;
+        resultado.innerHTML = '';
+        append(resultado, [
+          h('strong', { text: titulo }),
+          h('span', { text: sprintf(/* translators: 1: elementos añadidos, 2: elementos sustituidos, 3: elementos que ya estaban y no se han tocado */ __('Añadido: %1$d · sustituido: %2$d · sin cambios: %3$d'), cuenta.creados, cuenta.sustituidos, cuenta.iguales) }),
+          errores.length ? h('ul', null, errores.map(function (t) { return h('li', { text: t }); })) : null]);
+        resultado.classList.toggle('is-error', !!errores.length);
+        resultado.hidden = false;
+        ventana.cuerpo.scrollTop = 0;
+        var bVer = h('button', { type: 'button', class: 'pcan-btn pcan-btn-primary', onclick: function () { location.hash = '#/'; location.reload(); } }, __('Ver el cancionero restaurado'));
+        append(ventana.pie, h('div', { class: 'pcan-modal-acciones' }, h('button', { type: 'button', class: 'pcan-btn', onclick: function () { ventana.cerrar(); } }, __('Cerrar')), bVer));
+        bVer.focus();
       }
 
       function ejecutar() {
         ocupado = true; panelSucio = true;
-        bRestaurar.disabled = true;
+        ventana.bloquear(true);
+        acciones.hidden = true; aviso2.hidden = true; confirmar.hidden = true;
+        opciones.hidden = true;
         barra.hidden = false;
+        barra.firstChild.style.width = '0%';
+        estadoRestaurar.hidden = false;
         registro.innerHTML = '';
+        ventana.ventana.focus({ preventScroll: true });
         var tareas = [];
         copia.canciones.forEach(function (c, i) {
           if (!elegidas[i]) { return; }
-          if (existen.canciones[i] && modo === 'saltar') { tareas.push(function () { anotar(sprintf(/* translators: %s: título de la canción */ __('«%s»: ya estaba, sin cambios'), c.titulo)); return Promise.resolve(); }); return; }
+          if (existen.canciones[i] && modo === 'saltar') { tareas.push(function () { cuenta.iguales++; anotar(sprintf(/* translators: %s: título de la canción */ __('«%s»: ya estaba, sin cambios'), c.titulo)); return Promise.resolve(); }); return; }
           tareas.push(function () {
             return restaurarCancion(zip, c, modo, !!copia.conArchivos).then(function (r) {
+              if (r.estado === 'creada') { cuenta.creados++; } else if (r.estado === 'actualizada') { cuenta.sustituidos++; } else { cuenta.iguales++; }
               anotar(r.estado === 'creada' ? sprintf(/* translators: %s: título de la canción */ __('«%s»: añadida'), c.titulo)
                 : r.estado === 'actualizada' ? sprintf(/* translators: %s: título de la canción */ __('«%s»: sustituida'), c.titulo)
                 : sprintf(/* translators: %s: título de la canción */ __('«%s»: ya estaba, sin cambios'), c.titulo));
@@ -2971,6 +3056,7 @@
           if (!elegidos[i]) { return; }
           tareas.push(function () {
             return api('copia/culto', { json: { culto: c, modo: modo } }).then(function (r) {
+              if (r.estado === 'creado') { cuenta.creados++; } else if (r.estado === 'actualizado') { cuenta.sustituidos++; } else { cuenta.iguales++; }
               var fCulto = fechaCorta(c.fecha);
               anotar((r.estado === 'creado' ? sprintf(/* translators: 1: título del culto, 2: fecha */ __('Culto «%1$s» (%2$s): añadido'), c.titulo, fCulto)
                 : r.estado === 'actualizado' ? sprintf(/* translators: 1: título del culto, 2: fecha */ __('Culto «%1$s» (%2$s): sustituido'), c.titulo, fCulto)
@@ -2982,39 +3068,32 @@
         if (oAjustesR.input.checked && copia.ajustes) {
           tareas.push(function () {
             return api('copia/ajustes', { json: { ajustes: copia.ajustes } }).then(function (r) {
+              cuenta.sustituidos++;
               anotar(sprintf(_n('Ajustes restaurados · %d correo en la lista del equipo', 'Ajustes restaurados · %d correos en la lista del equipo', r.emails), r.emails));
             }, function (e) { anotar(sprintf(/* translators: %s: motivo del error */ __('Ajustes: %s'), e.message), true); });
           });
         }
         var hechas = 0;
+        function marcador() { estadoRestaurar.textContent = sprintf(/* translators: 1: paso actual, 2: total de pasos */ __('Restaurando %1$d de %2$d…'), Math.min(hechas + 1, tareas.length), tareas.length); }
+        marcador();
         tareas.reduce(function (cadena, t) {
-          return cadena.then(t).then(function () { hechas++; barra.firstChild.style.width = Math.round(hechas / tareas.length * 100) + '%'; });
-        }, Promise.resolve()).then(function () {
-          ocupado = false; panelSucio = false;
-          var errores = registro.querySelectorAll('.is-error').length;
-          aviso(errores ? sprintf(_n('Restauración terminada con %d aviso', 'Restauración terminada con %d avisos', errores), errores) : __('Copia restaurada'), errores ? 'error' : undefined);
-          barra.hidden = true;
-          append(zonaRestaurar, h('div', { class: 'pcan-actions' },
-            h('button', { type: 'button', class: 'pcan-btn pcan-btn-primary', onclick: function () { location.hash = '#/'; location.reload(); } }, __('Ver el cancionero restaurado'))));
-        });
+          return cadena.then(t).then(function () { hechas++; barra.firstChild.style.width = Math.round(hechas / tareas.length * 100) + '%'; marcador(); });
+        }, Promise.resolve()).then(terminar);
       }
 
       bRestaurar.addEventListener('click', function () {
+        var sustituye = modo === 'sobrescribir' && nExisten;
+        var bSi = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-primary', onclick: function () { confirmar.hidden = true; ejecutar(); } }, __('Sí, restaurar'));
         confirmar.innerHTML = '';
         append(confirmar, [
-          h('span', { text: modo === 'sobrescribir' && nExisten ? __('Lo que ya existe se sustituirá por la versión de la copia. ¿Seguimos?') : __('¿Restaurar lo marcado?') }),
-          h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-primary', onclick: function () { confirmar.hidden = true; ejecutar(); } }, __('Sí, restaurar')),
-          h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () { confirmar.hidden = true; } }, __('Cancelar'))]);
+          h('span', { text: sustituye ? __('Lo que ya existe se sustituirá por la versión de la copia. ¿Seguimos?') : __('¿Restaurar lo marcado?') }), bSi,
+          h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () { confirmar.hidden = true; acciones.hidden = false; bRestaurar.focus(); } }, __('Cancelar'))]);
+        acciones.hidden = true;
         confirmar.hidden = false;
+        bSi.focus();
       });
 
-      append(zonaRestaurar, [
-        h('div', { class: 'pcan-copia-origen' }, icono('descargar'),
-          h('span', null, h('strong', { text: file.name }),
-            h('small', { text: sprintf(copia.conArchivos
-              ? /* translators: 1: fecha de la copia, 2: dirección de la web de origen, 3: tamaño del archivo */ __('Copia del %1$s · %2$s · %3$s · con archivos')
-              : /* translators: 1: fecha de la copia, 2: dirección de la web de origen, 3: tamaño del archivo */ __('Copia del %1$s · %2$s · %3$s · solo datos'),
-            fechaCompleta(copia.fecha), String(copia.sitio || '').replace(/^https?:\/\//, '').replace(/\/$/, ''), tamano(file.size)) }))),
+      append(opciones, [
         nExisten ? h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: __('Qué ver') }), ctrlFiltro) : null,
         copia.canciones.length ? h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: sprintf(/* translators: %d: número de canciones de la copia */ __('Canciones (%d)'), copia.canciones.length) }),
           lista(copia.canciones, elegidas, existen.canciones, function (c) {
@@ -3024,10 +3103,9 @@
         copia.cultos.length ? h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: sprintf(/* translators: %d: número de cultos de la copia */ __('Cultos (%d)'), copia.cultos.length) }),
           lista(copia.cultos, elegidos, existen.cultos, function (c) { return fechaCompleta(c.fecha) + ' · ' + c.titulo + ' · ' + sprintf(_n('%d canción', '%d canciones', (c.items || []).length), (c.items || []).length); })) : null,
         h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: __('Ajustes') }), oAjustesR.el),
-        nExisten ? h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: __('Si una canción o un culto ya existe') }), modos) : null,
-        aviso2, confirmar, barra,
-        h('div', { class: 'pcan-actions' }, bRestaurar),
-        registro]);
+        nExisten ? h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: __('Si una canción o un culto ya existe') }), modos) : null]);
+      append(ventana.cuerpo, [resultado, opciones, registro]);
+      append(ventana.pie, [aviso2, confirmar, h('div', { class: 'pcan-modal-progreso' }, barra, estadoRestaurar), acciones]);
       resumen();
     }
 

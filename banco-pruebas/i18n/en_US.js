@@ -1109,9 +1109,6 @@ window.PIEB_I18N = {
   "El archivo que descargaste con «Descargar copia»": [
    "The file you downloaded with “Download backup”"
   ],
-  "Abriendo la copia…": [
-   "Opening the backup…"
-  ],
   "Marcar todas": [
    "Select all"
   ],
@@ -1835,6 +1832,18 @@ window.PIEB_I18N = {
   ],
   "Copia de seguridad del Cancionero (plugin Cancionero).\n\ncopia.json  canciones, cultos y ajustes\narchivos/   partituras, audios y partituras editables de cada canción\n\nPara restaurarla: instala el plugin en WordPress, entra como administrador en el cancionero\ny abre Ajustes y equipo → Copias de seguridad → Restaurar desde una copia.\n": [
    "Songbook backup (Cancionero plugin).\n\ncopia.json  songs, services and settings\narchivos/   scores, audio and editable scores for each song\n\nTo restore it: install the plugin in WordPress, sign in as an administrator, open the songbook\nand go to Settings and team → Backups → Restore from a backup.\n"
+  ],
+  "Leyendo la copia…": [
+   "Reading the backup…"
+  ],
+  "Restaurar una copia": [
+   "Restore a backup"
+  ],
+  "Añadido: %1$d · sustituido: %2$d · sin cambios: %3$d": [
+   "Added: %1$d · replaced: %2$d · unchanged: %3$d"
+  ],
+  "Restaurando %1$d de %2$d…": [
+   "Restoring %1$d of %2$d…"
   ]
  }
 };

@@ -80,6 +80,8 @@
     else if (ruta === 'cultos' && (!opts || !opts.method || opts.method === 'GET')) { datos = cultos; }
     else if ((mc = ruta.match(/^cultos\/(\d+)$/))) { datos = detalleCulto(cultos.filter(function (c) { return c.id === +mc[1]; })[0]); }
     else if (ruta === 'etiquetas') { datos = {}; }
+    else if (ruta === 'copia/cancion') { datos = { ok: true, estado: 'creada' }; }
+    else if (ruta === 'copia/culto') { datos = { ok: true, estado: 'creado' }; }
     else if (ruta === 'copia/estado') { datos = { canciones: [5, 0, 7, 0, 0], cultos: [] }; }
     else if (ruta === 'papelera') { datos = { dias: 30, canciones: [
       { id: 301, titulo: 'Cantad al Señor', numero: '10', tonalidad: 'Sol', archivos: 2, borradaEl: dias(-3) + 'T10:00:00Z', borradaPor: 'Ana', caduca: '', diasRestantes: 27 },

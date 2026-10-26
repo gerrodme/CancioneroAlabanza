@@ -988,6 +988,45 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
 .pcan-copia-origen small { display: block; color: var(--pc-muted); }
 [data-pcan-theme] .pcan-copia-registro { display: grid; gap: 2px; max-height: 220px; margin: 0; padding: 8px 10px; overflow-y: auto; border-radius: var(--pc-radius-sm); background: var(--pc-surface-2); font-size: 13px; list-style: none; }
 .pcan-copia-registro li.is-error { color: var(--pc-warn); }
+/* Restaurar una copia: ventana emergente encima del panel de ajustes (cuerpo con desplazamiento y pie fijo) */
+.pcan-copia-leyendo { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--pc-radius-sm); background: var(--pc-surface-2); color: var(--pc-text); font-size: 14px; font-weight: 600; }
+.pcan-copia-leyendo-ico { flex: 0 0 auto; width: 16px; height: 16px; border: 2px solid var(--pc-line); border-top-color: var(--pc-accent); border-radius: 50%; animation: pcan-giro .8s linear infinite; }
+@keyframes pcan-giro { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .pcan-copia-leyendo-ico { animation: none; border-top-color: var(--pc-line); } }
+.pcan-modal-capa { position: absolute; inset: 0; z-index: 10; display: grid; place-items: center; padding: 16px; background: rgba(8, 12, 20, .55); animation: pcan-fade .15s ease; }
+.pcan-modal {
+  display: flex; flex-direction: column; width: min(720px, 92%); max-height: min(86dvh, 100%); overflow: hidden; outline: 0;
+  border: 1px solid var(--pc-line); border-radius: 20px; background: var(--pc-surface); color: var(--pc-text); box-shadow: var(--pc-shadow-lg); animation: pcan-pop .15s ease;
+}
+[data-pcan-theme="papel"] .pcan-modal { border-radius: var(--pc-radius); border-color: var(--pc-text); }
+.pcan-modal-cab { display: flex; align-items: flex-start; gap: 8px; padding: 14px 12px 12px 20px; border-bottom: 1px solid var(--pc-line); }
+.pcan-modal-titulo { display: grid; flex: 1; gap: 10px; min-width: 0; }
+[data-pcan-theme] .pcan-modal-titulo h2 { margin: 0; font-size: 20px; }
+.pcan-modal-x[hidden] { display: none !important; }
+.pcan-modal-cuerpo { display: grid; flex: 1 1 auto; align-content: start; gap: 12px; min-height: 0; padding: 16px 20px; overflow-y: auto; overscroll-behavior: contain; }
+.pcan-copia-opciones { display: grid; gap: 12px; }
+.pcan-copia-opciones[hidden], .pcan-copia-resultado[hidden] { display: none; }
+[data-pcan-theme] .pcan-modal .pcan-copia-registro { max-height: none; }
+.pcan-copia-resultado { display: grid; gap: 4px; padding: 12px 14px; border-radius: var(--pc-radius-sm); background: color-mix(in srgb, var(--pc-accent) 12%, var(--pc-surface)); font-size: 14px; }
+.pcan-copia-resultado.is-error { background: color-mix(in srgb, var(--pc-warn) 14%, var(--pc-surface)); }
+.pcan-copia-resultado strong { font-size: 16px; }
+.pcan-copia-resultado ul { display: grid; gap: 2px; margin: 4px 0 0; padding-left: 18px; color: var(--pc-warn); font-size: 13px; }
+.pcan-modal-pie { display: grid; gap: 10px; padding: 12px 20px calc(14px + env(safe-area-inset-bottom)); border-top: 1px solid var(--pc-line); background: var(--pc-surface); }
+.pcan-modal-pie > .pcan-help { margin: 0; }
+.pcan-modal-pie .pcan-help[hidden], .pcan-modal-pie .pcan-confirmar[hidden], .pcan-modal-pie .pcan-progress[hidden], .pcan-modal-acciones[hidden] { display: none; }
+.pcan-modal-progreso { display: grid; gap: 6px; }
+.pcan-modal-progreso:not(:has(:not([hidden]))) { display: none; }
+.pcan-modal-progreso .pcan-progress { height: 10px; }
+.pcan-modal-acciones { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+@media (max-width: 760px) {
+  .pcan-modal-capa { align-items: end; padding: 0; }
+  .pcan-modal { width: 100%; max-height: 94dvh; border: 0; border-radius: 20px 20px 0 0; }
+  .pcan-modal-cab { padding-left: 16px; }
+  .pcan-modal-cuerpo { padding: 14px 16px; }
+  .pcan-modal-pie { padding: 10px 16px calc(12px + env(safe-area-inset-bottom)); }
+  .pcan-modal-acciones .pcan-btn { flex: 1 1 auto; }
+  .pcan-modal-acciones .pcan-btn-primary { flex-basis: 100%; order: -1; }
+}
 .pcan-estado.is-warn { background: color-mix(in srgb, var(--pc-warn) 14%, var(--pc-surface)); color: var(--pc-warn); }
 .pcan-aviso-admin { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border-radius: var(--pc-radius-sm); background: color-mix(in srgb, var(--pc-warn) 10%, var(--pc-surface)); color: var(--pc-text); font-size: 13px; }
 .pcan-aviso-admin .pcan-ico { color: var(--pc-warn); margin-top: 1px; }
