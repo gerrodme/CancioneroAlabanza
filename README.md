@@ -7,6 +7,8 @@ para tocar desde la tableta; estadísticas; copias de seguridad; y acceso del eq
 Es software libre pensado para que cualquier iglesia o grupo musical gestione sus propias partituras. El plugin es solo
 la herramienta: **no incluye ninguna canción ni partitura**; cada instalación aporta las suyas. La interfaz está en **español**.
 
+![Lista de canciones de Cancionero, con filtros por etiqueta, tonalidad y recursos](docs/imagenes/lista-canciones.png)
+
 ## Qué hace
 
 - **Canciones:** una ficha por canción con una o varias partituras, letra, notas, audios, editables (MuseScore, MusicXML…),
@@ -28,6 +30,19 @@ la herramienta: **no incluye ninguna canción ni partitura**; cada instalación 
 - **Copias de seguridad:** exportar e importar todo el contenido desde el menú de la cuenta (administradores del cancionero y de WordPress).
 
 Se muestra en cualquier página con el shortcode `[cancionero]`.
+
+## Capturas
+
+Capturas del banco de pruebas, con datos y una partitura de ejemplo inventados.
+
+| | |
+|---|---|
+| ![Ficha de una canción con su partitura, versiones y acciones](docs/imagenes/ficha-cancion.png) | ![Setlist de un culto con el orden de las canciones, tonalidad y notas](docs/imagenes/setlist-culto.png) |
+| **Ficha de canción:** partitura, versiones, letra, audios y vídeo. | **Culto y setlist:** orden, tonalidad, notas y PDF para imprimir. |
+| ![Modo culto en una tableta, con la partitura a pantalla completa y el selector de canciones](docs/imagenes/modo-culto-tableta.png) | ![Papelera del cancionero para administradores](docs/imagenes/papelera.png) |
+| **Modo culto:** la partitura grande en la tableta y cambio rápido entre canciones. | **Papelera:** restaurar o eliminar para siempre lo que se borró. |
+| ![Ajustes y equipo: nombre, administradores y acceso](docs/imagenes/ajustes.png) | ![Lista de canciones en un móvil](docs/imagenes/movil-lista.png) |
+| **Ajustes y equipo:** nombre, administradores, acceso y protección de los archivos. | **Móvil:** la misma lista, adaptada al teléfono. |
 
 ## Requisitos
 
@@ -89,6 +104,8 @@ de WordPress, solo a quien ha iniciado sesión y tiene acceso al cancionero.
 - **Publicar una versión:** cambia la versión en `pieb-cancionero/pieb-cancionero.php` (cabecera `Version:` **y**
   `PIEB_CAN_VERSION`, así los navegadores descargan los CSS y JS nuevos), anota el cambio en `CHANGELOG.md`, ejecuta
   `python herramientas/empaquetar.py` y sube el zip a WordPress.
+- **Regenerar las capturas** de `docs/imagenes/` (y la imagen para compartir el repositorio): `python herramientas/capturas.py`
+  (necesita `pip install playwright pillow` y Microsoft Edge). Usa solo el banco de pruebas, nunca datos ni partituras reales.
 - **Probar la interfaz sin WordPress:** `python -m http.server 8765 --bind 127.0.0.1` en la raíz del repositorio y abre
   `http://127.0.0.1:8765/banco-pruebas/index.html`. Admite `?tema=colores|pentagrama|sitio|pulso|claro|escenario|papel`.
   Las subidas de archivos y todo lo que dependa de PHP solo se prueban en un WordPress real.
