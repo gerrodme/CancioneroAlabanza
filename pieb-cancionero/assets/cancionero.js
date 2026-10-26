@@ -625,28 +625,45 @@
     }));
     ui.fab = h('a', { class: 'pcan-fab', href: '#/nueva', 'aria-label': __('Nueva canción') }, icono('mas'));
 
-    // Menú de usuario (temas y enlaces), compartido por la barra lateral y la superior.
+    // Menú de usuario (preferencias y enlaces), compartido por la barra lateral y la superior.
+    // En el móvil es una hoja inferior con fondo oscurecido (ui.menuFondo).
     ui.menuTemas = h('div', { class: 'pcan-menu-temas', role: 'radiogroup', 'aria-label': __('Tema') });
     // Idioma (solo si hay más de uno disponible) y notación de las tonalidades: se guardan y se recarga la página,
     // porque cambiar el idioma exige cargar otras traducciones.
     var idiomas = CFG.idiomas || {};
-    ui.menuIdioma = Object.keys(idiomas).length > 1 ? h('div', { class: 'pcan-menu-temas', role: 'radiogroup', 'aria-label': __('Idioma') }) : null;
-    ui.menuNotacion = h('div', { class: 'pcan-menu-temas', role: 'radiogroup', 'aria-label': __('Notación') });
-    ui.menu = h('div', { class: 'pcan-menu', hidden: true },
-      h('div', { class: 'pcan-menu-user' }, h('strong', { text: CFG.userName }), h('span', { text: CFG.sitio })),
-      h('p', { class: 'pcan-menu-label', text: __('Tema') }),
-      ui.menuTemas,
-      ui.menuIdioma ? h('p', { class: 'pcan-menu-label', text: __('Idioma') }) : null,
-      ui.menuIdioma,
-      h('p', { class: 'pcan-menu-label', text: __('Notación') }),
-      ui.menuNotacion,
-      h('div', { class: 'pcan-menu-sep' }),
-      CFG.gestionar ? h('a', { class: 'pcan-menu-item', href: '#/ajustes' }, icono('ajustes'), __('Ajustes y equipo')) : null,
-      CFG.gestionar ? h('a', { class: 'pcan-menu-item', href: '#/papelera' }, icono('borrar'), __('Papelera')) : null,
-      CFG.gestionar ? h('a', { class: 'pcan-menu-item', href: '#/copias' }, icono('descargar'), __('Copias de seguridad')) : null,
-      h('a', { class: 'pcan-menu-item', href: CFG.homeUrl }, icono('salir-web'), __('Volver a la web')),
-      h('a', { class: 'pcan-menu-item', href: CFG.logoutUrl }, icono('salir'), __('Cerrar sesión')),
-      CFG.version ? h('p', { class: 'pcan-menu-version', text: 'Cancionero ' + CFG.version }) : null);
+    ui.menuIdioma = Object.keys(idiomas).length > 1 ? h('select', {
+      class: 'pcan-menu-select', id: 'pcan-menu-idioma',
+      onchange: function (e) { guardarPreferencia({ idioma: e.target.value }); }
+    }) : null;
+    ui.menuNotacion = h('div', { class: 'pcan-menu-segmento', role: 'radiogroup', 'aria-labelledby': 'pcan-menu-notacion-t' });
+    function enlaceMenu(href, icon, texto) {
+      return h('a', { class: 'pcan-menu-item', href: href }, icono(icon), texto);
+    }
+    ui.menuFondo = h('div', { class: 'pcan-menu-fondo', hidden: true });
+    ui.menu = h('div', { class: 'pcan-menu', hidden: true, role: 'dialog', 'aria-label': sprintf(/* translators: %s: nombre de la persona */ __('Menú de %s'), CFG.userName) },
+      h('div', { class: 'pcan-menu-user' }, h('strong', { text: CFG.userName }),
+        h('span', { text: CFG.gestionar ? __('Administración del cancionero') : __('Equipo') })),
+      h('div', { class: 'pcan-menu-cuerpo' },
+        h('p', { class: 'pcan-menu-label', text: __('Tema') }),
+        ui.menuTemas,
+        ui.menuIdioma ? h('div', { class: 'pcan-menu-fila' }, h('label', { class: 'pcan-menu-label', 'for': 'pcan-menu-idioma', text: __('Idioma') }), ui.menuIdioma) : null,
+        h('p', { class: 'pcan-menu-label', id: 'pcan-menu-notacion-t', text: __('Notación') }),
+        ui.menuNotacion,
+        CFG.gestionar ? h('div', { class: 'pcan-menu-grupo' },
+          h('p', { class: 'pcan-menu-label', text: __('Administración') }),
+          enlaceMenu('#/ajustes', 'ajustes', __('Ajustes y equipo')),
+          enlaceMenu('#/papelera', 'borrar', __('Papelera')),
+          enlaceMenu('#/copias', 'descargar', __('Copias de seguridad'))) : null),
+      h('div', { class: 'pcan-menu-pie' },
+        enlaceMenu(CFG.homeUrl, 'salir-web', __('Volver a la web')),
+        enlaceMenu(CFG.logoutUrl, 'salir', __('Cerrar sesión')),
+        CFG.version ? h('p', { class: 'pcan-menu-version', text: 'Cancionero ' + CFG.version }) : null));
+    // Elegir un enlace cierra el menú; las flechas recorren la rejilla de temas y el segmentado.
+    ui.menu.addEventListener('click', function (e) {
+      var a = e.target.closest ? e.target.closest('a.pcan-menu-item') : null;
+      if (a) { cerrarMenu(true); }
+    });
+    ui.menu.addEventListener('keydown', teclasMenu);
     pintarMenuTemas();
     pintarMenuPreferencias();
 
@@ -683,10 +700,10 @@
       h('div', { class: 'pcan-body' },
         superior,
         h('main', { class: 'pcan-main' }, ui.vistaInicio, ui.vistaCanciones, ui.vistaCultos, ui.vistaEstadisticas))));
-    append(root, [ui.tabbar, ui.fab, ui.panel, ui.menu]);
+    append(root, [ui.tabbar, ui.fab, ui.panel, ui.menuFondo, ui.menu]);
 
     document.addEventListener('click', function (e) {
-      if (!ui.menu.hidden && !ui.menu.contains(e.target)) { alternarMenu(false); }
+      if (!ui.menu.hidden && !ui.menu.contains(e.target)) { cerrarMenu(false); }
     });
     // Al cruzar el ancho de la vista dividida se vuelve a pintar la ruta en el sitio adecuado.
     var ancho = esAncho();
@@ -738,8 +755,35 @@
       append(ui.menuTemas, h('button', {
         type: 'button', role: 'radio', 'aria-checked': activo ? 'true' : 'false', class: 'pcan-tema-opcion' + (activo ? ' is-active' : ''),
         onclick: function (e) { e.stopPropagation(); aplicarTema(clave, true); }
-      }, h('span', { class: 'pcan-tema-muestra', 'data-muestra': clave, 'aria-hidden': 'true' }), h('span', { text: CFG.temas[clave] }), activo ? icono('check') : null));
+      }, h('span', { class: 'pcan-tema-muestra', 'data-muestra': clave, 'aria-hidden': 'true' }), h('span', { class: 'pcan-tema-nombre', text: CFG.temas[clave] }), activo ? icono('check') : null));
     });
+    tabulacionCircular(ui.menuTemas);
+  }
+
+  /** Un solo botón del grupo (el elegido, o el primero) entra en el orden de Tab; las flechas mueven el foco dentro del grupo. */
+  function tabulacionCircular(cont) {
+    var bs = cont.querySelectorAll('[role="radio"]');
+    var sel = cont.querySelector('[aria-checked="true"]') || bs[0];
+    Array.prototype.forEach.call(bs, function (b) { b.setAttribute('tabindex', b === sel ? '0' : '-1'); });
+  }
+
+  /** Flechas dentro de la rejilla de temas (2 columnas) y del segmentado de notación (una fila); solo mueven el foco. */
+  function teclasMenu(e) {
+    var grupo = e.target.closest ? e.target.closest('[role="radiogroup"]') : null;
+    if (!grupo || e.target.getAttribute('role') !== 'radio') { return; }
+    var bs = Array.prototype.slice.call(grupo.querySelectorAll('[role="radio"]'));
+    var i = bs.indexOf(e.target), n = bs.length, j = i;
+    var rejilla = grupo === ui.menuTemas;
+    if (e.key === 'ArrowRight') { j = rejilla ? Math.min(i + 1, n - 1) : (i + 1) % n; }
+    else if (e.key === 'ArrowLeft') { j = rejilla ? Math.max(i - 1, 0) : (i - 1 + n) % n; }
+    else if (e.key === 'ArrowDown') { j = rejilla ? Math.min(i + 2, n - 1) : (i + 1) % n; }
+    else if (e.key === 'ArrowUp') { j = rejilla ? Math.max(i - 2, 0) : (i - 1 + n) % n; }
+    else if (e.key === 'Home') { j = 0; }
+    else if (e.key === 'End') { j = n - 1; }
+    else { return; }
+    e.preventDefault();
+    bs.forEach(function (b, k) { b.setAttribute('tabindex', k === j ? '0' : '-1'); });
+    bs[j].focus();
   }
 
   /** Guarda una preferencia del usuario (idioma o notación) y recarga para aplicarla. */
@@ -749,46 +793,63 @@
   }
 
   function pintarMenuPreferencias() {
-    function opciones(cont, lista, elegido, clave) {
-      if (!cont) { return; }
-      cont.innerHTML = '';
-      lista.forEach(function (o) {
-        var activo = elegido === o[0];
-        append(cont, h('button', {
-          type: 'button', role: 'radio', 'aria-checked': activo ? 'true' : 'false', class: 'pcan-tema-opcion' + (activo ? ' is-active' : ''),
-          onclick: function (e) {
-            e.stopPropagation();
-            if (!activo) { var d = {}; d[clave] = o[0]; guardarPreferencia(d); }
-          }
-        }, h('span', { text: o[1] }), activo ? icono('check') : null));
-      });
-    }
     var idiomas = CFG.idiomas || {};
-    opciones(ui.menuIdioma, [['', __('Automático (idioma del sitio)')]].concat(Object.keys(idiomas).map(function (k) { return [k, idiomas[k]]; })),
-      CFG.idiomaElegido || '', 'idioma');
-    opciones(ui.menuNotacion, [['', __('Automática')], ['latina', 'Do-Re-Mi'], ['americana', 'C-D-E']], CFG.notacionElegida || '', 'notacion');
+    if (ui.menuIdioma) {
+      ui.menuIdioma.innerHTML = '';
+      [['', __('Automático (idioma del sitio)')]].concat(Object.keys(idiomas).map(function (k) { return [k, idiomas[k]]; })).forEach(function (o) {
+        append(ui.menuIdioma, h('option', { value: o[0], text: o[1] }));
+      });
+      ui.menuIdioma.value = CFG.idiomaElegido || '';
+    }
+    var elegida = CFG.notacionElegida || '';
+    ui.menuNotacion.innerHTML = '';
+    [['', _x('Auto', 'notación automática')], ['latina', 'Do-Re-Mi'], ['americana', 'C-D-E']].forEach(function (o) {
+      var activo = elegida === o[0];
+      append(ui.menuNotacion, h('button', {
+        type: 'button', role: 'radio', 'aria-checked': activo ? 'true' : 'false', class: 'pcan-menu-seg' + (activo ? ' is-active' : ''),
+        onclick: function (e) {
+          e.stopPropagation();
+          if (!activo) { guardarPreferencia({ notacion: o[0] }); }
+        }
+      }, o[1]));
+    });
+    tabulacionCircular(ui.menuNotacion);
   }
 
   var menuOrigen = null;
+
+  /** Cierra el menú; con devolverFoco, el foco vuelve al botón que lo abrió. */
+  function cerrarMenu(devolverFoco) {
+    var origen = menuOrigen;
+    alternarMenu(false);
+    if (devolverFoco && origen) { origen.focus(); }
+  }
 
   function alternarMenu(abrir, origen) {
     if (!ui.menu) { return; }
     var mostrar = abrir === undefined ? ui.menu.hidden || (origen && origen !== menuOrigen) : abrir;
     ui.menu.hidden = !mostrar;
+    ui.menuFondo.hidden = !mostrar;
     [ui.sideUser, ui.topUser].forEach(function (b) { if (b) { b.setAttribute('aria-expanded', mostrar && b === origen ? 'true' : 'false'); } });
     if (!mostrar) { menuOrigen = null; return; }
     menuOrigen = origen;
-    // Se coloca junto al botón que lo abre: hacia arriba en la barra lateral, hacia abajo en la superior.
+    // En el móvil es una hoja inferior (la fija el CSS); en pantallas anchas se coloca junto al botón que lo abre:
+    // hacia arriba en la barra lateral, hacia abajo en la superior.
+    var movil = window.matchMedia && window.matchMedia('(max-width: 760px)').matches;
     var r = origen.getBoundingClientRect();
-    if (origen === ui.sideUser) {
+    if (movil) {
+      ui.menu.style.top = ui.menu.style.bottom = ui.menu.style.left = '';
+    } else if (origen === ui.sideUser) {
       ui.menu.style.top = '';
       ui.menu.style.bottom = (window.innerHeight - r.top + 8) + 'px';
       ui.menu.style.left = Math.max(8, r.left) + 'px';
     } else {
       ui.menu.style.bottom = '';
       ui.menu.style.top = (r.bottom + 8) + 'px';
-      ui.menu.style.left = Math.max(8, r.right - 268) + 'px';
+      ui.menu.style.left = Math.max(8, r.right - 288) + 'px';
     }
+    var foco = ui.menu.querySelector('.pcan-menu-temas [tabindex="0"]');
+    if (foco) { foco.focus(); }
   }
 
   function mostrarVista(vista) {
@@ -2869,7 +2930,7 @@
     var enCampo = document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
     if ((e.key === 'k' || e.key === 'K') && (e.ctrlKey || e.metaKey)) { e.preventDefault(); abrirPaleta(); return; }
     if (paleta) { return; }
-    if (e.key === 'Escape' && ui.menu && !ui.menu.hidden) { alternarMenu(false); return; }
+    if (e.key === 'Escape' && ui.menu && !ui.menu.hidden) { cerrarMenu(true); return; }
     if (e.key === 'Escape' && panelModo) {
       // Dentro de un campo, Escape solo sale del campo; así no se cierra un formulario por accidente.
       if (enCampo) { document.activeElement.blur(); return; }

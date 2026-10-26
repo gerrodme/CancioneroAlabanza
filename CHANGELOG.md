@@ -2,6 +2,10 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.10.0 · 2026-10-26
+
+Menú del usuario más compacto: temas en rejilla, idioma en un desplegable y notación en un selector; en el móvil se abre desde abajo
+
 ## 1.9.2 · 2026-10-26
 
 Usa también las traducciones instaladas en wp-content/languages/plugins (Loco Translate, WordPress.org)

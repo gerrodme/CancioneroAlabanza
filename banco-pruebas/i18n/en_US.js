@@ -154,9 +154,6 @@ window.PIEB_I18N = {
   "Automático (idioma del sitio)": [
    "Automatic (site language)"
   ],
-  "Automática": [
-   "Automatic"
-  ],
   "Nuevo culto": [
    "New service"
   ],
@@ -1802,6 +1799,15 @@ window.PIEB_I18N = {
   ],
   "Etiquetas": [
    "Tags"
+  ],
+  "Administración del cancionero": [
+   "Songbook administration"
+  ],
+  "Administración": [
+   "Administration"
+  ],
+  "notación automática\u0004Auto": [
+   "Auto"
   ]
  }
 };

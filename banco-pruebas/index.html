@@ -27,7 +27,9 @@
     logoutUrl: '#', homeUrl: '#', sitio: 'Tu iglesia', nombre: 'Cancionero', maxUpload: 33554432, maxPartitura: 4194304, maxAudio: 10485760, maxEditable: 10485760, trozo: 1048576, admin: true, version: "1.3.0", tema: tema,
     idioma: locale.replace('_', '-'), idiomas: { es_ES: 'Español', en_US: 'English' }, idiomaElegido: idiomaElegido,
     notacion: notacionElegida || (locale.indexOf('es') === 0 ? 'latina' : 'americana'), notacionElegida: notacionElegida,
-    temas: { colores: 'Colores', pentagrama: 'Pentagrama', sitio: 'Como la web', pulso: 'Pulso', claro: 'Estudio', escenario: 'Escenario', papel: 'Partitura' }
+    temas: idiomaElegido === 'en_US'
+      ? { colores: 'Colors', pentagrama: 'Staff', sitio: 'Like the site', pulso: 'Pulse', claro: 'Studio', escenario: 'Stage', papel: 'Score' }
+      : { colores: 'Colores', pentagrama: 'Pentagrama', sitio: 'Como la web', pulso: 'Pulso', claro: 'Estudio', escenario: 'Escenario', papel: 'Partitura' }
   };
   var hoy = new Date();
   function iso(d) { return d.toISOString().slice(0, 10); }
