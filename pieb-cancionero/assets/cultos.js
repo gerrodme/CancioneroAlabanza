@@ -6,10 +6,14 @@
   if (!P) { return; }
   var h = P.h, append = P.append, icono = P.icono, api = P.api, aviso = P.aviso;
   // Atajos de traducción compartidos por cancionero.js y el idioma del usuario para fechas.
-  var __ = P.__, _n = P._n, _x = P._x, sprintf = P.sprintf;
+  var __ = P.__, _n = P._n, _x = P._x, sprintf = P.sprintf, conNodo = P.conNodo;
   var LOCALE = P.locale || 'es-ES';
 
-  var TIPOS = ['Culto dominical', 'Culto de oración', 'Santa Cena', 'Culto especial', 'Ensayo', 'Boda', 'Funeral'];
+  // Sugerencias de tipo de culto (el campo es libre: lo ya guardado en cada culto no se traduce, son datos del equipo).
+  var TIPOS = [
+    _x('Culto dominical', 'tipo de culto sugerido'), _x('Culto de oración', 'tipo de culto sugerido'), _x('Santa Cena', 'tipo de culto sugerido'),
+    _x('Culto especial', 'tipo de culto sugerido'), _x('Ensayo', 'tipo de culto sugerido'), _x('Boda', 'tipo de culto sugerido'), _x('Funeral', 'tipo de culto sugerido')
+  ];
   var DIAS_REPETICION = 28;
   var PDF_LIB = 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js';
 
@@ -52,19 +56,27 @@
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
 
-  function fechaCorta(iso) {
-    return fmt(iso, { day: 'numeric', month: 'short' }).replace('.', '');
+  /** Quita el punto de las abreviaturas («lun.», «sept.») sin tocar otros signos del idioma. */
+  function sinPunto(texto) {
+    return String(texto).replace(/\.(?=\s|$)/g, '');
   }
+
+  function fechaCorta(iso) {
+    return sinPunto(fmt(iso, { day: 'numeric', month: 'short' }));
+  }
+
+  function nCanciones(n) { return sprintf(_n('%d canción', '%d canciones', n), n); }
+  function nCultos(n) { return sprintf(_n('%d culto', '%d cultos', n), n); }
 
   function haceTanto(iso) {
     var d = diasEntre(iso, hoyISO());
-    if (d === 0) { return 'hoy'; }
-    if (d === 1) { return 'ayer'; }
-    if (d === -1) { return 'mañana'; }
-    if (d < 0) { return 'dentro de ' + (-d) + ' días'; }
-    if (d < 14) { return 'hace ' + d + ' días'; }
-    if (d < 60) { return 'hace ' + Math.round(d / 7) + ' semanas'; }
-    return 'hace ' + Math.round(d / 30) + ' meses';
+    if (d === 0) { return _x('hoy', 'fecha relativa'); }
+    if (d === 1) { return _x('ayer', 'fecha relativa'); }
+    if (d === -1) { return _x('mañana', 'fecha relativa: el día siguiente'); }
+    if (d < 0) { return sprintf(_n('dentro de %d día', 'dentro de %d días', -d), -d); }
+    if (d < 14) { return sprintf(_n('hace %d día', 'hace %d días', d), d); }
+    if (d < 60) { return sprintf(_n('hace %d semana', 'hace %d semanas', Math.round(d / 7)), Math.round(d / 7)); }
+    return sprintf(_n('hace %d mes', 'hace %d meses', Math.round(d / 30)), Math.round(d / 30));
   }
 
   // ---------------------------------------------------------------- datos
@@ -109,8 +121,8 @@
     if (!cerca.length) { return ''; }
     var c = cerca[0];
     var d = diasEntre(c.fecha, fecha);
-    var cuando = d === 0 ? 'el mismo día' : d > 0 ? d + ' días antes' : (-d) + ' días después';
-    return 'También en «' + c.titulo + '» (' + fechaCorta(c.fecha) + ', ' + cuando + ')';
+    var cuando = d === 0 ? __('el mismo día') : d > 0 ? sprintf(_n('%d día antes', '%d días antes', d), d) : sprintf(_n('%d día después', '%d días después', -d), -d);
+    return sprintf(/* translators: 1: título del culto, 2: fecha corta del culto, 3: cuándo fue respecto a este («el mismo día», «3 días antes») */ __('También en «%1$s» (%2$s, %3$s)'), c.titulo, fechaCorta(c.fecha), cuando);
   }
 
   // ---------------------------------------------------------------- vista: listado
@@ -122,22 +134,22 @@
     var pasados = cultos.filter(function (c) { return c.fecha < hoy; });
 
     append(contenedor, h('div', { class: 'pcan-list-head' },
-      h('div', null, h('h2', { text: 'Cultos' }), h('p', { class: 'pcan-muted', text: proximos.length + (proximos.length === 1 ? ' programado' : ' programados') + ' · ' + pasados.length + ' anteriores' })),
-      h('a', { class: 'pcan-btn pcan-btn-sm', href: '#/culto/nuevo' }, icono('mas'), 'Nuevo')));
+      h('div', null, h('h2', { text: __('Cultos') }), h('p', { class: 'pcan-muted', text: sprintf(/* translators: 1: cuántos cultos hay programados («3 programados»), 2: cuántos son anteriores («5 anteriores») */ __('%1$s · %2$s'), sprintf(_n('%d programado', '%d programados', proximos.length), proximos.length), sprintf(_n('%d anterior', '%d anteriores', pasados.length), pasados.length)) })),
+      h('a', { class: 'pcan-btn pcan-btn-sm', href: '#/culto/nuevo' }, icono('mas'), __('Nuevo'))));
 
     if (!cultos.length) {
       append(contenedor, h('div', { class: 'pcan-empty' },
-        h('p', { text: 'Todavía no hay cultos. Prepara el setlist del próximo domingo.' }),
-        h('a', { class: 'pcan-btn pcan-btn-primary', href: '#/culto/nuevo' }, icono('mas'), 'Crear el primer culto')));
+        h('p', { text: __('Todavía no hay cultos. Prepara el setlist del próximo domingo.') }),
+        h('a', { class: 'pcan-btn pcan-btn-primary', href: '#/culto/nuevo' }, icono('mas'), __('Crear el primer culto'))));
       return;
     }
 
     append(contenedor, [
-      h('p', { class: 'pcan-list-label', text: 'Próximos' }),
+      h('p', { class: 'pcan-list-label', text: __('Próximos') }),
       proximos.length
         ? h('div', { class: 'pcan-cultos' }, proximos.map(tarjeta))
-        : h('p', { class: 'pcan-muted pcan-section-empty', text: 'No hay cultos programados.' }),
-      pasados.length ? h('p', { class: 'pcan-list-label', text: 'Anteriores' }) : null,
+        : h('p', { class: 'pcan-muted pcan-section-empty', text: __('No hay cultos programados.') }),
+      pasados.length ? h('p', { class: 'pcan-list-label', text: __('Anteriores') }) : null,
       pasados.length ? h('div', { class: 'pcan-cultos is-past' }, pasados.map(tarjeta)) : null
     ]);
     P.marcarSeleccion('cultos');
@@ -147,9 +159,9 @@
   function bloqueFecha(iso) {
     var d = fechaLocal(iso);
     return h('span', { class: 'pcan-culto-date', 'aria-hidden': 'true' },
-      h('span', { class: 'pcan-culto-dow', text: d.toLocaleDateString(LOCALE, { weekday: 'short' }).replace('.', '') }),
+      h('span', { class: 'pcan-culto-dow', text: sinPunto(d.toLocaleDateString(LOCALE, { weekday: 'short' })) }),
       h('span', { class: 'pcan-culto-day', text: String(d.getDate()) }),
-      h('span', { class: 'pcan-culto-mon', text: d.toLocaleDateString(LOCALE, { month: 'short' }).replace('.', '') }));
+      h('span', { class: 'pcan-culto-mon', text: sinPunto(d.toLocaleDateString(LOCALE, { month: 'short' })) }));
   }
 
   function titulosDe(c) {
@@ -164,17 +176,17 @@
       h('span', { class: 'pcan-culto-main' },
         h('span', { class: 'pcan-culto-titulo' },
           h('span', { class: 'pcan-row-title', text: c.titulo }),
-          faltan >= 0 && faltan <= 30 ? h('span', { class: 'pcan-cuenta' + (faltan <= 1 ? ' is-ya' : ''), text: faltan === 0 ? 'hoy' : faltan === 1 ? 'mañana' : 'en ' + faltan + ' días' }) : null),
-        h('span', { class: 'pcan-culto-songs' + (titulos.length ? '' : ' is-empty'), text: titulos.length ? titulos.join(' · ') : 'Sin canciones todavía' })),
-      h('span', { class: 'pcan-culto-count', title: c.items.length + ' canciones' }, String(c.items.length)));
+          faltan >= 0 && faltan <= 30 ? h('span', { class: 'pcan-cuenta' + (faltan <= 1 ? ' is-ya' : ''), text: faltan === 0 ? _x('hoy', 'fecha relativa') : faltan === 1 ? _x('mañana', 'fecha relativa: el día siguiente') : sprintf(_n('en %d día', 'en %d días', faltan), faltan) }) : null),
+        h('span', { class: 'pcan-culto-songs' + (titulos.length ? '' : ' is-empty'), text: titulos.length ? titulos.join(' · ') : __('Sin canciones todavía') })),
+      h('span', { class: 'pcan-culto-count', title: nCanciones(c.items.length) }, String(c.items.length)));
   }
 
   function mostrarListado() {
-    if (!cultos.length && !cargados) { contenedor.innerHTML = ''; append(contenedor, h('div', { class: 'pcan-empty', text: 'Cargando cultos…' })); }
+    if (!cultos.length && !cargados) { contenedor.innerHTML = ''; append(contenedor, h('div', { class: 'pcan-empty', text: __('Cargando cultos…') })); }
     // Siempre se recarga al entrar: otra persona puede haber creado o cambiado cultos.
     cargar(true).then(function () { pintarListado(); pintarLateral(); }).catch(function (e) {
       contenedor.innerHTML = '';
-      append(contenedor, h('div', { class: 'pcan-empty is-error', text: 'No se pudieron cargar los cultos: ' + e.message }));
+      append(contenedor, h('div', { class: 'pcan-empty is-error', text: sprintf(/* translators: %s: motivo del error */ __('No se pudieron cargar los cultos: %s'), e.message) }));
     });
   }
 
@@ -186,14 +198,14 @@
     var hoy = hoyISO();
     var proximos = cultos.filter(function (c) { return c.fecha >= hoy; }).sort(function (a, b) { return a.fecha.localeCompare(b.fecha); }).slice(0, 4);
     if (!proximos.length) {
-      append(cont, h('a', { class: 'pcan-side-culto is-vacio', href: '#/culto/nuevo' }, icono('mas'), h('span', { text: 'Preparar un culto' })));
+      append(cont, h('a', { class: 'pcan-side-culto is-vacio', href: '#/culto/nuevo' }, icono('mas'), h('span', { text: __('Preparar un culto') })));
       return;
     }
     proximos.forEach(function (c) {
       var d = fechaLocal(c.fecha);
       append(cont, h('a', { class: 'pcan-side-culto', href: '#/culto/' + c.id },
-        h('span', { class: 'pcan-side-culto-fecha' }, h('b', { text: String(d.getDate()) }), d.toLocaleDateString(LOCALE, { month: 'short' }).replace('.', '')),
-        h('span', { class: 'pcan-side-culto-texto' }, h('strong', { text: c.titulo }), h('small', { text: c.items.length + (c.items.length === 1 ? ' canción' : ' canciones') + ' · ' + haceTanto(c.fecha) }))));
+        h('span', { class: 'pcan-side-culto-fecha' }, h('b', { text: String(d.getDate()) }), sinPunto(d.toLocaleDateString(LOCALE, { month: 'short' }))),
+        h('span', { class: 'pcan-side-culto-texto' }, h('strong', { text: c.titulo }), h('small', { text: sprintf(/* translators: 1: número de canciones («3 canciones»), 2: cuándo es el culto («dentro de 4 días») */ __('%1$s · %2$s'), nCanciones(c.items.length), haceTanto(c.fecha)) }))));
     });
   }
 
@@ -208,26 +220,26 @@
     if (!proximo) {
       return h('a', { class: 'pcan-hero is-vacio', href: '#/culto/nuevo' },
         h('span', { class: 'pcan-hero-ico', 'aria-hidden': 'true' }, icono('calendario')),
-        h('span', { class: 'pcan-hero-texto' }, h('strong', { text: 'Prepara el próximo culto' }), h('span', { text: 'Crea el setlist y ten las partituras listas para tocar en la tableta.' })),
-        h('span', { class: 'pcan-btn pcan-btn-primary' }, icono('mas'), 'Nuevo culto'));
+        h('span', { class: 'pcan-hero-texto' }, h('strong', { text: __('Prepara el próximo culto') }), h('span', { text: __('Crea el setlist y ten las partituras listas para tocar en la tableta.') })),
+        h('span', { class: 'pcan-btn pcan-btn-primary' }, icono('mas'), __('Nuevo culto')));
     }
     var canciones = proximo.items.map(function (it) { return { s: P.cancion(+it.cancion), tono: it.tonalidad }; }).filter(function (x) { return x.s; });
-    return h('section', { class: 'pcan-hero', 'aria-label': 'Próximo culto' },
+    return h('section', { class: 'pcan-hero', 'aria-label': __('Próximo culto') },
       h('div', { class: 'pcan-hero-cab' },
         bloqueFecha(proximo.fecha),
         h('div', { class: 'pcan-hero-texto' },
-          h('span', { class: 'pcan-hero-kicker', text: 'Próximo culto · ' + haceTanto(proximo.fecha) }),
+          h('span', { class: 'pcan-hero-kicker', text: sprintf(/* translators: %s: cuándo es el culto («mañana», «dentro de 4 días») */ __('Próximo culto · %s'), haceTanto(proximo.fecha)) }),
           h('a', { href: '#/culto/' + proximo.id }, h('strong', { text: proximo.titulo })),
-          h('span', { text: [proximo.tipo, canciones.length + (canciones.length === 1 ? ' canción' : ' canciones')].filter(Boolean).join(' · ') }))),
+          h('span', { text: [proximo.tipo, nCanciones(canciones.length)].filter(Boolean).join(' · ') }))),
       canciones.length ? h('ol', { class: 'pcan-hero-set' }, canciones.map(function (x, i) {
-        return h('li', null, h('a', { href: '#/culto/' + proximo.id + '/tocar/' + (i + 1), title: 'Tocar desde aquí' },
+        return h('li', null, h('a', { href: '#/culto/' + proximo.id + '/tocar/' + (i + 1), title: __('Tocar desde aquí') },
           h('span', { class: 'pcan-hero-n', text: String(i + 1) }),
           h('span', { class: 'pcan-hero-t', text: x.s.titulo }),
           (x.tono || x.s.tonalidad) ? P.pastillaTono(x.tono || x.s.tonalidad) : null));
-      })) : h('p', { class: 'pcan-hero-vacio', text: 'Aún no tiene canciones.' }),
+      })) : h('p', { class: 'pcan-hero-vacio', text: __('Aún no tiene canciones.') }),
       h('div', { class: 'pcan-hero-acciones' },
-        canciones.length ? h('a', { class: 'pcan-btn pcan-btn-primary pcan-btn-lg', href: '#/culto/' + proximo.id + '/tocar/1' }, icono('play'), 'Tocar') : null,
-        h('a', { class: 'pcan-btn', href: '#/culto/editar/' + proximo.id }, icono('editar'), canciones.length ? 'Editar setlist' : 'Añadir canciones')));
+        canciones.length ? h('a', { class: 'pcan-btn pcan-btn-primary pcan-btn-lg', href: '#/culto/' + proximo.id + '/tocar/1' }, icono('play'), __('Tocar')) : null,
+        h('a', { class: 'pcan-btn', href: '#/culto/editar/' + proximo.id }, icono('editar'), canciones.length ? __('Editar setlist') : __('Añadir canciones'))));
   }
 
   // ---------------------------------------------------------------- vista: portada (vista dividida sin culto elegido)
@@ -237,7 +249,7 @@
     host.innerHTML = '';
     var portada = h('div', { class: 'pcan-cultos-portada' });
     append(host, portada);
-    if (!cultos.length && !cargados) { append(portada, h('p', { class: 'pcan-muted', text: 'Cargando cultos…' })); return true; }
+    if (!cultos.length && !cargados) { append(portada, h('p', { class: 'pcan-muted', text: __('Cargando cultos…') })); return true; }
     var hoy = hoyISO();
     var proximos = cultos.filter(function (c) { return c.fecha >= hoy; }).sort(function (a, b) { return a.fecha.localeCompare(b.fecha); });
     var celebrados = cultos.filter(function (c) { return c.fecha < hoy; });
@@ -248,31 +260,31 @@
     // Por preparar: el próximo domingo sin culto y los cultos programados sin canciones.
     var pendientes = proximos.filter(function (c) { return !c.items.length; }).map(function (c) {
       return h('a', { class: 'pcan-pendiente', href: '#/culto/editar/' + c.id }, icono('aviso'),
-        h('span', { class: 'pcan-pendiente-texto' }, h('strong', { text: c.titulo }), h('small', { text: 'Aún no tiene canciones · ' + haceTanto(c.fecha) })),
-        h('span', { class: 'pcan-pendiente-accion', text: 'Añadir canciones' }));
+        h('span', { class: 'pcan-pendiente-texto' }, h('strong', { text: c.titulo }), h('small', { text: sprintf(/* translators: %s: cuándo es el culto («dentro de 4 días») */ __('Aún no tiene canciones · %s'), haceTanto(c.fecha)) })),
+        h('span', { class: 'pcan-pendiente-accion', text: __('Añadir canciones') }));
     });
     if (proximos.length && !proximos.some(function (c) { return c.fecha === domingo; })) {
       pendientes.unshift(h('a', { class: 'pcan-pendiente', href: '#/culto/nuevo' }, icono('calendario'),
-        h('span', { class: 'pcan-pendiente-texto' }, h('strong', { text: 'Domingo ' + fechaCorta(domingo) }), h('small', { text: 'Todavía no hay culto preparado' })),
-        h('span', { class: 'pcan-pendiente-accion', text: 'Preparar' })));
+        h('span', { class: 'pcan-pendiente-texto' }, h('strong', { text: sprintf(/* translators: %s: fecha corta del domingo («26 oct») */ __('Domingo %s'), fechaCorta(domingo)) }), h('small', { text: __('Todavía no hay culto preparado') })),
+        h('span', { class: 'pcan-pendiente-accion', text: __('Preparar') })));
     }
     if (pendientes.length) {
-      append(portada, h('section', { class: 'pcan-portada-sec' }, h('h3', { text: 'Por preparar' }), h('div', { class: 'pcan-pendientes' }, pendientes)));
+      append(portada, h('section', { class: 'pcan-portada-sec' }, h('h3', { text: __('Por preparar') }), h('div', { class: 'pcan-pendientes' }, pendientes)));
     }
 
     // Lo que viene después del próximo.
     var despues = proximos.slice(1, 7);
     if (despues.length) {
-      append(portada, h('section', { class: 'pcan-portada-sec' }, h('h3', { text: 'Después' }),
+      append(portada, h('section', { class: 'pcan-portada-sec' }, h('h3', { text: __('Después') }),
         h('div', { class: 'pcan-portada-cultos' }, despues.map(function (c) {
           return h('a', { class: 'pcan-portada-culto', href: '#/culto/' + c.id }, bloqueFecha(c.fecha),
-            h('span', { class: 'pcan-portada-culto-texto' }, h('strong', { text: c.titulo }), h('small', { text: c.items.length + (c.items.length === 1 ? ' canción' : ' canciones') + ' · ' + haceTanto(c.fecha) })));
+            h('span', { class: 'pcan-portada-culto-texto' }, h('strong', { text: c.titulo }), h('small', { text: sprintf(/* translators: 1: número de canciones («3 canciones»), 2: cuándo es el culto («dentro de 4 días») */ __('%1$s · %2$s'), nCanciones(c.items.length), haceTanto(c.fecha)) })));
         }))));
     }
 
     append(portada, h('p', { class: 'pcan-portada-pie pcan-muted' },
-      proximos.length + (proximos.length === 1 ? ' culto programado' : ' cultos programados') + ' · ' + celebrados.length + (celebrados.length === 1 ? ' celebrado' : ' celebrados') + ' · ',
-      h('a', { href: '#/culto/nuevo', text: 'Nuevo culto' })));
+      sprintf(/* translators: 1: cuántos cultos hay programados («3 cultos programados»), 2: cuántos se han celebrado («5 celebrados») */ __('%1$s · %2$s'), sprintf(_n('%d culto programado', '%d cultos programados', proximos.length), proximos.length), sprintf(_n('%d celebrado', '%d celebrados', celebrados.length), celebrados.length)) + ' · ',
+      h('a', { href: '#/culto/nuevo', text: __('Nuevo culto') })));
     return true;
   }
 
@@ -285,25 +297,25 @@
   // ---------------------------------------------------------------- vista: ficha del culto
 
   function verCulto(id) {
-    P.abrirPanel(h('div', { class: 'pcan-panel-loading', text: 'Cargando culto…' }), 'Culto', { vista: 'cultos', id: id });
+    P.abrirPanel(h('div', { class: 'pcan-panel-loading', text: __('Cargando culto…') }), __('Culto'), { vista: 'cultos', id: id });
     Promise.all([api('cultos/' + id), cargar()]).then(function (r) {
       pintarFicha(r[0]);
       if (!cultos.some(function (x) { return x.id === r[0].id; })) { cargar(true).then(refrescar); }
     })
       .catch(function (e) {
-        P.abrirPanel([P.cabeceraPanel(h('h2', { text: 'Culto no disponible' })), h('div', { class: 'pcan-panel-body' }, h('p', { text: e.message }))], 'Error', { vista: 'cultos' });
+        P.abrirPanel([P.cabeceraPanel(h('h2', { text: __('Culto no disponible') })), h('div', { class: 'pcan-panel-body' }, h('p', { text: e.message }))], __('Error'), { vista: 'cultos' });
       });
   }
 
   function pintarFicha(c) {
     var validos = c.items.filter(function (it) { return !it.eliminada; });
-    var pdfItem = { texto: 'Descargar PDF del setlist', icono: 'descargar', fn: function () { descargarPdf(c); } };
+    var pdfItem = { texto: __('Descargar PDF del setlist'), icono: 'descargar', fn: function () { descargarPdf(c); } };
 
     var lista = h('ol', { class: 'pcan-setlist' }, c.items.map(function (it, i) {
       if (it.eliminada) {
         return h('li', { class: 'pcan-set-item is-missing' },
           h('span', { class: 'pcan-set-n', text: String(i + 1) }),
-          h('span', { class: 'pcan-set-main' }, h('span', { class: 'pcan-muted', text: 'Canción eliminada del cancionero' })));
+          h('span', { class: 'pcan-set-main' }, h('span', { class: 'pcan-muted', text: __('Canción eliminada del cancionero') })));
       }
       var s = it.datos;
       var tono = it.tonalidad || s.tonalidad;
@@ -312,50 +324,50 @@
         h('span', { class: 'pcan-set-main' },
           h('a', { class: 'pcan-set-title', href: '#/cancion/' + it.cancion }, s.titulo),
           h('span', { class: 'pcan-set-sub' },
-            s.numero ? h('span', { text: 'Nº ' + s.numero }) : null,
-            s.tempo ? h('span', { title: s.tempo + ' pulsaciones por minuto', text: '♩ ' + s.tempo }) : null,
+            s.numero ? h('span', { text: sprintf(/* translators: %s: número de himnario */ __('Nº %s'), s.numero) }) : null,
+            s.tempo ? h('span', { title: sprintf(/* translators: %s: tempo en pulsaciones por minuto */ __('%s pulsaciones por minuto'), s.tempo), text: '♩ ' + s.tempo }) : null,
             it.nota ? h('span', { class: 'pcan-set-note', text: it.nota }) : null)),
         h('span', { class: 'pcan-set-recursos', 'aria-hidden': 'true' },
-          s.partituras && s.partituras.length ? h('span', { title: s.partituras.length === 1 ? 'Partitura' : s.partituras.length + ' partituras' }, icono('partitura')) : null,
-          s.letra ? h('span', { title: 'Letra' }, icono('letra')) : null),
-        tono ? P.pastillaTono(tono, { title: 'Tonalidad' }) : null,
-        h('a', { class: 'pcan-icon-btn', href: '#/culto/' + c.id + '/tocar/' + (i + 1), 'aria-label': 'Tocar desde ' + s.titulo, title: 'Tocar desde aquí' }, icono('play')));
+          s.partituras && s.partituras.length ? h('span', { title: s.partituras.length === 1 ? __('Partitura') : sprintf(_n('%d partitura', '%d partituras', s.partituras.length), s.partituras.length) }, icono('partitura')) : null,
+          s.letra ? h('span', { title: __('Letra') }, icono('letra')) : null),
+        tono ? P.pastillaTono(tono, { title: __('Tonalidad') }) : null,
+        h('a', { class: 'pcan-icon-btn', href: '#/culto/' + c.id + '/tocar/' + (i + 1), 'aria-label': sprintf(/* translators: %s: título de la canción */ __('Tocar desde %s'), s.titulo), title: __('Tocar desde aquí') }, icono('play')));
     }));
 
     P.abrirPanel([
-      P.cabeceraPanel(h('span', { class: 'pcan-panel-crumb', text: 'Culto' })),
+      P.cabeceraPanel(h('span', { class: 'pcan-panel-crumb', text: __('Culto') })),
       h('div', { class: 'pcan-panel-body' },
         h('div', { class: 'pcan-det-hero pcan-culto-hero' },
           bloqueFecha(c.fecha),
           h('div', null,
             h('p', { class: 'pcan-det-kicker', text: fechaLarga(c.fecha) + ' · ' + haceTanto(c.fecha) }),
             h('h2', { class: 'pcan-det-titulo', text: c.titulo }),
-            h('p', { class: 'pcan-det-meta' }, c.tipo ? h('span', { text: c.tipo }) : null, h('span', { text: validos.length + (validos.length === 1 ? ' canción' : ' canciones') }), c.creadoPor ? h('span', { class: 'pcan-muted', text: 'Preparado por ' + c.creadoPor }) : null))),
+            h('p', { class: 'pcan-det-meta' }, c.tipo ? h('span', { text: c.tipo }) : null, h('span', { text: nCanciones(validos.length) }), c.creadoPor ? h('span', { class: 'pcan-muted', text: sprintf(/* translators: %s: nombre de quien preparó el culto */ __('Preparado por %s'), c.creadoPor) }) : null))),
         h('div', { class: 'pcan-det-actions' },
-          validos.length ? h('a', { class: 'pcan-btn pcan-btn-primary pcan-btn-lg', href: '#/culto/' + c.id + '/tocar/1' }, icono('play'), 'Tocar el culto') : null,
-          h('a', { class: 'pcan-btn', href: '#/culto/editar/' + c.id }, icono('editar'), h('span', { class: 'pcan-btn-label', text: validos.length ? 'Editar' : 'Añadir canciones' })),
+          validos.length ? h('a', { class: 'pcan-btn pcan-btn-primary pcan-btn-lg', href: '#/culto/' + c.id + '/tocar/1' }, icono('play'), __('Tocar el culto')) : null,
+          h('a', { class: 'pcan-btn', href: '#/culto/editar/' + c.id }, icono('editar'), h('span', { class: 'pcan-btn-label', text: validos.length ? __('Editar') : __('Añadir canciones') })),
           P.accionesSecundarias([
-            { texto: 'Copiar como texto', icono: 'copiar', fn: function () { P.copiar(textoSetlist(c), 'Setlist copiado (para WhatsApp)'); } },
+            { texto: __('Copiar como texto'), icono: 'copiar', fn: function () { P.copiar(textoSetlist(c), __('Setlist copiado (para WhatsApp)')); } },
             validos.length ? pdfItem : null,
-            { texto: 'Duplicar para otro día', icono: 'mas', href: '#/culto/duplicar/' + c.id },
-            c.puedeBorrar ? { texto: 'Borrar culto', icono: 'borrar', peligro: true, fn: function () { borrar(c); } } : null
+            { texto: __('Duplicar para otro día'), icono: 'mas', href: '#/culto/duplicar/' + c.id },
+            c.puedeBorrar ? { texto: __('Borrar culto'), icono: 'borrar', peligro: true, fn: function () { borrar(c); } } : null
           ])),
         c.notas ? h('div', { class: 'pcan-notas pcan-culto-notas', text: c.notas }) : null,
         c.items.length ? lista : h('div', { class: 'pcan-empty-tab' },
-          h('p', { text: 'Este culto aún no tiene canciones.' }),
-          h('a', { class: 'pcan-btn pcan-btn-primary', href: '#/culto/editar/' + c.id }, icono('mas'), 'Añadir canciones')))
+          h('p', { text: __('Este culto aún no tiene canciones.') }),
+          h('a', { class: 'pcan-btn pcan-btn-primary', href: '#/culto/editar/' + c.id }, icono('mas'), __('Añadir canciones'))))
     ], c.titulo, { vista: 'cultos', id: c.id });
   }
 
   function textoSetlist(c) {
-    var lineas = [c.titulo + ' — ' + fechaLarga(c.fecha), ''];
+    var lineas = [sprintf(/* translators: 1: título del culto, 2: fecha completa («Domingo, 26 de octubre de 2026») */ __('%1$s — %2$s'), c.titulo, fechaLarga(c.fecha)), ''];
     var n = 0;
     c.items.forEach(function (it) {
       if (it.eliminada) { return; }
       n++;
       var s = it.datos;
       var tono = it.tonalidad || s.tonalidad;
-      lineas.push(n + '. ' + s.titulo + (s.numero ? ' (nº ' + s.numero + ')' : '') + (tono ? ' — ' + P.tono(tono) : ''));
+      lineas.push(n + '. ' + s.titulo + (s.numero ? ' ' + sprintf(/* translators: %s: número de himnario */ __('(nº %s)'), s.numero) : '') + (tono ? ' — ' + P.tono(tono) : ''));
       if (it.nota) { lineas.push('   ' + it.nota); }
     });
     if (c.notas) { lineas.push('', c.notas); }
@@ -364,9 +376,9 @@
   }
 
   function borrar(c) {
-    if (!window.confirm('¿Borrar el culto «' + c.titulo + '»? Un administrador podrá recuperarlo desde la papelera.')) { return; }
+    if (!window.confirm(sprintf(/* translators: %s: título del culto */ __('¿Borrar el culto «%s»? Un administrador podrá recuperarlo desde la papelera.'), c.titulo))) { return; }
     api('cultos/' + c.id, { method: 'DELETE' }).then(function () {
-      aviso('Culto borrado');
+      aviso(__('Culto borrado'));
       return cargar(true);
     }).then(function () {
       location.hash = '#/cultos';
@@ -383,7 +395,7 @@
       cargar().then(function () { pintarEditor(null, opciones); });
       return;
     }
-    P.abrirPanel(h('div', { class: 'pcan-panel-loading', text: 'Cargando culto…' }), 'Editar culto', { vista: 'cultos', id: id });
+    P.abrirPanel(h('div', { class: 'pcan-panel-loading', text: __('Cargando culto…') }), __('Editar culto'), { vista: 'cultos', id: id });
     Promise.all([api('cultos/' + id), cargar()]).then(function (r) {
       if (opciones.duplicar) {
         var copia = r[0];
@@ -408,16 +420,17 @@
 
     var fFecha = h('input', { type: 'date', class: 'pcan-input', required: true, value: editando ? c.fecha : proximoDomingo() });
     var listaTipos = h('datalist', { id: 'pcan-tipos' }, TIPOS.map(function (t) { return h('option', { value: t }); }));
-    var fTipo = h('input', { type: 'text', class: 'pcan-input', list: 'pcan-tipos', maxlength: '80', value: editando ? c.tipo : (opciones.tipo || 'Culto dominical') });
+    var fTipo = h('input', { type: 'text', class: 'pcan-input', list: 'pcan-tipos', maxlength: '80', value: editando ? c.tipo : (opciones.tipo || TIPOS[0]) });
     var fTitulo = h('input', { type: 'text', class: 'pcan-input', required: true, maxlength: '200', value: editando ? c.titulo : '' });
-    var fNotas = h('textarea', { class: 'pcan-input pcan-textarea', rows: '2', placeholder: 'Tema del culto, quién predica, indicaciones para el equipo…' });
+    var fNotas = h('textarea', { class: 'pcan-input pcan-textarea', rows: '2', placeholder: __('Tema del culto, quién predica, indicaciones para el equipo…') });
     fNotas.value = editando ? c.notas : (opciones.notas || '');
 
     // El título se rellena solo («Culto dominical · 26 oct») hasta que alguien lo cambie a mano.
     var tituloManual = editando;
     function tituloAuto() {
       if (tituloManual) { return; }
-      fTitulo.value = [fTipo.value.trim() || 'Culto', fFecha.value ? fechaCorta(fFecha.value) : ''].filter(Boolean).join(' · ');
+      var tipo = fTipo.value.trim() || __('Culto');
+      fTitulo.value = fFecha.value ? sprintf(/* translators: 1: tipo de culto («Culto dominical»), 2: fecha corta («26 oct») */ __('%1$s · %2$s'), tipo, fechaCorta(fFecha.value)) : tipo;
     }
     fTitulo.addEventListener('input', function () { tituloManual = fTitulo.value.trim() !== ''; });
     fFecha.addEventListener('change', function () { tituloAuto(); pintarItems(); });
@@ -427,8 +440,8 @@
     // Buscador para añadir canciones.
     var resultados = h('div', { class: 'pcan-picker-results', role: 'listbox', hidden: true });
     var buscador = h('input', {
-      type: 'search', class: 'pcan-input', placeholder: 'Buscar canción por título, número o letra…', autocomplete: 'off',
-      'aria-label': 'Añadir canción al setlist', role: 'combobox', 'aria-expanded': 'false'
+      type: 'search', class: 'pcan-input', placeholder: __('Buscar canción por título, número o letra…'), autocomplete: 'off',
+      'aria-label': __('Añadir canción al setlist'), role: 'combobox', 'aria-expanded': 'false'
     });
     var activo = 0;
     var encontrados = [];
@@ -441,7 +454,7 @@
       buscador.setAttribute('aria-expanded', q ? 'true' : 'false');
       if (!q) { return; }
       if (!encontrados.length) {
-        append(resultados, h('div', { class: 'pcan-picker-empty' }, 'Sin resultados. ', h('a', { href: '#/nueva', target: '_blank', text: 'Subir una canción nueva' })));
+        append(resultados, h('div', { class: 'pcan-picker-empty' }, __('Sin resultados.') + ' ', h('a', { href: '#/nueva', target: '_blank', text: __('Subir una canción nueva') })));
         return;
       }
       activo = Math.min(activo, encontrados.length - 1);
@@ -456,7 +469,7 @@
           h('span', { class: 'pcan-set-num', text: s.numero || '♪' }),
           h('span', { class: 'pcan-picker-main' },
             h('span', { class: 'pcan-picker-title', text: s.titulo }),
-            ya ? h('span', { class: 'pcan-picker-warn', text: 'Ya está en este setlist' })
+            ya ? h('span', { class: 'pcan-picker-warn', text: __('Ya está en este setlist') })
               : rep ? h('span', { class: 'pcan-picker-warn', text: rep }) : null)));
       });
     }
@@ -493,16 +506,16 @@
     function pintarItems() {
       lista.innerHTML = '';
       if (!items.length) {
-        append(lista, h('li', { class: 'pcan-set-placeholder', text: 'Busca canciones arriba para añadirlas. Después puedes arrastrarlas para cambiar el orden.' }));
+        append(lista, h('li', { class: 'pcan-set-placeholder', text: __('Busca canciones arriba para añadirlas. Después puedes arrastrarlas para cambiar el orden.') }));
         return;
       }
       items.forEach(function (it, i) {
         var s = P.cancion(it.cancion);
-        var titulo = s ? s.titulo : 'Canción no disponible';
+        var titulo = s ? s.titulo : __('Canción no disponible');
         var repetida = items.filter(function (o) { return o.cancion === it.cancion; }).length > 1;
         var rep = avisoRepeticion(it.cancion, fFecha.value, editando ? c.id : 0);
 
-        var asa = h('button', { type: 'button', class: 'pcan-drag', 'aria-label': 'Arrastrar para reordenar ' + titulo, title: 'Arrastrar' }, icono('arrastrar'));
+        var asa = h('button', { type: 'button', class: 'pcan-drag', 'aria-label': sprintf(/* translators: %s: título de la canción */ __('Arrastrar para reordenar %s'), titulo), title: __('Arrastrar') }, icono('arrastrar'));
         var li = h('li', { class: 'pcan-set-item', 'data-i': String(i) },
           asa,
           h('span', { class: 'pcan-set-n', text: String(i + 1) }),
@@ -511,29 +524,29 @@
             h('span', { class: 'pcan-set-fields' },
               h('input', {
                 type: 'text', class: 'pcan-input pcan-input-sm pcan-set-tono', list: 'pcan-tonos-set', value: P.tono(it.tonalidad),
-                placeholder: s && s.tonalidad ? P.tono(s.tonalidad) : 'Tono', 'aria-label': 'Tonalidad de ' + titulo,
+                placeholder: s && s.tonalidad ? P.tono(s.tonalidad) : _x('Tono', 'tonalidad de la canción'), 'aria-label': sprintf(/* translators: %s: título de la canción */ __('Tonalidad de %s'), titulo),
                 oninput: function (e) { it.tonalidad = P.tonoGuardar(e.target.value); }
               }),
               h('input', {
-                type: 'text', class: 'pcan-input pcan-input-sm', value: it.nota, placeholder: 'Nota (p. ej. «solo estrofas 1 y 3»)',
-                'aria-label': 'Nota para ' + titulo, oninput: function (e) { it.nota = e.target.value; }
+                type: 'text', class: 'pcan-input pcan-input-sm', value: it.nota, placeholder: __('Nota (p. ej. «solo estrofas 1 y 3»)'),
+                'aria-label': sprintf(/* translators: %s: título de la canción */ __('Nota para %s'), titulo), oninput: function (e) { it.nota = e.target.value; }
               }),
               s && s.variantes && s.variantes.length > 1 ? (function () {
                 var sel = h('select', {
-                  class: 'pcan-input pcan-input-sm pcan-set-partitura', 'aria-label': 'Partitura de ' + titulo, title: 'Partitura que se usa en este culto (modo culto y PDF)',
+                  class: 'pcan-input pcan-input-sm pcan-set-partitura', 'aria-label': sprintf(/* translators: %s: título de la canción */ __('Partitura de %s'), titulo), title: __('Partitura que se usa en este culto (modo culto y PDF)'),
                   onchange: function (e) { it.partitura = +e.target.value; }
-                }, [h('option', { value: '0', text: 'Partitura: la principal' })].concat(s.variantes.map(function (v, k) {
-                  return h('option', { value: String(v.id), text: 'Partitura: ' + (v.label || 'n.º ' + (k + 1)) });
+                }, [h('option', { value: '0', text: __('Partitura: la principal') })].concat(s.variantes.map(function (v, k) {
+                  return h('option', { value: String(v.id), text: sprintf(/* translators: %s: nombre de la partitura (el que le puso el equipo, o «n.º 2») */ __('Partitura: %s'), v.label || sprintf(/* translators: %d: posición de la partitura en la lista */ __('n.º %d'), k + 1)) });
                 })));
                 sel.value = String(it.partitura || 0);
                 return sel;
               })() : null),
-            repetida ? h('span', { class: 'pcan-picker-warn' }, icono('aviso'), 'Está repetida en este setlist') : null,
+            repetida ? h('span', { class: 'pcan-picker-warn' }, icono('aviso'), __('Está repetida en este setlist')) : null,
             rep ? h('span', { class: 'pcan-picker-warn' }, icono('aviso'), rep) : null),
           h('span', { class: 'pcan-set-tools' },
-            h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': 'Subir', disabled: i === 0, onclick: function () { mover(i, i - 1); } }, icono('arriba')),
-            h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': 'Bajar', disabled: i === items.length - 1, onclick: function () { mover(i, i + 1); } }, icono('abajo')),
-            h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': 'Quitar ' + titulo, onclick: function () { items.splice(i, 1); pintarItems(); } }, icono('cerrar'))));
+            h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': _x('Subir', 'mover una canción hacia arriba en el setlist'), disabled: i === 0, onclick: function () { mover(i, i - 1); } }, icono('arriba')),
+            h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': _x('Bajar', 'mover una canción hacia abajo en el setlist'), disabled: i === items.length - 1, onclick: function () { mover(i, i + 1); } }, icono('abajo')),
+            h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': sprintf(/* translators: %s: título de la canción */ __('Quitar %s'), titulo), onclick: function () { items.splice(i, 1); pintarItems(); } }, icono('cerrar'))));
 
         arrastrable(asa, li);
         append(lista, li);
@@ -586,36 +599,36 @@
     pintarItems();
 
     var errorBox = h('div', { class: 'pcan-form-error', role: 'alert', hidden: true });
-    var guardar = h('button', { type: 'submit', class: 'pcan-btn pcan-btn-primary' }, editando ? 'Guardar cambios' : 'Crear culto');
+    var guardar = h('button', { type: 'submit', class: 'pcan-btn pcan-btn-primary' }, editando ? __('Guardar cambios') : __('Crear culto'));
     var tonos = h('datalist', { id: 'pcan-tonos-set' }, P.tonalidades.map(function (t) { return h('option', { value: P.tono(t) }); }));
 
     // En pantallas anchas los datos van en una fila y cada canción del setlist en una línea (ver «editor del culto» en el CSS).
     var form = h('form', { class: 'pcan-form pcan-form-culto', novalidate: true },
       h('div', { class: 'pcan-grid-2 pcan-culto-datos' },
-        P.campo('Fecha', fFecha, null, true),
-        P.campo('Tipo de culto', h('span', null, fTipo, listaTipos)),
-        h('div', { class: 'pcan-span-2' }, P.campo('Título', fTitulo, 'Se rellena solo con el tipo y la fecha; puedes cambiarlo.', true))),
+        P.campo(__('Fecha'), fFecha, null, true),
+        P.campo(__('Tipo de culto'), h('span', null, fTipo, listaTipos)),
+        h('div', { class: 'pcan-span-2' }, P.campo(__('Título'), fTitulo, __('Se rellena solo con el tipo y la fecha; puedes cambiarlo.'), true))),
       h('fieldset', { class: 'pcan-fieldset' },
-        h('legend', { text: 'Setlist' }),
+        h('legend', { text: __('Setlist') }),
         h('div', { class: 'pcan-picker' }, buscador, resultados),
         lista, tonos),
       h('fieldset', { class: 'pcan-fieldset' },
-        h('legend', { text: 'Notas' }),
+        h('legend', { text: __('Notas') }),
         fNotas),
       errorBox,
       h('div', { class: 'pcan-form-actions' },
         guardar,
-        h('button', { type: 'button', class: 'pcan-btn', onclick: function () { if (editando) { location.hash = '#/culto/' + c.id; } else { P.cerrarPanel(); } } }, 'Cancelar')));
+        h('button', { type: 'button', class: 'pcan-btn', onclick: function () { if (editando) { location.hash = '#/culto/' + c.id; } else { P.cerrarPanel(); } } }, __('Cancelar'))));
 
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       var errores = [];
-      if (!fFecha.value) { errores.push('Indica la fecha.'); }
-      if (!fTitulo.value.trim()) { errores.push('Escribe el título.'); }
+      if (!fFecha.value) { errores.push(__('Indica la fecha.')); }
+      if (!fTitulo.value.trim()) { errores.push(__('Escribe el título.')); }
       if (errores.length) { errorBox.textContent = errores.join(' '); errorBox.hidden = false; return; }
       errorBox.hidden = true;
       guardar.disabled = true;
-      guardar.textContent = 'Guardando…';
+      guardar.textContent = __('Guardando…');
 
       fetch(P.cfg.api + (editando ? 'cultos/' + c.id : 'cultos'), {
         method: 'POST',
@@ -623,10 +636,10 @@
         headers: { 'X-WP-Nonce': P.cfg.nonce, 'Content-Type': 'application/json' },
         body: JSON.stringify({ titulo: fTitulo.value.trim(), fecha: fFecha.value, tipo: fTipo.value.trim(), notas: fNotas.value, items: items })
       }).then(function (r) {
-        return r.json().then(function (d) { if (!r.ok) { throw new Error(d.message || 'Error ' + r.status); } return d; });
+        return r.json().then(function (d) { if (!r.ok) { throw new Error(d.message || sprintf(/* translators: %d: código de error HTTP */ __('Error %d'), r.status)); } return d; });
       }).then(function (guardado) {
         P.marcarGuardado();
-        aviso(editando ? 'Culto guardado' : 'Culto creado');
+        aviso(editando ? __('Culto guardado') : __('Culto creado'));
         return cargar(true).then(function () {
           refrescar();
           location.hash = '#/culto/' + guardado.id;
@@ -635,14 +648,14 @@
         errorBox.textContent = err.message;
         errorBox.hidden = false;
         guardar.disabled = false;
-        guardar.textContent = editando ? 'Guardar cambios' : 'Crear culto';
+        guardar.textContent = editando ? __('Guardar cambios') : __('Crear culto');
       });
     });
 
     P.abrirPanel([
-      P.cabeceraPanel(h('h2', { text: editando ? 'Editar culto' : 'Nuevo culto' })),
+      P.cabeceraPanel(h('h2', { text: editando ? __('Editar culto') : __('Nuevo culto') })),
       h('div', { class: 'pcan-panel-body' }, form)
-    ], editando ? 'Editar culto' : 'Nuevo culto', { vista: 'cultos', id: editando ? c.id : 0 });
+    ], editando ? __('Editar culto') : __('Nuevo culto'), { vista: 'cultos', id: editando ? c.id : 0 });
     buscador.focus();
   }
 
@@ -656,7 +669,7 @@
     P.ocultarPanel();
     api('cultos/' + id).then(function (c) {
       var items = c.items.filter(function (it) { return !it.eliminada && it.datos.partituras.length; });
-      if (!items.length) { aviso('Este culto no tiene partituras', 'error'); location.hash = '#/culto/' + c.id; return; }
+      if (!items.length) { aviso(__('Este culto no tiene partituras'), 'error'); location.hash = '#/culto/' + c.id; return; }
       var l = P.Visor.abrirLector({
         titulo: c.titulo,
         inicio: indice,
@@ -702,12 +715,12 @@
       var previa = tarjetas.querySelector('.pcan-home-card.is-recuperar');
       if (previa) { previa.remove(); }
       append(tarjetas, h('section', { class: 'pcan-home-card is-recuperar' },
-        h('header', { class: 'pcan-home-card-head' }, h('h2', { text: 'Para recuperar' }), h('a', { href: '#/estadisticas', text: 'Estadísticas' })),
+        h('header', { class: 'pcan-home-card-head' }, h('h2', { text: __('Para recuperar') }), h('a', { href: '#/estadisticas', text: __('Estadísticas') })),
         candidatas.length ? h('ul', { class: 'pcan-mini-lista' }, candidatas.map(function (x) {
           return h('li', null, h('a', { href: '#/cancion/' + x.s.id },
             h('span', { class: 'pcan-num is-sm' + (x.s.numero ? '' : ' is-empty') }, x.s.numero ? x.s.numero : icono('nota')),
-            h('span', { class: 'pcan-mini-texto' }, h('strong', { text: x.s.titulo }), h('span', { text: x.u ? 'Última vez ' + haceTanto(x.u) : 'Nunca se ha tocado' }))));
-        })) : h('p', { class: 'pcan-muted', text: 'Todo el repertorio ha sonado en los últimos 3 meses.' })));
+            h('span', { class: 'pcan-mini-texto' }, h('strong', { text: x.s.titulo }), h('span', { text: x.u ? sprintf(/* translators: %s: cuándo fue («hace 4 meses») */ __('Última vez %s'), haceTanto(x.u)) : __('Nunca se ha tocado') }))));
+        })) : h('p', { class: 'pcan-muted', text: __('Todo el repertorio ha sonado en los últimos 3 meses.') })));
     });
   });
 
@@ -723,8 +736,8 @@
     }).filter(function (c) {
       return !nq || P.norm(c.titulo + ' ' + c.tipo + ' ' + fechaLarga(c.fecha)).indexOf(nq) !== -1;
     }).slice(0, nq ? 4 : 2);
-    return { titulo: nq ? 'Cultos' : 'Próximos cultos', items: lista.map(function (c) {
-      return { titulo: c.titulo, sub: fechaLarga(c.fecha) + ' · ' + c.items.length + ' canciones', icono: 'calendario', href: '#/culto/' + c.id };
+    return { titulo: nq ? __('Cultos') : __('Próximos cultos'), items: lista.map(function (c) {
+      return { titulo: c.titulo, sub: sprintf(/* translators: 1: fecha completa del culto, 2: número de canciones («3 canciones») */ __('%1$s · %2$s'), fechaLarga(c.fecha), nCanciones(c.items.length)), icono: 'calendario', href: '#/culto/' + c.id };
     }) };
   });
 
@@ -736,7 +749,7 @@
       var s = document.createElement('script');
       s.src = PDF_LIB;
       s.onload = function () { resolve(window.PDFLib); };
-      s.onerror = function () { reject(new Error('No se pudo cargar el generador de PDF.')); };
+      s.onerror = function () { reject(new Error(__('No se pudo cargar el generador de PDF.'))); };
       document.head.appendChild(s);
     });
   }
@@ -809,7 +822,7 @@
   }
 
   function descargarPdf(c) {
-    aviso('Preparando el PDF del setlist…');
+    aviso(__('Preparando el PDF del setlist…'));
 
     cargarPdfLib().then(function (L) {
       return L.PDFDocument.create().then(function (doc) {
@@ -830,7 +843,7 @@
             n++;
             var s = it.datos;
             var tono = it.tonalidad || s.tonalidad;
-            pag.drawText(latin1(n + '.  ' + s.titulo + (s.numero ? '  (n.º ' + s.numero + ')' : '') + (tono ? '  -  ' + P.tono(tono) : '')), { x: 56, y: y, size: 14, font: negrita });
+            pag.drawText(latin1(n + '.  ' + s.titulo + (s.numero ? '  ' + sprintf(/* translators: %s: número de himnario */ __('(n.º %s)'), s.numero) : '') + (tono ? '  -  ' + P.tono(tono) : '')), { x: 56, y: y, size: 14, font: negrita });
             y -= 18;
             if (it.nota) { pag.drawText(latin1(it.nota), { x: 76, y: y, size: 11, font: normal, color: L.rgb(0.37, 0.43, 0.5) }); y -= 16; }
             y -= 8;
@@ -865,12 +878,12 @@
             a.click();
             a.remove();
             setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
-            if (fallos.length) { aviso('No se pudo incluir: ' + fallos.join(', '), 'error'); }
-            else { aviso('PDF descargado'); }
+            if (fallos.length) { aviso(sprintf(/* translators: %s: títulos de las canciones cuya partitura no se pudo añadir, separados por comas */ __('No se pudo incluir: %s'), fallos.join(', ')), 'error'); }
+            else { aviso(__('PDF descargado')); }
           });
         });
       });
-    }).catch(function (e) { aviso(e.message || 'No se pudo generar el PDF', 'error'); });
+    }).catch(function (e) { aviso(e.message || __('No se pudo generar el PDF'), 'error'); });
   }
 
   // ---------------------------------------------------------------- ficha de canción: historial y «añadir a un culto»
@@ -884,9 +897,9 @@
       var proximos = cultos.filter(function (c) { return c.fecha >= hoy && !c.items.some(function (it) { return +it.cancion === cancion.id; }); })
         .sort(function (a, b) { return a.fecha.localeCompare(b.fecha); });
 
-      var select = h('select', { class: 'pcan-select pcan-select-sm', 'aria-label': 'Elegir culto' },
+      var select = h('select', { class: 'pcan-select pcan-select-sm', 'aria-label': __('Elegir culto') },
         proximos.map(function (c) { return h('option', { value: String(c.id), text: fechaCorta(c.fecha) + ' · ' + c.titulo }); }),
-        h('option', { value: 'nuevo', text: '+ Nuevo culto…' }));
+        h('option', { value: 'nuevo', text: __('+ Nuevo culto…') }));
 
       var boton = h('button', {
         type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () {
@@ -898,31 +911,31 @@
           items.push({ cancion: cancion.id, tonalidad: '', nota: '', partitura: 0 });
           api('cultos/' + c.id, { json: { titulo: c.titulo, fecha: c.fecha, tipo: c.tipo, notas: c.notas, items: items } })
             .then(function () { return cargar(true); })
-            .then(function () { aviso('Añadida a «' + c.titulo + '»'); refrescar(); select.querySelector('option[value="' + c.id + '"]').remove(); boton.disabled = false; })
+            .then(function () { aviso(sprintf(/* translators: %s: título del culto */ __('Añadida a «%s»'), c.titulo)); refrescar(); select.querySelector('option[value="' + c.id + '"]').remove(); boton.disabled = false; })
             .catch(function (e) { aviso(e.message, 'error'); boton.disabled = false; });
         }
-      }, icono('mas'), 'Añadir');
+      }, icono('mas'), __('Añadir'));
 
       append(caja, h('div', { class: 'pcan-uso' },
         h('div', { class: 'pcan-uso-stats' },
           h('span', { class: 'pcan-uso-cifra', text: String(tocadas.length) }),
           h('span', null,
-            h('strong', { text: tocadas.length === 1 ? 'vez tocada' : 'veces tocada' }),
+            h('strong', { text: _n('vez tocada', 'veces tocada', tocadas.length) }),
             h('small', null, tocadas.length
-              ? ['Última: ', h('a', { href: '#/culto/' + tocadas[0].id, text: fechaCorta(tocadas[0].fecha) }), ' (' + haceTanto(tocadas[0].fecha) + ')']
-              : 'Aún no ha sonado en un culto'),
-            programada ? h('small', null, 'Programada: ', h('a', { href: '#/culto/' + programada.id, text: fechaCorta(programada.fecha) })) : null)),
-        h('div', { class: 'pcan-uso-add' }, h('label', { class: 'pcan-help', text: 'Añadir a un culto' }), h('div', { class: 'pcan-uso-fila' }, select, boton))));
+              ? conNodo(/* translators: %s: fecha corta del último culto en que se tocó (enlace al culto) */ __('Última: %s'), h('a', { href: '#/culto/' + tocadas[0].id, text: fechaCorta(tocadas[0].fecha) })).concat([' (' + haceTanto(tocadas[0].fecha) + ')'])
+              : __('Aún no ha sonado en un culto')),
+            programada ? h('small', null, conNodo(/* translators: %s: fecha corta del culto en que está programada (enlace al culto) */ __('Programada: %s'), h('a', { href: '#/culto/' + programada.id, text: fechaCorta(programada.fecha) }))) : null)),
+        h('div', { class: 'pcan-uso-add' }, h('label', { class: 'pcan-help', text: __('Añadir a un culto') }), h('div', { class: 'pcan-uso-fila' }, select, boton))));
     });
   });
 
   // ---------------------------------------------------------------- estadísticas
 
   var PERIODOS = [
-    { dias: 90, texto: '3 meses' },
-    { dias: 182, texto: '6 meses' },
-    { dias: 365, texto: '12 meses' },
-    { dias: 0, texto: 'Todo' }
+    { dias: 90, texto: __('3 meses') },
+    { dias: 182, texto: __('6 meses') },
+    { dias: 365, texto: __('12 meses') },
+    { dias: 0, texto: _x('Todo', 'periodo de las estadísticas: todo el tiempo') }
   ];
   var DIAS_OLVIDO = 90;
   var periodoStats = 365;
@@ -933,6 +946,9 @@
     d.setDate(d.getDate() - dias);
     return isoDe(d);
   }
+
+  // Nombre del grupo para las canciones sin etiqueta (aparece en la tarjeta «Por etiqueta»).
+  var SIN_ETIQUETA = __('Sin etiqueta');
 
   function calcularStats() {
     var hoy = hoyISO();
@@ -958,7 +974,7 @@
     var repertorio = P.state.canciones;
     var top = Object.keys(uso).map(function (id) { return { c: P.cancion(+id), n: uso[id].n, ultima: uso[id].ultima }; })
       .filter(function (x) { return x.c; })
-      .sort(function (a, b) { return b.n - a.n || b.ultima.localeCompare(a.ultima) || a.c.titulo.localeCompare(b.c.titulo, 'es'); });
+      .sort(function (a, b) { return b.n - a.n || b.ultima.localeCompare(a.ultima) || a.c.titulo.localeCompare(b.c.titulo, LOCALE); });
 
     // Cuántas canciones suman la mitad de todo lo que se toca: mide si rotamos o repetimos siempre las mismas.
     var mitad = 0, acumulado = 0;
@@ -994,7 +1010,7 @@
       c.items.forEach(function (it) {
         var s = P.cancion(+it.cancion);
         if (!s) { return; }
-        (s.etiquetas.length ? s.etiquetas : ['Sin etiqueta']).forEach(function (e) { etiquetas[e] = (etiquetas[e] || 0) + 1; });
+        (s.etiquetas.length ? s.etiquetas : [SIN_ETIQUETA]).forEach(function (e) { etiquetas[e] = (etiquetas[e] || 0) + 1; });
       });
     });
     var porEtiqueta = Object.keys(etiquetas).map(function (e) { return { nombre: e, n: etiquetas[e] }; })
@@ -1046,20 +1062,20 @@
   function columnas(meses) {
     var max = meses.reduce(function (m, x) { return Math.max(m, x.canciones); }, 0);
     var etiquetaMes = function (m, larga) {
-      return m.fecha.toLocaleDateString(LOCALE, larga ? { month: 'long', year: 'numeric' } : { month: 'short' }).replace('.', '');
+      return sinPunto(m.fecha.toLocaleDateString(LOCALE, larga ? { month: 'long', year: 'numeric' } : { month: 'short' }));
     };
-    var grafica = h('div', { class: 'pcan-columnas', role: 'img', 'aria-label': 'Canciones tocadas por mes' }, meses.map(function (m) {
+    var grafica = h('div', { class: 'pcan-columnas', role: 'img', 'aria-label': __('Canciones tocadas por mes') }, meses.map(function (m) {
       var pct = max ? Math.round(m.canciones / max * 100) : 0;
-      var texto = etiquetaMes(m, true) + ': ' + m.canciones + ' canciones en ' + m.cultos + (m.cultos === 1 ? ' culto' : ' cultos');
+      var texto = sprintf(/* translators: 1: mes y año («octubre de 2026»), 2: número de canciones («12 canciones»), 3: número de cultos («3 cultos») */ __('%1$s: %2$s en %3$s'), etiquetaMes(m, true), nCanciones(m.canciones), nCultos(m.cultos));
       return h('div', { class: 'pcan-columna', title: texto, tabindex: '0', 'aria-label': texto },
         h('span', { class: 'pcan-columna-valor', text: m.canciones ? String(m.canciones) : '' }),
         h('span', { class: 'pcan-columna-pista' }, h('span', { class: 'pcan-columna-barra' + (m.canciones ? '' : ' is-cero'), style: 'height:' + pct + '%' })),
         h('span', { class: 'pcan-columna-mes', text: etiquetaMes(m) }));
     }));
     var tabla = h('details', { class: 'pcan-tabla-ver' },
-      h('summary', { text: 'Ver como tabla' }),
+      h('summary', { text: __('Ver como tabla') }),
       h('table', { class: 'pcan-tabla' },
-        h('thead', null, h('tr', null, h('th', { text: 'Mes' }), h('th', { text: 'Cultos' }), h('th', { text: 'Canciones' }))),
+        h('thead', null, h('tr', null, h('th', { text: __('Mes') }), h('th', { text: __('Cultos') }), h('th', { text: __('Canciones') }))),
         h('tbody', null, meses.map(function (m) {
           return h('tr', null, h('td', { text: etiquetaMes(m, true) }), h('td', { text: String(m.cultos) }), h('td', { text: String(m.canciones) }));
         }))));
@@ -1070,7 +1086,7 @@
     contStats.innerHTML = '';
     var s = calcularStats();
 
-    var selector = h('div', { class: 'pcan-segment pcan-periodo', role: 'radiogroup', 'aria-label': 'Periodo' }, PERIODOS.map(function (p) {
+    var selector = h('div', { class: 'pcan-segment pcan-periodo', role: 'radiogroup', 'aria-label': __('Periodo') }, PERIODOS.map(function (p) {
       var activo = p.dias === periodoStats;
       return h('button', {
         type: 'button', role: 'radio', 'aria-checked': activo ? 'true' : 'false', class: 'pcan-seg' + (activo ? ' is-active' : ''),
@@ -1078,57 +1094,57 @@
       }, p.texto);
     }));
 
-    append(contStats, h('div', { class: 'pcan-section-head' }, h('h2', { text: 'Estadísticas' }), selector));
+    append(contStats, h('div', { class: 'pcan-section-head' }, h('h2', { text: __('Estadísticas') }), selector));
 
     if (!s.cultos) {
       append(contStats, h('div', { class: 'pcan-empty' },
-        h('p', { text: 'Aún no hay cultos celebrados en este periodo. Las estadísticas salen solas de los setlists: en cuanto pase el primer culto con canciones, aparecerán aquí.' }),
-        h('a', { class: 'pcan-btn', href: '#/cultos' }, icono('calendario'), 'Ir a cultos')));
+        h('p', { text: __('Aún no hay cultos celebrados en este periodo. Las estadísticas salen solas de los setlists: en cuanto pase el primer culto con canciones, aparecerán aquí.') }),
+        h('a', { class: 'pcan-btn', href: '#/cultos' }, icono('calendario'), __('Ir a cultos'))));
     }
 
     append(contStats, h('div', { class: 'pcan-kpis' },
-      kpi('Cultos celebrados', String(s.cultos), s.cultos ? s.media.toFixed(1).replace('.', ',') + ' canciones de media' : null),
-      kpi('Canciones distintas', String(s.distintas), 'de ' + s.repertorio + ' en el cancionero'),
-      kpi('La mitad de lo que tocamos', s.mitad ? s.mitad + (s.mitad === 1 ? ' canción' : ' canciones') : '—', s.mitad ? 'Cuantas menos, más repetimos' : null),
-      kpi('Canciones nuevas', String(s.nuevas), s.nuevas ? s.nuevasTocadas + ' ya se han tocado' : 'Añadidas en el periodo')));
+      kpi(__('Cultos celebrados'), String(s.cultos), s.cultos ? sprintf(/* translators: %s: media de canciones por culto, con un decimal («3,5») */ __('%s canciones de media'), s.media.toLocaleString(LOCALE, { minimumFractionDigits: 1, maximumFractionDigits: 1 })) : null),
+      kpi(__('Canciones distintas'), String(s.distintas), sprintf(/* translators: %d: total de canciones del cancionero */ __('de %d en el cancionero'), s.repertorio)),
+      kpi(__('La mitad de lo que tocamos'), s.mitad ? nCanciones(s.mitad) : '—', s.mitad ? __('Cuantas menos, más repetimos') : null),
+      kpi(__('Canciones nuevas'), String(s.nuevas), s.nuevas ? sprintf(_n('%d ya se ha tocado', '%d ya se han tocado', s.nuevasTocadas), s.nuevasTocadas) : __('Añadidas en el periodo'))));
 
     var maxTop = s.top.length ? s.top[0].n : 0;
     var grid = h('div', { class: 'pcan-stats-grid' },
-      tarjetaStat('Las más tocadas', s.top.length ? 'Veces que ha sonado cada canción' : null,
+      tarjetaStat(__('Las más tocadas'), s.top.length ? __('Veces que ha sonado cada canción') : null,
         s.top.length ? barras(s.top.slice(0, 10).map(function (x) {
           return {
             titulo: (x.c.numero ? x.c.numero + ' · ' : '') + x.c.titulo, valor: x.n, href: '#/cancion/' + x.c.id,
-            detalle: 'Última: ' + fechaCorta(x.ultima),
-            tooltip: x.c.titulo + ' · ' + x.n + (x.n === 1 ? ' vez' : ' veces') + ' · última ' + fechaLarga(x.ultima)
+            detalle: sprintf(/* translators: %s: fecha corta de la última vez que se tocó */ __('Última: %s'), fechaCorta(x.ultima)),
+            tooltip: sprintf(/* translators: 1: título de la canción, 2: veces que se ha tocado («3 veces»), 3: fecha completa de la última vez */ __('%1$s · %2$s · última %3$s'), x.c.titulo, sprintf(_n('%d vez', '%d veces', x.n), x.n), fechaLarga(x.ultima))
           };
-        }), maxTop) : h('p', { class: 'pcan-muted', text: 'Sin datos en este periodo.' }), 'is-top'),
-      tarjetaStat('Actividad por mes', 'Canciones tocadas cada mes',
-        s.meses.length ? columnas(s.meses) : h('p', { class: 'pcan-muted', text: 'Sin datos en este periodo.' })),
-      tarjetaStat('Hace tiempo que no suenan', 'Tocadas alguna vez, pero no en los últimos 3 meses',
+        }), maxTop) : h('p', { class: 'pcan-muted', text: __('Sin datos en este periodo.') }), 'is-top'),
+      tarjetaStat(__('Actividad por mes'), __('Canciones tocadas cada mes'),
+        s.meses.length ? columnas(s.meses) : h('p', { class: 'pcan-muted', text: __('Sin datos en este periodo.') })),
+      tarjetaStat(__('Hace tiempo que no suenan'), __('Tocadas alguna vez, pero no en los últimos 3 meses'),
         s.olvidadas.length ? h('ul', { class: 'pcan-stat-lista' }, s.olvidadas.slice(0, 8).map(function (x) {
           return h('li', null, h('a', { href: '#/cancion/' + x.c.id },
             h('span', { text: (x.c.numero ? x.c.numero + ' · ' : '') + x.c.titulo }),
             h('span', { class: 'pcan-stat-dato', text: haceTanto(x.ultima) })));
-        })) : h('p', { class: 'pcan-muted', text: 'Ninguna: todo lo que tocamos ha sonado hace poco.' })),
-      tarjetaStat('Nunca tocadas', s.nunca.length + ' de ' + s.repertorio + ' canciones aún no han sonado en un culto',
+        })) : h('p', { class: 'pcan-muted', text: __('Ninguna: todo lo que tocamos ha sonado hace poco.') })),
+      tarjetaStat(__('Nunca tocadas'), sprintf(/* translators: 1: canciones que nunca se han tocado, 2: total de canciones del cancionero */ _n('%1$d de %2$d canciones aún no ha sonado en un culto', '%1$d de %2$d canciones aún no han sonado en un culto', s.nunca.length), s.nunca.length, s.repertorio),
         s.nunca.length ? h('ul', { class: 'pcan-stat-lista' }, s.nunca.slice(0, 8).map(function (c) {
           return h('li', null, h('a', { href: '#/cancion/' + c.id },
             h('span', { text: (c.numero ? c.numero + ' · ' : '') + c.titulo }),
-            h('span', { class: 'pcan-stat-dato', text: 'Añadida ' + haceTanto(c.creada.slice(0, 10)) })));
-        }).concat(s.nunca.length > 8 ? [h('li', { class: 'pcan-muted', text: 'y ' + (s.nunca.length - 8) + ' más' })] : [])) : h('p', { class: 'pcan-muted', text: 'Todas se han tocado al menos una vez.' })),
-      s.porEtiqueta.some(function (e) { return e.nombre !== 'Sin etiqueta'; }) ? tarjetaStat('Por etiqueta', 'Veces que han sonado canciones de cada etiqueta',
+            h('span', { class: 'pcan-stat-dato', text: sprintf(/* translators: %s: cuándo se añadió («hace 2 semanas») */ __('Añadida %s'), haceTanto(c.creada.slice(0, 10))) })));
+        }).concat(s.nunca.length > 8 ? [h('li', { class: 'pcan-muted', text: sprintf(/* translators: %d: canciones que no caben en la lista */ __('y %d más'), s.nunca.length - 8) })] : [])) : h('p', { class: 'pcan-muted', text: __('Todas se han tocado al menos una vez.') })),
+      s.porEtiqueta.some(function (e) { return e.nombre !== SIN_ETIQUETA; }) ? tarjetaStat(__('Por etiqueta'), __('Veces que han sonado canciones de cada etiqueta'),
         barras(s.porEtiqueta.slice(0, 8).map(function (e) {
-          return { titulo: e.nombre, valor: e.n, tooltip: e.nombre + ' · ' + e.n + (e.n === 1 ? ' vez' : ' veces') };
+          return { titulo: e.nombre, valor: e.n, tooltip: sprintf(/* translators: 1: nombre de la etiqueta, 2: veces que han sonado («3 veces») */ __('%1$s · %2$s'), e.nombre, sprintf(_n('%d vez', '%d veces', e.n), e.n)) };
         }), s.porEtiqueta[0].n)) : null);
 
     append(contStats, grid);
   }
 
   function mostrarStats() {
-    if (!cargados) { contStats.innerHTML = ''; append(contStats, h('div', { class: 'pcan-empty', text: 'Calculando estadísticas…' })); }
+    if (!cargados) { contStats.innerHTML = ''; append(contStats, h('div', { class: 'pcan-empty', text: __('Calculando estadísticas…') })); }
     cargar().then(pintarStats).catch(function (e) {
       contStats.innerHTML = '';
-      append(contStats, h('div', { class: 'pcan-empty is-error', text: 'No se pudieron calcular las estadísticas: ' + e.message }));
+      append(contStats, h('div', { class: 'pcan-empty is-error', text: sprintf(/* translators: %s: motivo del error */ __('No se pudieron calcular las estadísticas: %s'), e.message) }));
     });
   }
 

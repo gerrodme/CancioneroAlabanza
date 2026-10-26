@@ -10,6 +10,8 @@
   var P = window.PCAN;
   if (!P) { return; }
   var h = P.h, append = P.append, icono = P.icono;
+  // Atajos de traducción compartidos por cancionero.js (este archivo se carga después y depende de él).
+  var __ = P.__, sprintf = P.sprintf;
 
   var PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
   var PDFJS_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -27,7 +29,7 @@
         window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
         resolve(window.pdfjsLib);
       };
-      s.onerror = function () { pdfjsPromesa = null; reject(new Error('No se pudo cargar el visor de PDF.')); };
+      s.onerror = function () { pdfjsPromesa = null; reject(new Error(__('No se pudo cargar el visor de PDF.'))); };
       document.head.appendChild(s);
     });
     return pdfjsPromesa;
@@ -71,7 +73,7 @@
             }
           });
         };
-        img.onerror = function () { reject(new Error('No se pudo cargar la imagen.')); };
+        img.onerror = function () { reject(new Error(__('No se pudo cargar la imagen.'))); };
         img.src = fuente.url;
       });
     }
@@ -163,7 +165,7 @@
     var canciones = opciones.canciones;
     var el = h('div', { class: 'pcan-escenario' });
     var capaToque = h('div', { class: 'pcan-escenario-toque', 'aria-hidden': 'true' });
-    var aviso = h('div', { class: 'pcan-escenario-msg', role: 'status', text: 'Cargando partitura…' });
+    var aviso = h('div', { class: 'pcan-escenario-msg', role: 'status', text: __('Cargando partitura…') });
     append(el, [aviso, capaToque]);
 
     var paginas = []; // [{ c: índice de canción, n: página }]
@@ -202,7 +204,7 @@
         });
         listo = true;
         calcularPliegos();
-        if (!paginas.length) { aviso.textContent = 'No se pudo abrir la partitura.'; aviso.hidden = false; }
+        if (!paginas.length) { aviso.textContent = __('No se pudo abrir la partitura.'); aviso.hidden = false; }
       });
     }
 
@@ -248,7 +250,7 @@
         if (sig) { sig.forEach(function (pi) { var p = paginas[pi]; abrirDocumento(canciones[p.c].partitura).then(function (d) { recorte(canciones[p.c].partitura, d, p.n); }); }); }
       }).catch(function (e) {
         if (mio !== turno) { return; }
-        aviso.textContent = e.message || 'No se pudo mostrar la página.';
+        aviso.textContent = e.message || __('No se pudo mostrar la página.');
         aviso.hidden = false;
       });
     }
@@ -319,6 +321,12 @@
     };
   }
 
+  /** «Pág. 2 de 5» (o «Pág. 1–2 de 5» cuando se ven dos páginas a la vez). */
+  function textoPagina(est) {
+    if (!est.paginas) { return ''; }
+    return sprintf(/* translators: 1: página que se ve («2») o páginas («1–2»), 2: total de páginas de la partitura */ __('Pág. %1$s de %2$d'), est.hasta > est.pagina ? est.pagina + '–' + est.hasta : est.pagina, est.paginas);
+  }
+
   // ---------------------------------------------------------------- lector a pantalla completa
 
   /**
@@ -332,11 +340,11 @@
     var wakeLock = null;
 
     var titulo = h('div', { class: 'pcan-lector-titulo' });
-    var btnLetra = h('button', { type: 'button', class: 'pcan-chip-btn', onclick: function () { alternarLetra(); } }, icono('letra'), h('span', { text: 'Letra' }));
-    var selVariante = h('select', { class: 'pcan-lector-variante', 'aria-label': 'Versión de la partitura', onchange: function () { cambiarVariante(+selVariante.value); } });
+    var btnLetra = h('button', { type: 'button', class: 'pcan-chip-btn', onclick: function () { alternarLetra(); } }, icono('letra'), h('span', { text: __('Letra') }));
+    var selVariante = h('select', { class: 'pcan-lector-variante', 'aria-label': __('Versión de la partitura'), onchange: function () { cambiarVariante(+selVariante.value); } });
     var paginaInfo = h('span', { class: 'pcan-lector-pagina' });
     var letra = h('div', { class: 'pcan-lector-letra', hidden: true });
-    var pastillas = h('div', { class: 'pcan-lector-canciones', role: 'tablist', 'aria-label': 'Canciones' });
+    var pastillas = h('div', { class: 'pcan-lector-canciones', role: 'tablist', 'aria-label': __('Canciones') });
 
     var escenario = crearEscenario({
       canciones: canciones.map(function (c) { return { titulo: c.titulo, partitura: c.partituras[0] || null }; }),
@@ -344,16 +352,16 @@
       alTocarCentro: function () { capa.classList.toggle('is-limpio'); }
     });
 
-    var flechaIzq = h('button', { type: 'button', class: 'pcan-lector-flecha is-izq', 'aria-label': 'Página anterior', onclick: function () { anterior(); } }, icono('anterior'));
-    var flechaDer = h('button', { type: 'button', class: 'pcan-lector-flecha is-der', 'aria-label': 'Página siguiente', onclick: function () { siguiente(); } }, icono('siguiente'));
+    var flechaIzq = h('button', { type: 'button', class: 'pcan-lector-flecha is-izq', 'aria-label': __('Página anterior'), onclick: function () { anterior(); } }, icono('anterior'));
+    var flechaDer = h('button', { type: 'button', class: 'pcan-lector-flecha is-der', 'aria-label': __('Página siguiente'), onclick: function () { siguiente(); } }, icono('siguiente'));
 
-    var capa = h('div', { class: 'pcan-lector', role: 'dialog', 'aria-modal': 'true', 'aria-label': opciones.titulo || 'Partitura', tabindex: '-1' },
+    var capa = h('div', { class: 'pcan-lector', role: 'dialog', 'aria-modal': 'true', 'aria-label': opciones.titulo || __('Partitura'), tabindex: '-1' },
       h('div', { class: 'pcan-lector-barra' },
-        h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': 'Cerrar', onclick: cerrar }, icono('cerrar')),
+        h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': __('Cerrar'), onclick: cerrar }, icono('cerrar')),
         titulo,
         selVariante,
         btnLetra,
-        h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': 'Pantalla completa', title: 'Pantalla completa', onclick: pantallaCompleta }, icono('expandir'))),
+        h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': __('Pantalla completa'), title: __('Pantalla completa'), onclick: pantallaCompleta }, icono('expandir'))),
       h('div', { class: 'pcan-lector-cuerpo' }, escenario.el, letra, flechaIzq, flechaDer),
       h('div', { class: 'pcan-lector-pie' }, pastillas, paginaInfo));
     P.temaEn(capa);
@@ -375,13 +383,13 @@
           canciones.length > 1 ? h('span', { class: 'pcan-lector-n', text: (est.cancion + 1) + '/' + canciones.length }) : null,
           h('strong', { text: (c.numero ? c.numero + ' · ' : '') + c.titulo }),
           c.tono ? h('span', { class: 'pcan-tono', text: P.tono(c.tono) }) : null,
-          c.tempo ? h('span', { class: 'pcan-lector-tempo', title: c.tempo + ' pulsaciones por minuto', text: '♩ = ' + c.tempo }) : null,
+          c.tempo ? h('span', { class: 'pcan-lector-tempo', title: sprintf(/* translators: %s: tempo en pulsaciones por minuto */ __('%s pulsaciones por minuto'), c.tempo), text: '♩ = ' + c.tempo }) : null,
           c.nota ? h('span', { class: 'pcan-lector-nota', text: c.nota }) : null
         ]);
         btnLetra.hidden = !c.letra;
         selVariante.innerHTML = '';
         selVariante.hidden = c.partituras.length < 2;
-        c.partituras.forEach(function (p, k) { append(selVariante, h('option', { value: String(k), text: p.label || 'Partitura ' + (k + 1) })); });
+        c.partituras.forEach(function (p, k) { append(selVariante, h('option', { value: String(k), text: p.label || sprintf(/* translators: %d: posición de la partitura en la lista (1, 2, 3…) */ __('Partitura %d'), k + 1) })); });
         selVariante.value = String(variante[est.cancion]);
         Array.prototype.forEach.call(pastillas.children, function (b, k) {
           b.classList.toggle('is-active', k === est.cancion);
@@ -390,7 +398,7 @@
         });
         if (opciones.alCambiar) { opciones.alCambiar(est.cancion); }
       }
-      paginaInfo.textContent = est.paginas ? 'Pág. ' + (est.hasta > est.pagina ? est.pagina + '–' + est.hasta : est.pagina) + ' de ' + est.paginas : '';
+      paginaInfo.textContent = textoPagina(est);
       flechaIzq.disabled = est.pliego === 0;
       flechaDer.disabled = est.pliego >= est.pliegos - 1;
     }
@@ -434,7 +442,7 @@
 
     function pantallaCompleta() {
       if (document.fullscreenElement) { document.exitFullscreen(); }
-      else if (capa.requestFullscreen) { capa.requestFullscreen().catch(function () { P.aviso('Este navegador no permite pantalla completa', 'error'); }); }
+      else if (capa.requestFullscreen) { capa.requestFullscreen().catch(function () { P.aviso(__('Este navegador no permite pantalla completa'), 'error'); }); }
     }
 
     function cerrar() {
@@ -462,12 +470,12 @@
 
   function visorCompacto(cancion, partitura, alPantallaCompleta) {
     var info = h('span', { class: 'pcan-visor-info' });
-    var prev = h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': 'Página anterior', onclick: function () { esc.anterior(); } }, icono('anterior'));
-    var next = h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': 'Página siguiente', onclick: function () { esc.siguiente(); } }, icono('siguiente'));
+    var prev = h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': __('Página anterior'), onclick: function () { esc.anterior(); } }, icono('anterior'));
+    var next = h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': __('Página siguiente'), onclick: function () { esc.siguiente(); } }, icono('siguiente'));
     var esc = crearEscenario({
       canciones: [{ titulo: cancion.titulo, partitura: partitura }],
       alCambiar: function (e) {
-        info.textContent = e.paginas ? 'Pág. ' + (e.hasta > e.pagina ? e.pagina + '–' + e.hasta : e.pagina) + ' de ' + e.paginas : '';
+        info.textContent = textoPagina(e);
         prev.disabled = e.pliego === 0;
         next.disabled = e.pliego >= e.pliegos - 1;
       },
@@ -476,7 +484,7 @@
     var caja = h('div', { class: 'pcan-visor' },
       h('div', { class: 'pcan-visor-marco' }, esc.el),
       h('div', { class: 'pcan-visor-controles' }, prev, info, next,
-        h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-visor-full', onclick: alPantallaCompleta }, icono('expandir'), 'Pantalla completa')));
+        h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-visor-full', onclick: alPantallaCompleta }, icono('expandir'), __('Pantalla completa'))));
     esc.mostrar(0);
     return { el: caja, destruir: esc.destruir };
   }

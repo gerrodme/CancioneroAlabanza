@@ -3,6 +3,14 @@
   'use strict';
 
   var CFG = window.PIEB_LOGIN || {};
+
+  // Traducciones (wp.i18n). Esta pantalla se carga sin cancionero.js, así que lleva sus propios atajos con el dominio fijado;
+  // si wp.i18n no estuviera cargado devuelven el texto tal cual (en español).
+  var WPI = window.wp && window.wp.i18n;
+  var DOMINIO = 'pieb-cancionero';
+
+  function __(texto) { return WPI && WPI.__ ? WPI.__(texto, DOMINIO) : texto; }
+
   var error = document.getElementById('pcan-login-error');
   var ok = document.getElementById('pcan-enlace-ok');
 
@@ -20,7 +28,7 @@
       body: JSON.stringify(datos)
     }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (d) {
-        if (!r.ok) { throw new Error(d.message || 'No se ha podido completar.'); }
+        if (!r.ok) { throw new Error(d.message || __('No se ha podido completar.')); }
         return d;
       });
     });
@@ -37,15 +45,15 @@
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       var email = campo.value.trim();
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { mostrarError('Escribe un correo válido.'); campo.focus(); return; }
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { mostrarError(__('Escribe un correo válido.')); campo.focus(); return; }
       error.hidden = true;
       boton.disabled = true;
-      boton.textContent = 'Enviando…';
+      boton.textContent = __('Enviando…');
       enviar(CFG.apiEnlace, { email: email, volver: CFG.volver }).then(function (d) {
         try { localStorage.setItem('pcan-email', email); } catch (e2) { /* almacenamiento no disponible */ }
         ok.textContent = d.mensaje;
         ok.hidden = false;
-        boton.textContent = 'Enviar otro enlace';
+        boton.textContent = __('Enviar otro enlace');
       }).catch(function (err) {
         mostrarError(err.message);
         boton.textContent = texto;
@@ -74,7 +82,7 @@
       return;
     }
     google.accounts.id.initialize({ client_id: CFG.clientId, callback: alEntrar, ux_mode: 'popup', auto_select: false });
-    google.accounts.id.renderButton(botonGoogle, { theme: 'outline', size: 'large', shape: 'pill', text: 'signin_with', locale: 'es', width: 300 });
+    google.accounts.id.renderButton(botonGoogle, { theme: 'outline', size: 'large', shape: 'pill', text: 'signin_with', locale: CFG.idioma || 'es', width: 300 });
   }
 
   if (document.readyState === 'complete') { iniciar(); }

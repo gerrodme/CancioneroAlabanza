@@ -2,6 +2,10 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.8.3 · 2026-10-26
+
+Cultos, setlist, modo culto, estadísticas e inicio de sesión preparados para traducirse
+
 ## 1.8.2 · 2026-10-26
 
 Textos de la interfaz principal preparados para traducirse; plurales y frases adaptables a cada idioma
