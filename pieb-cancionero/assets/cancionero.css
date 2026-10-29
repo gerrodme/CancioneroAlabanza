@@ -1439,11 +1439,12 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 :is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-row .pcan-num {
   width: 34px; height: 34px; border-radius: 4px; background: transparent; color: var(--pc-muted); font-size: 15px; font-weight: 500;
 }
-:is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-row:hover .pcan-num {
+/* Al pasar el ratón, el número se cambia por «reproducir»; no en modo selección, donde ahí va la casilla. */
+:is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-row:not(.is-marcando):hover .pcan-num {
   color: transparent;
   background: center / 18px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23121212' d='M8 5v14l11-7L8 5z'/%3E%3C/svg%3E");
 }
-:is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-row:hover .pcan-num .pcan-ico { opacity: 0; }
+:is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-row:not(.is-marcando):hover .pcan-num .pcan-ico { opacity: 0; }
 :is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-row-title { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
 :is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-row-meta { font-size: 13px; }
 :is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-key { border-radius: 3px; font-size: 11px; line-height: 1.6; padding: 0 5px; }

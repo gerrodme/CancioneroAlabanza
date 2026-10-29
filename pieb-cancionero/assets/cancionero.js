@@ -1167,6 +1167,8 @@
       ui.btnMarcar.setAttribute('aria-pressed', marcadas ? 'true' : 'false');
       ui.btnMarcar.classList.toggle('is-active', !!marcadas);
     }
+    // Mientras se eligen canciones para borrar, el botón flotante «+» sobra y en el móvil taparía la barra.
+    if (ui.fab) { ui.fab.hidden = !!marcadas; }
     pintarLista();
   }
 
@@ -1185,10 +1187,15 @@
     var confirmar = h('div', { class: 'pcan-barra-confirmar', role: 'alert', hidden: true });
     append(barra, [
       h('span', { class: 'pcan-barra-n', text: ids.length ? sprintf(_n('%d seleccionada', '%d seleccionadas', ids.length), ids.length) : __('Toca las canciones que quieras borrar') }),
-      visibles.length ? h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () {
-        visibles.forEach(function (id) { marcadas[id] = !todas; });
+      // Dos botones fijos: marcar todas las de la lista (con el filtro aplicado) y desmarcar todas.
+      visibles.length ? h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', disabled: todas, onclick: function () {
+        visibles.forEach(function (id) { marcadas[id] = true; });
         pintarLista();
-      } }, todas ? __('Quitar la selección') : sprintf(_n('Seleccionar la canción de la lista', 'Seleccionar las %d de la lista', visibles.length), visibles.length)) : null,
+      } }, icono('check'), sprintf(_n('Seleccionar la canción de la lista', 'Seleccionar las %d de la lista', visibles.length), visibles.length)) : null,
+      h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', disabled: !ids.length, onclick: function () {
+        marcadas = {};
+        pintarLista();
+      } }, __('Quitar la selección')),
       h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', disabled: !ids.length, onclick: function () { confirmar.hidden = false; } }, icono('borrar'), __('Borrar')),
       h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () { alternarMarcado(false); } }, __('Cancelar')),
       confirmar]);

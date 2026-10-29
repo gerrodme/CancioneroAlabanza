@@ -2,6 +2,11 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.10.3 · 2026-10-29
+
+Borrado múltiple de canciones: botones fijos «Seleccionar las N de la lista» y «Quitar la selección»; el botón «+» se
+oculta mientras se eligen y la casilla marcada ya no pierde el ✓ al pasar el ratón por encima
+
 ## 1.10.2 · 2026-10-26
 
 Al restaurar una copia, lo leído del archivo se muestra en una ventana emergente con el progreso siempre a la vista
