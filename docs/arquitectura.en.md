@@ -16,6 +16,7 @@ A technical summary of the **Cancionero** plugin for anyone new to the code.
 | `includes/google.php` | Sign-in with Google (ID token) and with an email link. |
 | `includes/correo.php` | Shared look of the emails (header with the logo, card, button) and sending them as HTML with plain text and the embedded header. |
 | `includes/bienvenida.php` | Welcome email for the team: log of sent emails, composing the email (HTML and plain text) and `POST /bienvenida`. |
+| `includes/accesos.php` | Access log: sign-ins (date, method and device type), days of use and `GET /accesos` with the raw data for the statistics in "Settings and team". |
 | `includes/migracion.php` | Converts the PDFs of the previous plugin (`adoracion_culto_*`) into songs. Idempotent. |
 | `assets/cancionero.js` | The main interface (no dependencies or build step): list, song page, form, bulk upload, statistics, settings. |
 | `assets/cultos.js` | Service screens and the setlist editor. |
@@ -58,7 +59,10 @@ The interface is a single-page application inside the WordPress page; it navigat
   the one used by play mode and the PDF).
 - WordPress options: `pieb_can_ajustes` (settings: `nombre`, `tema_defecto`, `google_client_id`, `emails`,
   `administradores`, `dominio`, `bienvenida_auto`, `bienvenida_texto`, `pagina`), `pieb_can_bienvenidas` (log of the
-  welcome emails sent: email → timestamp; not autoloaded), `pieb_can_version`, `pieb_can_migrado`.
+  welcome emails sent: email → timestamp; not autoloaded), `pieb_can_accesos_desde` (since when accesses are logged; not
+  autoloaded), `pieb_can_version`, `pieb_can_migrado`.
+- **User** metadata for the access log: `pieb_can_accesos` (sign-ins), `pieb_can_dias` (days of use) and
+  `pieb_can_ultimo_acceso`. See [Access log](#access-log).
 
 ## REST API (`/wp-json/pieb/v1/`)
 
@@ -74,6 +78,7 @@ interface receives it in `PIEB_CANCIONERO.nonce`; the API base is in `PIEB_CANCI
 | `/etiquetas`, `/preferencias`, `/huerfanos` | various | Tags with color, user preferences (`tema`, `idioma` and `notacion`, all optional; empty = automatic), unused files. |
 | `/ajustes` | GET, POST | Songbook settings and the team list (requires `pieb_cancionero_gestionar`). The welcome fields are in [Welcome to the team](#welcome-to-the-team). |
 | `/bienvenida` | POST | Sends the welcome email to a batch of addresses (requires `pieb_cancionero_gestionar`). See [Welcome to the team](#welcome-to-the-team). |
+| `/accesos` | GET | Raw access log of every team member, for the statistics (requires `pieb_cancionero_gestionar`). See [Access log](#access-log). |
 | `/google`, `/enlace`, `/correo-prueba` | POST | Google sign-in, email link and a test email. |
 
 ### Updating a song (`POST /canciones/{id}`)
@@ -146,6 +151,62 @@ in batches:
    does not wait for the sends (each `wp_mail` can take a second with SMTP) and there are no long timeouts if 40 addresses
    are pasted at once.
 3. A manual resend or the test uses the same endpoint.
+
+## Access log
+
+`includes/accesos.php`. So that whoever administers can see in "Settings and team" when each person signs in and how the
+songbook is used, the plugin keeps a minimal history. The server only **records and returns the raw data**; the statistics
+(sign-ins per week, active people, most used methods and devices…) are calculated by the interface.
+
+**What is stored**, only for people with the `pieb_cancionero_acceso` capability (including WordPress administrators and
+editors): date, sign-in method and device type. The IP address and the user agent are **not** stored.
+
+| Data | Where | Content |
+|---|---|---|
+| Sign-ins | user meta `pieb_can_accesos` | List, newest first, of `{t, m, d}`: `t` Unix time; `m` method (`enlace` = email link, `google` or `contrasena` = password); `d` device (`movil` = phone, `tableta` = tablet or `ordenador` = computer). |
+| Days of use | user meta `pieb_can_dias` | List of `Y-m-d` days (site time zone), newest first, on which the person opened the songbook. |
+| Last access | user meta `pieb_can_ultimo_acceso` | Unix time of the last sign-in, whatever the method. |
+| Start of the log | option `pieb_can_accesos_desde` (not autoloaded) | Unix time of the first entry. The interface uses it so as not to show as "no use" what simply predates the log. |
+
+**Sign-ins.** `pieb_can_registrar_acceso` hooks into `wp_login`. The method is set by the handlers in `google.php` that
+start the session on their own (the email link and Google call `pieb_can_metodo_acceso('enlace'|'google')` right before
+firing `wp_login`); if nobody sets it, it is the WordPress form (`contrasena`). The device is inferred from the user agent
+(`pieb_can_dispositivo_acceso`): tablet (iPad, "Tablet", Android without "Mobile"), phone or computer. Modern iPads
+present themselves as a Mac and count as a computer. Every sign-in also updates `pieb_can_ultimo_acceso`, so "Has signed
+in" in the team list works with any method.
+
+**Days of use.** Signing in is not using the songbook: with "remember me" the session lasts 14 days. That is why
+`pieb_can_registrar_dia` records today's date every time someone with a session and access opens the songbook (it is
+called from the shortcode); it only looks at the first stored day, so it writes at most once a day. It does not count when
+the shortcode is processed in the dashboard or in the REST API (e.g. when editing the page).
+
+**How long it is kept.** 12 months (365 days); sign-ins are also capped at 400 per person. Older entries are dropped when
+a new one is recorded. Backups do **not** include this log.
+
+**`GET /accesos`** (requires `pieb_cancionero_gestionar`). Response:
+
+```
+{
+  desde: int,       // pieb_can_accesos_desde (0 if there is nothing yet)
+  ahora: int,       // server time (Unix)
+  hoy: 'Y-m-d',     // today in the site time zone
+  personas: [{
+    email, nombre,  // nombre = display_name or ''
+    enLista: bool,  // is in the team email list
+    esAdmin: bool,  // manage_options
+    esGestor: bool, // as in `miembros` of GET /ajustes
+    cuenta: bool,   // has a WordPress account
+    haEntrado: bool,  // has ever signed in, also before the log existed (Google or link)
+    ultimoAcceso: int,  // the greater of the last sign-in and pieb_can_ultimo_acceso; 0 if never
+    accesos: [{ t: int, metodo: 'enlace'|'google'|'contrasena', dispositivo: 'movil'|'tableta'|'ordenador' }],
+    dias: ['Y-m-d', …]  // newest first
+  }]
+}
+```
+
+`personas` are the same as `miembros` in `GET /ajustes` (`pieb_can_miembros`: the list's emails, with or without an
+account, and accounts with the songbook roles) plus any other account with access that has something recorded (e.g. a
+WordPress administrator who enters the songbook), ordered by email.
 
 ## Trash
 

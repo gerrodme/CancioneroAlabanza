@@ -35,6 +35,9 @@ can be translated into other languages. In English, an installation without a na
 - **Access:** the "Worship team" role, sign-in with Google (Google Identity Services) or with an email link.
 - **Welcome:** anyone added to the team list receives an email with the logo and a button that signs them
   straight into the songbook (single use, valid for 7 days), plus how to sign in later. From **Settings and team → Team** it can be sent again to the people you choose.
+- **Activity:** under **Settings and team → Activity**, who signs in and how much the songbook is used: active people,
+  sign-ins, days of use, how they sign in, from which device and on which days, with each person's details. Kept for
+  12 months, no IP addresses.
 - **Songbook administrators:** besides WordPress administrators, others can be named under **Settings and team**. They can
   change the settings, manage the team and delete songs (to the WordPress trash).
 - **Your own name:** the name of the songbook ("Our church songbook", etc.) is changed under **Settings and team →

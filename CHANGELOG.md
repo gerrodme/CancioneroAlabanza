@@ -2,6 +2,12 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.12.0 · 2026-10-30
+
+Accesos: en Ajustes y equipo, quién entra y cuánto se usa el cancionero. Personas activas, inicios de sesión, días de uso,
+quién no ha entrado nunca, gráfica por semana o mes, cómo entran (enlace, Google o contraseña), desde qué dispositivo y
+qué días se usa, con el detalle de cada persona. Se registra desde esta versión y se guardan 12 meses, sin direcciones IP
+
 ## 1.11.3 · 2026-10-30
 
 El correo con el enlace de acceso tiene el mismo aspecto que la bienvenida (cabecera con el logo, botón «Entrar al

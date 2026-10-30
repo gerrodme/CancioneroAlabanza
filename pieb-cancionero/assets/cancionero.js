@@ -898,6 +898,7 @@
     ].concat(CFG.gestionar ? [
       { titulo: __('Ajustes y equipo'), sub: __('Nombre, tema por defecto, plazo de la papelera'), icono: 'ajustes', href: '#/ajustes' },
       { titulo: __('Equipo'), sub: __('Correos con acceso, administradores y dominio'), icono: 'equipo', href: '#/ajustes/equipo' },
+      { titulo: __('Accesos'), sub: __('Quién entra y cuánto se usa'), icono: 'grafica', href: '#/ajustes/accesos' },
       { titulo: __('Acceso con Google'), sub: __('Client ID de Google'), icono: 'acceso', href: '#/ajustes/google' },
       { titulo: __('Archivos'), sub: __('Protección y archivos sin usar'), icono: 'partitura', href: '#/ajustes/archivos' },
       { titulo: __('Papelera'), sub: __('Restaurar o eliminar canciones borradas'), icono: 'borrar', href: '#/ajustes/papelera' },
@@ -2223,10 +2224,10 @@
   // Panel «Ajustes y equipo» abierto (null si no lo está) y turno de la última carga, para ignorar respuestas viejas.
   var ajustesAbierto = null;
   var turnoAjustes = 0;
-  var SECCIONES_AJUSTES = ['general', 'equipo', 'google', 'archivos', 'papelera', 'copias'];
+  var SECCIONES_AJUSTES = ['general', 'equipo', 'accesos', 'google', 'archivos', 'papelera', 'copias'];
   var RUTA_AJUSTES = /^#\/(ajustes|papelera|copias)(\/|$)/;
 
-  /** Abre «Ajustes y equipo» en una sección (general, equipo, google, archivos, papelera o copias).
+  /** Abre «Ajustes y equipo» en una sección (general, equipo, accesos, google, archivos, papelera o copias).
    *  Si el panel ya está abierto solo cambia de sección: no se vuelven a pedir los datos. */
   function abrirAjustes(seccion) {
     if (!CFG.gestionar) { location.hash = '#/'; return; }
@@ -2552,16 +2553,21 @@
     }
 
     // Secciones: General, Equipo y Google son un solo formulario con un único «Guardar ajustes»;
-    // Archivos, Papelera y Copias de seguridad tienen sus propias acciones y no muestran «Guardar».
+    // Accesos, Archivos, Papelera y Copias de seguridad tienen sus propias acciones y no muestran «Guardar».
     var SEC_FORMULARIO = { general: true, equipo: true, google: true };
     var etiquetas = {
-      general: [__('General'), 'ajustes'], equipo: [__('Equipo'), 'equipo'], google: [__('Acceso con Google'), 'acceso'],
+      general: [__('General'), 'ajustes'], equipo: [__('Equipo'), 'equipo'], accesos: [__('Accesos'), 'grafica'], google: [__('Acceso con Google'), 'acceso'],
       archivos: [__('Archivos'), 'partitura'], papelera: [__('Papelera'), 'borrar'], copias: [__('Copias de seguridad'), 'descargar']
     };
     var cuerpoPapelera = h('div', { class: 'pcan-form' });
+    var cuerpoAccesos = h('div', { class: 'pcan-accesos' });
+    // Pulsar aquí no son cambios de los ajustes: no deben pedir confirmación al cerrar.
+    cuerpoAccesos.addEventListener('input', function (e) { e.stopPropagation(); });
+    cuerpoAccesos.addEventListener('change', function (e) { e.stopPropagation(); });
     var cuerpoCopias = h('div', { class: 'pcan-ajustes-copias' });
     // Lo que cada sección pide al servidor, solo la primera vez que se abre.
     var cargadores = {
+      accesos: function () { pintarAccesos(cuerpoAccesos); },
       archivos: function () { cargarProteccion(); cargarHuerfanos(); },
       papelera: function () { pintarPapelera(cuerpoPapelera); },
       copias: function () { pintarCopias(cuerpoCopias); }
@@ -2635,6 +2641,7 @@
               h('li', { text: __('Crear credenciales → ID de cliente de OAuth → Aplicación web.') }),
               h('li', null, conNodo(/* translators: %s: dirección web de este sitio */ __('En «Orígenes de JavaScript autorizados» añade: %s'), h('code', { text: a.origen }))),
               h('li', { text: __('Copia el ID de cliente y pégalo aquí.') }))))],
+      accesos: [cuerpoAccesos],
       archivos: [
         h('fieldset', { class: 'pcan-fieldset' },
           h('legend', { text: __('Protección de los archivos') }),
@@ -2790,6 +2797,361 @@
     };
     alCerrarPanel.push(function () { if (ajustesAbierto && ajustesAbierto.raiz === raiz) { ajustesAbierto = null; } });
     ir(seccionInicial);
+  }
+
+  // ---------------------------------------------------------------- accesos (responsables)
+
+  // Los días son texto «AAAA-MM-DD»: se comparan como texto y se suman a mediodía para que el cambio de hora no los descuadre.
+  function fechaDeTexto(iso) {
+    var p = String(iso).split('-');
+    return new Date(+p[0], +p[1] - 1, +p[2], 12);
+  }
+
+  function textoDeFecha(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function sumarDias(iso, n) {
+    var d = fechaDeTexto(iso);
+    d.setDate(d.getDate() + n);
+    return textoDeFecha(d);
+  }
+
+  /** Día (en este navegador) de una marca de tiempo Unix. */
+  function diaDeMarca(segundos) { return textoDeFecha(new Date(segundos * 1000)); }
+
+  function mayuscula(texto) { return texto.charAt(0).toUpperCase() + texto.slice(1); }
+
+  /** «hoy», «ayer», «hace 3 días»… (los mismos textos que las estadísticas de cultos), desde un día y el «hoy» del servidor. */
+  function haceTanto(iso, hoy) {
+    var d = Math.round((fechaDeTexto(hoy) - fechaDeTexto(iso)) / 86400000);
+    if (d <= 0) { return _x('hoy', 'fecha relativa'); }
+    if (d === 1) { return _x('ayer', 'fecha relativa'); }
+    if (d < 14) { return sprintf(_n('hace %d día', 'hace %d días', d), d); }
+    if (d < 60) { return sprintf(_n('hace %d semana', 'hace %d semanas', Math.round(d / 7)), Math.round(d / 7)); }
+    return sprintf(_n('hace %d mes', 'hace %d meses', Math.round(d / 30)), Math.round(d / 30));
+  }
+
+  function nPersonas(n) { return sprintf(_n('%d persona', '%d personas', n), n); }
+  function nInicios(n) { return sprintf(_n('%d inicio', '%d inicios', n), n); }
+  function nDiasDeUso(n) { return sprintf(_n('%d día de uso', '%d días de uso', n), n); }
+
+  function metodoAcceso(m) {
+    return m === 'enlace' ? __('Enlace por correo') : m === 'google' ? 'Google' : m === 'contrasena' ? __('Usuario y contraseña') : '—';
+  }
+
+  function dispositivoAcceso(d) {
+    return d === 'movil' ? __('Móvil') : d === 'tableta' ? __('Tableta') : d === 'ordenador' ? __('Ordenador') : '—';
+  }
+
+  /**
+   * Completa a cada persona con lo que hace falta para las estadísticas: el día de cada inicio y su último acceso.
+   * `nunca`: no ha entrado jamás. `sinRegistro`: entró antes de que existiera el registro (haEntrado, pero sin accesos ni días anotados).
+   */
+  function prepararAcceso(p) {
+    var accesos = (p.accesos || []).slice().sort(function (a, b) { return b.t - a.t; });
+    var dias = (p.dias || []).slice().sort().reverse();
+    var ultT = Math.max(p.ultimoAcceso || 0, accesos.length ? accesos[0].t : 0);
+    var ultimo = ultT ? diaDeMarca(ultT) : '';
+    if (dias.length && dias[0] > ultimo) { ultimo = dias[0]; }
+    var entro = !!p.haEntrado || !!ultimo;
+    return {
+      p: p, accesos: accesos, dias: dias, diasInicio: accesos.map(function (e) { return diaDeMarca(e.t); }),
+      ultT: ultT, ultimo: ultimo, entro: entro, nunca: !entro, sinRegistro: entro && !ultimo,
+      // Tiene acceso quien está en la lista o es administrador (de la web o del cancionero).
+      acceso: !!(p.enLista || p.esAdmin || p.esGestor)
+    };
+  }
+
+  /** Inicios de sesión y días de uso de una persona entre dos días (ambos incluidos). */
+  function resumenAcceso(x, desde, hasta) {
+    var enRango = function (d) { return d >= desde && d <= hasta; };
+    return { inicios: x.diasInicio.filter(enRango).length, dias: x.dias.filter(enRango).length };
+  }
+
+  /** Tramos de la gráfica: por día (7 días), por semana de lunes a domingo (30 y 90 días) o por mes (12 meses), recortados al periodo. */
+  function tramosAcceso(nDias, primero, hoy) {
+    var tramos = [], c, fin, previo = '';
+    var fmt = function (iso, opciones) { return sinPunto(fechaDeTexto(iso).toLocaleDateString(LOCALE, opciones)); };
+    if (nDias <= 7) {
+      for (c = primero; c <= hoy; c = sumarDias(c, 1)) {
+        tramos.push({
+          desde: c, hasta: c, principal: fmt(c, { weekday: 'short' }), secundaria: fmt(c, { day: 'numeric' }),
+          largo: mayuscula(fmt(c, { weekday: 'long', day: 'numeric', month: 'long' }))
+        });
+      }
+    } else if (nDias <= 90) {
+      c = sumarDias(primero, -((fechaDeTexto(primero).getDay() + 6) % 7));
+      while (c <= hoy) {
+        fin = sumarDias(c, 6);
+        tramos.push({
+          desde: c < primero ? primero : c, hasta: fin > hoy ? hoy : fin, principal: fmt(c, { day: 'numeric' }),
+          secundaria: c.slice(0, 7) !== previo ? fmt(c, { month: 'short' }) : '',
+          largo: sprintf(/* translators: %s: fecha corta del lunes de esa semana («12 oct») */ __('Semana del %s'), fechaCorta(c))
+        });
+        previo = c.slice(0, 7);
+        c = sumarDias(c, 7);
+      }
+    } else {
+      c = primero.slice(0, 7) + '-01';
+      while (c <= hoy) {
+        var d = fechaDeTexto(c);
+        fin = textoDeFecha(new Date(d.getFullYear(), d.getMonth() + 1, 0, 12));
+        tramos.push({
+          desde: c < primero ? primero : c, hasta: fin > hoy ? hoy : fin, principal: fmt(c, { month: 'short' }),
+          secundaria: !tramos.length || d.getMonth() === 0 ? String(d.getFullYear()) : '',
+          largo: mayuscula(fmt(c, { month: 'long', year: 'numeric' }))
+        });
+        c = sumarDias(fin, 1);
+      }
+    }
+    return tramos;
+  }
+
+  function kpiAcceso(etiqueta, valor, detalle) {
+    return h('div', { class: 'pcan-kpi' },
+      h('span', { class: 'pcan-kpi-label', text: etiqueta }),
+      h('strong', { class: 'pcan-kpi-valor', text: valor }),
+      detalle ? h('span', { class: 'pcan-kpi-detalle', text: detalle }) : null);
+  }
+
+  function tarjetaAcceso(titulo, subtitulo, contenido, clase) {
+    return h('section', { class: 'pcan-stat-card' + (clase ? ' ' + clase : '') },
+      h('header', { class: 'pcan-stat-head' }, h('h3', { text: titulo }), subtitulo ? h('p', { text: subtitulo }) : null),
+      contenido);
+  }
+
+  /** Barras horizontales sin número de posición. filas: { titulo, valor, texto (lo que se lee a la derecha), detalle? }; `escala` es el valor que llena la barra. */
+  function barrasAcceso(filas, escala) {
+    return h('ol', { class: 'pcan-barras' }, filas.map(function (f) {
+      var pct = f.valor && escala ? Math.max(3, Math.round(f.valor / escala * 100)) : 0;
+      return h('li', null, h('div', { class: 'pcan-barra' },
+        h('span', { class: 'pcan-barra-main' },
+          h('span', { class: 'pcan-barra-texto' },
+            h('span', { class: 'pcan-barra-titulo', text: f.titulo }),
+            f.detalle ? h('span', { class: 'pcan-barra-detalle', text: f.detalle }) : null),
+          h('span', { class: 'pcan-barra-pista', 'aria-hidden': 'true' }, h('span', { class: 'pcan-barra-relleno', style: 'width:' + pct + '%' }))),
+        h('span', { class: 'pcan-barra-valor', text: f.texto })));
+    }));
+  }
+
+  /** Columnas de personas activas por tramo, con su tabla equivalente. */
+  function columnasAcceso(tramos, titulo, primeraColumna) {
+    var max = tramos.reduce(function (m, t) { return Math.max(m, t.personas); }, 0);
+    var grafica = h('div', { class: 'pcan-columnas is-doble', role: 'img', 'aria-label': titulo }, tramos.map(function (t) {
+      var texto = sprintf(/* translators: 1: tramo («Semana del 12 oct»), 2: número de personas («3 personas»), 3: número de inicios de sesión («5 inicios») */ __('%1$s: %2$s · %3$s'), t.largo, nPersonas(t.personas), nInicios(t.inicios));
+      return h('div', { class: 'pcan-columna', title: texto, tabindex: '0', 'aria-label': texto },
+        h('span', { class: 'pcan-columna-valor', text: t.personas ? String(t.personas) : '' }),
+        h('span', { class: 'pcan-columna-pista' }, h('span', { class: 'pcan-columna-barra' + (t.personas ? '' : ' is-cero'), style: 'height:' + (max ? Math.round(t.personas / max * 100) : 0) + '%' })),
+        h('span', { class: 'pcan-columna-mes' }, t.principal, h('small', { text: t.secundaria })));
+    }));
+    var tabla = h('details', { class: 'pcan-tabla-ver' },
+      h('summary', { text: __('Ver como tabla') }),
+      h('table', { class: 'pcan-tabla' },
+        h('thead', null, h('tr', null, h('th', { text: primeraColumna }), h('th', { text: __('Personas') }), h('th', { text: __('Inicios') }), h('th', { text: __('Días de uso') }))),
+        h('tbody', null, tramos.map(function (t) {
+          return h('tr', null, h('td', { text: t.largo }), h('td', { text: String(t.personas) }), h('td', { text: String(t.inicios) }), h('td', { text: String(t.dias) }));
+        }))));
+    return h('div', null, grafica, tabla);
+  }
+
+  /** Selector segmentado como el de las estadísticas. opciones: { id, texto, n? }; al elegir una llama a alElegir(id). */
+  function selectorSegmentado(opciones, activo, etiqueta, alElegir) {
+    var botones = opciones.map(function (o) {
+      return h('button', { type: 'button', role: 'radio', class: 'pcan-seg', onclick: function () { marcar(o.id); alElegir(o.id); } },
+        o.texto, o.n !== undefined ? h('span', { class: 'pcan-chip-n', text: String(o.n) }) : null);
+    });
+    function marcar(id) {
+      opciones.forEach(function (o, i) {
+        botones[i].classList.toggle('is-active', o.id === id);
+        botones[i].setAttribute('aria-checked', o.id === id ? 'true' : 'false');
+      });
+    }
+    marcar(activo);
+    return h('div', { class: 'pcan-segment pcan-periodo', role: 'radiogroup', 'aria-label': etiqueta }, botones);
+  }
+
+  /** Pide los accesos y los pinta en `cuerpo`; si falla, enseña el error con un botón para reintentar. */
+  function pintarAccesos(cuerpo) {
+    cuerpo.innerHTML = '';
+    append(cuerpo, h('p', { class: 'pcan-help', role: 'status', text: __('Cargando accesos…') }));
+    api('accesos').then(function (a) { mostrarAccesos(cuerpo, a); }).catch(function (e) {
+      cuerpo.innerHTML = '';
+      append(cuerpo, [
+        h('div', { class: 'pcan-form-error', role: 'alert', text: sprintf(/* translators: %s: motivo del error */ __('No se pudieron cargar los accesos: %s'), e.message) }),
+        h('div', { class: 'pcan-actions' }, h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () { pintarAccesos(cuerpo); } }, __('Reintentar')))]);
+    });
+  }
+
+  function mostrarAccesos(cuerpo, a) {
+    cuerpo.innerHTML = '';
+    var hoy = a.hoy;
+    var notaIp = __('Se guardan los últimos 12 meses y no se anotan direcciones IP.');
+
+    // Aún no se ha registrado nada: se explica en vez de enseñar ceros.
+    if (!a.desde) {
+      append(cuerpo, [
+        h('div', { class: 'pcan-empty' },
+          h('p', null, h('strong', { text: __('Todavía no hay accesos registrados') })),
+          h('p', { text: __('Los inicios de sesión se empiezan a registrar a partir de ahora. Cuando alguien entre en el cancionero, aquí verás quién lo usa, cada cuánto y desde qué dispositivos.') })),
+        h('p', { class: 'pcan-help pcan-accesos-nota', text: notaIp })]);
+      return;
+    }
+
+    var personas = (a.personas || []).map(prepararAcceso);
+    var registro = diaDeMarca(a.desde);
+    var periodo = 30, filtro = 'todas';
+    var abiertas = {};
+    var zona = h('div', { class: 'pcan-accesos-zona' });
+
+    var selector = selectorSegmentado([
+      { id: 7, texto: __('7 días') }, { id: 30, texto: __('30 días') }, { id: 90, texto: __('90 días') }, { id: 365, texto: __('12 meses') }
+    ], periodo, __('Periodo'), function (id) { periodo = id; pintarZona(); });
+    append(cuerpo, [
+      h('div', { class: 'pcan-accesos-cab' }, selector,
+        h('p', { class: 'pcan-help pcan-accesos-nota', text: sprintf(/* translators: %s: fecha (p. ej. 30 oct 2026) */ __('Se registra desde el %s.'), fechaMarca(a.desde)) + ' ' + notaIp })),
+      zona]);
+
+    function pintarZona() {
+      zona.innerHTML = '';
+      var inicio = sumarDias(hoy, 1 - periodo);
+      // Si el registro empezó dentro del periodo, no se dibujan los días anteriores.
+      var primero = registro > inicio ? registro : inicio;
+      var ps = personas.map(function (x) {
+        var r = resumenAcceso(x, inicio, hoy);
+        return { x: x, inicios: r.inicios, dias: r.dias, activa: r.inicios + r.dias > 0 };
+      });
+      var activas = ps.filter(function (r) { return r.activa; }).length;
+      var inicios = ps.reduce(function (s, r) { return s + r.inicios; }, 0);
+      var diasUso = ps.reduce(function (s, r) { return s + r.dias; }, 0);
+
+      append(zona, h('div', { class: 'pcan-kpis' },
+        kpiAcceso(__('Personas activas'), String(activas), sprintf(/* translators: %d: personas que tienen acceso al cancionero */ __('de %d con acceso'), personas.filter(function (x) { return x.acceso; }).length)),
+        kpiAcceso(__('Inicios de sesión'), String(inicios), activas ? sprintf(/* translators: %s: número medio de inicios por persona, con un decimal («2,5») */ __('%s de media por persona activa'), (inicios / activas).toLocaleString(LOCALE, { maximumFractionDigits: 1 })) : null),
+        kpiAcceso(__('Días de uso'), String(diasUso), __('Suma de días en que se abrió, por persona')),
+        kpiAcceso(__('Nunca han entrado'), String(personas.filter(function (x) { return x.nunca && x.acceso; }).length), __('Personas con acceso que no han entrado jamás'))));
+
+      // Gráfica de personas activas por tramo.
+      var tramos = tramosAcceso(periodo, primero, hoy).map(function (t) {
+        var activasT = 0, iniciosT = 0, diasT = 0;
+        personas.forEach(function (x) {
+          var r = resumenAcceso(x, t.desde, t.hasta);
+          iniciosT += r.inicios;
+          diasT += r.dias;
+          if (r.inicios + r.dias) { activasT++; }
+        });
+        t.personas = activasT; t.inicios = iniciosT; t.dias = diasT;
+        return t;
+      });
+      var titGrafica = periodo <= 7 ? __('Personas activas por día') : periodo <= 90 ? __('Personas activas por semana') : __('Personas activas por mes');
+      var primeraColumna = periodo <= 7 ? __('Día') : periodo <= 90 ? __('Semana') : __('Mes');
+      append(zona, tarjetaAcceso(titGrafica, __('Personas distintas que abrieron el cancionero'), columnasAcceso(tramos, titGrafica, primeraColumna)));
+
+      // Cómo entran, desde dónde y qué días se usa.
+      var metodos = { enlace: 0, google: 0, contrasena: 0 }, dispositivos = { movil: 0, tableta: 0, ordenador: 0 };
+      var semana = [0, 0, 0, 0, 0, 0, 0];
+      personas.forEach(function (x) {
+        x.accesos.forEach(function (e, i) {
+          var d = x.diasInicio[i];
+          if (d < inicio || d > hoy) { return; }
+          if (metodos[e.metodo] !== undefined) { metodos[e.metodo]++; }
+          if (dispositivos[e.dispositivo] !== undefined) { dispositivos[e.dispositivo]++; }
+        });
+        x.dias.forEach(function (d) {
+          if (d >= inicio && d <= hoy) { semana[(fechaDeTexto(d).getDay() + 6) % 7]++; }
+        });
+      });
+      var sinDatos = function () { return h('p', { class: 'pcan-muted', text: __('Sin datos en este periodo.') }); };
+      var reparto = function (claves, nombre, cuentas) {
+        var total = claves.reduce(function (s, k) { return s + cuentas[k]; }, 0);
+        return total ? barrasAcceso(claves.map(function (k) {
+          return { titulo: nombre(k), valor: cuentas[k], texto: (cuentas[k] / total).toLocaleString(LOCALE, { style: 'percent', maximumFractionDigits: 0 }), detalle: nInicios(cuentas[k]) };
+        }), total) : sinDatos();
+      };
+      var nombresSemana = [];
+      for (var i = 0; i < 7; i++) { nombresSemana.push(mayuscula(new Date(2024, 0, 1 + i).toLocaleDateString(LOCALE, { weekday: 'long' }))); }
+      append(zona, h('div', { class: 'pcan-accesos-grid' },
+        tarjetaAcceso(__('Cómo entran'), __('Porcentaje de los inicios de sesión'), reparto(['enlace', 'google', 'contrasena'], metodoAcceso, metodos)),
+        tarjetaAcceso(__('Desde dónde'), __('Dispositivo de cada inicio de sesión'), reparto(['movil', 'tableta', 'ordenador'], dispositivoAcceso, dispositivos)),
+        tarjetaAcceso(__('Qué días se usa'), __('Días de uso de cada día de la semana'),
+          Math.max.apply(null, semana) ? barrasAcceso(semana.map(function (n, k) { return { titulo: nombresSemana[k], valor: n, texto: String(n) }; }), Math.max.apply(null, semana)) : sinDatos(), 'is-ancha')));
+
+      // Personas: por último acceso, la más reciente arriba; quien no tiene ninguno anotado, al final.
+      var orden = ps.slice().sort(function (r1, r2) {
+        return r2.x.ultimo.localeCompare(r1.x.ultimo) || r2.x.ultT - r1.x.ultT || (r2.x.entro ? 1 : 0) - (r1.x.entro ? 1 : 0) ||
+          (r1.x.p.nombre || r1.x.p.email).localeCompare(r2.x.p.nombre || r2.x.p.email, LOCALE);
+      });
+      var grupos = {
+        todas: function () { return true; },
+        activas: function (r) { return r.activa; },
+        inactivas: function (r) { return !r.activa && !r.x.nunca; },
+        nunca: function (r) { return r.x.nunca; }
+      };
+      var lista = h('ul', { class: 'pcan-acc-lista' });
+      function pintarLista() {
+        lista.innerHTML = '';
+        var visibles = orden.filter(grupos[filtro]);
+        if (!visibles.length) { append(lista, h('li', { class: 'pcan-muted', text: __('No hay nadie en este grupo.') })); return; }
+        visibles.forEach(function (r) { append(lista, filaAcceso(r)); });
+      }
+      function filaAcceso(r) {
+        var x = r.x, p = x.p, clave = String(p.email).toLowerCase();
+        var id = 'pcan-acc-d-' + clave.replace(/[^a-z0-9]/g, '-');
+        var abierta = !!abiertas[clave];
+        var detalle = h('div', { class: 'pcan-acc-detalle', id: id, hidden: !abierta });
+        var pintado = false;
+        function pintarDetalle() {
+          if (pintado) { return; }
+          pintado = true;
+          append(detalle, [
+            h('p', { class: 'pcan-help', text: sprintf(_n('%d día de uso en este periodo', '%d días de uso en este periodo', r.dias), r.dias) }),
+            x.sinRegistro ? h('p', { class: 'pcan-help', text: sprintf(/* translators: %s: fecha desde la que se registran los accesos */ __('Ya había entrado antes de que empezara el registro (%s).'), fechaMarca(a.desde)) }) : null,
+            h('strong', { text: __('Últimos inicios de sesión') }),
+            x.accesos.length ? h('ul', { class: 'pcan-acc-inicios' }, x.accesos.slice(0, 20).map(function (e) {
+              return h('li', null,
+                h('span', { text: sinPunto(new Date(e.t * 1000).toLocaleString(LOCALE, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })) }),
+                h('span', { text: metodoAcceso(e.metodo) + ' · ' + dispositivoAcceso(e.dispositivo) }));
+            })) : h('p', { class: 'pcan-help', text: __('Sin inicios de sesión registrados.') }),
+            x.accesos.length > 20 ? h('p', { class: 'pcan-help', text: __('Se muestran los 20 más recientes.') }) : null]);
+        }
+        if (abierta) { pintarDetalle(); }
+        var li = h('li', { class: 'pcan-acc-persona' + (abierta ? ' is-open' : '') });
+        var boton = h('button', {
+          type: 'button', class: 'pcan-acc-fila', 'aria-expanded': abierta ? 'true' : 'false', 'aria-controls': id,
+          onclick: function () {
+            var abrir = detalle.hidden;
+            abiertas[clave] = abrir;
+            detalle.hidden = !abrir;
+            li.classList.toggle('is-open', abrir);
+            boton.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+            if (abrir) { pintarDetalle(); }
+          }
+        },
+          h('span', { class: 'pcan-avatar is-sm', 'aria-hidden': 'true' }, iniciales(p.nombre || p.email)),
+          h('span', { class: 'pcan-miembro-main' },
+            h('strong', { text: p.nombre || p.email }),
+            p.nombre ? h('span', { text: p.email }) : null,
+            h('small', { text: x.nunca ? __('Nunca ha entrado') : x.sinRegistro ? __('Sin accesos registrados') : sprintf(/* translators: %s: cuándo fue («hace 3 días») */ __('Último acceso: %s'), haceTanto(x.ultimo, hoy)) })),
+          p.esAdmin
+            ? h('span', { class: 'pcan-estado is-warn', title: __('Las cuentas de administración no reciben enlaces por correo'), text: __('Administración · entra con contraseña') })
+            : p.esGestor ? h('span', { class: 'pcan-estado is-ok', title: __('Puede cambiar los ajustes, gestionar el equipo y borrar canciones'), text: __('Administrador') })
+              : !p.enLista ? h('span', { class: 'pcan-estado', text: __('Fuera de la lista') }) : null,
+          h('span', { class: 'pcan-acc-cifras' }, h('span', { text: nInicios(r.inicios) }), h('span', { text: nDiasDeUso(r.dias) })),
+          icono('siguiente'));
+        append(li, [boton, detalle]);
+        return li;
+      }
+      var filtros = selectorSegmentado([
+        { id: 'todas', texto: _x('Todas', 'filtro de las personas en Accesos'), n: orden.length },
+        { id: 'activas', texto: __('Activas'), n: orden.filter(grupos.activas).length },
+        { id: 'inactivas', texto: __('Sin actividad'), n: orden.filter(grupos.inactivas).length },
+        { id: 'nunca', texto: __('Nunca han entrado'), n: orden.filter(grupos.nunca).length }
+      ], filtro, __('Mostrar'), function (id) { filtro = id; pintarLista(); });
+      pintarLista();
+      append(zona, tarjetaAcceso(__('Personas'), __('Inicios de sesión y días de uso del periodo elegido. Toca una persona para ver su detalle.'),
+        h('div', { class: 'pcan-acc-bloque' }, filtros, lista)));
+    }
+    pintarZona();
   }
 
   // ---------------------------------------------------------------- papelera (administradores)

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Cancionero
  * Description: Cancionero para equipos de música y alabanza: canciones con partitura, letra, audios y YouTube, setlists de cultos, visor para tableta, temas propios y acceso con Google. Shortcode [cancionero].
- * Version: 1.11.3
+ * Version: 1.12.0
  * Author: Gerson Rodrigo Menéndez
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PIEB_CAN_VERSION', '1.11.3');
+define('PIEB_CAN_VERSION', '1.12.0');
 define('PIEB_CAN_FILE', __FILE__);
 define('PIEB_CAN_DIR', plugin_dir_path(__FILE__));
 define('PIEB_CAN_URL', plugin_dir_url(__FILE__));
@@ -49,6 +49,7 @@ require_once PIEB_CAN_DIR . 'includes/ajustes.php';
 require_once PIEB_CAN_DIR . 'includes/correo.php';
 require_once PIEB_CAN_DIR . 'includes/google.php';
 require_once PIEB_CAN_DIR . 'includes/bienvenida.php';
+require_once PIEB_CAN_DIR . 'includes/accesos.php';
 
 add_action('init', 'pieb_can_registrar_tipos');
 
@@ -264,6 +265,9 @@ function pieb_can_shortcode() {
             . '<p>' . esc_html__('Tu cuenta no está en la lista del equipo de adoración. Pide a un responsable que añada tu correo.', 'pieb-cancionero') . '</p>'
             . '<p><a class="pcan-btn" href="' . esc_url(wp_logout_url(get_permalink())) . '">' . esc_html__('Salir y entrar con otra cuenta', 'pieb-cancionero') . '</a></p></div></div>';
     }
+
+    // Registro de accesos: anota hoy como día de uso (como mucho una escritura al día, ver includes/accesos.php).
+    pieb_can_registrar_dia();
 
     wp_enqueue_script('pieb-cancionero', PIEB_CAN_URL . 'assets/cancionero.js', array('wp-i18n'), PIEB_CAN_VERSION, true);
     wp_enqueue_script('pieb-cancionero-visor', PIEB_CAN_URL . 'assets/visor.js', array('pieb-cancionero', 'wp-i18n'), PIEB_CAN_VERSION, true);

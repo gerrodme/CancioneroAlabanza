@@ -111,11 +111,61 @@
     });
     return r;
   }
+  // Accesos (GET accesos): personas con sus inicios de sesión y días de uso, generados a partir de hoy para que siempre haya datos.
+  // ?accesos=vacio prueba el estado sin registro; ?accesos=error hace fallar la primera petición (para probar «Reintentar»).
+  function dia(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  var accesosFallos = params.get('accesos') === 'error' ? 1 : 0;
+  function accesosMock() {
+    if (params.get('accesos') === 'vacio') { return { desde: 0, ahora: ahoraS(), hoy: dia(hoy), personas: [] }; }
+    var semilla = 7;
+    function azar() { semilla = (semilla * 16807) % 2147483647; return semilla / 2147483647; }
+    function elegir(lista) { return lista[Math.floor(azar() * lista.length)]; }
+    var DESDE = 150; // el registro empezó hace unos 5 meses
+    // d: [desde hace N días, hasta hace N días], prob: [domingo, miércoles, otros días], mm / dd: métodos y dispositivos que usa.
+    var perfiles = [
+      { email: 'ana@example.com', nombre: 'Ana Pérez', enLista: true, esGestor: true, cuenta: true, rango: [150, 0], prob: [0.95, 0.45, 0.12], mm: ['google', 'google', 'enlace'], dd: ['ordenador', 'ordenador', 'movil'] },
+      { email: 'luis@example.com', nombre: 'Luis Gómez', enLista: true, rango: [140, 0], prob: [0.85, 0.2, 0.05], mm: ['enlace'], dd: ['movil', 'movil', 'tableta'] },
+      { email: 'marta@example.com', nombre: 'Marta Ruiz', enLista: true, rango: [120, 1], prob: [0.6, 0.1, 0.03], mm: ['enlace', 'google'], dd: ['movil'] },
+      { email: 'pablo@example.com', nombre: '', enLista: true, rango: [135, 45], prob: [0.7, 0.15, 0.05], mm: ['enlace'], dd: ['tableta', 'movil'] },
+      { email: 'elena@example.com', nombre: 'Elena Torres', enLista: true, rango: [26, 0], prob: [1, 0.4, 0.15], mm: ['enlace'], dd: ['tableta'] },
+      { email: 'jorge@example.com', nombre: 'Jorge Ramos', enLista: true, rango: [100, 0], prob: [0.3, 0.08, 0.04], mm: ['google'], dd: ['movil', 'ordenador'] },
+      { email: 'admin@example.com', nombre: 'Administración', enLista: true, esAdmin: true, esGestor: true, cuenta: true, rango: [150, 0], prob: [0.15, 0.25, 0.1], mm: ['contrasena'], dd: ['ordenador'] },
+      { email: 'antiguo@example.com', nombre: 'Voluntario antiguo', enLista: false, rango: [145, 95], prob: [0.5, 0.1, 0.02], mm: ['enlace'], dd: ['movil'] },
+      // Entró antes de que existiera el registro: haEntrado, pero sin accesos ni días anotados.
+      { email: 'falla@example.com', nombre: '', enLista: true, rango: null, entroAntes: true },
+      // Nunca ha entrado.
+      { email: 'sara@example.com', nombre: 'Sara Díaz', enLista: true, rango: null }
+    ];
+    var personas = perfiles.map(function (pf) {
+      var accesos = [], dias = [], ultimoUso = null;
+      if (pf.rango) {
+        for (var n = pf.rango[0]; n >= pf.rango[1]; n--) {
+          var f = new Date(hoy); f.setDate(f.getDate() - n);
+          var sem = f.getDay(), p = sem === 0 ? pf.prob[0] : sem === 3 ? pf.prob[1] : pf.prob[2];
+          if (azar() >= p) { continue; }
+          dias.push(dia(f));
+          // Con «recordarme» la sesión dura 14 días: solo hay inicio de sesión tras una pausa larga o de vez en cuando.
+          if (ultimoUso === null || ultimoUso - n >= 10 || azar() < 0.2) {
+            var hora = sem === 0 ? 8 + azar() * 3 : 18 + azar() * 4;
+            var t = new Date(f); t.setHours(Math.floor(hora), Math.floor(azar() * 60), 0, 0);
+            if (t.getTime() < Date.now()) { accesos.push({ t: Math.floor(t.getTime() / 1000), metodo: elegir(pf.mm), dispositivo: elegir(pf.dd) }); }
+          }
+          ultimoUso = n;
+        }
+      }
+      accesos.reverse(); dias.reverse(); // el más nuevo primero
+      return {
+        email: pf.email, nombre: pf.nombre, enLista: pf.enLista, esAdmin: !!pf.esAdmin, esGestor: !!pf.esGestor, cuenta: !!pf.cuenta,
+        haEntrado: !!(pf.entroAntes || accesos.length || dias.length), ultimoAcceso: accesos.length ? accesos[0].t : 0, accesos: accesos, dias: dias
+      };
+    });
+    return { desde: ahoraS() - DESDE * 86400, ahora: ahoraS(), hoy: dia(hoy), personas: personas };
+  }
   var real = window.fetch;
   window.fetch = function (url, opts) {
     var m = String(url).match(/^\/api\/(.*)$/);
     if (!m) { return real.apply(this, arguments); }
-    var ruta = m[1], datos = {}, espera = 0;
+    var ruta = m[1], datos = {}, espera = 0, estado = 200;
     var mc;
     var cuerpo = {};
     try { cuerpo = opts && opts.body ? JSON.parse(opts.body) : {}; } catch (e) { cuerpo = {}; }
@@ -134,8 +184,12 @@
     else if (ruta === 'ajustes' && opts && opts.method === 'POST') { datos = guardarAjustesMock(cuerpo); }
     else if (ruta === 'ajustes') { datos = ajustesMock; }
     else if (ruta === 'bienvenida') { datos = bienvenidaMock(cuerpo); espera = 400; }
+    else if (ruta === 'accesos') {
+      espera = 500;
+      if (accesosFallos > 0) { accesosFallos--; estado = 500; datos = { message: 'El servidor no responde' }; } else { datos = accesosMock(); }
+    }
     else { datos = { ok: true }; }
-    var respuesta = function () { return new Response(JSON.stringify(datos), { status: 200, headers: { 'Content-Type': 'application/json' } }); };
+    var respuesta = function () { return new Response(JSON.stringify(datos), { status: estado, headers: { 'Content-Type': 'application/json' } }); };
     if (!espera) { return Promise.resolve(respuesta()); }
     return new Promise(function (resolver) { setTimeout(function () { resolver(respuesta()); }, espera); });
   };

@@ -16,6 +16,7 @@ Resumen técnico del plugin **Cancionero** para quien llegue nuevo al código.
 | `includes/google.php` | Acceso con Google (ID token) y con enlace por correo. |
 | `includes/correo.php` | Aspecto común de los correos (cabecera con el logo, tarjeta, botón) y su envío en HTML con texto plano y la cabecera incrustada. |
 | `includes/bienvenida.php` | Correo de bienvenida al equipo: registro de envíos, composición del correo (HTML y texto) y `POST /bienvenida`. |
+| `includes/accesos.php` | Registro de accesos: inicios de sesión (fecha, método y tipo de dispositivo), días de uso y `GET /accesos` con los datos en bruto para las estadísticas de «Ajustes y equipo». |
 | `includes/migracion.php` | Convierte los PDF del plugin anterior (`adoracion_culto_*`) en canciones. Idempotente. |
 | `assets/cancionero.js` | Interfaz principal (sin dependencias ni compilación): lista, ficha, formulario, subida múltiple, estadísticas, ajustes. |
 | `assets/cultos.js` | Pantallas de cultos y editor de setlist. |
@@ -57,7 +58,10 @@ La interfaz es una aplicación de una sola página dentro de la página de WordP
   servir el culto, la elegida se coloca la primera en `datos.partituras`, que es la que usan el modo culto y el PDF).
 - Opciones de WordPress: `pieb_can_ajustes` (ajustes: `nombre`, `tema_defecto`, `google_client_id`, `emails`,
   `administradores`, `dominio`, `bienvenida_auto`, `bienvenida_texto`, `pagina`), `pieb_can_bienvenidas` (registro de
-  los correos de bienvenida enviados: correo → marca de tiempo; sin autoload), `pieb_can_version`, `pieb_can_migrado`.
+  los correos de bienvenida enviados: correo → marca de tiempo; sin autoload), `pieb_can_accesos_desde` (desde cuándo se
+  registran los accesos; sin autoload), `pieb_can_version`, `pieb_can_migrado`.
+- Metadatos de **usuario** del registro de accesos: `pieb_can_accesos` (inicios de sesión), `pieb_can_dias` (días de uso)
+  y `pieb_can_ultimo_acceso`. Ver [Registro de accesos](#registro-de-accesos).
 
 ## API REST (`/wp-json/pieb/v1/`)
 
@@ -73,6 +77,7 @@ Todas las rutas exigen sesión iniciada con la capacidad `pieb_cancionero_acceso
 | `/etiquetas`, `/preferencias`, `/huerfanos` | varios | Etiquetas con color, preferencias del usuario (`tema`, `idioma` y `notacion`, todos opcionales; vacío = automático), archivos sin usar. |
 | `/ajustes` | GET, POST | Ajustes del cancionero y lista del equipo (exige `pieb_cancionero_gestionar`). Los campos de la bienvenida, en [Bienvenida al equipo](#bienvenida-al-equipo). |
 | `/bienvenida` | POST | Envía el correo de bienvenida a una tanda de correos (exige `pieb_cancionero_gestionar`). Ver [Bienvenida al equipo](#bienvenida-al-equipo). |
+| `/accesos` | GET | Registro de accesos de cada persona del equipo, en bruto, para las estadísticas (exige `pieb_cancionero_gestionar`). Ver [Registro de accesos](#registro-de-accesos). |
 | `/google`, `/enlace`, `/correo-prueba` | POST | Acceso con Google, enlace por correo y prueba de envío. |
 
 ### Actualizar una canción (`POST /canciones/{id}`)
@@ -144,6 +149,63 @@ cada envío correcto (no en las pruebas) y evita repetir la automática.
    espera a los envíos (cada `wp_mail` puede tardar un segundo con SMTP) ni hay tiempos de espera largos si se pegan 40
    correos de golpe.
 3. Un reenvío manual o la prueba usan el mismo endpoint.
+
+## Registro de accesos
+
+`includes/accesos.php`. Para que quien administra vea en «Ajustes y equipo» cuándo entra cada persona y cómo se usa el
+cancionero, el plugin guarda un historial mínimo. El servidor solo **registra y devuelve los datos en bruto**; las
+estadísticas (entradas por semana, personas activas, métodos y dispositivos más usados…) las calcula la interfaz.
+
+**Qué se guarda**, solo de quien tiene la capacidad `pieb_cancionero_acceso` (incluidos administradores y editores de
+WordPress): fecha, método de acceso y tipo de dispositivo. **No** se guarda la IP ni el agente de usuario.
+
+| Dato | Dónde | Contenido |
+|---|---|---|
+| Inicios de sesión | meta de usuario `pieb_can_accesos` | Lista, lo más nuevo primero, de `{t, m, d}`: `t` hora Unix; `m` método (`enlace`, `google` o `contrasena`); `d` dispositivo (`movil`, `tableta` u `ordenador`). |
+| Días de uso | meta de usuario `pieb_can_dias` | Lista de días `Y-m-d` (zona horaria del sitio), lo más nuevo primero, en que la persona abrió el cancionero. |
+| Último acceso | meta de usuario `pieb_can_ultimo_acceso` | Hora Unix del último inicio de sesión, sea cual sea el método. |
+| Inicio del registro | opción `pieb_can_accesos_desde` (sin autoload) | Hora Unix de la primera anotación. La interfaz la usa para no presentar como «sin uso» lo que es anterior al registro. |
+
+**Inicios de sesión.** `pieb_can_registrar_acceso` se engancha a `wp_login`. El método lo indican los manejadores de
+`google.php` que inician la sesión por su cuenta (el enlace por correo y Google llaman a
+`pieb_can_metodo_acceso('enlace'|'google')` justo antes de lanzar `wp_login`); si nadie lo indica, es el formulario de
+WordPress (`contrasena`). El dispositivo se deduce del agente de usuario (`pieb_can_dispositivo_acceso`): tableta (iPad,
+«Tablet», Android sin «Mobile»), móvil u ordenador. Los iPad modernos se presentan como Mac y cuentan como ordenador. En
+cada inicio también se actualiza `pieb_can_ultimo_acceso`, así que «Ha entrado» en la lista del equipo funciona con
+cualquier método.
+
+**Días de uso.** Iniciar sesión no es usar el cancionero: con «recordarme» la sesión dura 14 días. Por eso
+`pieb_can_registrar_dia` anota el día de hoy cada vez que alguien con sesión y acceso abre el cancionero (se llama desde
+el shortcode); mira solo el primer día guardado, así que escribe como mucho una vez al día. No cuenta si el shortcode se
+procesa en el escritorio o en la API REST (p. ej. al editar la página).
+
+**Cuánto se conserva.** 12 meses (365 días); los inicios de sesión, además, 400 como mucho por persona. Lo más antiguo se
+descarta al anotar. Las copias de seguridad **no** incluyen este registro.
+
+**`GET /accesos`** (exige `pieb_cancionero_gestionar`). Respuesta:
+
+```
+{
+  desde: int,       // pieb_can_accesos_desde (0 si aún no hay nada)
+  ahora: int,       // hora del servidor (Unix)
+  hoy: 'Y-m-d',     // día de hoy en la zona horaria del sitio
+  personas: [{
+    email, nombre,  // nombre = display_name o ''
+    enLista: bool,  // está en la lista de correos del equipo
+    esAdmin: bool,  // manage_options
+    esGestor: bool, // como en `miembros` de GET /ajustes
+    cuenta: bool,   // tiene cuenta de WordPress
+    haEntrado: bool,  // ha entrado alguna vez, también antes del registro (Google o enlace)
+    ultimoAcceso: int,  // el mayor entre el último inicio y pieb_can_ultimo_acceso; 0 si nunca
+    accesos: [{ t: int, metodo: 'enlace'|'google'|'contrasena', dispositivo: 'movil'|'tableta'|'ordenador' }],
+    dias: ['Y-m-d', …]  // lo más nuevo primero
+  }]
+}
+```
+
+`personas` son las mismas de `miembros` en `GET /ajustes` (`pieb_can_miembros`: correos de la lista, tengan o no cuenta, y
+cuentas con los roles del cancionero) más cualquier otra cuenta con acceso que tenga algo registrado (p. ej. un
+administrador de WordPress que entra al cancionero), ordenadas por correo.
 
 ## Papelera
 

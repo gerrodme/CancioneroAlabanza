@@ -1908,6 +1908,184 @@ window.PIEB_I18N = {
   ],
   "Como tu cuenta es de administración, en tu correo el botón abre el cancionero sin iniciar sesión; al resto del equipo le deja dentro.": [
    "As yours is an administrator account, in your email the button opens the songbook without signing in; for the rest of the team it signs them in."
+  ],
+  "Accesos": [
+   "Activity"
+  ],
+  "Quién entra y cuánto se usa": [
+   "Who signs in and how much it is used"
+  ],
+  "%d persona": [
+   "%d person",
+   "%d people"
+  ],
+  "%d inicio": [
+   "%d sign-in",
+   "%d sign-ins"
+  ],
+  "%d día de uso": [
+   "%d day of use",
+   "%d days of use"
+  ],
+  "Enlace por correo": [
+   "Email link"
+  ],
+  "Usuario y contraseña": [
+   "Username and password"
+  ],
+  "Móvil": [
+   "Phone"
+  ],
+  "Tableta": [
+   "Tablet"
+  ],
+  "Ordenador": [
+   "Computer"
+  ],
+  "Semana del %s": [
+   "Week of %s"
+  ],
+  "%1$s: %2$s · %3$s": [
+   "%1$s: %2$s · %3$s"
+  ],
+  "Personas": [
+   "People"
+  ],
+  "Inicios": [
+   "Sign-ins"
+  ],
+  "Días de uso": [
+   "Days of use"
+  ],
+  "Cargando accesos…": [
+   "Loading activity…"
+  ],
+  "No se pudieron cargar los accesos: %s": [
+   "Couldn’t load the activity: %s"
+  ],
+  "Reintentar": [
+   "Try again"
+  ],
+  "Se guardan los últimos 12 meses y no se anotan direcciones IP.": [
+   "The last 12 months are kept and no IP addresses are recorded."
+  ],
+  "Todavía no hay accesos registrados": [
+   "No sign-ins recorded yet"
+  ],
+  "Los inicios de sesión se empiezan a registrar a partir de ahora. Cuando alguien entre en el cancionero, aquí verás quién lo usa, cada cuánto y desde qué dispositivos.": [
+   "Sign-ins are recorded from now on. When someone enters the songbook, you’ll see here who uses it, how often and from which devices."
+  ],
+  "7 días": [
+   "7 days"
+  ],
+  "30 días": [
+   "30 days"
+  ],
+  "90 días": [
+   "90 days"
+  ],
+  "Se registra desde el %s.": [
+   "Recorded since %s."
+  ],
+  "Personas activas": [
+   "Active people"
+  ],
+  "de %d con acceso": [
+   "of %d with access"
+  ],
+  "Inicios de sesión": [
+   "Sign-ins"
+  ],
+  "%s de media por persona activa": [
+   "%s on average per active person"
+  ],
+  "Suma de días en que se abrió, por persona": [
+   "Days it was opened, added up per person"
+  ],
+  "Nunca han entrado": [
+   "Never signed in"
+  ],
+  "Personas con acceso que no han entrado jamás": [
+   "People with access who have never signed in"
+  ],
+  "Personas activas por día": [
+   "Active people per day"
+  ],
+  "Personas activas por semana": [
+   "Active people per week"
+  ],
+  "Personas activas por mes": [
+   "Active people per month"
+  ],
+  "Día": [
+   "Day"
+  ],
+  "Semana": [
+   "Week"
+  ],
+  "Personas distintas que abrieron el cancionero": [
+   "Different people who opened the songbook"
+  ],
+  "Cómo entran": [
+   "How they sign in"
+  ],
+  "Porcentaje de los inicios de sesión": [
+   "Share of sign-ins"
+  ],
+  "Desde dónde": [
+   "From where"
+  ],
+  "Dispositivo de cada inicio de sesión": [
+   "Device of each sign-in"
+  ],
+  "Qué días se usa": [
+   "Which days it is used"
+  ],
+  "Días de uso de cada día de la semana": [
+   "Days of use by day of the week"
+  ],
+  "No hay nadie en este grupo.": [
+   "Nobody in this group."
+  ],
+  "%d día de uso en este periodo": [
+   "%d day of use in this period",
+   "%d days of use in this period"
+  ],
+  "Ya había entrado antes de que empezara el registro (%s).": [
+   "Had already signed in before the log started (%s)."
+  ],
+  "Últimos inicios de sesión": [
+   "Latest sign-ins"
+  ],
+  "Sin inicios de sesión registrados.": [
+   "No sign-ins recorded."
+  ],
+  "Se muestran los 20 más recientes.": [
+   "Showing the 20 most recent."
+  ],
+  "Nunca ha entrado": [
+   "Never signed in"
+  ],
+  "Sin accesos registrados": [
+   "No sign-ins recorded"
+  ],
+  "Último acceso: %s": [
+   "Last access: %s"
+  ],
+  "filtro de las personas en Accesos\u0004Todas": [
+   "All"
+  ],
+  "Activas": [
+   "Active"
+  ],
+  "Sin actividad": [
+   "Inactive"
+  ],
+  "Mostrar": [
+   "Show"
+  ],
+  "Inicios de sesión y días de uso del periodo elegido. Toca una persona para ver su detalle.": [
+   "Sign-ins and days of use in the chosen period. Tap a person to see the details."
   ]
  }
 };

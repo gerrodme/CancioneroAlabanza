@@ -130,6 +130,8 @@ function pieb_can_rest_google(WP_REST_Request $request) {
 
     wp_set_current_user($user->ID);
     wp_set_auth_cookie($user->ID, true);
+    // El registro de accesos (includes/accesos.php) anota el inicio de sesión en «wp_login» con este método.
+    pieb_can_metodo_acceso('google');
     do_action('wp_login', $user->user_login, $user);
 
     return rest_ensure_response(array('ok' => true, 'nombre' => $user->display_name));
@@ -362,9 +364,10 @@ add_action('init', function () {
         wp_safe_redirect(add_query_arg('pcan_aviso', 'error', $volver));
         exit;
     }
-    update_user_meta($user->ID, 'pieb_can_ultimo_acceso', time());
     wp_set_current_user($user->ID);
     wp_set_auth_cookie($user->ID, true);
+    // El registro de accesos (includes/accesos.php) anota el inicio de sesión y el último acceso en «wp_login».
+    pieb_can_metodo_acceso('enlace');
     do_action('wp_login', $user->user_login, $user);
     wp_safe_redirect($volver);
     exit;
