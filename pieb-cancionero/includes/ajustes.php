@@ -259,13 +259,16 @@ function pieb_can_notacion_elegida() {
     return in_array($elegida, array('latina', 'americana'), true) ? $elegida : '';
 }
 
-/** Notación efectiva: la elegida o, en automático, latina para el español y americana para cualquier otro idioma. */
+/**
+ * Notación efectiva: la elegida o, si la persona aún no ha elegido, la del idioma de la web (latina en español,
+ * americana en los demás). No depende del idioma que cada uno elige en su menú: cambiar de idioma no cambia la notación.
+ */
 function pieb_can_notacion() {
     $elegida = pieb_can_notacion_elegida();
     if ($elegida !== '') {
         return $elegida;
     }
-    return pieb_can_lengua(pieb_can_idioma()) === 'es' ? 'latina' : 'americana';
+    return pieb_can_lengua(get_locale()) === 'es' ? 'latina' : 'americana';
 }
 
 /*
@@ -408,6 +411,9 @@ function pieb_can_rest_preferencias(WP_REST_Request $request) {
         }
         $respuesta['notacion'] = $notacion;
     }
+    // Si LiteSpeed Cache guardó una copia privada de la página para esta persona, se borra: al recargar debe verse ya
+    // con el tema, el idioma y la notación nuevos (sin el plugin de LiteSpeed, esta acción no hace nada).
+    do_action('litespeed_purge_private_all');
     return rest_ensure_response($respuesta);
 }
 

@@ -297,9 +297,9 @@ JavaScript file. How to translate: [translate.en.md](translate.en.md).
   Each JSON is named `pieb-cancionero-<locale>-<md5 of "assets/file.js">.json`, in Jed format. The `PIEB_CANCIONERO`
   configuration carries `idioma` (BCP 47, for `Intl`: dates and numbers), `idiomas`, `notacion` and
   `idiomaElegido`/`notacionElegida`.
-- **Key notation:** what is stored never changes (`Sol`, `Mib`, `La m`). The user meta `pieb_notacion` ('' = automatic,
-  `latina` or `americana`; `POST /preferencias`, `notacion`) decides how keys are shown: automatically, Do-Re-Mi for
-  Spanish and C-D-E for every other language. In JavaScript, `tonoVer()` (exposed to the other files as `P.tono()`)
+- **Key notation:** what is stored never changes (`Sol`, `Mib`, `La m`). The user meta `pieb_notacion` (`latina` or
+  `americana`; `POST /preferencias`, `notacion`) decides how keys are shown. It does not depend on the language each
+  person picks: until they choose, the site language's one is used (Do-Re-Mi in Spanish, C-D-E in the others). In JavaScript, `tonoVer()` (exposed to the other files as `P.tono()`)
   converts when displaying and `tonoGuardar()` when saving; use them every time a key is shown or edited.
 - **Conventions for developers:** every visible text goes in `__()`, `_n()`, `_x()`, `esc_html__()`… with the domain
   `'pieb-cancionero'`, written in Spanish. Never concatenate sentences: use placeholders (`sprintf(__('%1$s de %2$s',

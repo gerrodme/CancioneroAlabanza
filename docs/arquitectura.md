@@ -294,9 +294,9 @@ JavaScript. Cómo traducir: [traducir.md](traducir.md).
 - **JavaScript:** `wp-i18n` con `wp_set_script_translations()` para `cancionero`, `cultos`, `visor` y `login`. Cada JSON
   se llama `pieb-cancionero-<locale>-<md5 de "assets/archivo.js">.json`, formato Jed. La configuración `PIEB_CANCIONERO`
   lleva `idioma` (BCP 47, para `Intl`: fechas y números), `idiomas`, `notacion` y `idiomaElegido`/`notacionElegida`.
-- **Notación de las tonalidades:** lo guardado no cambia nunca (`Sol`, `Mib`, `La m`). La meta `pieb_notacion` ('' =
-  automática, `latina` o `americana`; `POST /preferencias`, `notacion`) decide cómo se muestran: en automático, Do-Re-Mi
-  para el español y C-D-E para el resto. En JavaScript, `tonoVer()` (expuesta a los demás archivos como `P.tono()`)
+- **Notación de las tonalidades:** lo guardado no cambia nunca (`Sol`, `Mib`, `La m`). La meta `pieb_notacion` (`latina` o
+  `americana`; `POST /preferencias`, `notacion`) decide cómo se muestran. No depende del idioma que elige cada persona:
+  si aún no ha elegido, se usa la del idioma de la web (Do-Re-Mi en español, C-D-E en los demás). En JavaScript, `tonoVer()` (expuesta a los demás archivos como `P.tono()`)
   convierte al mostrar y `tonoGuardar()` al guardar; hay que usarlas siempre que se muestre o se edite una tonalidad.
 - **Convenciones para quien programe:** todo texto visible va en `__()`, `_n()`, `_x()`, `esc_html__()`… con el dominio
   `'pieb-cancionero'` y en español. Nada de concatenar frases: usar marcadores (`sprintf(__('%1$s de %2$s', …), …)`,

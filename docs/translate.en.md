@@ -98,8 +98,8 @@ Please say how much is translated (`estado`) and whether you plan to keep it up 
 - **Buttons and menus:** they appear in tight spaces (phone, tablet). Prefer the shortest form that is still clear, and
   check the result in the test bench.
 - **Keys:** you do not need to translate them. What is stored is always `Sol`, `Mib`, `La m`… and the interface shows them
-  as Do-Re-Mi or C-D-E depending on the **Notation** each person chooses (by default Do-Re-Mi in Spanish and C-D-E in
-  every other language).
+  as Do-Re-Mi or C-D-E depending on the **Notation** each person chooses, whatever their language (until they choose, the site
+  language's one: Do-Re-Mi in Spanish and C-D-E in the others).
 - **Setlist PDF:** for now it only supports Latin characters (Latin-1); letters from other scripts (Cyrillic, Greek,
   Arabic, Chinese…) are left out of the PDF. The rest of the interface has no such limit.
 - **Team data:** titles, tags and service types that are already saved are not translated; only the interface is.

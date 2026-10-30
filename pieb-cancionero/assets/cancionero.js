@@ -802,10 +802,12 @@
       });
       ui.menuIdioma.value = CFG.idiomaElegido || '';
     }
-    var elegida = CFG.notacionElegida || '';
+    // La notación no depende del idioma: se elige una de las dos y se marca la que está en uso (si la persona aún no ha
+    // elegido, la del idioma de la web).
+    var enUso = CFG.notacion === 'americana' ? 'americana' : 'latina';
     ui.menuNotacion.innerHTML = '';
-    [['', _x('Auto', 'notación automática')], ['latina', 'Do-Re-Mi'], ['americana', 'C-D-E']].forEach(function (o) {
-      var activo = elegida === o[0];
+    [['latina', 'Do-Re-Mi'], ['americana', 'C-D-E']].forEach(function (o) {
+      var activo = enUso === o[0];
       append(ui.menuNotacion, h('button', {
         type: 'button', role: 'radio', 'aria-checked': activo ? 'true' : 'false', class: 'pcan-menu-seg' + (activo ? ' is-active' : ''),
         onclick: function (e) {

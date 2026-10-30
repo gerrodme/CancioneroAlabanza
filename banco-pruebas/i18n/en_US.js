@@ -1778,9 +1778,6 @@ window.PIEB_I18N = {
   "Administración": [
    "Administration"
   ],
-  "notación automática\u0004Auto": [
-   "Auto"
-  ],
   "Nombre, tema por defecto, plazo de la papelera": [
    "Name, default theme, trash retention"
   ],

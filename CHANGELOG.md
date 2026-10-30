@@ -2,6 +2,12 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.14.1 · 2026-10-31
+
+El idioma y la notación vuelven a cambiar al elegirlos: con sesión, la página del cancionero ya no se guarda en caché
+(LiteSpeed y la CDN del alojamiento servían la copia anterior), y al guardar una preferencia se borra la copia privada.
+La notación ya no depende del idioma: se elige Do-Re-Mi o C-D-E (sin «Auto») y se mantiene al cambiar de idioma
+
 ## 1.14.0 · 2026-10-31
 
 Equipo sin duplicidades: desaparecen las áreas de texto de correos y administradores, y todo se gestiona en la lista.

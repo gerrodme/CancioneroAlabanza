@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Cancionero
  * Description: Cancionero para equipos de música y alabanza: canciones con partitura, letra, audios y YouTube, setlists de cultos, visor para tableta, temas propios y acceso con Google. Shortcode [cancionero].
- * Version: 1.14.0
+ * Version: 1.14.1
  * Author: Gerson Rodrigo Menéndez
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PIEB_CAN_VERSION', '1.14.0');
+define('PIEB_CAN_VERSION', '1.14.1');
 define('PIEB_CAN_FILE', __FILE__);
 define('PIEB_CAN_DIR', plugin_dir_path(__FILE__));
 define('PIEB_CAN_URL', plugin_dir_url(__FILE__));
@@ -198,6 +198,21 @@ add_filter('body_class', function ($classes) {
     }
     return $classes;
 });
+
+// Con sesión, la página del cancionero es personal (tema, idioma, notación y la clave de la API van dentro): no debe
+// guardarse en caché, o tras cambiar una preferencia se seguiría sirviendo la copia anterior. Se avisa a WordPress
+// (DONOTCACHEPAGE, que respetan los plugins de caché), al navegador y a la CDN (nocache_headers) y a LiteSpeed.
+add_action('template_redirect', function () {
+    if (!is_user_logged_in() || !is_singular() || !has_shortcode((string) get_post_field('post_content', get_queried_object_id()), 'cancionero')) {
+        return;
+    }
+    if (!defined('DONOTCACHEPAGE')) {
+        define('DONOTCACHEPAGE', true);
+    }
+    nocache_headers();
+    header('X-LiteSpeed-Cache-Control: no-cache');
+    do_action('litespeed_control_set_nocache', 'Cancionero: página personal de cada usuario');
+}, 0);
 
 // La antigua página de recursos de Adoración y culto ya no existe: quien la tenga guardada llega al cancionero.
 add_action('template_redirect', function () {

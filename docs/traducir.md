@@ -95,8 +95,8 @@ Indica qué porcentaje está traducido (`estado`) y si piensas mantenerlo al dí
 - **Botones y menús:** se ven en espacios reducidos (móvil, tableta). Prefiere la forma más corta que siga siendo clara
   y comprueba el resultado en el banco de pruebas.
 - **Tonalidades:** no hay que traducirlas. Lo guardado es siempre `Sol`, `Mib`, `La m`… y la interfaz las muestra en
-  Do-Re-Mi o en C-D-E según la **Notación** que cada persona elija (por defecto, Do-Re-Mi en español y C-D-E en los
-  demás idiomas).
+  Do-Re-Mi o en C-D-E según la **Notación** que cada persona elija, sea cual sea su idioma (hasta que elige, la del
+  idioma de la web: Do-Re-Mi en español y C-D-E en los demás).
 - **PDF del setlist:** por ahora solo admite caracteres latinos (Latin-1); las letras de otros alfabetos (cirílico,
   griego, árabe, chino…) se omiten en el PDF. El resto de la interfaz no tiene esa limitación.
 - **Datos del equipo:** los títulos, etiquetas y tipos de culto ya guardados no se traducen; solo la interfaz.
