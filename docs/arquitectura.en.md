@@ -92,8 +92,9 @@ To change a single value: `GET` the record, rebuild all the fields from it and m
 `includes/bienvenida.php`. Someone added to the team's email list can be sent an email that explains how to get in: open
 the songbook page, type their email and press the link they receive (and, if Google sign-in is set up, that they can also
 use the Google button). It is HTML for email clients (tables, inline styles, 600 px at most, no `<style>`; the header
-image `assets/correo-cabecera.jpg` goes by absolute URL, with no attachments) plus a plain-text version that is set as
-PHPMailer's `AltBody` while sending (`phpmailer_init`). It is composed inside `pieb_can_en_idioma_del_sitio()`, like the
+image `assets/correo-cabecera.jpg` is embedded in the email, `cid:pcan-cabecera`, because Gmail does not show it if it
+cannot download it from the site) plus a plain-text version set as `AltBody`. Both are done in `phpmailer_init`, only
+while sending; if the mail service skips that hook, the image stays linked by its absolute URL. It is composed inside `pieb_can_en_idioma_del_sitio()`, like the
 sign-in link: it goes out in the site's language. WordPress administrator accounts do not get a welcome email (they sign
 in with a password).
 

@@ -2,6 +2,11 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.11.1 · 2026-10-30
+
+La cabecera con el logo va incrustada en el correo de bienvenida: se ve aunque Gmail no pueda descargarla de la web.
+El correo del destinatario ya no sale como enlace azul subrayado
+
 ## 1.11.0 · 2026-10-30
 
 Logo del Cancionero y correo de bienvenida: quien se añade a la lista del equipo recibe un correo con el logo, el botón

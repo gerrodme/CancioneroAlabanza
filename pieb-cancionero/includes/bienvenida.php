@@ -117,7 +117,7 @@ function pieb_can_bienvenida_pendientes($anterior, $ajustes) {
  * pieb_can_en_idioma_del_sitio() (el correo va en el idioma del sitio, no en el de quien lo envía).
  *
  * HTML pensado para clientes de correo: tablas, estilos en línea, 600 px como máximo, sin <style> ni fuentes externas.
- * La imagen de cabecera va por dirección absoluta (nada de adjuntos ni imágenes incrustadas).
+ * La imagen de cabecera va por dirección absoluta; al enviar se incrusta en el correo (ver pieb_can_bienvenida_enviar).
  */
 function pieb_can_bienvenida_componer($email, $pagina, $texto_admin = null) {
     $ajustes = pieb_can_ajustes();
@@ -210,7 +210,8 @@ function pieb_can_bienvenida_componer($email, $pagina, $texto_admin = null) {
     $html .= $fila_paso(2, '#8b5cf6', sprintf(
         /* translators: %s: correo electrónico de la persona que recibe el mensaje */
         esc_html__('Escribe tu correo: %s', 'pieb-cancionero'),
-        '<strong style="color:#0b0718;">' . esc_html($email) . '</strong>'
+        // Enlace explícito con su estilo: si no, Gmail lo convierte en un enlace azul subrayado.
+        '<a href="mailto:' . esc_attr($email) . '" style="color:#0b0718;font-weight:700;text-decoration:none;">' . esc_html($email) . '</a>'
     ));
     $html .= $fila_paso(3, '#22d3ee', esc_html($paso3));
     $html .= '</table></td></tr>';
@@ -243,10 +244,20 @@ function pieb_can_bienvenida_componer($email, $pagina, $texto_admin = null) {
     return array('asunto' => $asunto, 'html' => $html, 'texto' => $texto);
 }
 
-/** Envía un correo ya compuesto. El texto plano va como AltBody de PHPMailer, solo para este envío. */
+/**
+ * Envía un correo ya compuesto. Solo para este envío, en PHPMailer: el texto plano va como AltBody y la cabecera va
+ * incrustada en el propio correo (cid:), porque Gmail y otros no muestran la imagen si no pueden descargarla de la web
+ * (sitios de pruebas, protegidos o en local). Si el servicio de correo no pasa por phpmailer_init, queda la dirección.
+ */
 function pieb_can_bienvenida_enviar($email, $correo) {
     $poner_texto = function ($phpmailer) use ($correo) {
         $phpmailer->AltBody = $correo['texto'];
+        $archivo = PIEB_CAN_DIR . 'assets/correo-cabecera.jpg';
+        $url = esc_url(PIEB_CAN_URL . 'assets/correo-cabecera.jpg');
+        if (is_readable($archivo) && strpos($phpmailer->Body, $url) !== false
+            && $phpmailer->addEmbeddedImage($archivo, 'pcan-cabecera', 'cancionero.jpg', 'base64', 'image/jpeg')) {
+            $phpmailer->Body = str_replace($url, 'cid:pcan-cabecera', $phpmailer->Body);
+        }
     };
     add_action('phpmailer_init', $poner_texto);
     try {

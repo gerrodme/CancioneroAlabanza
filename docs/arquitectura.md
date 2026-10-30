@@ -91,8 +91,10 @@ Para cambiar un solo dato: `GET` la ficha, reconstruir todos los campos con ella
 `includes/bienvenida.php`. A quien se añade a la lista de correos del equipo se le puede enviar un correo que le explica
 cómo entrar: abrir la página del cancionero, escribir su correo y pulsar el enlace que recibe (y, si el acceso con Google
 está configurado, que también puede usar el botón de Google). Es HTML para clientes de correo (tablas, estilos en línea,
-600 px como máximo, sin `<style>`; la imagen de cabecera `assets/correo-cabecera.jpg` va por dirección absoluta, sin
-adjuntos) más una versión de texto plano que se pone como `AltBody` de PHPMailer durante el envío (`phpmailer_init`).
+600 px como máximo, sin `<style>`; la imagen de cabecera `assets/correo-cabecera.jpg` va incrustada en el correo,
+`cid:pcan-cabecera`, porque Gmail no la muestra si no puede descargarla de la web) más una versión de texto plano que se
+pone como `AltBody`. Las dos cosas se hacen en `phpmailer_init` solo durante el envío; si el servicio de correo no pasa
+por ese gancho, la imagen queda enlazada por su dirección absoluta.
 Se compone dentro de `pieb_can_en_idioma_del_sitio()`, como el enlace de acceso: va en el idioma del sitio. Las cuentas
 de administración de WordPress no reciben bienvenida (entran con contraseña).
 
