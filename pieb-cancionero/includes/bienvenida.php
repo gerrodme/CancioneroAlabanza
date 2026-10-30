@@ -16,9 +16,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Máximo de correos por petición a /bienvenida y de bienvenidas por hora al mismo correo.
+// Máximo de correos por petición a /bienvenida, de bienvenidas por hora al mismo correo y días que vale su botón.
 const PIEB_CAN_BIENVENIDA_TANDA    = 10;
 const PIEB_CAN_BIENVENIDA_POR_HORA = 3;
+const PIEB_CAN_BIENVENIDA_DIAS     = 7;
 
 add_action('rest_api_init', function () {
     register_rest_route('pieb/v1', '/bienvenida', array(
@@ -110,16 +111,43 @@ function pieb_can_bienvenida_pendientes($anterior, $ajustes) {
     return $pendientes;
 }
 
+// ---------------------------------------------------------------- enlace de acceso del botón
+
+/**
+ * Enlace de acceso para el botón del correo. Es el mismo enlace mágico de google.php (un solo uso y una pantalla con
+ * «Entrar» para que los filtros antispam no lo gasten), pero vale PIEB_CAN_BIENVENIDA_DIAS días: la bienvenida se lee
+ * cuando se lee. Cada bienvenida anula el botón de la anterior al mismo correo. Devuelve la dirección con el enlace y la
+ * clave del transient (para borrarlo si el correo no sale); si ese correo no puede entrar con enlace (las cuentas de
+ * administración, que solo reciben la prueba), la página sin enlace y clave vacía.
+ */
+function pieb_can_bienvenida_enlace($email, $pagina) {
+    if (!pieb_can_email_con_acceso($email)) {
+        return array('url' => $pagina, 'clave' => '');
+    }
+    $ultimo = 'pieb_can_bienvenida_enlace_' . md5($email);
+    $anterior = get_transient($ultimo);
+    if ($anterior) {
+        delete_transient($anterior);
+    }
+    $token = bin2hex(random_bytes(32));
+    $clave = 'pieb_can_enlace_' . hash('sha256', $token);
+    set_transient($clave, array('email' => $email), PIEB_CAN_BIENVENIDA_DIAS * DAY_IN_SECONDS);
+    set_transient($ultimo, $clave, PIEB_CAN_BIENVENIDA_DIAS * DAY_IN_SECONDS);
+    return array('url' => add_query_arg('pcan_enlace', $token, $pagina), 'clave' => $clave);
+}
+
 // ---------------------------------------------------------------- el correo
 
 /**
  * Compone el correo de bienvenida para un destinatario: asunto, HTML y texto plano. Se llama dentro de
  * pieb_can_en_idioma_del_sitio() (el correo va en el idioma del sitio, no en el de quien lo envía).
+ * Con $enlace (ver pieb_can_bienvenida_enlace) el botón deja dentro del cancionero; sin él, abre la página para pedir
+ * el enlace de acceso.
  *
  * HTML pensado para clientes de correo: tablas, estilos en línea, 600 px como máximo, sin <style> ni fuentes externas.
  * La imagen de cabecera va por dirección absoluta; al enviar se incrusta en el correo (ver pieb_can_bienvenida_enviar).
  */
-function pieb_can_bienvenida_componer($email, $pagina, $texto_admin = null) {
+function pieb_can_bienvenida_componer($email, $pagina, $texto_admin = null, $enlace = '') {
     $ajustes = pieb_can_ajustes();
     $nombre = $ajustes['nombre'];
     // Igual que en el enlace de acceso: el nombre del sitio sin entidades HTML.
@@ -145,14 +173,28 @@ function pieb_can_bienvenida_componer($email, $pagina, $texto_admin = null) {
             $nombre
         );
     }
+    $con_enlace = $enlace !== '' && $enlace !== $pagina;
     $como = __('Cómo entrar', 'pieb-cancionero');
-    $paso1 = __('Abre el cancionero con el botón de abajo y guárdalo en favoritos o en la pantalla de inicio del móvil.', 'pieb-cancionero');
-    /* translators: %s: correo electrónico de la persona que recibe el mensaje */
-    $paso2 = sprintf(__('Escribe tu correo: %s', 'pieb-cancionero'), $email);
-    $paso3 = __('Te llegará un enlace para entrar: púlsalo y listo, sin contraseñas.', 'pieb-cancionero');
+    if ($con_enlace) {
+        // El botón lleva un enlace de acceso: se entra sin escribir el correo.
+        $boton = __('Entrar al cancionero', 'pieb-cancionero');
+        $paso1 = __('Pulsa el botón «Entrar al cancionero» de abajo.', 'pieb-cancionero');
+        $paso2 = __('Se abre el cancionero con tu acceso preparado: vuelve a pulsar «Entrar al cancionero» y ya estás dentro.', 'pieb-cancionero');
+        $paso3 = __('Guarda la página en favoritos o en la pantalla de inicio del móvil para tenerla siempre a mano.', 'pieb-cancionero');
+        /* translators: 1: días que vale el botón, 2: correo electrónico de la persona que recibe el mensaje */
+        $despues = _n('El botón sirve una sola vez durante %1$d día. Para entrar más adelante, abre el cancionero, escribe tu correo (%2$s) y te llegará un enlace, sin contraseñas.',
+            'El botón sirve una sola vez durante %1$d días. Para entrar más adelante, abre el cancionero, escribe tu correo (%2$s) y te llegará un enlace, sin contraseñas.',
+            PIEB_CAN_BIENVENIDA_DIAS, 'pieb-cancionero');
+    } else {
+        $boton = __('Abrir el cancionero', 'pieb-cancionero');
+        $paso1 = __('Abre el cancionero con el botón de abajo y guárdalo en favoritos o en la pantalla de inicio del móvil.', 'pieb-cancionero');
+        /* translators: %s: correo electrónico de la persona que recibe el mensaje */
+        $paso2 = sprintf(__('Escribe tu correo: %s', 'pieb-cancionero'), $email);
+        $paso3 = __('Te llegará un enlace para entrar: púlsalo y listo, sin contraseñas.', 'pieb-cancionero');
+        $despues = '';
+    }
     /* translators: «Iniciar sesión con Google» es el texto del botón de Google de la pantalla de acceso; en cada idioma, tal como lo muestra Google (en inglés, «Sign in with Google») */
     $aviso_google = __('Si tu correo es de Google, también puedes entrar con el botón «Iniciar sesión con Google».', 'pieb-cancionero');
-    $boton = __('Abrir el cancionero', 'pieb-cancionero');
     /* translators: %s: nombre del cancionero */
     $pie = sprintf(__('Recibes este correo porque te han añadido al equipo del cancionero «%s». Si no lo esperabas, puedes ignorarlo.', 'pieb-cancionero'), $nombre);
 
@@ -163,10 +205,13 @@ function pieb_can_bienvenida_componer($email, $pagina, $texto_admin = null) {
         . '1. ' . $paso1 . "\n"
         . '2. ' . $paso2 . "\n"
         . '3. ' . $paso3 . "\n";
+    $texto .= "\n" . $boton . "\n" . ($con_enlace ? $enlace : $pagina) . "\n";
+    if ($con_enlace) {
+        $texto .= "\n" . sprintf($despues, PIEB_CAN_BIENVENIDA_DIAS, $email) . "\n" . $pagina . "\n";
+    }
     if ($con_google) {
         $texto .= "\n" . $aviso_google . "\n";
     }
-    $texto .= "\n" . $boton . "\n" . $pagina . "\n";
     if ($texto_admin !== '') {
         $texto .= "\n" . $texto_admin . "\n";
     }
@@ -205,28 +250,34 @@ function pieb_can_bienvenida_componer($email, $pagina, $texto_admin = null) {
     $html .= '<tr><td style="padding:0 0 28px;font-family:' . $f . ';font-size:16px;line-height:1.6;color:#3b3552;">' . esc_html($parrafo) . '</td></tr>';
     $html .= '<tr><td style="padding:0 0 16px;"><h2 style="margin:0;font-family:' . $f . ';font-size:20px;line-height:1.3;font-weight:700;color:#0b0718;">' . esc_html($como) . '</h2></td></tr>';
 
+    // Enlace explícito con su estilo: si no, Gmail convierte el correo en un enlace azul subrayado.
+    $correo_html = '<a href="mailto:' . esc_attr($email) . '" style="color:#0b0718;font-weight:700;text-decoration:none;">' . esc_html($email) . '</a>';
     $html .= '<tr><td style="padding:0 0 6px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">';
     $html .= $fila_paso(1, '#ff2e88', esc_html($paso1));
-    $html .= $fila_paso(2, '#8b5cf6', sprintf(
+    $html .= $fila_paso(2, '#8b5cf6', $con_enlace ? esc_html($paso2) : sprintf(
         /* translators: %s: correo electrónico de la persona que recibe el mensaje */
         esc_html__('Escribe tu correo: %s', 'pieb-cancionero'),
-        // Enlace explícito con su estilo: si no, Gmail lo convierte en un enlace azul subrayado.
-        '<a href="mailto:' . esc_attr($email) . '" style="color:#0b0718;font-weight:700;text-decoration:none;">' . esc_html($email) . '</a>'
+        $correo_html
     ));
     $html .= $fila_paso(3, '#22d3ee', esc_html($paso3));
     $html .= '</table></td></tr>';
 
-    if ($con_google) {
-        $html .= '<tr><td style="padding:0 0 10px;font-family:' . $f . ';font-size:14px;line-height:1.5;color:#6b6585;">' . esc_html($aviso_google) . '</td></tr>';
-    }
-
-    // Botón a prueba de clientes de correo (tabla con celda de color y enlace) y la dirección en pequeño, para copiarla.
-    $html .= '<tr><td align="center" style="padding:16px 0 0;">'
+    // Botón a prueba de clientes de correo (tabla con celda de color y enlace) y la dirección en pequeño, para copiarla
+    // o guardarla (sin el enlace de acceso, que es de un solo uso).
+    $html .= '<tr><td align="center" style="padding:10px 0 0;">'
         . '<table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0"><tr>'
         . '<td align="center" bgcolor="#8b5cf6" style="border-radius:12px;background:#8b5cf6;">'
-        . '<a href="' . esc_url($pagina) . '" target="_blank" style="display:inline-block;padding:16px 40px;font-family:' . $f . ';font-size:18px;font-weight:700;line-height:1.2;color:#ffffff;text-decoration:none;border-radius:12px;">' . esc_html($boton) . '</a>'
+        . '<a href="' . esc_url($con_enlace ? $enlace : $pagina) . '" target="_blank" style="display:inline-block;padding:16px 40px;font-family:' . $f . ';font-size:18px;font-weight:700;line-height:1.2;color:#ffffff;text-decoration:none;border-radius:12px;">' . esc_html($boton) . '</a>'
         . '</td></tr></table></td></tr>';
     $html .= '<tr><td align="center" style="padding:14px 0 0;font-family:' . $f . ';font-size:12px;line-height:1.5;color:#8a85a0;word-break:break-all;">' . esc_html($pagina) . '</td></tr>';
+
+    if ($con_enlace) {
+        $html .= '<tr><td style="padding:24px 0 0;font-family:' . $f . ';font-size:14px;line-height:1.55;color:#6b6585;">'
+            . sprintf(esc_html($despues), PIEB_CAN_BIENVENIDA_DIAS, $correo_html) . '</td></tr>';
+    }
+    if ($con_google) {
+        $html .= '<tr><td style="padding:' . ($con_enlace ? '8px' : '24px') . ' 0 0;font-family:' . $f . ';font-size:14px;line-height:1.55;color:#6b6585;">' . esc_html($aviso_google) . '</td></tr>';
+    }
 
     // Mensaje opcional del administrador (p. ej. dónde está el cancionero en su web).
     if ($texto_admin !== '') {
@@ -275,7 +326,8 @@ function pieb_can_bienvenida_enviar($email, $correo) {
  *   pagina  (opcional) dirección de la página del cancionero.
  *   prueba  (opcional) si es verdadero, solo se envía al usuario actual y sin registrarla; puede llevar
  *           «bienvenidaTexto» (el texto aún sin guardar) para ver cómo queda.
- * Responde { enviados: [correo], fallidos: [{email, motivo}], omitidos: [{email, motivo}], momento }.
+ * Responde { enviados: [correo], fallidos: [{email, motivo}], omitidos: [{email, motivo}], momento } y, en la prueba,
+ * conEnlace (si el botón de ese correo deja dentro del cancionero).
  */
 function pieb_can_rest_bienvenida(WP_REST_Request $request) {
     $prueba = rest_sanitize_boolean($request->get_param('prueba'));
@@ -321,12 +373,17 @@ function pieb_can_rest_bienvenida(WP_REST_Request $request) {
     }
 
     if ($destinos) {
+        // El botón de cada correo lleva su propio enlace de acceso.
+        $enlaces = array();
+        foreach ($destinos as $email) {
+            $enlaces[$email] = pieb_can_bienvenida_enlace($email, $pagina);
+        }
         // Todos los correos de la tanda se componen en una sola pasada por el idioma del sitio (recargar las traducciones
         // una vez, no una por correo). Los motivos de arriba y de abajo, en cambio, van en el idioma de quien administra.
-        $correos = pieb_can_en_idioma_del_sitio(function () use ($destinos, $pagina, $texto_admin) {
+        $correos = pieb_can_en_idioma_del_sitio(function () use ($destinos, $pagina, $texto_admin, $enlaces) {
             $compuestos = array();
             foreach ($destinos as $email) {
-                $compuestos[$email] = pieb_can_bienvenida_componer($email, $pagina, $texto_admin);
+                $compuestos[$email] = pieb_can_bienvenida_componer($email, $pagina, $texto_admin, $enlaces[$email]['url']);
             }
             return $compuestos;
         });
@@ -337,8 +394,16 @@ function pieb_can_rest_bienvenida(WP_REST_Request $request) {
                     pieb_can_registrar_bienvenida($email);
                 }
             } else {
+                // Un enlace de acceso que no ha salido no debe quedar vivo.
+                if ($enlaces[$email]['clave']) {
+                    delete_transient($enlaces[$email]['clave']);
+                }
                 $res['fallidos'][] = array('email' => $email, 'motivo' => __('El servidor no ha podido enviar el correo', 'pieb-cancionero'));
             }
+        }
+        // En la prueba, si el botón deja dentro: a una cuenta de administración no (entra con contraseña).
+        if ($prueba) {
+            $res['conEnlace'] = $enlaces[$destinos[0]]['clave'] !== '';
         }
     }
 

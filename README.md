@@ -32,8 +32,8 @@ la herramienta: **no incluye ninguna canción ni partitura**; cada instalación 
   y PDF del setlist.
 - **Visor / modo culto:** pantalla pensada para tableta, con la partitura grande y cambio rápido entre canciones.
 - **Acceso:** rol «Equipo de adoración», inicio de sesión con Google (Google Identity Services) o con enlace por correo.
-- **Bienvenida:** quien se añade a la lista del equipo recibe un correo con el logo, el botón para abrir el cancionero
-  y cómo entrar. Desde **Ajustes y equipo → Equipo** se puede reenviar a las personas que se elijan.
+- **Bienvenida:** quien se añade a la lista del equipo recibe un correo con el logo y un botón que le deja dentro
+  del cancionero (sirve una vez durante 7 días), y cómo entrar más adelante. Desde **Ajustes y equipo → Equipo** se puede reenviar a las personas que se elijan.
 - **Administradores del cancionero:** además de los administradores de WordPress, se pueden nombrar otros desde
   **Ajustes y equipo**. Pueden cambiar los ajustes, gestionar el equipo y borrar canciones (a la papelera de WordPress).
 - **Nombre propio:** el nombre del cancionero («Cancionero de la iglesia», etc.) se cambia en **Ajustes y equipo → General**.

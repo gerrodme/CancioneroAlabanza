@@ -2,6 +2,11 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.11.2 · 2026-10-30
+
+El botón del correo de bienvenida, ahora «Entrar al cancionero», deja dentro: lleva un enlace de acceso personal que
+sirve una vez durante 7 días (antes llevaba a la pantalla de pedir el enlace). El correo explica cómo entrar más adelante
+
 ## 1.11.1 · 2026-10-30
 
 La cabecera con el logo va incrustada en el correo de bienvenida: se ve aunque Gmail no pueda descargarla de la web.

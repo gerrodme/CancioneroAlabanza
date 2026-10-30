@@ -2611,7 +2611,12 @@
               b.disabled = true;
               api('bienvenida', { json: { prueba: true, pagina: paginaActual(), bienvenidaTexto: fBienvTexto.value } })
                 .then(function (r) {
-                  if ((r.enviados || []).length) { aviso(sprintf(/* translators: %s: dirección de correo */ __('Bienvenida de prueba enviada a %s'), r.enviados[0])); }
+                  if ((r.enviados || []).length) {
+                    // A una cuenta de administración el botón no le deja dentro (entra con contraseña): se avisa para no confundir.
+                    aviso(sprintf(/* translators: %s: dirección de correo */ __('Bienvenida de prueba enviada a %s'), r.enviados[0]) +
+                      (r.conEnlace === false ? ' · ' + __('Como tu cuenta es de administración, en tu correo el botón abre el cancionero sin iniciar sesión; al resto del equipo le deja dentro.') : ''),
+                      undefined, r.conEnlace === false ? 9000 : undefined);
+                  }
                   else { aviso(resumenBienvenida({ enviados: [], fallidos: r.fallidos || [], omitidos: r.omitidos || [], error: null }), 'error', 9000); }
                 })
                 .catch(function (err) { aviso(err.message, 'error'); })

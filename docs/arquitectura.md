@@ -89,8 +89,12 @@ Para cambiar un solo dato: `GET` la ficha, reconstruir todos los campos con ella
 ## Bienvenida al equipo
 
 `includes/bienvenida.php`. A quien se añade a la lista de correos del equipo se le puede enviar un correo que le explica
-cómo entrar: abrir la página del cancionero, escribir su correo y pulsar el enlace que recibe (y, si el acceso con Google
-está configurado, que también puede usar el botón de Google). Es HTML para clientes de correo (tablas, estilos en línea,
+cómo entrar. Su botón **«Entrar al cancionero»** lleva un enlace de acceso personal (`pieb_can_bienvenida_enlace`): es el
+mismo enlace mágico de `google.php` (transient `pieb_can_enlace_*`, un solo uso, pantalla con «Entrar» para que los
+filtros antispam no lo gasten), pero vale `PIEB_CAN_BIENVENIDA_DIAS` (7) días en vez de 15 minutos, y cada bienvenida
+anula el botón de la anterior al mismo correo. El correo también explica cómo entrar más adelante (abrir la página,
+escribir el correo y pulsar el enlace que llega) y, si el acceso con Google está configurado, que puede usar su botón. A
+las cuentas de administración (que solo reciben la prueba) el botón les abre la página sin enlace de acceso. Es HTML para clientes de correo (tablas, estilos en línea,
 600 px como máximo, sin `<style>`; la imagen de cabecera `assets/correo-cabecera.jpg` va incrustada en el correo,
 `cid:pcan-cabecera`, porque Gmail no la muestra si no puede descargarla de la web) más una versión de texto plano que se
 pone como `AltBody`. Las dos cosas se hacen en `phpmailer_init` solo durante el envío; si el servicio de correo no pasa

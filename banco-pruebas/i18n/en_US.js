@@ -1905,6 +1905,9 @@ window.PIEB_I18N = {
   ],
   "Te llega a ti, con el texto de arriba aunque aún no esté guardado.": [
    "It is sent to you, with the text above even if it isn’t saved yet."
+  ],
+  "Como tu cuenta es de administración, en tu correo el botón abre el cancionero sin iniciar sesión; al resto del equipo le deja dentro.": [
+   "As yours is an administrator account, in your email the button opens the songbook without signing in; for the rest of the team it signs them in."
   ]
  }
 };

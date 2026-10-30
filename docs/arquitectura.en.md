@@ -89,9 +89,13 @@ To change a single value: `GET` the record, rebuild all the fields from it and m
 
 ## Welcome to the team
 
-`includes/bienvenida.php`. Someone added to the team's email list can be sent an email that explains how to get in: open
-the songbook page, type their email and press the link they receive (and, if Google sign-in is set up, that they can also
-use the Google button). It is HTML for email clients (tables, inline styles, 600 px at most, no `<style>`; the header
+`includes/bienvenida.php`. Someone added to the team's email list can be sent an email that explains how to get in. Its
+**"Enter the songbook"** button carries a personal sign-in link (`pieb_can_bienvenida_enlace`): the same magic link as in
+`google.php` (`pieb_can_enlace_*` transient, single use, a screen with "Enter" so spam filters do not use it up), but it
+lasts `PIEB_CAN_BIENVENIDA_DIAS` (7) days instead of 15 minutes, and every welcome email cancels the button of the previous
+one to the same address. The email also explains how to get in later (open the page, type the email and press the link
+that arrives) and, if Google sign-in is set up, that they can use its button. For administrator accounts (which only get
+the test email) the button opens the page without a sign-in link. It is HTML for email clients (tables, inline styles, 600 px at most, no `<style>`; the header
 image `assets/correo-cabecera.jpg` is embedded in the email, `cid:pcan-cabecera`, because Gmail does not show it if it
 cannot download it from the site) plus a plain-text version set as `AltBody`. Both are done in `phpmailer_init`, only
 while sending; if the mail service skips that hook, the image stays linked by its absolute URL. It is composed inside `pieb_can_en_idioma_del_sitio()`, like the

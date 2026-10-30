@@ -33,8 +33,8 @@ can be translated into other languages. In English, an installation without a na
   the next service and a PDF of the setlist.
 - **Viewer / play mode:** a screen designed for tablets, with a large score and quick switching between songs.
 - **Access:** the "Worship team" role, sign-in with Google (Google Identity Services) or with an email link.
-- **Welcome:** anyone added to the team list receives an email with the logo, a button to open the songbook and
-  how to sign in. From **Settings and team → Team** it can be sent again to the people you choose.
+- **Welcome:** anyone added to the team list receives an email with the logo and a button that signs them
+  straight into the songbook (single use, valid for 7 days), plus how to sign in later. From **Settings and team → Team** it can be sent again to the people you choose.
 - **Songbook administrators:** besides WordPress administrators, others can be named under **Settings and team**. They can
   change the settings, manage the team and delete songs (to the WordPress trash).
 - **Your own name:** the name of the songbook ("Our church songbook", etc.) is changed under **Settings and team →
