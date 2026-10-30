@@ -2086,6 +2086,12 @@ window.PIEB_I18N = {
   ],
   "Inicios de sesión y días de uso del periodo elegido. Toca una persona para ver su detalle.": [
    "Sign-ins and days of use in the chosen period. Tap a person to see the details."
+  ],
+  "Avisar por correo cuando alguien borre una canción": [
+   "Send an email when someone deletes a song"
+  ],
+  "Les llega a los administradores del cancionero y al correo de administración de la web (%s), con la canción, sus archivos, quién la borró y cuándo. Los borrados seguidos llegan juntos en un solo correo, un minuto después.": [
+   "It goes to the songbook administrators and to the site’s admin email (%s), with the song, its files, who deleted it and when. Deletions made in a row arrive together in a single email, a minute later."
   ]
  }
 };

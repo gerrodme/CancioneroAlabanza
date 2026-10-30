@@ -220,6 +220,9 @@ function pieb_can_rest_borrar(WP_REST_Request $request) {
         return rest_ensure_response(array('borrada' => true, 'id' => $post->ID, 'definitiva' => true));
     }
 
+    // Aviso por correo a los administradores, agrupado con los borrados seguidos (ver includes/avisos.php).
+    pieb_can_aviso_borrado_encolar($post->ID);
+
     return rest_ensure_response(array('borrada' => true, 'id' => $post->ID));
 }
 

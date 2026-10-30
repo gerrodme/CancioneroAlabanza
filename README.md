@@ -26,6 +26,8 @@ la herramienta: **no incluye ninguna canción ni partitura**; cada instalación 
   se cambia con «Hacer principal» en la ficha.
 - **Papelera:** las canciones borradas van a una papelera que los administradores ven en Ajustes y equipo → Papelera: pueden abrirlas,
   restaurarlas o eliminarlas para siempre. Se limpian solas pasados N días (30 por defecto, configurable; 0 = nunca).
+  Cuando alguien borra una canción, los administradores reciben un **aviso por correo** con la canción, sus archivos,
+  quién la borró y cuándo (los borrados seguidos llegan en un solo correo; se desactiva en Ajustes y equipo → General).
 - **Importación masiva:** «Subida múltiple» (arrastrar muchos PDF/imágenes de una vez; el título, el número de himnario
   y la tonalidad se deducen del nombre del archivo).
 - **Cultos y setlists:** orden de canciones por culto, con tonalidad, nota y partitura elegida por canción, cuenta atrás al próximo culto

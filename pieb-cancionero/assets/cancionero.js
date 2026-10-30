@@ -2301,6 +2301,7 @@
     var fNombre = h('input', { type: 'text', class: 'pcan-input', value: a.nombre || '', maxlength: '40', placeholder: 'Cancionero', spellcheck: 'false' });
     var fSubtitulo = h('input', { type: 'text', class: 'pcan-input', value: a.subtitulo || '', maxlength: '60', placeholder: __('p. ej. Nombre de tu iglesia o grupo'), spellcheck: 'false' });
     var fPapelera = h('input', { type: 'number', class: 'pcan-input', min: '0', max: '3650', value: String(a.papeleraDias === undefined ? 30 : a.papeleraDias) });
+    var fAvisoBorrado = h('input', { type: 'checkbox', checked: !!a.avisoBorrado });
     var fAdmins = h('textarea', { class: 'pcan-input pcan-textarea', rows: '3', placeholder: __('Un correo por línea'), spellcheck: 'false' });
     fAdmins.value = (a.administradores || []).join('\n');
     var fTema = h('select', { class: 'pcan-input' }, Object.keys(CFG.temas).map(function (k) { return h('option', { value: k, text: CFG.temas[k] }); }));
@@ -2585,7 +2586,11 @@
           campo(__('Tema por defecto'), fTema, __('Para quien aún no ha elegido tema. Cada persona puede cambiarlo en su menú.'))),
         h('fieldset', { class: 'pcan-fieldset' },
           h('legend', { text: __('Papelera') }),
-          campo(__('Días que se conservan las canciones borradas'), fPapelera, __('Pasado este plazo se eliminan solas, con sus partituras y audios. Pon 0 para no eliminarlas nunca automáticamente.')))],
+          campo(__('Días que se conservan las canciones borradas'), fPapelera, __('Pasado este plazo se eliminan solas, con sus partituras y audios. Pon 0 para no eliminarlas nunca automáticamente.')),
+          h('label', { class: 'pcan-copia-opcion' }, fAvisoBorrado,
+            h('span', null,
+              h('strong', { text: __('Avisar por correo cuando alguien borre una canción') }),
+              h('small', { text: sprintf(/* translators: %s: correo de administración de la web */ __('Les llega a los administradores del cancionero y al correo de administración de la web (%s), con la canción, sus archivos, quién la borró y cuándo. Los borrados seguidos llegan juntos en un solo correo, un minuto después.'), a.correoAdmin || '') }))))],
       equipo: [
         h('fieldset', { class: 'pcan-fieldset' },
           h('legend', { text: __('Equipo') }),
@@ -2690,7 +2695,7 @@
     var form = h('form', { class: 'pcan-ajustes-main', novalidate: true }, zona, barra);
 
     function valores() {
-      return JSON.stringify([fNombre.value, fSubtitulo.value, fPapelera.value, fAdmins.value, fTema.value, fClient.value, fDominio.value, fEmails.value, fBienvAuto.checked, fBienvTexto.value]);
+      return JSON.stringify([fNombre.value, fSubtitulo.value, fPapelera.value, fAdmins.value, fTema.value, fClient.value, fDominio.value, fEmails.value, fBienvAuto.checked, fBienvTexto.value, fAvisoBorrado.checked]);
     }
     var inicial = valores();
     // El aviso de «cambios sin guardar» al cerrar lo da panelSucio; aquí se calcula comparando con lo cargado.
@@ -2751,6 +2756,7 @@
         emails: fEmails.value.split(/[\s,;]+/).filter(Boolean),
         bienvenidaAuto: fBienvAuto.checked,
         bienvenidaTexto: fBienvTexto.value.trim(),
+        avisoBorrado: fAvisoBorrado.checked,
         pagina: paginaActual()
       } }).then(function (r) {
         panelSucio = false;

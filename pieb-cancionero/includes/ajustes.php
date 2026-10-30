@@ -41,8 +41,11 @@ function pieb_can_ajustes() {
         'bienvenida_auto'  => true,
         'bienvenida_texto' => '',
         'pagina'           => '',
+        // Aviso por correo a los administradores cuando alguien borra una canción (ver includes/avisos.php).
+        'aviso_borrado'    => true,
     ));
     $ajustes['bienvenida_auto'] = (bool) $ajustes['bienvenida_auto'];
+    $ajustes['aviso_borrado'] = (bool) $ajustes['aviso_borrado'];
     // Sin nombre propio se muestra el nombre por defecto en el idioma de quien mira («Cancionero» / «Songbook»). Las
     // instalaciones que guardaron «Cancionero» antes de la 1.8.1 se tratan igual que las que no guardaron nada.
     if (trim((string) $ajustes['nombre']) === '' || $ajustes['nombre'] === 'Cancionero') {
@@ -462,6 +465,9 @@ function pieb_can_ajustes_datos() {
         'bienvenidaAuto'  => (bool) $ajustes['bienvenida_auto'],
         'bienvenidaTexto' => (string) $ajustes['bienvenida_texto'],
         'pagina'         => (string) $ajustes['pagina'],
+        'avisoBorrado'   => (bool) $ajustes['aviso_borrado'],
+        // Correo de administración de la web: también recibe el aviso de borrado (la interfaz lo muestra en la ayuda).
+        'correoAdmin'    => (string) get_option('admin_email'),
         'origen'         => untrailingslashit(home_url()),
     );
 }
@@ -506,6 +512,9 @@ function pieb_can_rest_ajustes_guardar(WP_REST_Request $request) {
     }
     if ($request->has_param('bienvenidaTexto')) {
         $ajustes['bienvenida_texto'] = mb_substr(trim(sanitize_textarea_field((string) $request->get_param('bienvenidaTexto'))), 0, 1000);
+    }
+    if ($request->has_param('avisoBorrado')) {
+        $ajustes['aviso_borrado'] = rest_sanitize_boolean($request->get_param('avisoBorrado'));
     }
     if ($request->has_param('pagina')) {
         // Solo se guarda si es una dirección válida de esta web; si no, se conserva la que hubiera.
@@ -778,6 +787,7 @@ function pieb_can_rest_copia_exportar() {
             'googleClientId' => $ajustes['google_client_id'],
             'bienvenidaAuto'  => (bool) $ajustes['bienvenida_auto'],
             'bienvenidaTexto' => (string) $ajustes['bienvenida_texto'],
+            'avisoBorrado'    => (bool) $ajustes['aviso_borrado'],
         ),
     ));
 }
@@ -1022,6 +1032,10 @@ function pieb_can_rest_copia_ajustes(WP_REST_Request $request) {
     }
     if (isset($a['bienvenidaTexto'])) {
         $ajustes['bienvenida_texto'] = mb_substr(trim(sanitize_textarea_field((string) $a['bienvenidaTexto'])), 0, 1000);
+    }
+    // Igual con el aviso de borrado: solo si la copia lo trae.
+    if (isset($a['avisoBorrado'])) {
+        $ajustes['aviso_borrado'] = rest_sanitize_boolean($a['avisoBorrado']);
     }
     $emails = isset($a['emails']) ? (array) $a['emails'] : array();
     $ajustes['emails'] = pieb_can_normalizar_emails(implode(' ', array_merge($ajustes['emails'], $emails)));

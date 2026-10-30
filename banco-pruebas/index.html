@@ -74,6 +74,7 @@
   var ajustesMock = {
     nombre: 'Cancionero', subtitulo: 'Tu iglesia', version: '1.5.5', administradores: ['ana@example.com'], papeleraDias: 30, temaDefecto: 'claro',
     googleClientId: '', dominio: '', origen: location.origin, bienvenidaAuto: true, bienvenidaTexto: 'Encontrarás el cancionero en el menú «Música» de nuestra web.', pagina: '',
+    avisoBorrado: true, correoAdmin: 'webmaster@example.com',
     emails: ['ana@example.com', 'luis@example.com', 'marta@example.com', 'pablo@example.com', 'sara@example.com', 'falla@example.com', 'admin@example.com'],
     miembros: [
       { email: 'ana@example.com', nombre: 'Ana Pérez', haEntrado: true, enLista: true, esGestor: true, esAdmin: false, puedeBienvenida: true, bienvenida: ahoraS() - 40 * 86400 },
@@ -95,7 +96,7 @@
       ajustesMock.miembros.push({ email: e, nombre: '', haEntrado: false, enLista: true, esGestor: false, esAdmin: false, puedeBienvenida: true, bienvenida: 0 });
     });
     ajustesMock.miembros.forEach(function (mb) { if (!mb.esAdmin) { mb.enLista = nuevos.indexOf(mb.email) !== -1; mb.puedeBienvenida = mb.enLista; } });
-    ['nombre', 'subtitulo', 'papeleraDias', 'administradores', 'temaDefecto', 'googleClientId', 'dominio', 'bienvenidaAuto', 'bienvenidaTexto', 'pagina']
+    ['nombre', 'subtitulo', 'papeleraDias', 'administradores', 'temaDefecto', 'googleClientId', 'dominio', 'bienvenidaAuto', 'bienvenidaTexto', 'avisoBorrado', 'pagina']
       .forEach(function (k) { if (cuerpo[k] !== undefined) { ajustesMock[k] = cuerpo[k]; } });
     ajustesMock.emails = cuerpo.emails || [];
     return Object.assign({}, ajustesMock, { bienvenidaPendiente: ajustesMock.bienvenidaAuto ? pendientes : [] });

@@ -27,6 +27,8 @@ can be translated into other languages. In English, an installation without a na
   "Make main" on the song page.
 - **Trash:** deleted songs go to a trash that administrators see in Settings and team → Trash: they can open them, restore them or delete
   them for good. The trash empties itself after N days (30 by default, configurable; 0 = never).
+  When someone deletes a song, the administrators get an **email alert** with the song, its files, who deleted it and
+  when (deletions made in a row arrive in a single email; it can be turned off in Settings and team → General).
 - **Bulk import:** "Bulk upload" (drag many PDFs/images at once; the title, hymnal number and key are worked out from the
   file name).
 - **Services and setlists:** the order of songs for each service, with key, note and chosen score per song, a countdown to

@@ -2,6 +2,12 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.13.0 · 2026-10-30
+
+Aviso de canciones borradas: cuando alguien borra una canción, los administradores del cancionero y el correo de
+administración de la web reciben un correo con la canción, sus archivos, quién la borró y cuándo, y un botón a la
+papelera. Los borrados seguidos llegan juntos, un minuto después. Se desactiva en Ajustes y equipo → General
+
 ## 1.12.0 · 2026-10-30
 
 Accesos: en Ajustes y equipo, quién entra y cuánto se usa el cancionero. Personas activas, inicios de sesión, días de uso,

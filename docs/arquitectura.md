@@ -16,6 +16,7 @@ Resumen técnico del plugin **Cancionero** para quien llegue nuevo al código.
 | `includes/google.php` | Acceso con Google (ID token) y con enlace por correo. |
 | `includes/correo.php` | Aspecto común de los correos (cabecera con el logo, tarjeta, botón) y su envío en HTML con texto plano y la cabecera incrustada. |
 | `includes/bienvenida.php` | Correo de bienvenida al equipo: registro de envíos, composición del correo (HTML y texto) y `POST /bienvenida`. |
+| `includes/avisos.php` | Aviso por correo a los administradores cuando alguien borra una canción: cola de borrados, envío agrupado por cron y composición del correo. |
 | `includes/accesos.php` | Registro de accesos: inicios de sesión (fecha, método y tipo de dispositivo), días de uso y `GET /accesos` con los datos en bruto para las estadísticas de «Ajustes y equipo». |
 | `includes/migracion.php` | Convierte los PDF del plugin anterior (`adoracion_culto_*`) en canciones. Idempotente. |
 | `assets/cancionero.js` | Interfaz principal (sin dependencias ni compilación): lista, ficha, formulario, subida múltiple, estadísticas, ajustes. |
@@ -57,9 +58,10 @@ La interfaz es una aplicación de una sola página dentro de la página de WordP
   `{cancion, tonalidad, nota, partitura}` en orden; `partitura` es el ID del adjunto elegido para ese culto, 0 = la principal (la primera de la canción). Al
   servir el culto, la elegida se coloca la primera en `datos.partituras`, que es la que usan el modo culto y el PDF).
 - Opciones de WordPress: `pieb_can_ajustes` (ajustes: `nombre`, `tema_defecto`, `google_client_id`, `emails`,
-  `administradores`, `dominio`, `bienvenida_auto`, `bienvenida_texto`, `pagina`), `pieb_can_bienvenidas` (registro de
-  los correos de bienvenida enviados: correo → marca de tiempo; sin autoload), `pieb_can_accesos_desde` (desde cuándo se
-  registran los accesos; sin autoload), `pieb_can_version`, `pieb_can_migrado`.
+  `administradores`, `dominio`, `bienvenida_auto`, `bienvenida_texto`, `pagina`, `aviso_borrado`), `pieb_can_bienvenidas`
+  (registro de los correos de bienvenida enviados: correo → marca de tiempo; sin autoload), `pieb_can_avisos_borrado`
+  (cola de canciones borradas pendientes de avisar; sin autoload; ver [Aviso de canciones borradas](#aviso-de-canciones-borradas)),
+  `pieb_can_accesos_desde` (desde cuándo se registran los accesos; sin autoload), `pieb_can_version`, `pieb_can_migrado`.
 - Metadatos de **usuario** del registro de accesos: `pieb_can_accesos` (inicios de sesión), `pieb_can_dias` (días de uso)
   y `pieb_can_ultimo_acceso`. Ver [Registro de accesos](#registro-de-accesos).
 
@@ -219,6 +221,35 @@ usuarios.
 Limpieza: el ajuste `papelera_dias` (30 por defecto; 0 = nunca) manda sobre la limpieza de WordPress (filtro
 `pre_delete_post` durante `wp_scheduled_delete`) y hay una tarea diaria propia (`pieb_can_limpiar_papelera`). Al eliminar
 una canción para siempre, por cualquier vía, `before_delete_post` borra también sus partituras, audios y editables.
+
+## Aviso de canciones borradas
+
+`includes/avisos.php`. Cuando alguien borra una canción desde el cancionero y esta queda en la papelera, los
+administradores reciben un correo con la canción, sus archivos, quién la borró y cuándo.
+
+**Ajuste.** `aviso_borrado` (bool, `true` por defecto, también en las instalaciones que ya existían). `GET /ajustes`
+devuelve `avisoBorrado` (bool) y `correoAdmin` (el `admin_email` de WordPress, que la interfaz muestra en la ayuda de la
+casilla); `POST /ajustes` acepta `avisoBorrado` (solo si llega). La copia de seguridad lo incluye y la restauración lo
+aplica solo si la copia lo trae. La casilla está en «Ajustes y equipo → General», en el cuadro «Papelera».
+
+**Cola y envío agrupado.** `pieb_can_rest_borrar` llama a `pieb_can_aviso_borrado_encolar()` cuando la canción ha quedado
+en la papelera (si WordPress la elimina directamente porque `EMPTY_TRASH_DAYS` es 0, no hay aviso). Si el aviso está
+activo, añade a la opción `pieb_can_avisos_borrado` (sin autoload) una foto tomada en ese momento, porque si luego la
+canción se elimina para siempre sus datos y archivos ya no existirían: `{id, titulo, numero, tonalidad, archivos, por:
+{id, nombre, email}, cuando}`, con `archivos` los nombres de archivo de partituras, audios y editables (o el título del
+adjunto si el archivo ya no está). Después programa el evento `pieb_can_enviar_avisos_borrado` un minuto más tarde
+(`wp_schedule_single_event`) si no hay ya uno: el borrado múltiple de la interfaz hace un `DELETE canciones/{id}` por
+canción, seguidos, y así todo llega en **un solo correo**. Depende del cron de WordPress, que se dispara con las visitas a
+la web (con `DISABLE_WP_CRON` hace falta un cron del sistema que llame a `wp-cron.php`). El manejador toma la cola y la
+**vacía antes de enviar**, para no repetir nada si el envío falla; si el aviso se desactivó entretanto, la descarta.
+
+**Destinatarios y correo.** Reciben el aviso los correos de la lista `administradores` de los ajustes y el correo de
+administración de la web (`admin_email`), sin repetir. A cada uno se le quitan las canciones que borró él mismo (ya lo
+sabe) y, si no le queda ninguna, no se le envía nada. Es un correo por destinatario, compuesto dentro de
+`pieb_can_en_idioma_del_sitio()` y enviado con `pieb_can_correo_enviar()` con el aspecto común de `includes/correo.php`: un
+recuadro por canción (título con número de himnario y tonalidad, quién la borró y cuándo, archivos), una nota con lo que
+tarda en eliminarse de la papelera (`papelera_dias`) y un botón a `#/ajustes/papelera`. Más de 40 canciones en un mismo
+correo se resumen con una línea «Y N canciones más» (Gmail recorta los correos muy largos).
 
 ## Archivos privados
 

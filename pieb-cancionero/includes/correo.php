@@ -1,8 +1,8 @@
 <?php
 /**
- * Aspecto común de los correos del cancionero (bienvenida y enlace de acceso): la cabecera con el logo sobre fondo de
- * neón y una tarjeta blanca. HTML pensado para clientes de correo: tablas, estilos en línea, 600 px como máximo, sin
- * <style> ni fuentes externas.
+ * Aspecto común de los correos del cancionero (bienvenida, enlace de acceso y aviso de canciones borradas): la cabecera
+ * con el logo sobre fondo de neón y una tarjeta blanca. HTML pensado para clientes de correo: tablas, estilos en línea,
+ * 600 px como máximo, sin <style> ni fuentes externas.
  *
  * Cada pieza devuelve una fila (<tr>) de la tabla de la tarjeta; pieb_can_correo_html() las envuelve en el documento.
  * Los textos que reciben las piezas ya van escapados (salvo donde se indica), porque a veces llevan un enlace dentro.
@@ -57,6 +57,13 @@ function pieb_can_correo_direccion($url, $alinear = 'center', $arriba = 14) {
 function pieb_can_correo_recuadro($texto) {
     return '<tr><td style="padding:28px 0 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
         . '<td style="background:#faf5ff;border-left:4px solid #8b5cf6;padding:14px 18px;font-family:' . PIEB_CAN_CORREO_LETRA . ';font-size:15px;line-height:1.55;color:#3b3552;">' . nl2br(esc_html($texto)) . '</td>'
+        . '</tr></table></td></tr>';
+}
+
+/** Recuadro destacado como el anterior, pero con HTML ya escapado (negritas, saltos, enlaces), y con el espacio de arriba en píxeles. */
+function pieb_can_correo_recuadro_html($html, $arriba = 28) {
+    return '<tr><td style="padding:' . (int) $arriba . 'px 0 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+        . '<td style="background:#faf5ff;border-left:4px solid #8b5cf6;padding:14px 18px;font-family:' . PIEB_CAN_CORREO_LETRA . ';font-size:15px;line-height:1.55;color:#3b3552;">' . $html . '</td>'
         . '</tr></table></td></tr>';
 }
 

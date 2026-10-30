@@ -16,6 +16,7 @@ A technical summary of the **Cancionero** plugin for anyone new to the code.
 | `includes/google.php` | Sign-in with Google (ID token) and with an email link. |
 | `includes/correo.php` | Shared look of the emails (header with the logo, card, button) and sending them as HTML with plain text and the embedded header. |
 | `includes/bienvenida.php` | Welcome email for the team: log of sent emails, composing the email (HTML and plain text) and `POST /bienvenida`. |
+| `includes/avisos.php` | Email alert to the administrators when someone deletes a song: queue of deletions, batched sending through cron and composing the email. |
 | `includes/accesos.php` | Access log: sign-ins (date, method and device type), days of use and `GET /accesos` with the raw data for the statistics in "Settings and team". |
 | `includes/migracion.php` | Converts the PDFs of the previous plugin (`adoracion_culto_*`) into songs. Idempotent. |
 | `assets/cancionero.js` | The main interface (no dependencies or build step): list, song page, form, bulk upload, statistics, settings. |
@@ -58,9 +59,10 @@ The interface is a single-page application inside the WordPress page; it navigat
   one (the first of the song). When the service is served, the chosen one is placed first in `datos.partituras`, which is
   the one used by play mode and the PDF).
 - WordPress options: `pieb_can_ajustes` (settings: `nombre`, `tema_defecto`, `google_client_id`, `emails`,
-  `administradores`, `dominio`, `bienvenida_auto`, `bienvenida_texto`, `pagina`), `pieb_can_bienvenidas` (log of the
-  welcome emails sent: email → timestamp; not autoloaded), `pieb_can_accesos_desde` (since when accesses are logged; not
-  autoloaded), `pieb_can_version`, `pieb_can_migrado`.
+  `administradores`, `dominio`, `bienvenida_auto`, `bienvenida_texto`, `pagina`, `aviso_borrado`), `pieb_can_bienvenidas`
+  (log of the welcome emails sent: email → timestamp; not autoloaded), `pieb_can_avisos_borrado` (queue of deleted songs
+  waiting to be reported; not autoloaded; see [Deleted-song alert](#deleted-song-alert)), `pieb_can_accesos_desde`
+  (since when accesses are logged; not autoloaded), `pieb_can_version`, `pieb_can_migrado`.
 - **User** metadata for the access log: `pieb_can_accesos` (sign-ins), `pieb_can_dias` (days of use) and
   `pieb_can_ultimo_acceso`. See [Access log](#access-log).
 
@@ -219,6 +221,35 @@ with date, who deleted it and days left), `POST /papelera/{id}/restaurar` (back 
 Cleanup: the `papelera_dias` setting (30 by default; 0 = never) overrides WordPress's cleanup (filter `pre_delete_post`
 during `wp_scheduled_delete`), and there is a daily task of its own (`pieb_can_limpiar_papelera`). When a song is deleted
 for good, by any route, `before_delete_post` also deletes its scores, audio and editable files.
+
+## Deleted-song alert
+
+`includes/avisos.php`. When someone deletes a song from the songbook and it ends up in the trash, the administrators get an
+email with the song, its files, who deleted it and when.
+
+**Setting.** `aviso_borrado` (bool, `true` by default, also on installations that already existed). `GET /ajustes` returns
+`avisoBorrado` (bool) and `correoAdmin` (WordPress's `admin_email`, which the interface shows in the checkbox's help text);
+`POST /ajustes` accepts `avisoBorrado` (only if present). The backup includes it and restoring applies it only if the
+backup carries it. The checkbox is in "Settings and team → General", in the "Trash" box.
+
+**Queue and batched sending.** `pieb_can_rest_borrar` calls `pieb_can_aviso_borrado_encolar()` once the song is in the
+trash (if WordPress deletes it outright because `EMPTY_TRASH_DAYS` is 0, there is no alert). If the alert is on, it adds
+to the option `pieb_can_avisos_borrado` (not autoloaded) a snapshot taken at that moment, because if the song is later
+deleted for good its data and files would no longer exist: `{id, titulo, numero, tonalidad, archivos, por: {id, nombre,
+email}, cuando}`, where `archivos` are the file names of scores, audio and editable files (or the attachment's title if the
+file is gone). It then schedules the event `pieb_can_enviar_avisos_borrado` one minute later (`wp_schedule_single_event`) if
+there is not one already: the interface's multiple delete does one `DELETE canciones/{id}` per song, back to back, so
+everything arrives in **a single email**. It depends on WordPress cron, which fires with visits to the site (with
+`DISABLE_WP_CRON` a system cron that calls `wp-cron.php` is needed). The handler takes the queue and **empties it before
+sending**, so nothing is repeated if sending fails; if the alert was turned off in the meantime, it discards the queue.
+
+**Recipients and email.** The alert goes to the emails in the `administradores` list of the settings and to the site's
+administration email (`admin_email`), without repeats. Each one has the songs they deleted themselves removed (they already
+know) and, if none is left, nothing is sent to them. It is one email per recipient, composed inside
+`pieb_can_en_idioma_del_sitio()` and sent with `pieb_can_correo_enviar()` in the shared look of `includes/correo.php`: a box
+per song (title with hymnal number and key, who deleted it and when, files), a note about how long it stays in the trash
+(`papelera_dias`) and a button to `#/ajustes/papelera`. More than 40 songs in one email are summarised with an "And N more
+songs" line (Gmail clips very long emails).
 
 ## Private files
 
