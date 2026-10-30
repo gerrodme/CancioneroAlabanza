@@ -14,6 +14,7 @@ Resumen técnico del plugin **Cancionero** para quien llegue nuevo al código.
 | `includes/cultos.php` | Cultos y setlists (tipo de contenido y API). |
 | `includes/ajustes.php` | Temas, ajustes, lista del equipo, preferencias por usuario, copias de seguridad (exportar/importar). |
 | `includes/google.php` | Acceso con Google (ID token) y con enlace por correo. |
+| `includes/correo.php` | Aspecto común de los correos (cabecera con el logo, tarjeta, botón) y su envío en HTML con texto plano y la cabecera incrustada. |
 | `includes/bienvenida.php` | Correo de bienvenida al equipo: registro de envíos, composición del correo (HTML y texto) y `POST /bienvenida`. |
 | `includes/migracion.php` | Convierte los PDF del plugin anterior (`adoracion_culto_*`) en canciones. Idempotente. |
 | `assets/cancionero.js` | Interfaz principal (sin dependencias ni compilación): lista, ficha, formulario, subida múltiple, estadísticas, ajustes. |
@@ -94,12 +95,15 @@ mismo enlace mágico de `google.php` (transient `pieb_can_enlace_*`, un solo uso
 filtros antispam no lo gasten), pero vale `PIEB_CAN_BIENVENIDA_DIAS` (7) días en vez de 15 minutos, y cada bienvenida
 anula el botón de la anterior al mismo correo. El correo también explica cómo entrar más adelante (abrir la página,
 escribir el correo y pulsar el enlace que llega) y, si el acceso con Google está configurado, que puede usar su botón. A
-las cuentas de administración (que solo reciben la prueba) el botón les abre la página sin enlace de acceso. Es HTML para clientes de correo (tablas, estilos en línea,
-600 px como máximo, sin `<style>`; la imagen de cabecera `assets/correo-cabecera.jpg` va incrustada en el correo,
+las cuentas de administración (que solo reciben la prueba) el botón les abre la página sin enlace de acceso.
+
+**Aspecto de los correos** (`includes/correo.php`). La bienvenida y el enlace de acceso comparten aspecto: cabecera con
+el logo y tarjeta blanca con título, texto, botón y notas (`pieb_can_correo_*`). Es HTML para clientes de correo (tablas,
+estilos en línea, 600 px como máximo, sin `<style>`; la imagen de cabecera `assets/correo-cabecera.jpg` va incrustada en el correo,
 `cid:pcan-cabecera`, porque Gmail no la muestra si no puede descargarla de la web) más una versión de texto plano que se
 pone como `AltBody`. Las dos cosas se hacen en `phpmailer_init` solo durante el envío; si el servicio de correo no pasa
-por ese gancho, la imagen queda enlazada por su dirección absoluta.
-Se compone dentro de `pieb_can_en_idioma_del_sitio()`, como el enlace de acceso: va en el idioma del sitio. Las cuentas
+por ese gancho, la imagen queda enlazada por su dirección absoluta (`pieb_can_correo_enviar`). Los dos se componen
+dentro de `pieb_can_en_idioma_del_sitio()`: van en el idioma del sitio. Las cuentas
 de administración de WordPress no reciben bienvenida (entran con contraseña).
 
 **Ajustes nuevos** (en `pieb_can_ajustes`): `bienvenida_auto` (bool, `true` por defecto: enviarla automáticamente a quien

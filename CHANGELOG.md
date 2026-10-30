@@ -2,6 +2,11 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.11.3 · 2026-10-30
+
+El correo con el enlace de acceso tiene el mismo aspecto que la bienvenida (cabecera con el logo, botón «Entrar al
+cancionero») y un texto más cercano. Las piezas comunes de los correos están en includes/correo.php
+
 ## 1.11.2 · 2026-10-30
 
 El botón del correo de bienvenida, ahora «Entrar al cancionero», deja dentro: lleva un enlace de acceso personal que

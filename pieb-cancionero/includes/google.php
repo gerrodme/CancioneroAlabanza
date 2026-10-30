@@ -203,33 +203,76 @@ function pieb_can_rest_enlace(WP_REST_Request $request) {
     set_transient('pieb_can_enlace_' . hash('sha256', $token), array('email' => $email), PIEB_CAN_ENLACE_MINUTOS * MINUTE_IN_SECONDS);
 
     $url = add_query_arg('pcan_enlace', $token, $volver);
-    $sitio = wp_specialchars_decode(get_bloginfo('name'), ENT_QUOTES);
 
     // El correo va en el idioma del sitio, no en el que tenga elegido quien haga la petición: quien lo recibe puede no
     // tener aún cuenta ni idioma propio. Se compone dentro de pieb_can_en_idioma_del_sitio().
-    $mensaje = pieb_can_en_idioma_del_sitio(function () use ($url, $sitio) {
-        return array(
-            'asunto' => __('Tu enlace para entrar al Cancionero', 'pieb-cancionero'),
-            'cuerpo' => __('Hola:', 'pieb-cancionero') . "\n\n"
-                . sprintf(
-                    /* translators: %s: nombre del sitio web */
-                    __('Pulsa este enlace para entrar al Cancionero de %s:', 'pieb-cancionero'),
-                    $sitio
-                ) . "\n\n"
-                . $url . "\n\n"
-                . sprintf(
-                    /* translators: %d: minutos de validez del enlace */
-                    _n('Sirve una sola vez y caduca en %d minuto.', 'Sirve una sola vez y caduca en %d minutos.', PIEB_CAN_ENLACE_MINUTOS, 'pieb-cancionero'),
-                    PIEB_CAN_ENLACE_MINUTOS
-                ) . "\n"
-                . __('Si no lo has pedido tú, puedes ignorar este correo.', 'pieb-cancionero') . "\n",
-        );
+    $mensaje = pieb_can_en_idioma_del_sitio(function () use ($url) {
+        return pieb_can_enlace_componer($url);
     });
 
-    if (!wp_mail($email, $mensaje['asunto'], $mensaje['cuerpo'])) {
+    if (!pieb_can_correo_enviar($email, $mensaje)) {
         return new WP_Error('pieb_enlace', __('El servidor no ha podido enviar el correo. Avisa a un responsable del equipo.', 'pieb-cancionero'), array('status' => 500));
     }
     return $generico;
+}
+
+/**
+ * Correo con el enlace de acceso: asunto, HTML y texto plano, con el mismo aspecto que la bienvenida (cabecera con el
+ * logo y tarjeta, ver includes/correo.php). Se llama dentro de pieb_can_en_idioma_del_sitio().
+ */
+function pieb_can_enlace_componer($url) {
+    $nombre = pieb_can_nombre();
+    $sitio = trim(wp_specialchars_decode(get_bloginfo('name'), ENT_QUOTES));
+
+    /* translators: %s: nombre del cancionero */
+    $asunto = sprintf(__('Tu enlace para entrar en %s', 'pieb-cancionero'), $nombre);
+    $titulo = __('¡Ya casi estás dentro!', 'pieb-cancionero');
+    if ($sitio !== '') {
+        $parrafo = sprintf(
+            /* translators: 1: nombre del cancionero, 2: nombre del sitio web */
+            __('Aquí tienes tu enlace para entrar en %1$s, el cancionero de %2$s. Pulsa el botón y, cuando se abra, vuelve a pulsar «Entrar al cancionero». ¡Así de fácil!', 'pieb-cancionero'),
+            $nombre,
+            $sitio
+        );
+    } else {
+        $parrafo = sprintf(
+            /* translators: %s: nombre del cancionero */
+            __('Aquí tienes tu enlace para entrar en %s. Pulsa el botón y, cuando se abra, vuelve a pulsar «Entrar al cancionero». ¡Así de fácil!', 'pieb-cancionero'),
+            $nombre
+        );
+    }
+    $boton = __('Entrar al cancionero', 'pieb-cancionero');
+    $caduca = sprintf(
+        /* translators: %d: minutos de validez del enlace */
+        _n('El botón sirve una sola vez y caduca en %d minuto. Si se te pasa, pide otro desde el cancionero: es un momento.',
+            'El botón sirve una sola vez y caduca en %d minutos. Si se te pasa, pide otro desde el cancionero: es un momento.',
+            PIEB_CAN_ENLACE_MINUTOS, 'pieb-cancionero'),
+        PIEB_CAN_ENLACE_MINUTOS
+    );
+    $copiar = __('¿El botón no funciona? Copia esta dirección en el navegador:', 'pieb-cancionero');
+    $ignorar = __('Si no has pedido tú este enlace, no te preocupes: puedes ignorar este correo y el enlace caducará solo.', 'pieb-cancionero');
+    $despedida = __('¡Nos vemos dentro! 🎶', 'pieb-cancionero');
+    /* translators: %s: nombre del cancionero */
+    $pie = sprintf(__('Recibes este correo porque se ha pedido entrar en el cancionero «%s» con esta dirección.', 'pieb-cancionero'), $nombre);
+
+    $texto = $titulo . "\n\n"
+        . $parrafo . "\n\n"
+        . $boton . "\n" . $url . "\n\n"
+        . $caduca . "\n"
+        . $ignorar . "\n\n"
+        . $despedida . "\n"
+        . "\n--\n" . $pie . "\n";
+
+    $filas  = pieb_can_correo_titulo($titulo);
+    $filas .= pieb_can_correo_parrafo(esc_html($parrafo), 18);
+    $filas .= pieb_can_correo_boton($url, $boton, 0);
+    $filas .= pieb_can_correo_nota(esc_html($caduca));
+    $filas .= pieb_can_correo_nota(esc_html($copiar), 12);
+    $filas .= pieb_can_correo_direccion($url, 'left', 4);
+    $filas .= pieb_can_correo_nota(esc_html($ignorar), 12);
+    $filas .= pieb_can_correo_parrafo(esc_html($despedida), 0, 24);
+
+    return array('asunto' => $asunto, 'html' => pieb_can_correo_html($asunto, $filas, $pie), 'texto' => $texto);
 }
 
 function pieb_can_rest_correo_prueba() {

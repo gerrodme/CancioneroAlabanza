@@ -144,8 +144,7 @@ function pieb_can_bienvenida_enlace($email, $pagina) {
  * Con $enlace (ver pieb_can_bienvenida_enlace) el botón deja dentro del cancionero; sin él, abre la página para pedir
  * el enlace de acceso.
  *
- * HTML pensado para clientes de correo: tablas, estilos en línea, 600 px como máximo, sin <style> ni fuentes externas.
- * La imagen de cabecera va por dirección absoluta; al enviar se incrusta en el correo (ver pieb_can_bienvenida_enviar).
+ * El aspecto (cabecera con el logo, tarjeta, botón) es el común de includes/correo.php.
  */
 function pieb_can_bienvenida_componer($email, $pagina, $texto_admin = null, $enlace = '') {
     $ajustes = pieb_can_ajustes();
@@ -217,9 +216,9 @@ function pieb_can_bienvenida_componer($email, $pagina, $texto_admin = null, $enl
     }
     $texto .= "\n--\n" . $pie . "\n";
 
-    // ---- HTML
-    $f = "-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
-    $fila_paso = function ($numero, $color, $contenido) use ($f) {
+    // ---- HTML (piezas comunes en includes/correo.php)
+    $fila_paso = function ($numero, $color, $contenido) {
+        $f = PIEB_CAN_CORREO_LETRA;
         return '<tr>'
             . '<td width="32" valign="top" style="padding:0 0 18px 0;">'
             . '<table role="presentation" width="32" cellpadding="0" cellspacing="0" border="0"><tr>'
@@ -229,93 +228,36 @@ function pieb_can_bienvenida_componer($email, $pagina, $texto_admin = null, $enl
             . '</tr>';
     };
 
-    $html  = '<!DOCTYPE html>';
-    $html .= '<html lang="' . esc_attr(get_bloginfo('language')) . '"><head><meta charset="UTF-8">'
-        . '<meta name="viewport" content="width=device-width,initial-scale=1">'
-        . '<title>' . esc_html($asunto) . '</title></head>';
-    $html .= '<body style="margin:0;padding:0;background:#f3f0fa;">';
-    $html .= '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f3f0fa;"><tr><td align="center" style="padding:24px 12px;">';
-    $html .= '<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;">';
+    $filas  = pieb_can_correo_titulo($titulo);
+    $filas .= pieb_can_correo_parrafo(esc_html($parrafo));
+    $filas .= pieb_can_correo_subtitulo($como);
 
-    // Cabecera: el logo sobre fondo oscuro, con las esquinas superiores redondeadas.
-    $html .= '<tr><td style="border-radius:16px 16px 0 0;line-height:0;font-size:0;">'
-        . '<img src="' . esc_url(PIEB_CAN_URL . 'assets/correo-cabecera.jpg') . '" width="600" height="180" alt="' . esc_attr($nombre) . '" style="display:block;width:100%;max-width:600px;height:auto;border:0;border-radius:16px 16px 0 0;">'
-        . '</td></tr>';
-
-    // Tarjeta blanca.
-    $html .= '<tr><td style="background:#ffffff;border-radius:0 0 16px 16px;padding:32px;font-family:' . $f . ';color:#3b3552;">';
-    $html .= '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">';
-
-    $html .= '<tr><td style="padding:0 0 14px;"><h1 style="margin:0;font-family:' . $f . ';font-size:30px;line-height:1.2;font-weight:800;color:#0b0718;">' . esc_html($titulo) . '</h1></td></tr>';
-    $html .= '<tr><td style="padding:0 0 28px;font-family:' . $f . ';font-size:16px;line-height:1.6;color:#3b3552;">' . esc_html($parrafo) . '</td></tr>';
-    $html .= '<tr><td style="padding:0 0 16px;"><h2 style="margin:0;font-family:' . $f . ';font-size:20px;line-height:1.3;font-weight:700;color:#0b0718;">' . esc_html($como) . '</h2></td></tr>';
-
-    // Enlace explícito con su estilo: si no, Gmail convierte el correo en un enlace azul subrayado.
-    $correo_html = '<a href="mailto:' . esc_attr($email) . '" style="color:#0b0718;font-weight:700;text-decoration:none;">' . esc_html($email) . '</a>';
-    $html .= '<tr><td style="padding:0 0 6px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">';
-    $html .= $fila_paso(1, '#ff2e88', esc_html($paso1));
-    $html .= $fila_paso(2, '#8b5cf6', $con_enlace ? esc_html($paso2) : sprintf(
+    $correo_html = pieb_can_correo_email($email);
+    $filas .= '<tr><td style="padding:0 0 6px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">';
+    $filas .= $fila_paso(1, '#ff2e88', esc_html($paso1));
+    $filas .= $fila_paso(2, '#8b5cf6', $con_enlace ? esc_html($paso2) : sprintf(
         /* translators: %s: correo electrónico de la persona que recibe el mensaje */
         esc_html__('Escribe tu correo: %s', 'pieb-cancionero'),
         $correo_html
     ));
-    $html .= $fila_paso(3, '#22d3ee', esc_html($paso3));
-    $html .= '</table></td></tr>';
+    $filas .= $fila_paso(3, '#22d3ee', esc_html($paso3));
+    $filas .= '</table></td></tr>';
 
-    // Botón a prueba de clientes de correo (tabla con celda de color y enlace) y la dirección en pequeño, para copiarla
-    // o guardarla (sin el enlace de acceso, que es de un solo uso).
-    $html .= '<tr><td align="center" style="padding:10px 0 0;">'
-        . '<table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0"><tr>'
-        . '<td align="center" bgcolor="#8b5cf6" style="border-radius:12px;background:#8b5cf6;">'
-        . '<a href="' . esc_url($con_enlace ? $enlace : $pagina) . '" target="_blank" style="display:inline-block;padding:16px 40px;font-family:' . $f . ';font-size:18px;font-weight:700;line-height:1.2;color:#ffffff;text-decoration:none;border-radius:12px;">' . esc_html($boton) . '</a>'
-        . '</td></tr></table></td></tr>';
-    $html .= '<tr><td align="center" style="padding:14px 0 0;font-family:' . $f . ';font-size:12px;line-height:1.5;color:#8a85a0;word-break:break-all;">' . esc_html($pagina) . '</td></tr>';
-
+    // El botón y, debajo, la dirección en pequeño para copiarla o guardarla (sin el enlace de acceso, de un solo uso).
+    $filas .= pieb_can_correo_boton($con_enlace ? $enlace : $pagina, $boton);
+    $filas .= pieb_can_correo_direccion($pagina);
     if ($con_enlace) {
-        $html .= '<tr><td style="padding:24px 0 0;font-family:' . $f . ';font-size:14px;line-height:1.55;color:#6b6585;">'
-            . sprintf(esc_html($despues), PIEB_CAN_BIENVENIDA_DIAS, $correo_html) . '</td></tr>';
+        $filas .= pieb_can_correo_nota(sprintf(esc_html($despues), PIEB_CAN_BIENVENIDA_DIAS, $correo_html));
     }
     if ($con_google) {
-        $html .= '<tr><td style="padding:' . ($con_enlace ? '8px' : '24px') . ' 0 0;font-family:' . $f . ';font-size:14px;line-height:1.55;color:#6b6585;">' . esc_html($aviso_google) . '</td></tr>';
+        $filas .= pieb_can_correo_nota(esc_html($aviso_google), $con_enlace ? 8 : 24);
     }
-
     // Mensaje opcional del administrador (p. ej. dónde está el cancionero en su web).
     if ($texto_admin !== '') {
-        $html .= '<tr><td style="padding:28px 0 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
-            . '<td style="background:#faf5ff;border-left:4px solid #8b5cf6;padding:14px 18px;font-family:' . $f . ';font-size:15px;line-height:1.55;color:#3b3552;">' . nl2br(esc_html($texto_admin)) . '</td>'
-            . '</tr></table></td></tr>';
+        $filas .= pieb_can_correo_recuadro($texto_admin);
     }
 
-    $html .= '</table></td></tr>'; // fin de la tarjeta
-
-    // Pie, fuera de la tarjeta.
-    $html .= '<tr><td align="center" style="padding:20px 16px 0;font-family:' . $f . ';font-size:12px;line-height:1.5;color:#8a85a0;">' . esc_html($pie) . '</td></tr>';
-    $html .= '</table></td></tr></table></body></html>';
-
-    return array('asunto' => $asunto, 'html' => $html, 'texto' => $texto);
-}
-
-/**
- * Envía un correo ya compuesto. Solo para este envío, en PHPMailer: el texto plano va como AltBody y la cabecera va
- * incrustada en el propio correo (cid:), porque Gmail y otros no muestran la imagen si no pueden descargarla de la web
- * (sitios de pruebas, protegidos o en local). Si el servicio de correo no pasa por phpmailer_init, queda la dirección.
- */
-function pieb_can_bienvenida_enviar($email, $correo) {
-    $poner_texto = function ($phpmailer) use ($correo) {
-        $phpmailer->AltBody = $correo['texto'];
-        $archivo = PIEB_CAN_DIR . 'assets/correo-cabecera.jpg';
-        $url = esc_url(PIEB_CAN_URL . 'assets/correo-cabecera.jpg');
-        if (is_readable($archivo) && strpos($phpmailer->Body, $url) !== false
-            && $phpmailer->addEmbeddedImage($archivo, 'pcan-cabecera', 'cancionero.jpg', 'base64', 'image/jpeg')) {
-            $phpmailer->Body = str_replace($url, 'cid:pcan-cabecera', $phpmailer->Body);
-        }
-    };
-    add_action('phpmailer_init', $poner_texto);
-    try {
-        return (bool) wp_mail($email, $correo['asunto'], $correo['html'], array('Content-Type: text/html; charset=UTF-8'));
-    } finally {
-        remove_action('phpmailer_init', $poner_texto);
-    }
+    return array('asunto' => $asunto, 'html' => pieb_can_correo_html($asunto, $filas, $pie), 'texto' => $texto);
 }
 
 // ---------------------------------------------------------------- API
@@ -388,7 +330,7 @@ function pieb_can_rest_bienvenida(WP_REST_Request $request) {
             return $compuestos;
         });
         foreach ($destinos as $email) {
-            if (pieb_can_bienvenida_enviar($email, $correos[$email])) {
+            if (pieb_can_correo_enviar($email, $correos[$email])) {
                 $res['enviados'][] = $email;
                 if (!$prueba) {
                     pieb_can_registrar_bienvenida($email);

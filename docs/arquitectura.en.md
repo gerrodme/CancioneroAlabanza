@@ -14,6 +14,7 @@ A technical summary of the **Cancionero** plugin for anyone new to the code.
 | `includes/cultos.php` | Services and setlists (content type and API). |
 | `includes/ajustes.php` | Themes, settings, the team list, per-user preferences (theme, language, notation), backups (export/import). |
 | `includes/google.php` | Sign-in with Google (ID token) and with an email link. |
+| `includes/correo.php` | Shared look of the emails (header with the logo, card, button) and sending them as HTML with plain text and the embedded header. |
 | `includes/bienvenida.php` | Welcome email for the team: log of sent emails, composing the email (HTML and plain text) and `POST /bienvenida`. |
 | `includes/migracion.php` | Converts the PDFs of the previous plugin (`adoracion_culto_*`) into songs. Idempotent. |
 | `assets/cancionero.js` | The main interface (no dependencies or build step): list, song page, form, bulk upload, statistics, settings. |
@@ -95,11 +96,15 @@ To change a single value: `GET` the record, rebuild all the fields from it and m
 lasts `PIEB_CAN_BIENVENIDA_DIAS` (7) days instead of 15 minutes, and every welcome email cancels the button of the previous
 one to the same address. The email also explains how to get in later (open the page, type the email and press the link
 that arrives) and, if Google sign-in is set up, that they can use its button. For administrator accounts (which only get
-the test email) the button opens the page without a sign-in link. It is HTML for email clients (tables, inline styles, 600 px at most, no `<style>`; the header
+the test email) the button opens the page without a sign-in link.
+
+**Look of the emails** (`includes/correo.php`). The welcome email and the sign-in link share their look: a header with
+the logo and a white card with a title, text, button and notes (`pieb_can_correo_*`). It is HTML for email clients
+(tables, inline styles, 600 px at most, no `<style>`; the header
 image `assets/correo-cabecera.jpg` is embedded in the email, `cid:pcan-cabecera`, because Gmail does not show it if it
 cannot download it from the site) plus a plain-text version set as `AltBody`. Both are done in `phpmailer_init`, only
-while sending; if the mail service skips that hook, the image stays linked by its absolute URL. It is composed inside `pieb_can_en_idioma_del_sitio()`, like the
-sign-in link: it goes out in the site's language. WordPress administrator accounts do not get a welcome email (they sign
+while sending; if the mail service skips that hook, the image stays linked by its absolute URL (`pieb_can_correo_enviar`). Both are composed
+inside `pieb_can_en_idioma_del_sitio()`: they go out in the site's language. WordPress administrator accounts do not get a welcome email (they sign
 in with a password).
 
 **New settings** (in `pieb_can_ajustes`): `bienvenida_auto` (bool, `true` by default: send it automatically to whoever

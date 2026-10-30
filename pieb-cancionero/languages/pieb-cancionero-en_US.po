@@ -2851,45 +2851,19 @@ msgstr "Enter a valid email."
 msgid "Demasiados intentos. Prueba de nuevo dentro de un rato."
 msgstr "Too many attempts. Please try again in a little while."
 
-#: includes/google.php:212
-msgid "Tu enlace para entrar al Cancionero"
-msgstr "Your sign-in link for the Songbook"
-
-#: includes/google.php:213
-msgid "Hola:"
-msgstr "Hello,"
-
-#. %s: nombre del sitio web
-#: includes/google.php:216
-#, php-format
-msgid "Pulsa este enlace para entrar al Cancionero de %s:"
-msgstr "Use this link to sign in to the %s songbook:"
-
-#. %d: minutos de validez del enlace
-#: includes/google.php:222
-#, php-format
-msgid "Sirve una sola vez y caduca en %d minuto."
-msgid_plural "Sirve una sola vez y caduca en %d minutos."
-msgstr[0] "It works only once and expires in %d minute."
-msgstr[1] "It works only once and expires in %d minutes."
-
-#: includes/google.php:225
-msgid "Si no lo has pedido tú, puedes ignorar este correo."
-msgstr "If you did not request it, you can ignore this email."
-
-#: includes/google.php:230
+#: includes/google.php:214
 msgid "El servidor no ha podido enviar el correo. Avisa a un responsable del equipo."
 msgstr "The server could not send the email. Let a team lead know."
 
-#: includes/google.php:239
+#: includes/google.php:282
 msgid "Prueba de correo del Cancionero"
 msgstr "Songbook email test"
 
-#: includes/google.php:240
+#: includes/google.php:283
 msgid "Si lees esto, el servidor puede enviar los enlaces de acceso del Cancionero."
 msgstr "If you are reading this, the server can send the Songbook sign-in links."
 
-#: includes/google.php:243
+#: includes/google.php:286
 msgid "El servidor no ha podido enviar el correo: hace falta configurar un servicio de envío (SMTP)."
 msgstr "The server could not send the email: a mail sending service (SMTP) needs to be set up."
 
@@ -2929,122 +2903,122 @@ msgstr "Every song needs at least one score."
 msgid "Solo quien subió la canción o un administrador puede borrarla."
 msgstr "Only the person who uploaded the song or an administrator can delete it."
 
-#: pieb-cancionero.php:59 assets/cancionero.js:564 assets/cancionero.js:917 assets/cancionero.js:1003 assets/cancionero.js:1105 assets/cancionero.js:3065 assets/cultos.js:1073 assets/visor.js:347
+#: pieb-cancionero.php:60 assets/cancionero.js:564 assets/cancionero.js:917 assets/cancionero.js:1003 assets/cancionero.js:1105 assets/cancionero.js:3065 assets/cultos.js:1073 assets/visor.js:347
 msgid "Canciones"
 msgstr "Songs"
 
-#: pieb-cancionero.php:60 assets/cancionero.js:1461 assets/cancionero.js:1540
+#: pieb-cancionero.php:61 assets/cancionero.js:1461 assets/cancionero.js:1540
 msgid "Canción"
 msgstr "Song"
 
-#: pieb-cancionero.php:62
+#: pieb-cancionero.php:63
 msgid "Todas las canciones"
 msgstr "All songs"
 
-#: pieb-cancionero.php:63 assets/cancionero.js:1644 assets/cancionero.js:1985 assets/cancionero.js:1987
+#: pieb-cancionero.php:64 assets/cancionero.js:1644 assets/cancionero.js:1985 assets/cancionero.js:1987
 msgid "Editar canción"
 msgstr "Edit song"
 
-#: pieb-cancionero.php:64
+#: pieb-cancionero.php:65
 msgid "Buscar canciones"
 msgstr "Search songs"
 
-#: pieb-cancionero.php:65
+#: pieb-cancionero.php:66
 msgid "No hay canciones"
 msgstr "No songs"
 
-#: pieb-cancionero.php:94
+#: pieb-cancionero.php:95
 msgid "Etiquetas de canción"
 msgstr "Song tags"
 
-#: pieb-cancionero.php:95
+#: pieb-cancionero.php:96
 msgid "Etiqueta"
 msgstr "Tag"
 
-#: pieb-cancionero.php:96 assets/cancionero.js:491 assets/cancionero.js:1150 assets/cancionero.js:1903
+#: pieb-cancionero.php:97 assets/cancionero.js:491 assets/cancionero.js:1150 assets/cancionero.js:1903
 msgid "Etiquetas"
 msgstr "Tags"
 
-#: pieb-cancionero.php:135
+#: pieb-cancionero.php:136
 msgctxt "User role"
 msgid "Equipo de adoración"
 msgstr "Worship team"
 
-#: pieb-cancionero.php:136
+#: pieb-cancionero.php:137
 msgctxt "User role"
 msgid "Administrador del cancionero"
 msgstr "Songbook administrator"
 
-#: pieb-cancionero.php:262
+#: pieb-cancionero.php:263
 msgid "Sin acceso al cancionero"
 msgstr "No access to the songbook"
 
-#: pieb-cancionero.php:263
+#: pieb-cancionero.php:264
 msgid "Tu cuenta no está en la lista del equipo de adoración. Pide a un responsable que añada tu correo."
 msgstr "Your account is not on the worship team list. Ask a team lead to add your email."
 
-#: pieb-cancionero.php:264
+#: pieb-cancionero.php:265
 msgid "Salir y entrar con otra cuenta"
 msgstr "Sign out and sign in with another account"
 
-#: pieb-cancionero.php:306
+#: pieb-cancionero.php:307
 msgid "Cargando cancionero…"
 msgstr "Loading songbook…"
 
-#: pieb-cancionero.php:326
+#: pieb-cancionero.php:327
 msgid "Pulsa el botón para entrar."
 msgstr "Press the button to sign in."
 
-#: includes/bienvenida.php:180 pieb-cancionero.php:330
+#: includes/bienvenida.php:179 includes/google.php:244 pieb-cancionero.php:331
 msgid "Entrar al cancionero"
 msgstr "Enter the songbook"
 
-#: pieb-cancionero.php:354
+#: pieb-cancionero.php:355
 msgid "Ese enlace ya se ha usado o ha caducado. Pide uno nuevo."
 msgstr "That link has already been used or has expired. Request a new one."
 
-#: pieb-cancionero.php:356
+#: pieb-cancionero.php:357
 msgid "No se ha podido iniciar la sesión. Inténtalo de nuevo o avisa a un responsable."
 msgstr "Could not sign in. Try again or let a team lead know."
 
-#: pieb-cancionero.php:359
+#: pieb-cancionero.php:360
 msgid "Escribe tu correo y te enviaremos un enlace para entrar. Sin contraseñas."
 msgstr "Enter your email and we will send you a sign-in link. No passwords."
 
-#: pieb-cancionero.php:361
+#: pieb-cancionero.php:362
 msgid "Tu correo"
 msgstr "Your email"
 
-#: pieb-cancionero.php:362
+#: pieb-cancionero.php:363
 msgid "tu@correo.com"
 msgstr "you@email.com"
 
-#: pieb-cancionero.php:363
+#: pieb-cancionero.php:364
 msgid "Enviarme el enlace"
 msgstr "Send me the link"
 
-#: pieb-cancionero.php:369
+#: pieb-cancionero.php:370
 msgctxt "separador entre el acceso por correo y el acceso con Google"
 msgid "o"
 msgstr "or"
 
-#: pieb-cancionero.php:375
+#: pieb-cancionero.php:376
 msgid "Usuario o correo"
 msgstr "Username or email"
 
-#: pieb-cancionero.php:376
+#: pieb-cancionero.php:377
 msgid "Contraseña"
 msgstr "Password"
 
-#: pieb-cancionero.php:377
+#: pieb-cancionero.php:378
 msgid "Recordarme en este dispositivo"
 msgstr "Remember me on this device"
 
-#: pieb-cancionero.php:378
+#: pieb-cancionero.php:379
 msgid "Entrar"
 msgstr "Sign in"
 
-#: pieb-cancionero.php:380
+#: pieb-cancionero.php:381
 msgid "Entrar con usuario y contraseña"
 msgstr "Sign in with username and password"
 
@@ -3250,83 +3224,83 @@ msgid "Te llega a ti, con el texto de arriba aunque aún no esté guardado."
 msgstr "It is sent to you, with the text above even if it isn’t saved yet."
 
 #. %s: nombre del cancionero
-#: includes/bienvenida.php:160
+#: includes/bienvenida.php:159
 #, php-format
 msgid "Te damos la bienvenida a %s"
 msgstr "Welcome to %s"
 
-#: includes/bienvenida.php:161
+#: includes/bienvenida.php:160
 msgid "¡Ya tienes acceso!"
 msgstr "You now have access!"
 
 #. 1: nombre del cancionero, 2: nombre del sitio web
-#: includes/bienvenida.php:165
+#: includes/bienvenida.php:164
 #, php-format
 msgid "Ya puedes entrar en %1$s, el cancionero de %2$s. Ahí tienes todas las partituras, letras, audios de ensayo y setlists del equipo, a mano en el móvil, la tableta o el ordenador."
 msgstr "You can now sign in to %1$s, the songbook of %2$s. It has all the team’s sheet music, lyrics, rehearsal audio and setlists, at hand on your phone, tablet or computer."
 
 #. %s: nombre del cancionero
-#: includes/bienvenida.php:172
+#: includes/bienvenida.php:171
 #, php-format
 msgid "Ya puedes entrar en %s. Ahí tienes todas las partituras, letras, audios de ensayo y setlists del equipo, a mano en el móvil, la tableta o el ordenador."
 msgstr "You can now sign in to %s. It has all the team’s sheet music, lyrics, rehearsal audio and setlists, at hand on your phone, tablet or computer."
 
-#: includes/bienvenida.php:177
+#: includes/bienvenida.php:176
 msgid "Cómo entrar"
 msgstr "How to sign in"
 
-#: includes/bienvenida.php:190
+#: includes/bienvenida.php:189
 msgid "Abre el cancionero con el botón de abajo y guárdalo en favoritos o en la pantalla de inicio del móvil."
 msgstr "Open the songbook with the button below and save it to your bookmarks or to your phone’s home screen."
 
 #. %s: correo electrónico de la persona que recibe el mensaje
-#: includes/bienvenida.php:192 includes/bienvenida.php:259
+#: includes/bienvenida.php:191 includes/bienvenida.php:240
 #, php-format
 msgid "Escribe tu correo: %s"
 msgstr "Enter your email: %s"
 
-#: includes/bienvenida.php:193
+#: includes/bienvenida.php:192
 msgid "Te llegará un enlace para entrar: púlsalo y listo, sin contraseñas."
 msgstr "You’ll get a sign-in link: tap it and you’re in, no passwords."
 
 #. «Iniciar sesión con Google» es el texto del botón de Google de la pantalla de acceso; en cada idioma, tal como lo muestra Google (en inglés, «Sign in with Google»)
-#: includes/bienvenida.php:197
+#: includes/bienvenida.php:196
 msgid "Si tu correo es de Google, también puedes entrar con el botón «Iniciar sesión con Google»."
 msgstr "If your email is a Google account, you can also use the “Sign in with Google” button."
 
-#: includes/bienvenida.php:189
+#: includes/bienvenida.php:188
 msgid "Abrir el cancionero"
 msgstr "Open the songbook"
 
 #. %s: nombre del cancionero
-#: includes/bienvenida.php:199
+#: includes/bienvenida.php:198
 #, php-format
 msgid "Recibes este correo porque te han añadido al equipo del cancionero «%s». Si no lo esperabas, puedes ignorarlo."
 msgstr "You’re receiving this email because you were added to the team of the songbook “%s”. If you weren’t expecting it, you can ignore it."
 
-#: includes/bienvenida.php:343
+#: includes/bienvenida.php:285
 msgid "Tu cuenta no tiene un correo válido."
 msgstr "Your account doesn’t have a valid email address."
 
 #. %d: número máximo de correos por petición
-#: includes/bienvenida.php:355
+#: includes/bienvenida.php:297
 #, php-format
 msgid "Demasiados correos de una vez (máximo %d)."
 msgstr "Too many addresses at once (maximum %d)."
 
-#: includes/bienvenida.php:362
+#: includes/bienvenida.php:304
 msgid "Cuenta de administración: entra con contraseña"
 msgstr "Administrator account: signs in with a password"
 
-#: includes/bienvenida.php:364
+#: includes/bienvenida.php:306
 msgid "No está en la lista del equipo"
 msgstr "Not on the team list"
 
-#: includes/bienvenida.php:366
+#: includes/bienvenida.php:308
 msgid "Demasiados envíos seguidos; prueba más tarde"
 msgstr "Too many sends in a row; try again later"
 
-#: includes/bienvenida.php:401
+#: includes/bienvenida.php:343
 msgid "El servidor no ha podido enviar el correo"
 msgstr "The server could not send the email"
 
@@ -3334,25 +3308,92 @@ msgstr "The server could not send the email"
 msgid "Como tu cuenta es de administración, en tu correo el botón abre el cancionero sin iniciar sesión; al resto del equipo le deja dentro."
 msgstr "As yours is an administrator account, in your email the button opens the songbook without signing in; for the rest of the team it signs them in."
 
-#: includes/bienvenida.php:181
+#: includes/bienvenida.php:180
 msgid "Pulsa el botón «Entrar al cancionero» de abajo."
 msgstr "Press the “Enter the songbook” button below."
 
-#: includes/bienvenida.php:182
+#: includes/bienvenida.php:181
 msgid "Se abre el cancionero con tu acceso preparado: vuelve a pulsar «Entrar al cancionero» y ya estás dentro."
 msgstr "The songbook opens with your access ready: press “Enter the songbook” again and you’re in."
 
-#: includes/bienvenida.php:183
+#: includes/bienvenida.php:182
 msgid "Guarda la página en favoritos o en la pantalla de inicio del móvil para tenerla siempre a mano."
 msgstr "Save the page to your bookmarks or to your phone’s home screen to always have it at hand."
 
 #. 1: días que vale el botón, 2: correo electrónico de la persona que recibe el mensaje
-#: includes/bienvenida.php:185
+#: includes/bienvenida.php:184
 #, php-format
 msgid "El botón sirve una sola vez durante %1$d día. Para entrar más adelante, abre el cancionero, escribe tu correo (%2$s) y te llegará un enlace, sin contraseñas."
 msgid_plural "El botón sirve una sola vez durante %1$d días. Para entrar más adelante, abre el cancionero, escribe tu correo (%2$s) y te llegará un enlace, sin contraseñas."
 msgstr[0] "The button works once, for %1$d day. To sign in later, open the songbook, enter your email (%2$s) and you’ll get a link, no passwords."
 msgstr[1] "The button works once, for %1$d days. To sign in later, open the songbook, enter your email (%2$s) and you’ll get a link, no passwords."
+
+#. %s: nombre del cancionero
+#: includes/google.php:228
+#, php-format
+msgid "Tu enlace para entrar en %s"
+msgstr "Your link to sign in to %s"
+
+#: includes/google.php:229
+msgid "¡Ya casi estás dentro!"
+msgstr "You’re almost in!"
+
+#. 1: nombre del cancionero, 2: nombre del sitio web
+#: includes/google.php:233
+#, php-format
+msgid "Aquí tienes tu enlace para entrar en %1$s, el cancionero de %2$s. Pulsa el botón y, cuando se abra, vuelve a pulsar «Entrar al cancionero». ¡Así de fácil!"
+msgstr "Here’s your link to sign in to %1$s, the songbook of %2$s. Press the button and, when it opens, press “Enter the songbook” again. That easy!"
+
+#. %s: nombre del cancionero
+#: includes/google.php:240
+#, php-format
+msgid "Aquí tienes tu enlace para entrar en %s. Pulsa el botón y, cuando se abra, vuelve a pulsar «Entrar al cancionero». ¡Así de fácil!"
+msgstr "Here’s your link to sign in to %s. Press the button and, when it opens, press “Enter the songbook” again. That easy!"
+
+#. %d: minutos de validez del enlace
+#: includes/google.php:247
+#, php-format
+msgid "El botón sirve una sola vez y caduca en %d minuto. Si se te pasa, pide otro desde el cancionero: es un momento."
+msgid_plural "El botón sirve una sola vez y caduca en %d minutos. Si se te pasa, pide otro desde el cancionero: es un momento."
+msgstr[0] "The button works once and expires in %d minute. If you miss it, ask for another one from the songbook: it only takes a moment."
+msgstr[1] "The button works once and expires in %d minutes. If you miss it, ask for another one from the songbook: it only takes a moment."
+
+#: includes/google.php:252
+msgid "¿El botón no funciona? Copia esta dirección en el navegador:"
+msgstr "Button not working? Copy this address into your browser:"
+
+#: includes/google.php:253
+msgid "Si no has pedido tú este enlace, no te preocupes: puedes ignorar este correo y el enlace caducará solo."
+msgstr "If you didn’t ask for this link, don’t worry: you can ignore this email and the link will expire on its own."
+
+#: includes/google.php:254
+msgid "¡Nos vemos dentro! 🎶"
+msgstr "See you inside! 🎶"
+
+#. %s: nombre del cancionero
+#: includes/google.php:256
+#, php-format
+msgid "Recibes este correo porque se ha pedido entrar en el cancionero «%s» con esta dirección."
+msgstr "You’re receiving this email because someone asked to sign in to the songbook “%s” with this address."
+
+#~ msgid "Tu enlace para entrar al Cancionero"
+#~ msgstr "Your sign-in link for the Songbook"
+
+#~ msgid "Hola:"
+#~ msgstr "Hello,"
+
+#, php-format
+#~ msgid "Pulsa este enlace para entrar al Cancionero de %s:"
+#~ msgstr "Use this link to sign in to the %s songbook:"
+
+#, php-format
+#~ msgid "Sirve una sola vez y caduca en %d minuto."
+#~ msgid_plural "Sirve una sola vez y caduca en %d minutos."
+#~ msgstr[0] "It works only once and expires in %d minute."
+#~ msgstr[1] "It works only once and expires in %d minutes."
+
+#~ msgid "Si no lo has pedido tú, puedes ignorar este correo."
+#~ msgstr "If you did not request it, you can ignore this email."
 
 #~ msgid "Abriendo la copia…"
 #~ msgstr "Opening the backup…"
