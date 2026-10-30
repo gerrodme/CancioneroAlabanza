@@ -1844,6 +1844,67 @@ window.PIEB_I18N = {
   ],
   "Restaurando %1$d de %2$d…": [
    "Restoring %1$d of %2$d…"
+  ],
+  "Bienvenida enviada a %d persona": [
+   "Welcome email sent to %d person",
+   "Welcome email sent to %d people"
+  ],
+  "No se envió a %1$d persona: %2$s": [
+   "Not sent to %1$d person: %2$s",
+   "Not sent to %1$d people: %2$s"
+  ],
+  "Se interrumpió el envío (%s). Puedes enviarla a quien falte desde la lista del equipo.": [
+   "Sending was interrupted (%s). You can send it to anyone still missing from the team list."
+  ],
+  "Enviando la bienvenida… %1$d de %2$d": [
+   "Sending the welcome email… %1$d of %2$d"
+  ],
+  "Bienvenida enviada el %s": [
+   "Welcome email sent on %s"
+  ],
+  "Enviar la bienvenida a %s": [
+   "Send the welcome email to %s"
+  ],
+  "Seleccionar todos": [
+   "Select all"
+  ],
+  "Seleccionar quien no ha entrado": [
+   "Select those who haven’t signed in"
+  ],
+  "La bienvenida se envía a la lista guardada. Los correos nuevos la reciben al guardar, si la bienvenida automática está activada.": [
+   "The welcome email goes to the saved list. New addresses get it when you save, if the automatic welcome is on."
+  ],
+  "Enviar la bienvenida a %d persona": [
+   "Send the welcome email to %d person",
+   "Send the welcome email to %d people"
+  ],
+  "¿Enviar la bienvenida a %d persona?": [
+   "Send the welcome email to %d person?",
+   "Send the welcome email to %d people?"
+  ],
+  "Correo de bienvenida": [
+   "Welcome email"
+  ],
+  "Enviar un correo de bienvenida a quien se añada a la lista": [
+   "Send a welcome email to anyone added to the list"
+  ],
+  "Le llega el logo del cancionero, un botón para abrirlo y cómo entrar.": [
+   "They get the songbook logo, a button to open it and how to sign in."
+  ],
+  "Texto añadido a la bienvenida (opcional)": [
+   "Extra text for the welcome email (optional)"
+  ],
+  "Aparece en el correo debajo de las instrucciones. Por ejemplo, dónde encontrar el cancionero en vuestra web.": [
+   "It appears in the email below the instructions. For example, where to find the songbook on your website."
+  ],
+  "Bienvenida de prueba enviada a %s": [
+   "Test welcome email sent to %s"
+  ],
+  "Enviarme una bienvenida de prueba": [
+   "Send me a test welcome email"
+  ],
+  "Te llega a ti, con el texto de arriba aunque aún no esté guardado.": [
+   "It is sent to you, with the text above even if it isn’t saved yet."
   ]
  }
 };

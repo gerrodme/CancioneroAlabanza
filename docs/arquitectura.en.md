@@ -14,6 +14,7 @@ A technical summary of the **Cancionero** plugin for anyone new to the code.
 | `includes/cultos.php` | Services and setlists (content type and API). |
 | `includes/ajustes.php` | Themes, settings, the team list, per-user preferences (theme, language, notation), backups (export/import). |
 | `includes/google.php` | Sign-in with Google (ID token) and with an email link. |
+| `includes/bienvenida.php` | Welcome email for the team: log of sent emails, composing the email (HTML and plain text) and `POST /bienvenida`. |
 | `includes/migracion.php` | Converts the PDFs of the previous plugin (`adoracion_culto_*`) into songs. Idempotent. |
 | `assets/cancionero.js` | The main interface (no dependencies or build step): list, song page, form, bulk upload, statistics, settings. |
 | `assets/cultos.js` | Service screens and the setlist editor. |
@@ -55,7 +56,8 @@ The interface is a single-page application inside the WordPress page; it navigat
   one (the first of the song). When the service is served, the chosen one is placed first in `datos.partituras`, which is
   the one used by play mode and the PDF).
 - WordPress options: `pieb_can_ajustes` (settings: `nombre`, `tema_defecto`, `google_client_id`, `emails`,
-  `administradores`, `dominio`), `pieb_can_version`, `pieb_can_migrado`.
+  `administradores`, `dominio`, `bienvenida_auto`, `bienvenida_texto`, `pagina`), `pieb_can_bienvenidas` (log of the
+  welcome emails sent: email → timestamp; not autoloaded), `pieb_can_version`, `pieb_can_migrado`.
 
 ## REST API (`/wp-json/pieb/v1/`)
 
@@ -68,7 +70,9 @@ interface receives it in `PIEB_CANCIONERO.nonce`; the API base is in `PIEB_CANCI
 | `/canciones/{id}` | GET, POST, DELETE | GET returns the full record (scores with `archivo`/`url`, audio, `youtube` with `videoId`, notes…). POST **updates by replacing everything** (see below). DELETE sends it to the trash. |
 | `/subidas` | POST | **Chunked** file upload (a 10 MB audio fits even if PHP limits requests to 2 MB). |
 | `/cultos`, `/cultos/{id}` | GET, POST, DELETE | Services and setlists. |
-| `/etiquetas`, `/preferencias`, `/ajustes`, `/huerfanos` | various | Tags with color, user preferences (`tema`, `idioma` and `notacion`, all optional; empty = automatic), settings, unused files. |
+| `/etiquetas`, `/preferencias`, `/huerfanos` | various | Tags with color, user preferences (`tema`, `idioma` and `notacion`, all optional; empty = automatic), unused files. |
+| `/ajustes` | GET, POST | Songbook settings and the team list (requires `pieb_cancionero_gestionar`). The welcome fields are in [Welcome to the team](#welcome-to-the-team). |
+| `/bienvenida` | POST | Sends the welcome email to a batch of addresses (requires `pieb_cancionero_gestionar`). See [Welcome to the team](#welcome-to-the-team). |
 | `/google`, `/enlace`, `/correo-prueba` | POST | Google sign-in, email link and a test email. |
 
 ### Updating a song (`POST /canciones/{id}`)
@@ -82,6 +86,56 @@ A `multipart/form-data` body with all of these fields (missing ones are **emptie
 
 To change a single value: `GET` the record, rebuild all the fields from it and modify only the one you want. Recipe in
 [carga-masiva.en.md](carga-masiva.en.md).
+
+## Welcome to the team
+
+`includes/bienvenida.php`. Someone added to the team's email list can be sent an email that explains how to get in: open
+the songbook page, type their email and press the link they receive (and, if Google sign-in is set up, that they can also
+use the Google button). It is HTML for email clients (tables, inline styles, 600 px at most, no `<style>`; the header
+image `assets/correo-cabecera.jpg` goes by absolute URL, with no attachments) plus a plain-text version that is set as
+PHPMailer's `AltBody` while sending (`phpmailer_init`). It is composed inside `pieb_can_en_idioma_del_sitio()`, like the
+sign-in link: it goes out in the site's language. WordPress administrator accounts do not get a welcome email (they sign
+in with a password).
+
+**New settings** (in `pieb_can_ajustes`): `bienvenida_auto` (bool, `true` by default: send it automatically to whoever
+enters the list), `bienvenida_texto` (optional text from the administrator added to the email, max. 1000 characters) and
+`pagina` (address of the songbook page; the interface sends it as `pagina` = `location.origin + location.pathname +
+location.search` with every save and every send, and it is only stored if it is a valid address of this site; the
+fragment and the query are removed, except `page_id` or `p`, which with plain permalinks are the page itself). The
+emails use the request's `pagina` if valid, otherwise the stored one and, failing that, the home page (`home_url('/')`).
+Restoring a backup includes `bienvenidaAuto` and `bienvenidaTexto` (only if the backup carries them) and **never sends
+welcome emails**.
+
+**`GET /ajustes`** also returns `bienvenidaAuto` (bool), `bienvenidaTexto` (string), `pagina` (string, the stored one;
+empty if not known yet) and, in each element of `miembros`: `bienvenida` (Unix timestamp of the last send to that
+address, 0 if never) and `puedeBienvenida` (bool: not an administrator account and has access).
+
+**`POST /ajustes`** also accepts `bienvenidaAuto`, `bienvenidaTexto` and `pagina` (each one only if present) and its
+response is that of `GET` plus `bienvenidaPendiente`: the array of addresses the interface must now send the automatic
+welcome to (see below).
+
+**`POST /bienvenida`** (requires `pieb_cancionero_gestionar`). Parameters: `emails` (array; **at most 10** per request,
+otherwise error 400), `pagina` (optional) and `prueba` (bool). With `prueba` it sends the welcome email only to the current
+user (even an administrator account, so they can see how it looks) and does not log it; it may carry `bienvenidaTexto` to
+try the text being written before saving it. Without `prueba`, for every
+address: administrator account → `omitidos`; not in the team list → `omitidos`; more than 3 welcome emails per hour to
+that address (`pieb_can_limite`) → `omitidos`; `wp_mail` fails → `fallidos`; if it goes well → `enviados` and it is
+logged. Response: `{ enviados: [email], fallidos: [{email, motivo}], omitidos: [{email, motivo}], momento }`, where
+`momento` is the server time (Unix) so the interface can update "sent on…" without asking for the settings again.
+
+**Log:** the option `pieb_can_bienvenidas` (email → timestamp of the last send, not autoloaded) is updated after every
+successful send (not for tests) and prevents repeating the automatic one.
+
+**Automatic welcome.** The server *works out* who should get it when the settings are saved, and the interface *sends* it,
+in batches:
+1. `POST /ajustes` compares the new email list with the previous one. If `bienvenida_auto` is on, it returns in
+   `bienvenidaPendiente` the addresses that enter the list with that save, have never received a welcome email (they are not
+   in the log), have never signed in (no account, or an account with neither `pieb_can_ultimo_acceso` nor
+   `pieb_can_google_sub`) and are not administrator accounts.
+2. The interface sends those addresses by calling `POST /bienvenida` 5 at a time, with a progress bar. This way saving
+   does not wait for the sends (each `wp_mail` can take a second with SMTP) and there are no long timeouts if 40 addresses
+   are pasted at once.
+3. A manual resend or the test uses the same endpoint.
 
 ## Trash
 
@@ -133,8 +187,8 @@ JavaScript file. How to translate: [translate.en.md](translate.en.md).
   locale with a fallback by language: if there is no file for `en_GB`, `en_US` is used; if there is none of that
   language, base Spanish. It only affects the `pieb-cancionero` domain, through the filters `plugin_locale` (for the
   `.mo`, also on REST requests, so API errors come out in the user's language) and `load_script_translation_file`
-  (changes the locale in the name of the JSON that WordPress looks for). The sign-in link email is sent in the site's
-  language (`pieb_can_en_idioma_del_sitio`). Both folders are read (the system one, where Loco Translate "System" and
+  (changes the locale in the name of the JSON that WordPress looks for). The emails (the sign-in link and the welcome) are sent in
+  the site's language (`pieb_can_en_idioma_del_sitio`). Both folders are read (the system one, where Loco Translate "System" and
   translate.wordpress.org save, and the plugin's own) and the system one takes precedence, both for the `.mo`
   (`load_plugin_textdomain` already looks there first) and for the `.json` files (the filter looks there first).
 - **JavaScript:** `wp-i18n` with `wp_set_script_translations()` for `cancionero`, `cultos` and `visor` (and `login`).

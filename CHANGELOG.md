@@ -2,6 +2,12 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.11.0 · 2026-10-30
+
+Logo del Cancionero y correo de bienvenida: quien se añade a la lista del equipo recibe un correo con el logo, el botón
+para abrir el cancionero y cómo entrar (se puede desactivar y añadirle un texto propio). En Ajustes y equipo → Equipo se
+elige a quién reenviarla, con barra de progreso, y hay una bienvenida de prueba
+
 ## 1.10.3 · 2026-10-29
 
 Borrado múltiple de canciones: botones fijos «Seleccionar las N de la lista» y «Quitar la selección»; el botón «+» se

@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/imagenes/logo/logo-oscuro.svg">
+    <img alt="Cancionero" src="docs/imagenes/logo/logo-claro.svg" width="520">
+  </picture>
+</p>
+
 # Cancionero
 
 *Versión en español: [README.md](README.md)*
@@ -26,6 +33,8 @@ can be translated into other languages. In English, an installation without a na
   the next service and a PDF of the setlist.
 - **Viewer / play mode:** a screen designed for tablets, with a large score and quick switching between songs.
 - **Access:** the "Worship team" role, sign-in with Google (Google Identity Services) or with an email link.
+- **Welcome:** anyone added to the team list receives an email with the logo, a button to open the songbook and
+  how to sign in. From **Settings and team → Team** it can be sent again to the people you choose.
 - **Songbook administrators:** besides WordPress administrators, others can be named under **Settings and team**. They can
   change the settings, manage the team and delete songs (to the WordPress trash).
 - **Your own name:** the name of the songbook ("Our church songbook", etc.) is changed under **Settings and team →
@@ -155,6 +164,8 @@ Copyright © Gerson Rodrigo Menéndez.
 
 - **Code** (plugin, tools, test bench): [GPL-2.0-or-later](LICENSE), the usual WordPress license.
 - **Documentation and tutorial** (`README`, `docs/`, `tutorial/`): [CC BY-SA 4.0](LICENSE-DOCS.txt).
+- **Logo** (`docs/imagenes/logo/` and the header of the welcome email): CC BY-SA 4.0. The lettering uses the
+  [Unbounded](https://fonts.google.com/specimen/Unbounded) typeface (SIL Open Font License), converted to outlines.
 
 Creative Commons licenses are not meant for software; that is why the code uses the GPL (compatible with WordPress) and
 only the texts and the tutorial use Creative Commons.

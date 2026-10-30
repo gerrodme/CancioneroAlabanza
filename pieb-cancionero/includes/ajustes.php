@@ -36,7 +36,13 @@ function pieb_can_ajustes() {
         'emails'           => array(),
         'administradores'  => array(),
         'dominio'          => '',
+        // Correo de bienvenida a quien se añade a la lista (ver includes/bienvenida.php): envío automático, texto extra
+        // del administrador y dirección de la página del cancionero (la que envía la interfaz; '' = aún no se conoce).
+        'bienvenida_auto'  => true,
+        'bienvenida_texto' => '',
+        'pagina'           => '',
     ));
+    $ajustes['bienvenida_auto'] = (bool) $ajustes['bienvenida_auto'];
     // Sin nombre propio se muestra el nombre por defecto en el idioma de quien mira («Cancionero» / «Songbook»). Las
     // instalaciones que guardaron «Cancionero» antes de la 1.8.1 se tratan igual que las que no guardaron nada.
     if (trim((string) $ajustes['nombre']) === '' || $ajustes['nombre'] === 'Cancionero') {
@@ -422,19 +428,27 @@ function pieb_can_miembros($ajustes) {
         $miembros[$email] = array(
             'email'     => $email,
             'nombre'    => $u->display_name,
-            'haEntrado' => (bool) (get_user_meta($u->ID, 'pieb_can_google_sub', true) || get_user_meta($u->ID, 'pieb_can_ultimo_acceso', true)),
+            'haEntrado' => pieb_can_usuario_ha_entrado($u),
             'enLista'   => isset($miembros[$email]),
             'esAdmin'   => user_can($u, 'manage_options'),
             'esGestor'  => in_array($email, $ajustes['administradores'], true) || in_array(PIEB_CAN_ROLE_ADMIN, (array) $u->roles, true),
         );
     }
+    // Bienvenida: cuándo se le envió por última vez (0 = nunca) y si se le puede enviar (las cuentas de administración
+    // no entran con enlace, así que no tiene sentido explicárselo).
+    $bienvenidas = pieb_can_bienvenidas();
+    foreach ($miembros as $email => $miembro) {
+        $miembros[$email]['bienvenida'] = isset($bienvenidas[$email]) ? (int) $bienvenidas[$email] : 0;
+        $miembros[$email]['puedeBienvenida'] = !$miembro['esAdmin'] && pieb_can_email_con_acceso($email);
+    }
     ksort($miembros);
     return array_values($miembros);
 }
 
-function pieb_can_rest_ajustes_ver() {
+/** Lo que devuelve GET /ajustes (y, ampliado, el guardado). */
+function pieb_can_ajustes_datos() {
     $ajustes = pieb_can_ajustes();
-    return rest_ensure_response(array(
+    return array(
         'nombre'         => $ajustes['nombre'],
         'subtitulo'      => $ajustes['subtitulo'],
         'papeleraDias'   => (int) $ajustes['papelera_dias'],
@@ -445,8 +459,15 @@ function pieb_can_rest_ajustes_ver() {
         'dominio'        => $ajustes['dominio'],
         'emails'         => $ajustes['emails'],
         'miembros'       => pieb_can_miembros($ajustes),
+        'bienvenidaAuto'  => (bool) $ajustes['bienvenida_auto'],
+        'bienvenidaTexto' => (string) $ajustes['bienvenida_texto'],
+        'pagina'         => (string) $ajustes['pagina'],
         'origen'         => untrailingslashit(home_url()),
-    ));
+    );
+}
+
+function pieb_can_rest_ajustes_ver() {
+    return rest_ensure_response(pieb_can_ajustes_datos());
 }
 
 function pieb_can_rest_ajustes_guardar(WP_REST_Request $request) {
@@ -480,6 +501,19 @@ function pieb_can_rest_ajustes_guardar(WP_REST_Request $request) {
     if ($request->has_param('emails')) {
         $ajustes['emails'] = pieb_can_normalizar_emails(implode(' ', (array) $request->get_param('emails')));
     }
+    if ($request->has_param('bienvenidaAuto')) {
+        $ajustes['bienvenida_auto'] = rest_sanitize_boolean($request->get_param('bienvenidaAuto'));
+    }
+    if ($request->has_param('bienvenidaTexto')) {
+        $ajustes['bienvenida_texto'] = mb_substr(trim(sanitize_textarea_field((string) $request->get_param('bienvenidaTexto'))), 0, 1000);
+    }
+    if ($request->has_param('pagina')) {
+        // Solo se guarda si es una dirección válida de esta web; si no, se conserva la que hubiera.
+        $pagina = pieb_can_pagina_valida($request->get_param('pagina'));
+        if ($pagina !== '') {
+            $ajustes['pagina'] = $pagina;
+        }
+    }
 
     if ($request->has_param('administradores')) {
         $ajustes['administradores'] = pieb_can_normalizar_emails(implode(' ', (array) $request->get_param('administradores')));
@@ -508,7 +542,12 @@ function pieb_can_rest_ajustes_guardar(WP_REST_Request $request) {
         }
     }
 
-    return pieb_can_rest_ajustes_ver();
+    // La bienvenida automática NO se envía aquí: el servidor solo calcula a quién le toca (los correos que entran en la
+    // lista con este guardado y aún no la han recibido ni han entrado nunca) y la interfaz los envía después llamando a
+    // POST /bienvenida por tandas y con barra de progreso, para no alargar este guardado si se pegan decenas de correos.
+    $datos = pieb_can_ajustes_datos();
+    $datos['bienvenidaPendiente'] = pieb_can_bienvenida_pendientes($anterior, $ajustes);
+    return rest_ensure_response($datos);
 }
 
 /**
@@ -737,6 +776,8 @@ function pieb_can_rest_copia_exportar() {
             'emails'         => $ajustes['emails'],
             'dominio'        => $ajustes['dominio'],
             'googleClientId' => $ajustes['google_client_id'],
+            'bienvenidaAuto'  => (bool) $ajustes['bienvenida_auto'],
+            'bienvenidaTexto' => (string) $ajustes['bienvenida_texto'],
         ),
     ));
 }
@@ -955,7 +996,10 @@ function pieb_can_rest_copia_culto(WP_REST_Request $request) {
     return rest_ensure_response(array('estado' => $estado, 'id' => (int) $id, 'faltan' => $faltan));
 }
 
-/** Ajustes de la copia. La lista del equipo se une a la actual: restaurar nunca deja a nadie sin acceso. */
+/**
+ * Ajustes de la copia. La lista del equipo se une a la actual: restaurar nunca deja a nadie sin acceso.
+ * Restaurar NUNCA envía correos de bienvenida (esta ruta no calcula «bienvenidaPendiente»).
+ */
 function pieb_can_rest_copia_ajustes(WP_REST_Request $request) {
     $p = (array) $request->get_json_params();
     $a = isset($p['ajustes']) ? (array) $p['ajustes'] : array();
@@ -971,6 +1015,13 @@ function pieb_can_rest_copia_ajustes(WP_REST_Request $request) {
     $client = isset($a['googleClientId']) ? trim((string) $a['googleClientId']) : '';
     if ($client !== '' && preg_match('/^[0-9a-z-]+\.apps\.googleusercontent\.com$/i', $client)) {
         $ajustes['google_client_id'] = $client;
+    }
+    // Los ajustes de la bienvenida se restauran solo si la copia los trae (las copias antiguas no los incluyen).
+    if (isset($a['bienvenidaAuto'])) {
+        $ajustes['bienvenida_auto'] = rest_sanitize_boolean($a['bienvenidaAuto']);
+    }
+    if (isset($a['bienvenidaTexto'])) {
+        $ajustes['bienvenida_texto'] = mb_substr(trim(sanitize_textarea_field((string) $a['bienvenidaTexto'])), 0, 1000);
     }
     $emails = isset($a['emails']) ? (array) $a['emails'] : array();
     $ajustes['emails'] = pieb_can_normalizar_emails(implode(' ', array_merge($ajustes['emails'], $emails)));

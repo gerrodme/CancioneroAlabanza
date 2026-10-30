@@ -243,12 +243,13 @@
     });
   }
 
-  function aviso(texto, tipo) {
+  /** `ms` alarga el tiempo en pantalla (por defecto 2,6 s) para los avisos largos, como una lista de correos con su motivo. */
+  function aviso(texto, tipo, ms) {
     var t = h('div', { class: 'pcan-toast' + (tipo === 'error' ? ' is-error' : ''), role: 'status', text: texto });
     temaEn(t);
     document.body.appendChild(t);
-    setTimeout(function () { t.classList.add('is-out'); }, 2600);
-    setTimeout(function () { t.remove(); }, 3100);
+    setTimeout(function () { t.classList.add('is-out'); }, ms || 2600);
+    setTimeout(function () { t.remove(); }, (ms || 2600) + 500);
   }
 
   function copiar(texto, mensaje) {
@@ -1088,6 +1089,11 @@
     var p = String(iso || '').slice(0, 10).split('-');
     if (p.length < 3) { return ''; }
     return sinPunto(new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString(LOCALE, { day: 'numeric', month: 'short', year: 'numeric' }));
+  }
+
+  /** Lo mismo desde una marca de tiempo Unix (en segundos). */
+  function fechaMarca(segundos) {
+    return sinPunto(new Date(segundos * 1000).toLocaleDateString(LOCALE, { day: 'numeric', month: 'short', year: 'numeric' }));
   }
 
   /** Resumen de la biblioteca: cada cifra es también un filtro. */
@@ -2236,6 +2242,60 @@
     }).catch(function (e) { aviso(e.message, 'error'); cerrarPanel(); });
   }
 
+  // ---------------------------------------------------------------- bienvenida al equipo
+
+  /** Dirección de esta página: el correo de bienvenida lleva el botón que la abre. Va con la consulta porque con los
+   *  enlaces permanentes simples la página es «?page_id=12»; el servidor solo conserva eso. */
+  function paginaActual() { return location.origin + location.pathname + location.search; }
+
+  /**
+   * Envía la bienvenida por tandas de 5 correos (así cada petición es corta aunque el servidor de correo tarde).
+   * alProgreso(hechos, total) se llama antes de cada tanda y al terminar. Nunca rechaza: si una tanda falla
+   * (red o servidor) se detiene y deja el motivo en `error` y los correos que no llegaron a intentarse en `sinEnviar`.
+   */
+  function enviarBienvenida(emails, alProgreso) {
+    var res = { enviados: [], fallidos: [], omitidos: [], momento: 0, error: null, sinEnviar: [] };
+    var total = emails.length, hechos = 0;
+    function tanda() {
+      alProgreso(hechos, total);
+      if (hechos >= total) { return res; }
+      var lote = emails.slice(hechos, hechos + 5);
+      return api('bienvenida', { json: { emails: lote, pagina: paginaActual() } }).then(function (r) {
+        res.enviados = res.enviados.concat(r.enviados || []);
+        res.fallidos = res.fallidos.concat(r.fallidos || []);
+        res.omitidos = res.omitidos.concat(r.omitidos || []);
+        res.momento = r.momento || res.momento;
+        hechos += lote.length;
+        return tanda();
+      }, function (err) {
+        res.error = err;
+        res.sinEnviar = emails.slice(hechos);
+        return res;
+      });
+    }
+    return Promise.resolve().then(tanda);
+  }
+
+  function bienvenidaConFallos(res) {
+    return !!(res.fallidos.length || res.omitidos.length || res.error);
+  }
+
+  /** Frase resumen de un envío: a cuántas personas llegó y, si no, a quién no y por qué. */
+  function resumenBienvenida(res) {
+    var partes = [], fallos = res.fallidos.concat(res.omitidos);
+    if (res.enviados.length) {
+      partes.push(sprintf(_n('Bienvenida enviada a %d persona', 'Bienvenida enviada a %d personas', res.enviados.length), res.enviados.length));
+    }
+    if (fallos.length) {
+      partes.push(sprintf(/* translators: 1: número de personas, 2: lista de correos, cada uno con su motivo */ _n('No se envió a %1$d persona: %2$s', 'No se envió a %1$d personas: %2$s', fallos.length), fallos.length,
+        fallos.map(function (f) { return f.email + (f.motivo ? ' (' + f.motivo + ')' : ''); }).join('; ')));
+    }
+    if (res.error) {
+      partes.push(sprintf(/* translators: %s: motivo del error */ __('Se interrumpió el envío (%s). Puedes enviarla a quien falte desde la lista del equipo.'), res.error.message));
+    }
+    return partes.join(' · ');
+  }
+
   function pintarAjustes(a, seccionInicial) {
     var fNombre = h('input', { type: 'text', class: 'pcan-input', value: a.nombre || '', maxlength: '40', placeholder: 'Cancionero', spellcheck: 'false' });
     var fSubtitulo = h('input', { type: 'text', class: 'pcan-input', value: a.subtitulo || '', maxlength: '60', placeholder: __('p. ej. Nombre de tu iglesia o grupo'), spellcheck: 'false' });
@@ -2248,20 +2308,136 @@
     var fDominio = h('input', { type: 'text', class: 'pcan-input', value: a.dominio, placeholder: __('p. ej. tuiglesia.org (opcional)'), spellcheck: 'false' });
     var fEmails = h('textarea', { class: 'pcan-input pcan-textarea', rows: '6', placeholder: __('Un correo por línea'), spellcheck: 'false' });
     fEmails.value = a.emails.join('\n');
+    var fBienvAuto = h('input', { type: 'checkbox', checked: !!a.bienvenidaAuto });
+    var fBienvTexto = h('textarea', { class: 'pcan-input pcan-textarea', rows: '3', maxlength: '1000' });
+    fBienvTexto.value = a.bienvenidaTexto || '';
 
     var errorBox = h('div', { class: 'pcan-form-error', role: 'alert', hidden: true });
     var guardar = h('button', { type: 'submit', class: 'pcan-btn pcan-btn-primary' }, __('Guardar ajustes'));
+    var cancelar = h('button', { type: 'button', class: 'pcan-btn', onclick: function () { cerrarPanel(); } }, __('Cancelar'));
 
+    // Guardando o enviando la bienvenida: no se puede guardar, cancelar ni lanzar otro envío a la vez.
+    var enCurso = false;
+    function bloquear() {
+      guardar.disabled = enCurso;
+      cancelar.disabled = enCurso;
+      sincronizarBienvenida();
+    }
+
+    // Progreso del envío de la bienvenida, en la barra fija de abajo (visible en toda la sección Equipo).
+    var textoProgreso = h('span', { class: 'pcan-ajustes-progreso-texto' });
+    var rellenoProgreso = h('span');
+    var cajaProgreso = h('div', { class: 'pcan-ajustes-progreso', role: 'status', hidden: true }, textoProgreso, h('div', { class: 'pcan-progress' }, rellenoProgreso));
+
+    /** Envía la bienvenida a esos correos mostrando el progreso; bloquea los botones hasta terminar. */
+    function enviarConProgreso(emails) {
+      enCurso = true;
+      bloquear();
+      return enviarBienvenida(emails, function (hechos, total) {
+        textoProgreso.textContent = sprintf(/* translators: 1: personas a las que ya se ha enviado, 2: total de personas */ __('Enviando la bienvenida… %1$d de %2$d'), hechos, total);
+        rellenoProgreso.style.width = (total ? Math.round(hechos / total * 100) : 0) + '%';
+        cajaProgreso.hidden = false;
+      }).then(function (res) {
+        enCurso = false;
+        cajaProgreso.hidden = true;
+        bloquear();
+        return res;
+      });
+    }
+
+    // Quién ha sido elegido para recibir la bienvenida (por correo en minúsculas). Solo las cuentas con `puedeBienvenida`.
+    var elegidos = {};
+    var filas = [];
+    function pintarEnviada(fila) {
+      var m = fila.m;
+      fila.enviada.textContent = m.bienvenida ? sprintf(/* translators: %s: fecha */ __('Bienvenida enviada el %s'), fechaMarca(m.bienvenida)) : '';
+      fila.enviada.hidden = !m.bienvenida;
+    }
     var miembros = h('ul', { class: 'pcan-miembros' }, a.miembros.length ? a.miembros.map(function (m) {
+      var clave = String(m.email).toLowerCase();
+      var cb = m.puedeBienvenida ? h('input', { type: 'checkbox', 'aria-label': sprintf(/* translators: %s: nombre o correo de la persona */ __('Enviar la bienvenida a %s'), m.nombre || m.email), onchange: function () {
+        elegidos[clave] = cb.checked;
+        sincronizarBienvenida();
+      } }) : null;
+      var fila = { m: m, clave: clave, cb: cb, enviada: h('small', { class: 'pcan-miembro-bienv' }) };
+      pintarEnviada(fila);
+      filas.push(fila);
       return h('li', null,
+        // Quien no puede recibirla no lleva casilla, pero deja el hueco para que todo quede alineado.
+        cb ? h('label', { class: 'pcan-miembro-sel' }, cb) : h('span', { class: 'pcan-miembro-sel', 'aria-hidden': 'true' }),
         h('span', { class: 'pcan-avatar is-sm', 'aria-hidden': 'true' }, iniciales(m.nombre || m.email)),
-        h('span', { class: 'pcan-miembro-main' }, h('strong', { text: m.nombre || m.email }), m.nombre ? h('span', { text: m.email }) : null),
+        h('span', { class: 'pcan-miembro-main' }, h('strong', { text: m.nombre || m.email }), m.nombre ? h('span', { text: m.email }) : null, fila.enviada),
         m.esGestor && !m.esAdmin ? h('span', { class: 'pcan-estado is-ok', title: __('Puede cambiar los ajustes, gestionar el equipo y borrar canciones'), text: __('Administrador') }) : null,
         m.esAdmin
           ? h('span', { class: 'pcan-estado is-warn', title: __('Las cuentas de administración no reciben enlaces por correo'), text: __('Administración · entra con contraseña') })
           : h('span', { class: 'pcan-estado' + (m.haEntrado ? ' is-ok' : ''), text: m.haEntrado ? __('Ha entrado') : m.enLista ? __('Pendiente') : __('Fuera de la lista') }));
     }) : h('li', { class: 'pcan-muted', text: __('Aún no hay nadie en la lista.') }));
     var hayAdmin = a.miembros.some(function (m) { return m.esAdmin; });
+
+    // Barra sobre la lista: elegir a quién enviar (o reenviar) la bienvenida.
+    function conCasilla() { return filas.filter(function (f) { return f.cb; }); }
+    function marcados() { return conCasilla().filter(function (f) { return elegidos[f.clave]; }); }
+    var bTodos = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () {
+      elegidos = {};
+      conCasilla().forEach(function (f) { elegidos[f.clave] = true; });
+      sincronizarBienvenida();
+    } }, __('Seleccionar todos'));
+    var bSinEntrar = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () {
+      elegidos = {};
+      conCasilla().forEach(function (f) { if (!f.m.haEntrado) { elegidos[f.clave] = true; } });
+      sincronizarBienvenida();
+    } }, __('Seleccionar quien no ha entrado'));
+    var bQuitar = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () {
+      elegidos = {};
+      sincronizarBienvenida();
+    } }, __('Quitar la selección'));
+    var bEnviar = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-primary', onclick: function () { enviarElegidos(); } });
+    var resultadoEnvio = h('p', { class: 'pcan-help pcan-bienv-resultado', role: 'status', hidden: true });
+    // Los correos nuevos aún no están en la lista guardada: la bienvenida les llega al guardar.
+    var notaCorreos = h('p', { class: 'pcan-help pcan-bienv-nota', hidden: true, text: __('La bienvenida se envía a la lista guardada. Los correos nuevos la reciben al guardar, si la bienvenida automática está activada.') });
+    function correosEscritos() { return fEmails.value.split(/[\s,;]+/).filter(Boolean).map(function (e) { return e.toLowerCase(); }).sort().join(' '); }
+    var correosIniciales = correosEscritos();
+
+    /** Pone al día casillas y botones según la selección y si hay algo en curso. */
+    function sincronizarBienvenida() {
+      var con = conCasilla(), n = marcados().length;
+      con.forEach(function (f) { f.cb.checked = !!elegidos[f.clave]; f.cb.disabled = enCurso; });
+      bTodos.disabled = enCurso || n === con.length;
+      bSinEntrar.disabled = enCurso || !con.some(function (f) { return !f.m.haEntrado; });
+      bQuitar.disabled = enCurso || !n;
+      bEnviar.disabled = enCurso || !n;
+      bEnviar.textContent = sprintf(_n('Enviar la bienvenida a %d persona', 'Enviar la bienvenida a %d personas', n), n);
+    }
+
+    function enviarElegidos() {
+      var emails = marcados().map(function (f) { return f.m.email; });
+      if (enCurso || !emails.length) { return; }
+      if (!window.confirm(sprintf(_n('¿Enviar la bienvenida a %d persona?', '¿Enviar la bienvenida a %d personas?', emails.length), emails.length))) { return; }
+      resultadoEnvio.hidden = true;
+      enviarConProgreso(emails).then(function (res) {
+        var ahora = res.momento || Math.floor(Date.now() / 1000);
+        var recibida = {};
+        res.enviados.forEach(function (e) { recibida[String(e).toLowerCase()] = true; });
+        filas.forEach(function (f) { if (recibida[f.clave]) { f.m.bienvenida = ahora; pintarEnviada(f); } });
+        // La selección se quita; si el envío se interrumpió, quedan marcadas las que no llegaron a intentarse para poder repetir.
+        elegidos = {};
+        res.sinEnviar.forEach(function (e) { elegidos[String(e).toLowerCase()] = true; });
+        sincronizarBienvenida();
+        var texto = resumenBienvenida(res), fallos = bienvenidaConFallos(res);
+        resultadoEnvio.textContent = texto;
+        resultadoEnvio.classList.toggle('is-error', fallos);
+        resultadoEnvio.hidden = !texto;
+        aviso(texto, fallos ? 'error' : undefined, fallos ? 9000 : undefined);
+      });
+    }
+
+    var bloqueMiembros = h('div', { class: 'pcan-miembros-bloque' },
+      filas.length ? h('div', { class: 'pcan-bienv-barra' }, bTodos, bQuitar, bSinEntrar, bEnviar) : null,
+      notaCorreos, resultadoEnvio, miembros);
+    // Marcar casillas aquí no son cambios de los ajustes: no deben contar como «cambios sin guardar».
+    bloqueMiembros.addEventListener('input', function (e) { e.stopPropagation(); });
+    bloqueMiembros.addEventListener('change', function (e) { e.stopPropagation(); });
+    sincronizarBienvenida();
 
     // Protección de los archivos: comprueba que el servidor no los entrega sin sesión y mueve los antiguos a la carpeta privada.
     var cajaProteccion = h('div', { class: 'pcan-huerfanos' }, h('p', { class: 'pcan-help', text: __('Comprobando la protección de los archivos…') }));
@@ -2410,7 +2586,7 @@
           campo(__('Correos con acceso'), fEmails, __('Cada persona entra con un enlace que recibe en ese correo (o con Google, si lo configuras). Quien sale de la lista pierde el acceso.')),
           campo(__('Administradores del cancionero'), fAdmins, __('Pueden cambiar los ajustes, gestionar el equipo y borrar canciones, sin ser administradores de la web. Entran como el resto del equipo (enlace por correo o Google).')),
           campo(__('Dominio permitido'), fDominio, __('Opcional: cualquier cuenta de este dominio de Google Workspace podrá entrar.')),
-          miembros,
+          bloqueMiembros,
           hayAdmin ? h('p', { class: 'pcan-aviso-admin' }, icono('aviso'), __('Los correos marcados son de cuentas de administración: no reciben enlaces por seguridad y entran con usuario y contraseña. Para probar el enlace, usa otro correo.')) : null,
           h('div', { class: 'pcan-actions' },
             h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function (e) {
@@ -2421,7 +2597,27 @@
                 .catch(function (err) { aviso(err.message, 'error'); })
                 .then(function () { b.disabled = false; });
             } }, icono('enlace'), __('Enviarme un correo de prueba')),
-            h('span', { class: 'pcan-help', text: __('Comprueba que el servidor puede enviar los enlaces de acceso.') })))],
+            h('span', { class: 'pcan-help', text: __('Comprueba que el servidor puede enviar los enlaces de acceso.') }))),
+        h('fieldset', { class: 'pcan-fieldset' },
+          h('legend', { text: __('Correo de bienvenida') }),
+          h('label', { class: 'pcan-copia-opcion' }, fBienvAuto,
+            h('span', null,
+              h('strong', { text: __('Enviar un correo de bienvenida a quien se añada a la lista') }),
+              h('small', { text: __('Le llega el logo del cancionero, un botón para abrirlo y cómo entrar.') }))),
+          campo(__('Texto añadido a la bienvenida (opcional)'), fBienvTexto, __('Aparece en el correo debajo de las instrucciones. Por ejemplo, dónde encontrar el cancionero en vuestra web.')),
+          h('div', { class: 'pcan-actions' },
+            h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function (e) {
+              var b = e.currentTarget;
+              b.disabled = true;
+              api('bienvenida', { json: { prueba: true, pagina: paginaActual(), bienvenidaTexto: fBienvTexto.value } })
+                .then(function (r) {
+                  if ((r.enviados || []).length) { aviso(sprintf(/* translators: %s: dirección de correo */ __('Bienvenida de prueba enviada a %s'), r.enviados[0])); }
+                  else { aviso(resumenBienvenida({ enviados: [], fallidos: r.fallidos || [], omitidos: r.omitidos || [], error: null }), 'error', 9000); }
+                })
+                .catch(function (err) { aviso(err.message, 'error'); })
+                .then(function () { b.disabled = false; });
+            } }, icono('enlace'), __('Enviarme una bienvenida de prueba')),
+            h('span', { class: 'pcan-help', text: __('Te llega a ti, con el texto de arriba aunque aún no esté guardado.') })))],
       google: [
         h('fieldset', { class: 'pcan-fieldset' },
           h('legend', { text: __('Acceso con Google (opcional)') }),
@@ -2472,10 +2668,8 @@
     // Barra fija de abajo: solo en las secciones del formulario. Avisa si hay cambios sin guardar.
     var estado = h('span', { class: 'pcan-ajustes-estado', role: 'status' });
     var barra = h('div', { class: 'pcan-ajustes-barra' },
-      errorBox, estado,
-      h('div', { class: 'pcan-ajustes-botones' },
-        h('button', { type: 'button', class: 'pcan-btn', onclick: function () { cerrarPanel(); } }, __('Cancelar')),
-        guardar));
+      cajaProgreso, errorBox, estado,
+      h('div', { class: 'pcan-ajustes-botones' }, cancelar, guardar));
 
     var zona = h('div', { class: 'pcan-ajustes-scroll' }, SECCIONES_AJUSTES.map(function (id) {
       secciones[id] = h('section', { class: 'pcan-ajustes-sec', id: 'pcan-aj-p-' + id, role: 'tabpanel', 'aria-labelledby': 'pcan-aj-t-' + id, hidden: true }, contenido[id]);
@@ -2484,7 +2678,7 @@
     var form = h('form', { class: 'pcan-ajustes-main', novalidate: true }, zona, barra);
 
     function valores() {
-      return JSON.stringify([fNombre.value, fSubtitulo.value, fPapelera.value, fAdmins.value, fTema.value, fClient.value, fDominio.value, fEmails.value]);
+      return JSON.stringify([fNombre.value, fSubtitulo.value, fPapelera.value, fAdmins.value, fTema.value, fClient.value, fDominio.value, fEmails.value, fBienvAuto.checked, fBienvTexto.value]);
     }
     var inicial = valores();
     // El aviso de «cambios sin guardar» al cerrar lo da panelSucio; aquí se calcula comparando con lo cargado.
@@ -2492,6 +2686,7 @@
       e.stopPropagation();
       if (e.target.classList) { e.target.classList.remove('is-invalid'); }
       errorBox.hidden = true;
+      notaCorreos.hidden = correosEscritos() === correosIniciales;
       var sucio = valores() !== inicial;
       panelSucio = sucio;
       estado.textContent = sucio ? __('Hay cambios sin guardar') : '';
@@ -2529,7 +2724,9 @@
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       if (!SEC_FORMULARIO[actual]) { return; }
-      guardar.disabled = true;
+      if (enCurso) { return; }
+      enCurso = true;
+      bloquear();
       errorBox.hidden = true;
       api('ajustes', { json: {
         nombre: fNombre.value.trim(),
@@ -2539,13 +2736,32 @@
         temaDefecto: fTema.value,
         googleClientId: fClient.value.trim(),
         dominio: fDominio.value.trim(),
-        emails: fEmails.value.split(/[\s,;]+/).filter(Boolean)
-      } }).then(function () {
+        emails: fEmails.value.split(/[\s,;]+/).filter(Boolean),
+        bienvenidaAuto: fBienvAuto.checked,
+        bienvenidaTexto: fBienvTexto.value.trim(),
+        pagina: paginaActual()
+      } }).then(function (r) {
         panelSucio = false;
-        aviso(__('Ajustes guardados'));
-        cerrarPanel();
+        inicial = valores();
+        correosIniciales = correosEscritos();
+        estado.textContent = '';
+        barra.classList.remove('is-sucio');
+        notaCorreos.hidden = true;
+        // Los correos recién añadidos reciben ahora la bienvenida automática, con progreso, antes de cerrar.
+        var pendientes = (r && r.bienvenidaPendiente) || [];
+        if (!pendientes.length) {
+          aviso(__('Ajustes guardados'));
+          cerrarPanel();
+          return;
+        }
+        return enviarConProgreso(pendientes).then(function (res) {
+          var fallos = bienvenidaConFallos(res);
+          aviso(__('Ajustes guardados') + ' · ' + resumenBienvenida(res), fallos ? 'error' : undefined, fallos ? 9000 : undefined);
+          if (raiz.isConnected) { cerrarPanel(); }
+        });
       }).catch(function (err) {
-        guardar.disabled = false;
+        enCurso = false;
+        bloquear();
         errorBox.textContent = err.message;
         errorBox.hidden = false;
         var destino = CAMPOS_ERROR[err.codigo];

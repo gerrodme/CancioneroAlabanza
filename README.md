@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/imagenes/logo/logo-oscuro.svg">
+    <img alt="Cancionero" src="docs/imagenes/logo/logo-claro.svg" width="520">
+  </picture>
+</p>
+
 # Cancionero
 
 *English version: [README.en.md](README.en.md)*
@@ -25,6 +32,8 @@ la herramienta: **no incluye ninguna canción ni partitura**; cada instalación 
   y PDF del setlist.
 - **Visor / modo culto:** pantalla pensada para tableta, con la partitura grande y cambio rápido entre canciones.
 - **Acceso:** rol «Equipo de adoración», inicio de sesión con Google (Google Identity Services) o con enlace por correo.
+- **Bienvenida:** quien se añade a la lista del equipo recibe un correo con el logo, el botón para abrir el cancionero
+  y cómo entrar. Desde **Ajustes y equipo → Equipo** se puede reenviar a las personas que se elijan.
 - **Administradores del cancionero:** además de los administradores de WordPress, se pueden nombrar otros desde
   **Ajustes y equipo**. Pueden cambiar los ajustes, gestionar el equipo y borrar canciones (a la papelera de WordPress).
 - **Nombre propio:** el nombre del cancionero («Cancionero de la iglesia», etc.) se cambia en **Ajustes y equipo → General**.
@@ -151,6 +160,8 @@ Copyright © Gerson Rodrigo Menéndez.
 
 - **Código** (plugin, herramientas, banco de pruebas): [GPL-2.0-or-later](LICENSE), la licencia habitual de WordPress.
 - **Documentación y tutorial** (`README`, `docs/`, `tutorial/`): [CC BY-SA 4.0](LICENSE-DOCS.txt).
+- **Logo** (`docs/imagenes/logo/` y la cabecera del correo de bienvenida): CC BY-SA 4.0. Las letras son de la
+  tipografía [Unbounded](https://fonts.google.com/specimen/Unbounded) (SIL Open Font License), pasadas a trazos.
 
 Las licencias Creative Commons no están pensadas para software; por eso el código va con GPL (compatible con WordPress)
 y solo los textos y el tutorial con Creative Commons.

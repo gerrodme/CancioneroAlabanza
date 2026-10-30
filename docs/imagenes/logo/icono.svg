@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"><g transform="translate(0 0) scale(1.00000)">
+  <defs>
+    <linearGradient id="degi" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff2e88"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient>
+    <linearGradient id="luzi" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="150" fill="url(#degi)"/>
+  <rect width="512" height="512" rx="150" fill="url(#luzi)"/>
+  <g fill="#fff">
+    <ellipse cx="208" cy="366" rx="82" ry="62" transform="rotate(-22 208 366)"/>
+    <rect x="252" y="110" width="40" height="262" rx="8"/>
+    <path d="M272 110 L292 110 C 294 150 326 172 356 200 C 398 240 414 296 378 356 C 388 304 374 266 344 244 C 324 230 304 222 272 220 Z"/>
+  </g>
+</g></svg>

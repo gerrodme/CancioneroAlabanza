@@ -26,6 +26,9 @@ renombrada completa exigiría una migración de datos.
   `cultos.js`, `visor.js`, `login.js`, `cancionero.css`).
 - `banco-pruebas/` interfaz con datos simulados (`index.html`); `.claude/launch.json` define el servidor
   `banco-cancionero` (puerto 8765) para verla.
+- `docs/imagenes/logo/` logo (SVG y PNG, versión para fondo oscuro y claro, e icono): letras de la tipografía Unbounded
+  Black pasadas a trazos (con la «E» enderezada) en los colores del vídeo. La cabecera del correo de bienvenida es
+  `pieb-cancionero/assets/correo-cabecera.jpg` (el logo sobre fondo de neón, 1200×360).
 - `docs/imagenes/` capturas del README, hechas con el banco de pruebas por `herramientas/capturas.py` (datos y partitura inventados; nunca
   capturar datos ni partituras reales). `social-preview.png` es la imagen para compartir el repositorio (se sube a mano en GitHub).
 - `herramientas/empaquetar.py` genera `dist/pieb-cancionero-<versión>.zip` (la versión va al final del nombre del archivo).

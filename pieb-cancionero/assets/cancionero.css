@@ -922,6 +922,23 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
 .pcan-miembro-main { display: flex; flex-direction: column; flex: 1; min-width: 0; font-size: 14px; }
 .pcan-miembro-main span { color: var(--pc-muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; }
 .pcan-estado { flex: 0 0 auto; padding: 2px 9px; border-radius: 999px; background: var(--pc-surface-2); color: var(--pc-muted); font-size: 12px; font-weight: 600; }
+/* Bienvenida al equipo: casilla de cada persona, barra de selección sobre la lista y resultado del envío */
+.pcan-miembros-bloque { display: flex; flex-direction: column; gap: 8px; }
+.pcan-bienv-barra { display: flex; flex-wrap: wrap; gap: 8px; }
+.pcan-bienv-barra .pcan-btn-primary { margin-left: auto; }
+.pcan-bienv-nota, .pcan-bienv-resultado { margin: 0; }
+.pcan-bienv-resultado.is-error { color: var(--pc-danger); font-weight: 600; }
+.pcan-miembro-sel { display: grid; flex: 0 0 28px; place-items: center; height: 28px; margin: 0; }
+.pcan-miembro-sel input { width: 18px; height: 18px; margin: 0; accent-color: var(--pc-accent); }
+.pcan-miembro-main small { color: var(--pc-muted); font-size: 12px; }
+.pcan-miembro-main small[hidden] { display: none; }
+@media (max-width: 760px) {
+  /* En el móvil las etiquetas de estado bajan bajo el nombre (alineadas con él) y el envío ocupa todo el ancho */
+  .pcan-miembros li { flex-wrap: wrap; row-gap: 6px; }
+  .pcan-miembros .pcan-miembro-main { flex: 1 1 calc(100% - 80px); }
+  .pcan-miembros .pcan-miembro-main + .pcan-estado { margin-left: 80px; }
+  .pcan-bienv-barra .pcan-btn-primary { flex: 1 0 100%; margin-left: 0; }
+}
 /* Ajustes y equipo por secciones: navegación a la izquierda (pestañas arriba en el móvil) y barra de guardado fija abajo */
 .pcan-panel-wrap.is-ancho .pcan-panel { width: min(960px, 92vw); height: min(760px, calc(100dvh - 32px)); overflow: hidden; }
 @media (min-width: 761px) { .admin-bar .pcan-panel-wrap.is-ancho .pcan-panel { height: min(760px, calc(100dvh - 32px - var(--wp-admin--admin-bar--height, 32px))); } }
@@ -948,6 +965,10 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
   border-top: 1px solid var(--pc-line); background: var(--pc-surface);
 }
 .pcan-ajustes-barra .pcan-form-error { flex: 1 0 100%; }
+/* Envío de la bienvenida: la barra de progreso va arriba de la barra fija para verse siempre */
+.pcan-ajustes-progreso { display: grid; flex: 1 0 100%; order: -1; gap: 6px; color: var(--pc-text); font-size: 13.5px; font-weight: 600; }
+.pcan-ajustes-progreso[hidden] { display: none; }
+.pcan-ajustes-progreso .pcan-progress { height: 10px; }
 .pcan-ajustes-estado { flex: 1; min-width: 0; color: var(--pc-muted); font-size: 13.5px; font-weight: 600; }
 .pcan-ajustes-barra.is-sucio .pcan-ajustes-estado { display: flex; align-items: center; gap: 8px; color: var(--pc-text); }
 .pcan-ajustes-barra.is-sucio .pcan-ajustes-estado::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--pc-warn); }

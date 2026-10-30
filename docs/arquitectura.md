@@ -14,6 +14,7 @@ Resumen técnico del plugin **Cancionero** para quien llegue nuevo al código.
 | `includes/cultos.php` | Cultos y setlists (tipo de contenido y API). |
 | `includes/ajustes.php` | Temas, ajustes, lista del equipo, preferencias por usuario, copias de seguridad (exportar/importar). |
 | `includes/google.php` | Acceso con Google (ID token) y con enlace por correo. |
+| `includes/bienvenida.php` | Correo de bienvenida al equipo: registro de envíos, composición del correo (HTML y texto) y `POST /bienvenida`. |
 | `includes/migracion.php` | Convierte los PDF del plugin anterior (`adoracion_culto_*`) en canciones. Idempotente. |
 | `assets/cancionero.js` | Interfaz principal (sin dependencias ni compilación): lista, ficha, formulario, subida múltiple, estadísticas, ajustes. |
 | `assets/cultos.js` | Pantallas de cultos y editor de setlist. |
@@ -54,7 +55,8 @@ La interfaz es una aplicación de una sola página dentro de la página de WordP
   `{cancion, tonalidad, nota, partitura}` en orden; `partitura` es el ID del adjunto elegido para ese culto, 0 = la principal (la primera de la canción). Al
   servir el culto, la elegida se coloca la primera en `datos.partituras`, que es la que usan el modo culto y el PDF).
 - Opciones de WordPress: `pieb_can_ajustes` (ajustes: `nombre`, `tema_defecto`, `google_client_id`, `emails`,
-  `administradores`, `dominio`), `pieb_can_version`, `pieb_can_migrado`.
+  `administradores`, `dominio`, `bienvenida_auto`, `bienvenida_texto`, `pagina`), `pieb_can_bienvenidas` (registro de
+  los correos de bienvenida enviados: correo → marca de tiempo; sin autoload), `pieb_can_version`, `pieb_can_migrado`.
 
 ## API REST (`/wp-json/pieb/v1/`)
 
@@ -67,7 +69,9 @@ Todas las rutas exigen sesión iniciada con la capacidad `pieb_cancionero_acceso
 | `/canciones/{id}` | GET, POST, DELETE | GET devuelve la ficha completa (partituras con `archivo`/`url`, audios, `youtube` con `videoId`, notas…). POST **actualiza reemplazando todo** (ver abajo). DELETE manda a la papelera. |
 | `/subidas` | POST | Subida de archivos **por trozos** (un audio de 10 MB cabe aunque PHP limite a 2 MB por petición). |
 | `/cultos`, `/cultos/{id}` | GET, POST, DELETE | Cultos y setlists. |
-| `/etiquetas`, `/preferencias`, `/ajustes`, `/huerfanos` | varios | Etiquetas con color, preferencias del usuario (`tema`, `idioma` y `notacion`, todos opcionales; vacío = automático), ajustes, archivos sin usar. |
+| `/etiquetas`, `/preferencias`, `/huerfanos` | varios | Etiquetas con color, preferencias del usuario (`tema`, `idioma` y `notacion`, todos opcionales; vacío = automático), archivos sin usar. |
+| `/ajustes` | GET, POST | Ajustes del cancionero y lista del equipo (exige `pieb_cancionero_gestionar`). Los campos de la bienvenida, en [Bienvenida al equipo](#bienvenida-al-equipo). |
+| `/bienvenida` | POST | Envía el correo de bienvenida a una tanda de correos (exige `pieb_cancionero_gestionar`). Ver [Bienvenida al equipo](#bienvenida-al-equipo). |
 | `/google`, `/enlace`, `/correo-prueba` | POST | Acceso con Google, enlace por correo y prueba de envío. |
 
 ### Actualizar una canción (`POST /canciones/{id}`)
@@ -81,6 +85,55 @@ Cuerpo `multipart/form-data` con todos estos campos (los ausentes se **vacían**
 
 Para cambiar un solo dato: `GET` la ficha, reconstruir todos los campos con ella y modificar solo el deseado. Receta en
 [carga-masiva.md](carga-masiva.md).
+
+## Bienvenida al equipo
+
+`includes/bienvenida.php`. A quien se añade a la lista de correos del equipo se le puede enviar un correo que le explica
+cómo entrar: abrir la página del cancionero, escribir su correo y pulsar el enlace que recibe (y, si el acceso con Google
+está configurado, que también puede usar el botón de Google). Es HTML para clientes de correo (tablas, estilos en línea,
+600 px como máximo, sin `<style>`; la imagen de cabecera `assets/correo-cabecera.jpg` va por dirección absoluta, sin
+adjuntos) más una versión de texto plano que se pone como `AltBody` de PHPMailer durante el envío (`phpmailer_init`).
+Se compone dentro de `pieb_can_en_idioma_del_sitio()`, como el enlace de acceso: va en el idioma del sitio. Las cuentas
+de administración de WordPress no reciben bienvenida (entran con contraseña).
+
+**Ajustes nuevos** (en `pieb_can_ajustes`): `bienvenida_auto` (bool, `true` por defecto: enviarla automáticamente a quien
+entra en la lista), `bienvenida_texto` (texto opcional del administrador que se añade al correo, máx. 1000 caracteres) y
+`pagina` (dirección de la página del cancionero; la interfaz la envía como `pagina` = `location.origin +
+location.pathname + location.search` en cada guardado y en cada envío, y solo se guarda si es una dirección válida de
+esta web; se le quitan el fragmento y la consulta, salvo `page_id` o `p`, que con enlaces permanentes simples son la
+propia página). Para los correos se usa la `pagina` de la petición si es válida, si no la guardada y, si tampoco, la portada
+(`home_url('/')`). La restauración de una copia de seguridad incluye `bienvenidaAuto` y `bienvenidaTexto` (solo si la
+copia los trae) y **nunca envía bienvenidas**.
+
+**`GET /ajustes`** devuelve además `bienvenidaAuto` (bool), `bienvenidaTexto` (string), `pagina` (string, la guardada;
+vacía si aún no se conoce) y, en cada elemento de `miembros`: `bienvenida` (marca de tiempo Unix del último envío a ese
+correo, 0 si nunca) y `puedeBienvenida` (bool: no es cuenta de administración y tiene acceso).
+
+**`POST /ajustes`** acepta además `bienvenidaAuto`, `bienvenidaTexto` y `pagina` (cada uno solo si llega) y su respuesta es
+la de `GET` más `bienvenidaPendiente`: el array de correos a los que la interfaz debe enviar ahora la bienvenida
+automática (ver abajo).
+
+**`POST /bienvenida`** (exige `pieb_cancionero_gestionar`). Parámetros: `emails` (array; **máximo 10** por petición, si no
+error 400), `pagina` (opcional) y `prueba` (bool). Con `prueba` envía la bienvenida solo al usuario actual (aunque sea una
+cuenta de administración, para que vea cómo queda) y sin registrarla; puede llevar `bienvenidaTexto` para probar el
+texto que se está escribiendo antes de guardarlo. Sin `prueba`, para cada correo: cuenta de
+administración → `omitidos`; no está en la lista del equipo → `omitidos`; más de 3 bienvenidas por hora a ese correo
+(`pieb_can_limite`) → `omitidos`; `wp_mail` falla → `fallidos`; si va bien → `enviados` y se anota en el registro.
+Respuesta: `{ enviados: [correo], fallidos: [{email, motivo}], omitidos: [{email, motivo}], momento }`, con `momento` la
+hora del servidor (Unix) para que la interfaz actualice «enviada el…» sin volver a pedir los ajustes.
+
+**Registro:** la opción `pieb_can_bienvenidas` (correo → marca de tiempo del último envío, sin autoload) se actualiza tras
+cada envío correcto (no en las pruebas) y evita repetir la automática.
+
+**Bienvenida automática.** El servidor la *calcula* al guardar los ajustes y la *envía* la interfaz, por tandas:
+1. `POST /ajustes` compara la lista de correos nueva con la anterior. Si `bienvenida_auto` está activo, devuelve en
+   `bienvenidaPendiente` los correos que entran en la lista con ese guardado, nunca han recibido bienvenida (no están en
+   el registro), no han entrado nunca (sin cuenta, o con cuenta sin `pieb_can_ultimo_acceso` ni `pieb_can_google_sub`) y no
+   son cuentas de administración.
+2. La interfaz envía esos correos llamando a `POST /bienvenida` de 5 en 5, con una barra de progreso. Así el guardado no
+   espera a los envíos (cada `wp_mail` puede tardar un segundo con SMTP) ni hay tiempos de espera largos si se pegan 40
+   correos de golpe.
+3. Un reenvío manual o la prueba usan el mismo endpoint.
 
 ## Papelera
 
@@ -131,8 +184,8 @@ JavaScript. Cómo traducir: [traducir.md](traducir.md).
   efectivo con respaldo por idioma: si no hay archivo para `en_GB` se usa `en_US`; si no hay ninguno de esa lengua, el
   español base. Solo afecta al dominio `pieb-cancionero`, mediante los filtros `plugin_locale` (para el `.mo`, también en
   las peticiones REST, así que los errores de la API salen en el idioma del usuario) y `load_script_translation_file`
-  (cambia el locale del nombre del JSON que WordPress busca). El correo con el enlace de acceso se envía en el idioma del
-  sitio (`pieb_can_en_idioma_del_sitio`). Se leen las dos carpetas (la del sistema, donde guardan Loco Translate
+  (cambia el locale del nombre del JSON que WordPress busca). Los correos (el enlace de acceso y la bienvenida) se envían
+  en el idioma del sitio (`pieb_can_en_idioma_del_sitio`). Se leen las dos carpetas (la del sistema, donde guardan Loco Translate
   «System» y translate.wordpress.org, y la del plugin) y la del sistema tiene preferencia, tanto para el `.mo`
   (`load_plugin_textdomain` ya la mira primero) como para los `.json` (el filtro los busca primero allí).
 - **JavaScript:** `wp-i18n` con `wp_set_script_translations()` para `cancionero`, `cultos`, `visor` y `login`. Cada JSON

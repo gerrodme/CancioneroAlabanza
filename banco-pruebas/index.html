@@ -69,12 +69,56 @@
       return Object.assign({}, it, { datos: { titulo: s.titulo, numero: s.numero, tonalidad: s.tonalidad, letra: s.letra, partituras: detalleCancion(s).partituras } });
     }) });
   }
+  // Ajustes y equipo: la lista guardada vive aquí para que guardar y enviar la bienvenida se noten al volver a abrir.
+  var ahoraS = function () { return Math.floor(Date.now() / 1000); };
+  var ajustesMock = {
+    nombre: 'Cancionero', subtitulo: 'Tu iglesia', version: '1.5.5', administradores: ['ana@example.com'], papeleraDias: 30, temaDefecto: 'claro',
+    googleClientId: '', dominio: '', origen: location.origin, bienvenidaAuto: true, bienvenidaTexto: 'Encontrarás el cancionero en el menú «Música» de nuestra web.', pagina: '',
+    emails: ['ana@example.com', 'luis@example.com', 'marta@example.com', 'pablo@example.com', 'sara@example.com', 'falla@example.com', 'admin@example.com'],
+    miembros: [
+      { email: 'ana@example.com', nombre: 'Ana Pérez', haEntrado: true, enLista: true, esGestor: true, esAdmin: false, puedeBienvenida: true, bienvenida: ahoraS() - 40 * 86400 },
+      { email: 'luis@example.com', nombre: 'Luis Gómez', haEntrado: true, enLista: true, esGestor: false, esAdmin: false, puedeBienvenida: true, bienvenida: 0 },
+      { email: 'marta@example.com', nombre: 'Marta Ruiz', haEntrado: false, enLista: true, esGestor: false, esAdmin: false, puedeBienvenida: true, bienvenida: ahoraS() - 5 * 86400 },
+      { email: 'pablo@example.com', nombre: '', haEntrado: false, enLista: true, esGestor: false, esAdmin: false, puedeBienvenida: true, bienvenida: 0 },
+      { email: 'sara@example.com', nombre: 'Sara Díaz', haEntrado: false, enLista: true, esGestor: false, esAdmin: false, puedeBienvenida: true, bienvenida: 0 },
+      { email: 'falla@example.com', nombre: '', haEntrado: false, enLista: true, esGestor: false, esAdmin: false, puedeBienvenida: true, bienvenida: 0 },
+      { email: 'admin@example.com', nombre: 'Administración', haEntrado: true, enLista: true, esGestor: true, esAdmin: true, puedeBienvenida: false, bienvenida: 0 },
+      { email: 'antiguo@example.com', nombre: 'Voluntario antiguo', haEntrado: true, enLista: false, esGestor: false, esAdmin: false, puedeBienvenida: false, bienvenida: 0 }
+    ]
+  };
+  function minusculas(emails) { return (emails || []).map(function (e) { return String(e).toLowerCase(); }); }
+  // POST ajustes: guarda y devuelve, como el servidor, los correos nuevos que deben recibir ya la bienvenida automática.
+  function guardarAjustesMock(cuerpo) {
+    var nuevos = minusculas(cuerpo.emails), antes = minusculas(ajustesMock.emails);
+    var pendientes = nuevos.filter(function (e) { return antes.indexOf(e) === -1; });
+    pendientes.forEach(function (e) {
+      ajustesMock.miembros.push({ email: e, nombre: '', haEntrado: false, enLista: true, esGestor: false, esAdmin: false, puedeBienvenida: true, bienvenida: 0 });
+    });
+    ajustesMock.miembros.forEach(function (mb) { if (!mb.esAdmin) { mb.enLista = nuevos.indexOf(mb.email) !== -1; mb.puedeBienvenida = mb.enLista; } });
+    ['nombre', 'subtitulo', 'papeleraDias', 'administradores', 'temaDefecto', 'googleClientId', 'dominio', 'bienvenidaAuto', 'bienvenidaTexto', 'pagina']
+      .forEach(function (k) { if (cuerpo[k] !== undefined) { ajustesMock[k] = cuerpo[k]; } });
+    ajustesMock.emails = cuerpo.emails || [];
+    return Object.assign({}, ajustesMock, { bienvenidaPendiente: ajustesMock.bienvenidaAuto ? pendientes : [] });
+  }
+  // POST bienvenida: todos «enviados» salvo los que contienen «falla», que van a «fallidos»; una prueba va solo a Ana.
+  function bienvenidaMock(cuerpo) {
+    if (cuerpo.prueba) { return { enviados: ['ana@example.com'] }; }
+    var r = { enviados: [], fallidos: [], omitidos: [], momento: ahoraS() };
+    (cuerpo.emails || []).forEach(function (e) {
+      if (/falla/i.test(e)) { r.fallidos.push({ email: e, motivo: 'el servidor de correo lo rechazó' }); return; }
+      r.enviados.push(e);
+      ajustesMock.miembros.forEach(function (mb) { if (mb.email === String(e).toLowerCase()) { mb.bienvenida = r.momento; } });
+    });
+    return r;
+  }
   var real = window.fetch;
   window.fetch = function (url, opts) {
     var m = String(url).match(/^\/api\/(.*)$/);
     if (!m) { return real.apply(this, arguments); }
-    var ruta = m[1], datos = {};
+    var ruta = m[1], datos = {}, espera = 0;
     var mc;
+    var cuerpo = {};
+    try { cuerpo = opts && opts.body ? JSON.parse(opts.body) : {}; } catch (e) { cuerpo = {}; }
     if (ruta === 'canciones') { datos = canciones; }
     else if ((mc = ruta.match(/^canciones\/(\d+)$/))) { datos = detalleCancion(canciones.filter(function (c) { return c.id === +mc[1]; })[0]); }
     else if (ruta === 'cultos' && (!opts || !opts.method || opts.method === 'GET')) { datos = cultos; }
@@ -87,9 +131,13 @@
       { id: 301, titulo: 'Cantad al Señor', numero: '10', tonalidad: 'Sol', archivos: 2, borradaEl: dias(-3) + 'T10:00:00Z', borradaPor: 'Ana', caduca: '', diasRestantes: 27 },
       { id: 302, titulo: 'Cuán dulce es el amor', numero: '', tonalidad: '', archivos: 1, borradaEl: dias(-20) + 'T10:00:00Z', borradaPor: '', caduca: '', diasRestantes: 10 }] }; }
     else if (ruta === 'archivos/estado') { datos = { pendientes: 3, proteccion: 'expuesto', tanda: 50 }; }
-    else if (ruta === 'ajustes') { datos = { nombre: 'Cancionero', subtitulo: 'Tu iglesia', version: '1.5.5', administradores: ['ana@example.com'], papeleraDias: 30, temaDefecto: 'claro', googleClientId: '', dominio: '', emails: ['ana@example.com'], miembros: [{ email: 'ana@example.com', nombre: '', haEntrado: false, enLista: true, esGestor: true }], origen: location.origin }; }
+    else if (ruta === 'ajustes' && opts && opts.method === 'POST') { datos = guardarAjustesMock(cuerpo); }
+    else if (ruta === 'ajustes') { datos = ajustesMock; }
+    else if (ruta === 'bienvenida') { datos = bienvenidaMock(cuerpo); espera = 400; }
     else { datos = { ok: true }; }
-    return Promise.resolve(new Response(JSON.stringify(datos), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    var respuesta = function () { return new Response(JSON.stringify(datos), { status: 200, headers: { 'Content-Type': 'application/json' } }); };
+    if (!espera) { return Promise.resolve(respuesta()); }
+    return new Promise(function (resolver) { setTimeout(function () { resolver(respuesta()); }, espera); });
   };
 })();
 </script>
