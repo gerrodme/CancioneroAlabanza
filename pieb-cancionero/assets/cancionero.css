@@ -805,7 +805,8 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
 }
 [data-pcan-theme] .pcan-chip-btn:hover { background: rgba(255, 255, 255, .12); }
 [data-pcan-theme] .pcan-chip-btn.is-active { border-color: var(--pc-accent); background: var(--pc-accent); color: var(--pc-accent-ink); }
-.pcan-lector-cuerpo { position: relative; min-height: 0; }
+/* Fila fija: al ocultar barra y pie (is-limpio) el cuerpo no debe subir a la primera fila, que es de altura automática. */
+.pcan-lector-cuerpo { position: relative; min-height: 0; grid-row: 2; }
 .pcan-lector .pcan-escenario { inset: 6px; }
 .pcan-lector .pcan-escenario-toque { touch-action: none; }
 .pcan-lector-letra {

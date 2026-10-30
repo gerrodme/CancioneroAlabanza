@@ -2,6 +2,11 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.13.1 · 2026-10-30
+
+Modo culto: al tocar la partitura para ocultar las barras ya no se queda la pantalla gris, y la X lo cierra a la
+primera (al entrar desde un enlace se abrían dos lectores, uno encima del otro)
+
 ## 1.13.0 · 2026-10-30
 
 Aviso de canciones borradas: cuando alguien borra una canción, los administradores del cancionero y el correo de

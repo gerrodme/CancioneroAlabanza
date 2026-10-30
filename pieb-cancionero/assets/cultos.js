@@ -660,11 +660,21 @@
 
   function abrirModo(id, n) {
     var indice = Math.max(0, (parseInt(n, 10) || 1) - 1);
-    if (lector && lector.culto === +id) { lector.irACancion(indice); return; }
+    // Un mismo cambio de dirección puede llegar dos veces (popstate y hashchange): mientras el culto se carga queda
+    // anotado, para no abrir un segundo lector encima del primero. Si ya está abierto, solo se cambia de canción.
+    if (lector && lector.culto === +id) {
+      if (lector.cargando) { lector.indice = indice; } else { lector.irACancion(indice); }
+      return;
+    }
+    var pendiente = { culto: +id, cargando: true, indice: indice };
+    lector = pendiente;
     P.ocultarPanel();
     api('cultos/' + id).then(function (c) {
+      // Se salió del modo culto (o se pidió otro) mientras cargaba.
+      if (lector !== pendiente) { return; }
+      indice = pendiente.indice;
       var items = c.items.filter(function (it) { return !it.eliminada && it.datos.partituras.length; });
-      if (!items.length) { aviso(__('Este culto no tiene partituras'), 'error'); location.hash = '#/culto/' + c.id; return; }
+      if (!items.length) { lector = null; aviso(__('Este culto no tiene partituras'), 'error'); location.hash = '#/culto/' + c.id; return; }
       var l = P.Visor.abrirLector({
         titulo: c.titulo,
         inicio: indice,
@@ -684,8 +694,8 @@
           verCulto(c.id);
         }
       });
-      lector = { culto: c.id, irACancion: l.irACancion, cerrar: l.cerrar, desdeRuta: false };
-    }).catch(function (e) { aviso(e.message, 'error'); });
+      lector = { culto: +c.id, irACancion: l.irACancion, cerrar: l.cerrar, desdeRuta: false };
+    }).catch(function (e) { if (lector === pendiente) { lector = null; } aviso(e.message, 'error'); });
   }
 
   // ---------------------------------------------------------------- inicio: próximo culto y canciones para recuperar
@@ -1159,7 +1169,8 @@
   P.ruta(/^culto\/duplicar\/(\d+)$/, function (m) { abrirEditor(m[1], { duplicar: true }); });
   P.ruta(/^culto\/(\d+)\/tocar(?:\/(\d+))?$/, function (m) { P.mostrarVista('cultos'); abrirModo(m[1], m[2]); });
   P.ruta(/^culto\/(\d+)$/, function (m) {
-    if (lector) { lector.desdeRuta = true; lector.cerrar(); return; }
+    if (lector && !lector.cargando) { lector.desdeRuta = true; lector.cerrar(); return; }
+    lector = null; // si aún se estaba cargando, ya no se abre
     P.mostrarVista('cultos');
     verCulto(m[1]);
   });
