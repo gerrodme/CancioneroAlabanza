@@ -883,18 +883,6 @@ window.PIEB_I18N = {
   "Equipo": [
    "Team"
   ],
-  "Correos con acceso": [
-   "Emails with access"
-  ],
-  "Cada persona entra con un enlace que recibe en ese correo (o con Google, si lo configuras). Quien sale de la lista pierde el acceso.": [
-   "Each person signs in with a link sent to that email (or with Google, if you set it up). Anyone removed from the list loses access."
-  ],
-  "Administradores del cancionero": [
-   "Songbook administrators"
-  ],
-  "Pueden cambiar los ajustes, gestionar el equipo y borrar canciones, sin ser administradores de la web. Entran como el resto del equipo (enlace por correo o Google).": [
-   "They can change settings, manage the team and delete songs without being site administrators. They sign in like the rest of the team (email link or Google)."
-  ],
   "Dominio permitido": [
    "Allowed domain"
   ],
@@ -1871,9 +1859,6 @@ window.PIEB_I18N = {
   "Seleccionar quien no ha entrado": [
    "Select those who haven’t signed in"
   ],
-  "La bienvenida se envía a la lista guardada. Los correos nuevos la reciben al guardar, si la bienvenida automática está activada.": [
-   "The welcome email goes to the saved list. New addresses get it when you save, if the automatic welcome is on."
-  ],
   "Enviar la bienvenida a %d persona": [
    "Send the welcome email to %d person",
    "Send the welcome email to %d people"
@@ -2092,6 +2077,90 @@ window.PIEB_I18N = {
   ],
   "Les llega a los administradores del cancionero y al correo de administración de la web (%s), con la canción, sus archivos, quién la borró y cuándo. Los borrados seguidos llegan juntos en un solo correo, un minuto después.": [
    "It goes to the songbook administrators and to the site’s admin email (%s), with the song, its files, who deleted it and when. Deletions made in a row arrive together in a single email, a minute later."
+  ],
+  "Para no quedarte sin acceso a los ajustes, que lo haga otro administrador.": [
+   "So you don’t lose access to the settings, another administrator has to do it."
+  ],
+  "Quitar de administrador": [
+   "Remove as administrator"
+  ],
+  "%s ya no es administrador del cancionero": [
+   "%s is no longer a songbook administrator"
+  ],
+  "Hacer administrador": [
+   "Make administrator"
+  ],
+  "%s es administrador del cancionero": [
+   "%s is now a songbook administrator"
+  ],
+  "Quitar del equipo": [
+   "Remove from the team"
+  ],
+  "¿Quitar a %s del equipo? Perderá el acceso al cancionero.": [
+   "Remove %s from the team? They will lose access to the songbook."
+  ],
+  "%s ya no está en el equipo": [
+   "%s is no longer on the team"
+  ],
+  "Añadir a la lista": [
+   "Add to the list"
+  ],
+  "%s se ha añadido a la lista": [
+   "%s has been added to the list"
+  ],
+  "Opciones de %s": [
+   "Options for %s"
+  ],
+  "Opciones": [
+   "Options"
+  ],
+  "Buscar en el equipo": [
+   "Search the team"
+  ],
+  "Nadie coincide con la búsqueda.": [
+   "Nobody matches the search."
+  ],
+  "Correos": [
+   "Emails"
+  ],
+  "Uno o varios: uno por línea, o pega una lista (se separan por espacios, comas, puntos y comas o saltos de línea).": [
+   "One or more: one per line, or paste a list (separated by spaces, commas, semicolons or line breaks)."
+  ],
+  "Añadir personas": [
+   "Add people"
+  ],
+  "Les llegará el correo de bienvenida.": [
+   "They will get the welcome email."
+  ],
+  "La bienvenida automática está desactivada (puedes enviarla después desde la lista).": [
+   "The automatic welcome email is off (you can send it later from the list)."
+  ],
+  "La casilla de bienvenida de más abajo tiene un cambio sin guardar: hasta que guardes los ajustes se aplica lo anterior.": [
+   "The welcome checkbox below has an unsaved change: until you save the settings, the previous value applies."
+  ],
+  "Escribe al menos un correo.": [
+   "Enter at least one email."
+  ],
+  "Este correo no es válido: %2$s. No se ha añadido a nadie.": [
+   "This email is not valid: %2$s. Nobody has been added.",
+   "These emails are not valid: %2$s. Nobody has been added."
+  ],
+  "Ya estaba en el equipo: %2$s": [
+   "Already on the team: %2$s",
+   "Already on the team: %2$s"
+  ],
+  "%d persona añadida": [
+   "%d person added",
+   "%d people added"
+  ],
+  "Cada persona entra con un enlace que recibe en su correo (o con Google, si lo configuras) y quien sale de la lista pierde el acceso. Los administradores pueden cambiar los ajustes, gestionar el equipo y borrar canciones.": [
+   "Everyone signs in with a link they receive by email (or with Google, if you set it up), and whoever leaves the list loses access. Administrators can change the settings, manage the team and delete songs."
+  ],
+  "Acceso por dominio": [
+   "Access by domain"
+  ],
+  "Hay correos escritos sin añadir. Pulsa «Añadir» o «Cancelar» en el formulario de añadir personas.": [
+   "There are emails typed but not added. Press “Add” or “Cancel” in the add people form."
   ]
  }
 };

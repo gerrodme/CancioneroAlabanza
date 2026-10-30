@@ -2302,14 +2302,10 @@
     var fSubtitulo = h('input', { type: 'text', class: 'pcan-input', value: a.subtitulo || '', maxlength: '60', placeholder: __('p. ej. Nombre de tu iglesia o grupo'), spellcheck: 'false' });
     var fPapelera = h('input', { type: 'number', class: 'pcan-input', min: '0', max: '3650', value: String(a.papeleraDias === undefined ? 30 : a.papeleraDias) });
     var fAvisoBorrado = h('input', { type: 'checkbox', checked: !!a.avisoBorrado });
-    var fAdmins = h('textarea', { class: 'pcan-input pcan-textarea', rows: '3', placeholder: __('Un correo por línea'), spellcheck: 'false' });
-    fAdmins.value = (a.administradores || []).join('\n');
     var fTema = h('select', { class: 'pcan-input' }, Object.keys(CFG.temas).map(function (k) { return h('option', { value: k, text: CFG.temas[k] }); }));
     fTema.value = a.temaDefecto;
     var fClient = h('input', { type: 'text', class: 'pcan-input', value: a.googleClientId, placeholder: '1234567890-abc….apps.googleusercontent.com', spellcheck: 'false' });
     var fDominio = h('input', { type: 'text', class: 'pcan-input', value: a.dominio, placeholder: __('p. ej. tuiglesia.org (opcional)'), spellcheck: 'false' });
-    var fEmails = h('textarea', { class: 'pcan-input pcan-textarea', rows: '6', placeholder: __('Un correo por línea'), spellcheck: 'false' });
-    fEmails.value = a.emails.join('\n');
     var fBienvAuto = h('input', { type: 'checkbox', checked: !!a.bienvenidaAuto });
     var fBienvTexto = h('textarea', { class: 'pcan-input pcan-textarea', rows: '3', maxlength: '1000' });
     fBienvTexto.value = a.bienvenidaTexto || '';
@@ -2318,11 +2314,14 @@
     var guardar = h('button', { type: 'submit', class: 'pcan-btn pcan-btn-primary' }, __('Guardar ajustes'));
     var cancelar = h('button', { type: 'button', class: 'pcan-btn', onclick: function () { cerrarPanel(); } }, __('Cancelar'));
 
-    // Guardando o enviando la bienvenida: no se puede guardar, cancelar ni lanzar otro envío a la vez.
+    // Guardando, cambiando la lista del equipo o enviando la bienvenida: no se puede guardar, cancelar ni lanzar otra acción a la vez.
     var enCurso = false;
     function bloquear() {
       guardar.disabled = enCurso;
       cancelar.disabled = enCurso;
+      bAnadir.disabled = enCurso;
+      bConfirmarAnadir.disabled = enCurso;
+      filas.forEach(function (f) { f.opciones.boton.disabled = enCurso; });
       sincronizarBienvenida();
     }
 
@@ -2347,46 +2346,214 @@
       });
     }
 
+    // ---- Equipo. La lista se gestiona aquí y se guarda al momento, sin pasar por «Guardar ajustes»: a.emails,
+    // a.administradores y a.miembros se mantienen al día con cada respuesta del servidor.
+    var CORREO_VALIDO = /^[a-z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/;
+    var miCorreo = String(CFG.userEmail || '').toLowerCase();
+    function claveDe(m) { return String(m.email).toLowerCase(); }
+    function nombreDe(m) { return m.nombre || m.email; }
+    function conCorreo(lista, clave) { return lista.indexOf(clave) === -1 ? lista.concat(clave) : lista; }
+    function sinCorreo(lista, clave) { return lista.filter(function (e) { return e !== clave; }); }
+
     // Quién ha sido elegido para recibir la bienvenida (por correo en minúsculas). Solo las cuentas con `puedeBienvenida`.
     var elegidos = {};
+    // Filas que se ven ahora (la búsqueda puede ocultar a otras).
     var filas = [];
     function pintarEnviada(fila) {
       var m = fila.m;
       fila.enviada.textContent = m.bienvenida ? sprintf(/* translators: %s: fecha */ __('Bienvenida enviada el %s'), fechaMarca(m.bienvenida)) : '';
       fila.enviada.hidden = !m.bienvenida;
     }
-    var miembros = h('ul', { class: 'pcan-miembros' }, a.miembros.length ? a.miembros.map(function (m) {
-      var clave = String(m.email).toLowerCase();
-      var cb = m.puedeBienvenida ? h('input', { type: 'checkbox', 'aria-label': sprintf(/* translators: %s: nombre o correo de la persona */ __('Enviar la bienvenida a %s'), m.nombre || m.email), onchange: function () {
+
+    // Resultado de la última acción sobre la lista (añadir, quitar, enviar la bienvenida…).
+    var resultadoEnvio = h('p', { class: 'pcan-help pcan-bienv-resultado', role: 'status', hidden: true });
+    function mostrarResultado(texto, error) {
+      resultadoEnvio.textContent = texto || '';
+      resultadoEnvio.classList.toggle('is-error', !!error);
+      resultadoEnvio.hidden = !texto;
+    }
+
+    // Menú «Opciones» de cada persona: uno abierto como máximo; se cierra con Escape, al hacer clic fuera y al elegir.
+    var menuAbierto = null;
+    function fueraDelMenu(e) {
+      if (menuAbierto && !menuAbierto.envoltorio.contains(e.target)) { cerrarOpciones(); }
+    }
+    function itemsDelMenu() {
+      return menuAbierto ? Array.prototype.slice.call(menuAbierto.menu.querySelectorAll('[role="menuitem"]')) : [];
+    }
+    function teclaMenu(e) {
+      if (!menuAbierto) { return; }
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrarOpciones(true); return; }
+      if (e.key === 'Tab') { cerrarOpciones(true); return; }
+      var items = itemsDelMenu(), i = items.indexOf(document.activeElement), n = items.length;
+      if (!n || !menuAbierto.envoltorio.contains(document.activeElement)) { return; }
+      var nuevo = e.key === 'ArrowDown' ? (i + 1) % n : e.key === 'ArrowUp' ? (i + n - 1) % n : e.key === 'Home' ? 0 : e.key === 'End' ? n - 1 : -1;
+      if (nuevo < 0) { return; }
+      e.preventDefault();
+      items[nuevo].focus();
+    }
+    function cerrarOpciones(devolverFoco) {
+      if (!menuAbierto) { return; }
+      var o = menuAbierto;
+      menuAbierto = null;
+      o.menu.hidden = true;
+      o.menu.classList.remove('is-arriba');
+      o.menu.style.right = '';
+      o.boton.setAttribute('aria-expanded', 'false');
+      document.removeEventListener('pointerdown', fueraDelMenu, true);
+      document.removeEventListener('keydown', teclaMenu, true);
+      if (devolverFoco) { o.boton.focus(); }
+    }
+    function abrirOpciones(o) {
+      cerrarOpciones();
+      menuAbierto = o;
+      o.menu.hidden = false;
+      o.boton.setAttribute('aria-expanded', 'true');
+      // Por defecto se abre hacia abajo; si no cabe en la zona visible y arriba hay más sitio, se abre hacia arriba.
+      // En el móvil, si se saldría por la izquierda se desplaza lo justo.
+      var rb = o.boton.getBoundingClientRect(), rz = zona.getBoundingClientRect(), rm = o.menu.getBoundingClientRect();
+      if (rm.height + 8 > rz.bottom - rb.bottom && rb.top - rz.top > rz.bottom - rb.bottom) { o.menu.classList.add('is-arriba'); }
+      rm = o.menu.getBoundingClientRect();
+      if (rm.left < rz.left + 6) { o.menu.style.right = (rm.left - rz.left - 6) + 'px'; }
+      document.addEventListener('pointerdown', fueraDelMenu, true);
+      document.addEventListener('keydown', teclaMenu, true);
+      var primero = itemsDelMenu()[0];
+      if (primero) { primero.focus({ preventScroll: true }); }
+      if (o.menu.scrollIntoView) { o.menu.scrollIntoView({ block: 'nearest' }); }
+    }
+
+    /** Opciones de una persona. Quien es administrador de la web (esAdmin) ya lo es siempre: no se le ofrece nombrarlo.
+     *  Uno mismo no puede quitarse del equipo ni de administrador (se quedaría sin acceso a los ajustes). */
+    function opcionesDe(m) {
+      var clave = claveDe(m), nombre = nombreDe(m);
+      var propia = !m.esAdmin && !!miCorreo && clave === miCorreo;
+      var razon = __('Para no quedarte sin acceso a los ajustes, que lo haga otro administrador.');
+      var items = [];
+      if (!m.esAdmin && a.administradores.indexOf(clave) !== -1) {
+        items.push({ texto: __('Quitar de administrador'), bloqueada: propia, razon: razon, fn: function () {
+          cambiarEquipo(a.emails, sinCorreo(a.administradores, clave), sprintf(/* translators: %s: nombre o correo de la persona */ __('%s ya no es administrador del cancionero'), nombre), clave);
+        } });
+      } else if (!m.esAdmin && !m.esGestor) {
+        items.push({ texto: __('Hacer administrador'), fn: function () {
+          cambiarEquipo(conCorreo(a.emails, clave), conCorreo(a.administradores, clave), sprintf(/* translators: %s: nombre o correo de la persona */ __('%s es administrador del cancionero'), nombre), clave);
+        } });
+      }
+      if (m.enLista) {
+        items.push({ texto: __('Quitar del equipo'), peligro: true, bloqueada: propia, razon: razon, fn: function () {
+          if (!window.confirm(sprintf(/* translators: %s: nombre o correo de la persona */ __('¿Quitar a %s del equipo? Perderá el acceso al cancionero.'), nombre))) { return; }
+          cambiarEquipo(sinCorreo(a.emails, clave), sinCorreo(a.administradores, clave), sprintf(/* translators: %s: nombre o correo de la persona */ __('%s ya no está en el equipo'), nombre), clave);
+        } });
+      } else {
+        items.push({ texto: __('Añadir a la lista'), fn: function () {
+          cambiarEquipo(conCorreo(a.emails, clave), a.administradores, sprintf(/* translators: %s: nombre o correo de la persona */ __('%s se ha añadido a la lista'), nombre), clave);
+        } });
+      }
+      return items;
+    }
+
+    /** Botón «Opciones» con su menú, para una persona. */
+    function crearOpciones(m) {
+      var nombre = nombreDe(m);
+      var boton = h('button', {
+        type: 'button', class: 'pcan-btn pcan-btn-sm pcan-opciones-btn', 'aria-haspopup': 'menu', 'aria-expanded': 'false',
+        'aria-label': sprintf(/* translators: %s: nombre o correo de la persona */ __('Opciones de %s'), nombre)
+      }, icono('puntos'), __('Opciones'));
+      boton.disabled = enCurso;
+      var menu = h('div', { class: 'pcan-opciones-menu', role: 'menu', hidden: true, 'aria-label': sprintf(/* translators: %s: nombre o correo de la persona */ __('Opciones de %s'), nombre) },
+        opcionesDe(m).map(function (it) {
+          return h('button', {
+            type: 'button', role: 'menuitem', tabindex: '-1', 'aria-disabled': it.bloqueada ? 'true' : null,
+            class: 'pcan-opciones-item' + (it.peligro ? ' is-danger' : '') + (it.bloqueada ? ' is-bloqueada' : ''),
+            onclick: function () {
+              if (it.bloqueada) { return; }
+              cerrarOpciones();
+              it.fn();
+            }
+          }, h('span', { text: it.texto }), it.bloqueada ? h('small', { text: it.razon }) : null);
+        }));
+      var envoltorio = h('span', { class: 'pcan-opciones' }, boton, menu);
+      var o = { envoltorio: envoltorio, boton: boton, menu: menu };
+      boton.addEventListener('click', function () {
+        if (menuAbierto === o) { cerrarOpciones(); } else { abrirOpciones(o); }
+      });
+      boton.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowDown' && menuAbierto !== o) { e.preventDefault(); abrirOpciones(o); }
+      });
+      return o;
+    }
+
+    function filaMiembro(m) {
+      var clave = claveDe(m), nombre = nombreDe(m);
+      var cb = m.puedeBienvenida ? h('input', { type: 'checkbox', 'aria-label': sprintf(/* translators: %s: nombre o correo de la persona */ __('Enviar la bienvenida a %s'), nombre), onchange: function () {
         elegidos[clave] = cb.checked;
         sincronizarBienvenida();
       } }) : null;
-      var fila = { m: m, clave: clave, cb: cb, enviada: h('small', { class: 'pcan-miembro-bienv' }) };
+      var fila = { m: m, clave: clave, cb: cb, enviada: h('small', { class: 'pcan-miembro-bienv' }), opciones: crearOpciones(m) };
       pintarEnviada(fila);
       filas.push(fila);
       return h('li', null,
         // Quien no puede recibirla no lleva casilla, pero deja el hueco para que todo quede alineado.
         cb ? h('label', { class: 'pcan-miembro-sel' }, cb) : h('span', { class: 'pcan-miembro-sel', 'aria-hidden': 'true' }),
-        h('span', { class: 'pcan-avatar is-sm', 'aria-hidden': 'true' }, iniciales(m.nombre || m.email)),
-        h('span', { class: 'pcan-miembro-main' }, h('strong', { text: m.nombre || m.email }), m.nombre ? h('span', { text: m.email }) : null, fila.enviada),
-        m.esGestor && !m.esAdmin ? h('span', { class: 'pcan-estado is-ok', title: __('Puede cambiar los ajustes, gestionar el equipo y borrar canciones'), text: __('Administrador') }) : null,
-        m.esAdmin
-          ? h('span', { class: 'pcan-estado is-warn', title: __('Las cuentas de administración no reciben enlaces por correo'), text: __('Administración · entra con contraseña') })
-          : h('span', { class: 'pcan-estado' + (m.haEntrado ? ' is-ok' : ''), text: m.haEntrado ? __('Ha entrado') : m.enLista ? __('Pendiente') : __('Fuera de la lista') }));
-    }) : h('li', { class: 'pcan-muted', text: __('Aún no hay nadie en la lista.') }));
-    var hayAdmin = a.miembros.some(function (m) { return m.esAdmin; });
+        h('span', { class: 'pcan-avatar is-sm', 'aria-hidden': 'true' }, iniciales(nombre)),
+        h('span', { class: 'pcan-miembro-main' }, h('strong', { text: nombre }), m.nombre ? h('span', { text: m.email }) : null, fila.enviada),
+        // En el móvil el estado y las opciones bajan bajo el nombre; en pantallas anchas van en la misma línea.
+        h('span', { class: 'pcan-miembro-pie' },
+          m.esGestor && !m.esAdmin ? h('span', { class: 'pcan-estado is-ok', title: __('Puede cambiar los ajustes, gestionar el equipo y borrar canciones'), text: __('Administrador') }) : null,
+          m.esAdmin
+            ? h('span', { class: 'pcan-estado is-warn', title: __('Las cuentas de administración no reciben enlaces por correo'), text: __('Administración · entra con contraseña') })
+            : h('span', { class: 'pcan-estado' + (m.haEntrado ? ' is-ok' : ''), text: m.haEntrado ? __('Ha entrado') : m.enLista ? __('Pendiente') : __('Fuera de la lista') }),
+          fila.opciones.envoltorio));
+    }
+
+    var miembros = h('ul', { class: 'pcan-miembros' });
+    var avisoAdmin = h('p', { class: 'pcan-aviso-admin', hidden: true }, icono('aviso'), __('Los correos marcados son de cuentas de administración: no reciben enlaces por seguridad y entran con usuario y contraseña. Para probar el enlace, usa otro correo.'));
+    var fBuscar = h('input', {
+      type: 'search', class: 'pcan-input', placeholder: __('Buscar en el equipo'), 'aria-label': __('Buscar en el equipo'),
+      autocomplete: 'off', spellcheck: 'false', enterkeyhint: 'search',
+      oninput: function () { pintarLista(); },
+      // Intro aquí no debe enviar el formulario de los ajustes.
+      onkeydown: function (e) { if (e.key === 'Enter') { e.preventDefault(); } }
+    });
+
+    function conCasilla() { return a.miembros.filter(function (m) { return m.puedeBienvenida; }); }
+    function marcados() { return conCasilla().filter(function (m) { return elegidos[claveDe(m)]; }); }
+    function filasConCasilla() { return filas.filter(function (f) { return f.cb; }); }
+
+    /** Pasa el foco al botón «Opciones» de esa persona (correo en minúsculas) o, si ya no está en la lista, a «Añadir personas». */
+    function enfocarPersona(clave) {
+      var f = filas.filter(function (x) { return x.clave === clave; })[0];
+      (f ? f.opciones.boton : bAnadir).focus({ preventScroll: true });
+    }
+
+    /** Vuelve a pintar la lista con los miembros actuales y la búsqueda; con `foco` (un correo, o '') además mueve el foco. */
+    function pintarLista(foco) {
+      cerrarOpciones();
+      var q = norm(fBuscar.value);
+      var visibles = !q ? a.miembros : a.miembros.filter(function (m) { return norm((m.nombre || '') + ' ' + m.email).indexOf(q) !== -1; });
+      // La selección para la bienvenida solo vale para lo que se ve: lo que la búsqueda oculta deja de estar elegido.
+      var vistos = {};
+      visibles.forEach(function (m) { vistos[claveDe(m)] = true; });
+      Object.keys(elegidos).forEach(function (k) { if (!vistos[k]) { delete elegidos[k]; } });
+      filas = [];
+      miembros.innerHTML = '';
+      if (!a.miembros.length) { append(miembros, h('li', { class: 'pcan-muted', text: __('Aún no hay nadie en la lista.') })); }
+      else if (!visibles.length) { append(miembros, h('li', { class: 'pcan-muted', text: __('Nadie coincide con la búsqueda.') })); }
+      else { visibles.forEach(function (m) { append(miembros, filaMiembro(m)); }); }
+      barraBienv.hidden = !conCasilla().length;
+      avisoAdmin.hidden = !a.miembros.some(function (m) { return m.esAdmin; });
+      sincronizarBienvenida();
+      if (foco !== undefined) { enfocarPersona(foco); }
+    }
 
     // Barra sobre la lista: elegir a quién enviar (o reenviar) la bienvenida.
-    function conCasilla() { return filas.filter(function (f) { return f.cb; }); }
-    function marcados() { return conCasilla().filter(function (f) { return elegidos[f.clave]; }); }
     var bTodos = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () {
       elegidos = {};
-      conCasilla().forEach(function (f) { elegidos[f.clave] = true; });
+      filasConCasilla().forEach(function (f) { elegidos[f.clave] = true; });
       sincronizarBienvenida();
     } }, __('Seleccionar todos'));
     var bSinEntrar = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () {
       elegidos = {};
-      conCasilla().forEach(function (f) { if (!f.m.haEntrado) { elegidos[f.clave] = true; } });
+      filasConCasilla().forEach(function (f) { if (!f.m.haEntrado) { elegidos[f.clave] = true; } });
       sincronizarBienvenida();
     } }, __('Seleccionar quien no ha entrado'));
     var bQuitar = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () {
@@ -2394,52 +2561,174 @@
       sincronizarBienvenida();
     } }, __('Quitar la selección'));
     var bEnviar = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-primary', onclick: function () { enviarElegidos(); } });
-    var resultadoEnvio = h('p', { class: 'pcan-help pcan-bienv-resultado', role: 'status', hidden: true });
-    // Los correos nuevos aún no están en la lista guardada: la bienvenida les llega al guardar.
-    var notaCorreos = h('p', { class: 'pcan-help pcan-bienv-nota', hidden: true, text: __('La bienvenida se envía a la lista guardada. Los correos nuevos la reciben al guardar, si la bienvenida automática está activada.') });
-    function correosEscritos() { return fEmails.value.split(/[\s,;]+/).filter(Boolean).map(function (e) { return e.toLowerCase(); }).sort().join(' '); }
-    var correosIniciales = correosEscritos();
+    var barraBienv = h('div', { class: 'pcan-bienv-barra', hidden: true }, bTodos, bQuitar, bSinEntrar, bEnviar);
 
     /** Pone al día casillas y botones según la selección y si hay algo en curso. */
     function sincronizarBienvenida() {
-      var con = conCasilla(), n = marcados().length;
-      con.forEach(function (f) { f.cb.checked = !!elegidos[f.clave]; f.cb.disabled = enCurso; });
-      bTodos.disabled = enCurso || n === con.length;
-      bSinEntrar.disabled = enCurso || !con.some(function (f) { return !f.m.haEntrado; });
+      var vis = filasConCasilla(), n = marcados().length;
+      vis.forEach(function (f) { f.cb.checked = !!elegidos[f.clave]; f.cb.disabled = enCurso; });
+      bTodos.disabled = enCurso || !vis.length || vis.every(function (f) { return elegidos[f.clave]; });
+      bSinEntrar.disabled = enCurso || !vis.some(function (f) { return !f.m.haEntrado; });
       bQuitar.disabled = enCurso || !n;
       bEnviar.disabled = enCurso || !n;
       bEnviar.textContent = sprintf(_n('Enviar la bienvenida a %d persona', 'Enviar la bienvenida a %d personas', n), n);
     }
 
+    /** Anota la fecha de la bienvenida en quienes la recibieron (sin volver a pintar toda la lista). */
+    function marcarEnviadas(res) {
+      var ahora = res.momento || Math.floor(Date.now() / 1000), recibida = {};
+      res.enviados.forEach(function (e) { recibida[String(e).toLowerCase()] = true; });
+      a.miembros.forEach(function (m) { if (recibida[claveDe(m)]) { m.bienvenida = ahora; } });
+      filas.forEach(function (f) { if (recibida[f.clave]) { pintarEnviada(f); } });
+    }
+
     function enviarElegidos() {
-      var emails = marcados().map(function (f) { return f.m.email; });
+      var emails = marcados().map(function (m) { return m.email; });
       if (enCurso || !emails.length) { return; }
       if (!window.confirm(sprintf(_n('¿Enviar la bienvenida a %d persona?', '¿Enviar la bienvenida a %d personas?', emails.length), emails.length))) { return; }
-      resultadoEnvio.hidden = true;
+      mostrarResultado('');
       enviarConProgreso(emails).then(function (res) {
-        var ahora = res.momento || Math.floor(Date.now() / 1000);
-        var recibida = {};
-        res.enviados.forEach(function (e) { recibida[String(e).toLowerCase()] = true; });
-        filas.forEach(function (f) { if (recibida[f.clave]) { f.m.bienvenida = ahora; pintarEnviada(f); } });
+        marcarEnviadas(res);
         // La selección se quita; si el envío se interrumpió, quedan marcadas las que no llegaron a intentarse para poder repetir.
         elegidos = {};
         res.sinEnviar.forEach(function (e) { elegidos[String(e).toLowerCase()] = true; });
         sincronizarBienvenida();
         var texto = resumenBienvenida(res), fallos = bienvenidaConFallos(res);
-        resultadoEnvio.textContent = texto;
-        resultadoEnvio.classList.toggle('is-error', fallos);
-        resultadoEnvio.hidden = !texto;
+        mostrarResultado(texto, fallos);
         aviso(texto, fallos ? 'error' : undefined, fallos ? 9000 : undefined);
       });
     }
 
+    /** Guarda al momento las listas del equipo (solo ellas; el resto de ajustes sigue en «Guardar ajustes»). La respuesta
+     *  trae los miembros ya recalculados. Devuelve la respuesta, o null si falló (ya avisado). */
+    function guardarEquipo(emails, administradores, enError) {
+      if (enCurso) { return Promise.resolve(null); }
+      enCurso = true;
+      bloquear();
+      return api('ajustes', { json: { emails: emails, administradores: administradores, pagina: paginaActual() } }).then(function (r) {
+        a.emails = r.emails || emails;
+        a.administradores = r.administradores || administradores;
+        a.miembros = r.miembros || a.miembros;
+        return r;
+      }).catch(function (err) {
+        aviso(err.message, 'error', 9000);
+        mostrarResultado(err.message, true);
+        if (enError) { enError(err); }
+        return null;
+      }).then(function (r) {
+        enCurso = false;
+        bloquear();
+        return r;
+      });
+    }
+
+    /** Tras guardar: repinta la lista, envía (con progreso) la bienvenida a quien entra ahora y avisa del resultado. */
+    function terminarCambio(r, texto, foco) {
+      if (!r) { return; }
+      var pendientes = r.bienvenidaPendiente || [];
+      // Con la bienvenida en marcha los botones están bloqueados (no pueden tener el foco): se enfoca al terminar.
+      pintarLista(pendientes.length ? undefined : foco);
+      if (!pendientes.length) {
+        mostrarResultado(texto);
+        aviso(texto);
+        return;
+      }
+      return enviarConProgreso(pendientes).then(function (res) {
+        marcarEnviadas(res);
+        enfocarPersona(foco);
+        var fallos = bienvenidaConFallos(res), completo = texto + ' · ' + resumenBienvenida(res);
+        mostrarResultado(completo, fallos);
+        aviso(completo, fallos ? 'error' : undefined, fallos ? 9000 : undefined);
+      });
+    }
+
+    function cambiarEquipo(emails, administradores, texto, foco) {
+      mostrarResultado('');
+      return guardarEquipo(emails, administradores).then(function (r) { return terminarCambio(r, texto, foco); });
+    }
+
+    // Añadir personas: formulario en línea.
+    var fNuevos = h('textarea', { class: 'pcan-input pcan-textarea', rows: '4', placeholder: __('Un correo por línea'), spellcheck: 'false', autocapitalize: 'off', autocomplete: 'off',
+      oninput: function () { errorNuevos(''); } });
+    var errorAnadir = h('p', { class: 'pcan-form-error', role: 'alert', hidden: true });
+    var notaAnadir = h('p', { class: 'pcan-help pcan-anadir-nota' });
+    var bConfirmarAnadir = h('button', { type: 'button', class: 'pcan-btn pcan-btn-primary', onclick: function () { anadirPersonas(); } }, __('Añadir'));
+    var bCancelarAnadir = h('button', { type: 'button', class: 'pcan-btn', onclick: function () {
+      fNuevos.value = '';
+      alternarAnadir(false);
+      bAnadir.focus();
+    } }, __('Cancelar'));
+    var cajaAnadir = h('div', { class: 'pcan-anadir', id: 'pcan-aj-anadir', hidden: true },
+      campo(__('Correos'), fNuevos, __('Uno o varios: uno por línea, o pega una lista (se separan por espacios, comas, puntos y comas o saltos de línea).')),
+      errorAnadir,
+      h('div', { class: 'pcan-actions' }, bConfirmarAnadir, bCancelarAnadir),
+      notaAnadir);
+    var bAnadir = h('button', { type: 'button', class: 'pcan-btn pcan-btn-primary', 'aria-expanded': 'false', 'aria-controls': 'pcan-aj-anadir', onclick: function () { alternarAnadir(); } },
+      icono('mas'), __('Añadir personas'));
+
+    // Aviso de «correos escritos sin añadir» que sale en la barra de guardar al pulsar «Guardar ajustes»: se quita en cuanto se resuelve.
+    var avisoSinAnadir = false;
+    function errorNuevos(texto) {
+      if (!texto && avisoSinAnadir) { avisoSinAnadir = false; errorBox.hidden = true; }
+      errorAnadir.textContent = texto;
+      errorAnadir.hidden = !texto;
+      fNuevos.classList.toggle('is-invalid', !!texto);
+      if (texto) { fNuevos.setAttribute('aria-invalid', 'true'); } else { fNuevos.removeAttribute('aria-invalid'); }
+    }
+
+    // Lo que pasará con la bienvenida: la decide el servidor con el ajuste ya guardado, no con la casilla sin guardar.
+    function actualizarNotaAnadir() {
+      var guardada = !!a.bienvenidaAuto;
+      notaAnadir.textContent = (guardada ? __('Les llegará el correo de bienvenida.') : __('La bienvenida automática está desactivada (puedes enviarla después desde la lista).')) +
+        (fBienvAuto.checked !== guardada ? ' ' + __('La casilla de bienvenida de más abajo tiene un cambio sin guardar: hasta que guardes los ajustes se aplica lo anterior.') : '');
+    }
+
+    function alternarAnadir(abrir) {
+      var mostrar = abrir === undefined ? cajaAnadir.hidden : abrir;
+      cajaAnadir.hidden = !mostrar;
+      bAnadir.setAttribute('aria-expanded', mostrar ? 'true' : 'false');
+      if (!mostrar) { errorNuevos(''); return; }
+      actualizarNotaAnadir();
+      fNuevos.focus();
+    }
+
+    function anadirPersonas() {
+      if (enCurso) { return; }
+      var escritos = [];
+      fNuevos.value.split(/[\s,;]+/).filter(Boolean).forEach(function (e) {
+        e = e.toLowerCase();
+        if (escritos.indexOf(e) === -1) { escritos.push(e); }
+      });
+      if (!escritos.length) { errorNuevos(__('Escribe al menos un correo.')); fNuevos.focus(); return; }
+      var malos = escritos.filter(function (e) { return !CORREO_VALIDO.test(e); });
+      if (malos.length) {
+        errorNuevos(sprintf(/* translators: 1: número de correos, 2: lista de correos */ _n('Este correo no es válido: %2$s. No se ha añadido a nadie.', 'Estos correos no son válidos: %2$s. No se ha añadido a nadie.', malos.length), malos.length, malos.join(', ')));
+        fNuevos.focus();
+        return;
+      }
+      var nuevos = escritos.filter(function (e) { return a.emails.indexOf(e) === -1; });
+      var repetidos = escritos.filter(function (e) { return a.emails.indexOf(e) !== -1; });
+      var notaRepetidos = repetidos.length ? sprintf(/* translators: 1: número de correos, 2: lista de correos */ _n('Ya estaba en el equipo: %2$s', 'Ya estaban en el equipo: %2$s', repetidos.length), repetidos.length, repetidos.join(', ')) : '';
+      if (!nuevos.length) { errorNuevos(notaRepetidos); fNuevos.focus(); return; }
+      errorNuevos('');
+      mostrarResultado('');
+      guardarEquipo(a.emails.concat(nuevos), a.administradores, function (err) { errorNuevos(err.message); }).then(function (r) {
+        if (!r) { return; }
+        var anadidos = nuevos.filter(function (e) { return r.emails.indexOf(e) !== -1; });
+        fNuevos.value = '';
+        alternarAnadir(false);
+        return terminarCambio(r, sprintf(_n('%d persona añadida', '%d personas añadidas', anadidos.length), anadidos.length) + (notaRepetidos ? ' · ' + notaRepetidos : ''), '');
+      });
+    }
+    fBienvAuto.addEventListener('change', actualizarNotaAnadir);
+
     var bloqueMiembros = h('div', { class: 'pcan-miembros-bloque' },
-      filas.length ? h('div', { class: 'pcan-bienv-barra' }, bTodos, bQuitar, bSinEntrar, bEnviar) : null,
-      notaCorreos, resultadoEnvio, miembros);
-    // Marcar casillas aquí no son cambios de los ajustes: no deben contar como «cambios sin guardar».
+      h('div', { class: 'pcan-equipo-herramientas' }, bAnadir, fBuscar),
+      cajaAnadir, barraBienv, resultadoEnvio, miembros);
+    // Lo que se hace aquí (casillas, búsqueda, añadir personas) no son cambios de los ajustes: no deben contar como «cambios sin guardar».
     bloqueMiembros.addEventListener('input', function (e) { e.stopPropagation(); });
     bloqueMiembros.addEventListener('change', function (e) { e.stopPropagation(); });
-    sincronizarBienvenida();
+    pintarLista();
 
     // Protección de los archivos: comprueba que el servidor no los entrega sin sesión y mueve los antiguos a la carpeta privada.
     var cajaProteccion = h('div', { class: 'pcan-huerfanos' }, h('p', { class: 'pcan-help', text: __('Comprobando la protección de los archivos…') }));
@@ -2594,11 +2883,9 @@
       equipo: [
         h('fieldset', { class: 'pcan-fieldset' },
           h('legend', { text: __('Equipo') }),
-          campo(__('Correos con acceso'), fEmails, __('Cada persona entra con un enlace que recibe en ese correo (o con Google, si lo configuras). Quien sale de la lista pierde el acceso.')),
-          campo(__('Administradores del cancionero'), fAdmins, __('Pueden cambiar los ajustes, gestionar el equipo y borrar canciones, sin ser administradores de la web. Entran como el resto del equipo (enlace por correo o Google).')),
-          campo(__('Dominio permitido'), fDominio, __('Opcional: cualquier cuenta de este dominio de Google Workspace podrá entrar.')),
+          h('p', { class: 'pcan-help', text: __('Cada persona entra con un enlace que recibe en su correo (o con Google, si lo configuras) y quien sale de la lista pierde el acceso. Los administradores pueden cambiar los ajustes, gestionar el equipo y borrar canciones.') }),
           bloqueMiembros,
-          hayAdmin ? h('p', { class: 'pcan-aviso-admin' }, icono('aviso'), __('Los correos marcados son de cuentas de administración: no reciben enlaces por seguridad y entran con usuario y contraseña. Para probar el enlace, usa otro correo.')) : null,
+          avisoAdmin,
           h('div', { class: 'pcan-actions' },
             h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function (e) {
               var b = e.currentTarget;
@@ -2633,7 +2920,10 @@
                 .catch(function (err) { aviso(err.message, 'error'); })
                 .then(function () { b.disabled = false; });
             } }, icono('enlace'), __('Enviarme una bienvenida de prueba')),
-            h('span', { class: 'pcan-help', text: __('Te llega a ti, con el texto de arriba aunque aún no esté guardado.') })))],
+            h('span', { class: 'pcan-help', text: __('Te llega a ti, con el texto de arriba aunque aún no esté guardado.') }))),
+        h('fieldset', { class: 'pcan-fieldset' },
+          h('legend', { text: __('Acceso por dominio') }),
+          campo(__('Dominio permitido'), fDominio, __('Opcional: cualquier cuenta de este dominio de Google Workspace podrá entrar.')))],
       google: [
         h('fieldset', { class: 'pcan-fieldset' },
           h('legend', { text: __('Acceso con Google (opcional)') }),
@@ -2695,7 +2985,8 @@
     var form = h('form', { class: 'pcan-ajustes-main', novalidate: true }, zona, barra);
 
     function valores() {
-      return JSON.stringify([fNombre.value, fSubtitulo.value, fPapelera.value, fAdmins.value, fTema.value, fClient.value, fDominio.value, fEmails.value, fBienvAuto.checked, fBienvTexto.value, fAvisoBorrado.checked]);
+      // La lista del equipo (correos y administradores) no está aquí: se guarda al momento desde la propia lista.
+      return JSON.stringify([fNombre.value, fSubtitulo.value, fPapelera.value, fTema.value, fClient.value, fDominio.value, fBienvAuto.checked, fBienvTexto.value, fAvisoBorrado.checked]);
     }
     var inicial = valores();
     // El aviso de «cambios sin guardar» al cerrar lo da panelSucio; aquí se calcula comparando con lo cargado.
@@ -2703,7 +2994,6 @@
       e.stopPropagation();
       if (e.target.classList) { e.target.classList.remove('is-invalid'); }
       errorBox.hidden = true;
-      notaCorreos.hidden = correosEscritos() === correosIniciales;
       var sucio = valores() !== inicial;
       panelSucio = sucio;
       estado.textContent = sucio ? __('Hay cambios sin guardar') : '';
@@ -2742,41 +3032,35 @@
       e.preventDefault();
       if (!SEC_FORMULARIO[actual]) { return; }
       if (enCurso) { return; }
+      // Correos escritos en «Añadir personas» que aún no se han añadido: no se pierden en silencio al guardar.
+      if (!cajaAnadir.hidden && fNuevos.value.trim()) {
+        ir('equipo');
+        errorBox.textContent = __('Hay correos escritos sin añadir. Pulsa «Añadir» o «Cancelar» en el formulario de añadir personas.');
+        errorBox.hidden = false;
+        avisoSinAnadir = true;
+        fNuevos.focus();
+        return;
+      }
       enCurso = true;
       bloquear();
       errorBox.hidden = true;
+      // No envía `emails` ni `administradores`: esas listas se guardan al momento desde la lista del equipo y,
+      // si fueran con lo que se cargó al abrir, pisarían esos cambios.
       api('ajustes', { json: {
         nombre: fNombre.value.trim(),
         subtitulo: fSubtitulo.value.trim(),
         papeleraDias: parseInt(fPapelera.value, 10) || 0,
-        administradores: fAdmins.value.split(/[\s,;]+/).filter(Boolean),
         temaDefecto: fTema.value,
         googleClientId: fClient.value.trim(),
         dominio: fDominio.value.trim(),
-        emails: fEmails.value.split(/[\s,;]+/).filter(Boolean),
         bienvenidaAuto: fBienvAuto.checked,
         bienvenidaTexto: fBienvTexto.value.trim(),
         avisoBorrado: fAvisoBorrado.checked,
         pagina: paginaActual()
-      } }).then(function (r) {
+      } }).then(function () {
         panelSucio = false;
-        inicial = valores();
-        correosIniciales = correosEscritos();
-        estado.textContent = '';
-        barra.classList.remove('is-sucio');
-        notaCorreos.hidden = true;
-        // Los correos recién añadidos reciben ahora la bienvenida automática, con progreso, antes de cerrar.
-        var pendientes = (r && r.bienvenidaPendiente) || [];
-        if (!pendientes.length) {
-          aviso(__('Ajustes guardados'));
-          cerrarPanel();
-          return;
-        }
-        return enviarConProgreso(pendientes).then(function (res) {
-          var fallos = bienvenidaConFallos(res);
-          aviso(__('Ajustes guardados') + ' · ' + resumenBienvenida(res), fallos ? 'error' : undefined, fallos ? 9000 : undefined);
-          if (raiz.isConnected) { cerrarPanel(); }
-        });
+        aviso(__('Ajustes guardados'));
+        cerrarPanel();
       }).catch(function (err) {
         enCurso = false;
         bloquear();
@@ -2801,7 +3085,10 @@
       ir: ir,
       recargar: function (id) { if (cargadores[id]) { cargadas[id] = true; cargadores[id](); } }
     };
-    alCerrarPanel.push(function () { if (ajustesAbierto && ajustesAbierto.raiz === raiz) { ajustesAbierto = null; } });
+    alCerrarPanel.push(function () {
+      cerrarOpciones();
+      if (ajustesAbierto && ajustesAbierto.raiz === raiz) { ajustesAbierto = null; }
+    });
     ir(seccionInicial);
   }
 

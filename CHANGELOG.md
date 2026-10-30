@@ -2,6 +2,13 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.14.0 · 2026-10-31
+
+Equipo sin duplicidades: desaparecen las áreas de texto de correos y administradores, y todo se gestiona en la lista.
+Botón «Añadir personas» (uno o varios correos a la vez, con la bienvenida y su progreso), buscador, y en cada persona
+«Opciones» para hacerla administradora o quitarla del equipo. Los cambios de la lista se guardan al momento; el
+dominio permitido pasa a su propio apartado
+
 ## 1.13.1 · 2026-10-30
 
 Modo culto: al tocar la partitura para ocultar las barras ya no se queda la pantalla gris, y la X lo cierra a la

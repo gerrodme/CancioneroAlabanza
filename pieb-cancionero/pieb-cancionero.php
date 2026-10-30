@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Cancionero
  * Description: Cancionero para equipos de música y alabanza: canciones con partitura, letra, audios y YouTube, setlists de cultos, visor para tableta, temas propios y acceso con Google. Shortcode [cancionero].
- * Version: 1.13.1
+ * Version: 1.14.0
  * Author: Gerson Rodrigo Menéndez
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PIEB_CAN_VERSION', '1.13.1');
+define('PIEB_CAN_VERSION', '1.14.0');
 define('PIEB_CAN_FILE', __FILE__);
 define('PIEB_CAN_DIR', plugin_dir_path(__FILE__));
 define('PIEB_CAN_URL', plugin_dir_url(__FILE__));
@@ -283,6 +283,7 @@ function pieb_can_shortcode() {
         'nonce'      => wp_create_nonce('wp_rest'),
         'userId'     => (int) $user->ID,
         'userName'   => $user->display_name,
+        'userEmail'  => strtolower($user->user_email),
         'gestionar'  => current_user_can(PIEB_CAN_CAP_GESTIONAR),
         'admin'      => current_user_can('manage_options'),
         'logoutUrl'  => wp_logout_url(get_permalink()),
