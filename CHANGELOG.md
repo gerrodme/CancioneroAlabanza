@@ -2,6 +2,12 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.14.2 · 2026-10-31
+
+El plugin deja de llevar código propio de una web concreta: una redirección de una página antigua y un ajuste del menú
+del tema Vantage para pantallas táctiles. Quien use ese ajuste del menú debe instalarlo como mu-plugin aparte antes de
+actualizar
+
 ## 1.14.1 · 2026-10-31
 
 El idioma y la notación vuelven a cambiar al elegirlos: con sesión, la página del cancionero ya no se guarda en caché
