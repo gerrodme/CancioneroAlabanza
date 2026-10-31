@@ -2,6 +2,10 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.15.2 · 2026-10-31
+
+El PDF de la escaleta lleva abajo a la derecha, pequeño y atenuado, «Powered by» con el logo del Cancionero
+
 ## 1.15.1 · 2026-10-31
 
 La escaleta se prepara en cada culto: su pestaña Escaleta tiene «Rellenar» y «Editar secciones» (secciones, campos,

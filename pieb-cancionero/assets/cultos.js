@@ -1760,8 +1760,19 @@
       y -= ALTO_TIT;
     }
 
+    // Abajo a la derecha de cada hoja, discreto: «Powered by» y el logo del Cancionero, pequeños y atenuados.
+    function firma() {
+      if (!imagenes.firma) { return; }
+      var f = encajar(imagenes.firma, 62, 12);
+      var x = M + W - f.w, base = 12;
+      pag.drawImage(imagenes.firma, { x: x, y: base, width: f.w, height: f.h, opacity: 0.55 });
+      var texto = 'Powered by', s = 5.5;
+      pag.drawText(texto, { x: M + W - normal.widthOfTextAtSize(texto, s), y: base + f.h + 2, size: s, font: normal, color: L.rgb(0.6, 0.6, 0.6) });
+    }
+
     function nuevaPagina(primera) {
       pag = doc.addPage(A4);
+      firma();
       y = A4[1] - (primera ? TOP : TOP_SIG);
       if (primera) { cabecera(); y -= ALTO_CAB + 14; }
       inicio = y;
@@ -1856,8 +1867,11 @@
         ]).then(function (r) {
           sinImagenes = !!((plantilla.cabecera && plantilla.cabecera.url && !r[3]) || (plantilla.logo && plantilla.logo.url && !r[4]));
           // Sin logo de la iglesia (o si no se pudo cargar), va el icono del Cancionero.
-          return (r[4] ? Promise.resolve(r[4]) : imagenParaPdf(doc, BASE_ASSETS ? BASE_ASSETS + 'icono.png' : '')).then(function (logo) {
-            dibujarEscaletaPdf(L, doc, { n: r[0], b: r[1], i: r[2] }, { cabecera: r[3], logo: logo }, culto, plantilla, filas);
+          return Promise.all([
+            r[4] ? Promise.resolve(r[4]) : imagenParaPdf(doc, BASE_ASSETS ? BASE_ASSETS + 'icono.png' : ''),
+            imagenParaPdf(doc, BASE_ASSETS ? BASE_ASSETS + 'logo-cancionero.png' : '')
+          ]).then(function (im) {
+            dibujarEscaletaPdf(L, doc, { n: r[0], b: r[1], i: r[2] }, { cabecera: r[3], logo: im[0], firma: im[1] }, culto, plantilla, filas);
             return doc.save();
           });
         });
