@@ -11,6 +11,8 @@ A technical summary of the **Cancionero** plugin for anyone new to the code.
 | `pieb-cancionero.php` | Plugin header, constants, roles and capabilities, the `[cancionero]` shortcode, loading of scripts and of the `PIEB_CANCIONERO` object that the interface reads. |
 | `includes/canciones.php` | The song content type, reading/writing metadata, file uploads, size limits. |
 | `includes/rest.php` | The `pieb/v1` REST API: list, view, create, update and delete songs; chunked file uploads. |
+| `includes/archivos.php` | The songbook's private files: the `cancionero-privado` folder, delivery with a session (`?pcan_archivo=ID`), protection and unused files. |
+| `includes/papelera.php` | The songbook trash: who deleted, retention period and automatic cleanup, restore and delete forever. |
 | `includes/cultos.php` | Services and setlists (content type and API). |
 | `includes/ajustes.php` | Themes, settings, the team list, per-user preferences (theme, language, notation), backups (export/import). |
 | `includes/google.php` | Sign-in with Google (ID token) and with an email link. |
@@ -402,3 +404,11 @@ CSS `--pc-*` variables per theme: `colores` (default, "Colors"), `pentagrama` ("
 follows the WordPress theme), `pulso` ("Pulse"), `claro` ("Studio"), `escenario` ("Stage"), `papel` ("Score"). The theme
 is set in `data-pcan-theme` and the extra style in `data-pcan-estilo`. The test bench accepts `?tema=`, `?idioma=` and
 `?notacion=`.
+
+## Page cache
+
+When signed in, the songbook page carries per-person data (theme, language, notation and the API key in
+`PIEB_CANCIONERO`): `pieb-cancionero.php` marks it as non-cacheable in `template_redirect` (`DONOTCACHEPAGE`,
+`nocache_headers()`, the `X-LiteSpeed-Cache-Control: no-cache` header and the `litespeed_control_set_nocache` action),
+and `POST /preferencias` fires `litespeed_purge_private_all` to clear that person's private LiteSpeed copy. Without this,
+the old page kept being served after changing a preference. The sign-in screen (no session) can still be cached.

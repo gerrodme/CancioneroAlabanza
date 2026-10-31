@@ -11,6 +11,8 @@ Resumen técnico del plugin **Cancionero** para quien llegue nuevo al código.
 | `pieb-cancionero.php` | Cabecera del plugin, constantes, roles y capacidades, shortcode `[cancionero]`, carga de scripts y del objeto `PIEB_CANCIONERO` que la interfaz lee. |
 | `includes/canciones.php` | Tipo de contenido de canción, lectura/escritura de metadatos, subida de archivos, límites de tamaño. |
 | `includes/rest.php` | API REST `pieb/v1`: listar, ver, crear, actualizar y borrar canciones; subida de archivos por trozos. |
+| `includes/archivos.php` | Archivos privados del cancionero: carpeta `cancionero-privado`, entrega con sesión (`?pcan_archivo=ID`), protección y archivos sin usar. |
+| `includes/papelera.php` | Papelera del cancionero: quién borró, plazo y limpieza automática, restaurar y eliminar para siempre. |
 | `includes/cultos.php` | Cultos y setlists (tipo de contenido y API). |
 | `includes/ajustes.php` | Temas, ajustes, lista del equipo, preferencias por usuario, copias de seguridad (exportar/importar). |
 | `includes/google.php` | Acceso con Google (ID token) y con enlace por correo. |
@@ -395,3 +397,12 @@ JavaScript. Cómo traducir: [traducir.md](traducir.md).
 Variables CSS `--pc-*` por tema: `colores` (por defecto), `pentagrama`, `sitio` (sigue el tema de WordPress), `pulso`,
 `claro` (Estudio), `escenario`, `papel` (Partitura). El tema se fija en `data-pcan-theme` y el estilo extra en
 `data-pcan-estilo`. El banco de pruebas acepta `?tema=`, `?idioma=` y `?notacion=`.
+
+## Caché de la página
+
+Con sesión, la página del cancionero lleva datos de cada persona (tema, idioma, notación y la clave de la API en
+`PIEB_CANCIONERO`): `pieb-cancionero.php` la marca como no cacheable en `template_redirect` (`DONOTCACHEPAGE`,
+`nocache_headers()`, la cabecera `X-LiteSpeed-Cache-Control: no-cache` y la acción `litespeed_control_set_nocache`), y
+`POST /preferencias` lanza `litespeed_purge_private_all` para borrar la copia privada de LiteSpeed de esa persona. Sin
+esto, tras cambiar una preferencia se seguía sirviendo la página anterior. La pantalla de acceso (sin sesión) sí puede
+guardarse en caché.

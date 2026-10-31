@@ -117,7 +117,7 @@ de WordPress, solo a quien ha iniciado sesión y tiene acceso al cancionero.
 | `tutorial/` | Tutorial animado con locución (HTML autocontenido). El vídeo MP4 no se versiona. |
 | `docs/` | Guías: [arquitectura](docs/arquitectura.md), [carga masiva y enriquecimiento de datos](docs/carga-masiva.md), [recuperar el cancionero](docs/guia-recuperar-cancionero.html), [traducir el cancionero](docs/traducir.md). Cada guía tiene versión en inglés (`.en`). |
 | `pieb-cancionero/languages/` | Traducciones: plantilla `.pot` y, por idioma, `.po`, `.mo` y `.json`. Ver [cómo traducir](docs/traducir.md). |
-| `herramientas/` | Empaquetar el plugin, gestionar las traducciones (`i18n.py`) y regenerar la locución y el vídeo del tutorial. |
+| `herramientas/` | Empaquetar el plugin, gestionar las traducciones (`i18n.py`), comprobar el PHP sin PHP (`comprobar_php.py`), regenerar las capturas y la locución y el vídeo del tutorial. |
 | `CLAUDE.md` | Contexto del proyecto para retomar el trabajo (también útil para cualquier persona nueva). |
 | `CHANGELOG.md` | Historial de versiones. |
 | `dist/` | El `.zip` generado (no se versiona). |
@@ -138,8 +138,11 @@ de WordPress, solo a quien ha iniciado sesión y tiene acceso al cancionero.
   `.mo`, los `.json` de JavaScript y los diccionarios del banco de pruebas, y `estado` muestra qué porcentaje está
   traducido (necesita `pip install -r herramientas/requirements.txt`). `empaquetar.py` ya ejecuta `compilar`. Para
   añadir un idioma: [docs/traducir.md](docs/traducir.md).
-- **PHP:** no hay entorno PHP local en el equipo de desarrollo original: el código PHP se revisa a mano y se prueba en
-  WordPress. Si tienes PHP, `php -l` sobre cada archivo es un buen primer filtro.
+- **PHP:** no hay entorno PHP local en el equipo de desarrollo original: el código PHP se revisa a mano, con
+  `python herramientas/comprobar_php.py` (paréntesis y llaves equilibrados), y se prueba en WordPress. Si tienes PHP,
+  `php -l` sobre cada archivo es un filtro mejor.
+- **Publicar una Release:** fusionar en `main`, subir y crear la Release de GitHub con el zip
+  (`gh release create vX.Y.Z dist/pieb-cancionero-X.Y.Z.zip`), con notas en español e inglés.
 - Más detalle (modelo de datos, API REST, convenciones): [docs/arquitectura.md](docs/arquitectura.md) y
   [CLAUDE.md](CLAUDE.md).
 

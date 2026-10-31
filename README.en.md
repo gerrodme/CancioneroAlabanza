@@ -120,7 +120,7 @@ only to people who are signed in and have access to the songbook.
 | `banco-pruebas/` | A local page with simulated data to try the interface without WordPress (the "test bench"). |
 | `tutorial/` | Animated tutorial with narration (self-contained HTML, in Spanish). The MP4 video is not versioned. |
 | `docs/` | Guides: [architecture](docs/arquitectura.en.md), [bulk loading and data enrichment](docs/carga-masiva.en.md), [recovering the songbook](docs/guia-recuperar-cancionero.en.html), [translating Cancionero](docs/translate.en.md). |
-| `herramientas/` | Package the plugin, manage translations (`i18n.py`) and regenerate the tutorial's narration and video. |
+| `herramientas/` | Package the plugin, manage translations (`i18n.py`), check PHP without PHP (`comprobar_php.py`), regenerate the screenshots and the tutorial's narration and video. |
 | `CLAUDE.md` | Project context for picking the work back up (in Spanish; also useful for anyone new). |
 | `CHANGELOG.md` | Version history (in Spanish). |
 | `dist/` | The generated `.zip` (not versioned). |
@@ -143,8 +143,11 @@ only to people who are signed in and have access to the songbook.
   the `.mo` files, the JavaScript `.json` files and the test bench dictionaries, and `estado` shows what percentage is
   translated (needs `pip install -r herramientas/requirements.txt`). `empaquetar.py` already runs `compilar`. To add a
   language: [docs/translate.en.md](docs/translate.en.md).
-- **PHP:** the original development machine has no local PHP environment: PHP code is reviewed by hand and tested on
-  WordPress. If you have PHP, `php -l` on each file is a good first filter.
+- **PHP:** the original development machine has no local PHP environment: PHP code is reviewed by hand, with
+  `python herramientas/comprobar_php.py` (balanced brackets and braces), and tested on WordPress. If you have PHP,
+  `php -l` on each file is a better filter.
+- **Publishing a Release:** merge into `main`, push and create the GitHub Release with the zip
+  (`gh release create vX.Y.Z dist/pieb-cancionero-X.Y.Z.zip`), with notes in Spanish and English.
 - More detail (data model, REST API, conventions): [docs/arquitectura.en.md](docs/arquitectura.en.md) and
   [CLAUDE.md](CLAUDE.md) (Spanish).
 
