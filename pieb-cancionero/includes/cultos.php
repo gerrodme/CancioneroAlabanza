@@ -7,6 +7,8 @@
  *  _pieb_tipo   Tipo de culto (texto libre: «Culto dominical», «Oración»…)
  *  _pieb_notas  Notas generales
  *  _pieb_items  array( array('cancion' => id, 'tonalidad' => 'Sol', 'nota' => 'Solo estrofas 1 y 3'), ... ) en orden
+ *  _pieb_escaleta  Escaleta del culto: copia de la plantilla con los valores de este culto (opcional; ver includes/escaleta.php).
+ *                  Solo se entrega en el detalle del culto (GET /cultos/{id}), no en el listado.
  */
 
 if (!defined('ABSPATH')) {
@@ -133,6 +135,9 @@ function pieb_can_culto_detalle($post) {
     }
     unset($item);
 
+    // La escaleta (objeto, o null si este culto aún no tiene) va solo en el detalle, para no engordar el listado de cultos.
+    $datos['escaleta'] = pieb_can_culto_escaleta($post->ID);
+
     return $datos;
 }
 
@@ -200,6 +205,16 @@ function pieb_can_rest_culto_guardar(WP_REST_Request $request) {
         );
     }
 
+    // Escaleta: solo se toca si llega (null la borra); se valida antes de guardar nada.
+    $con_escaleta = array_key_exists('escaleta', $params);
+    $escaleta = null;
+    if ($con_escaleta) {
+        $escaleta = pieb_can_escaleta_limpiar_culto($params['escaleta']);
+        if (is_wp_error($escaleta)) {
+            return $escaleta;
+        }
+    }
+
     if (!empty($request['id'])) {
         $post = pieb_can_rest_culto_get($request['id']);
         if (is_wp_error($post)) {
@@ -223,6 +238,9 @@ function pieb_can_rest_culto_guardar(WP_REST_Request $request) {
     update_post_meta($post_id, '_pieb_tipo', isset($params['tipo']) ? sanitize_text_field($params['tipo']) : '');
     update_post_meta($post_id, '_pieb_notas', isset($params['notas']) ? sanitize_textarea_field($params['notas']) : '');
     update_post_meta($post_id, '_pieb_items', $items);
+    if ($con_escaleta) {
+        pieb_can_escaleta_guardar_culto($post_id, $escaleta);
+    }
 
     return rest_ensure_response(pieb_can_culto_detalle(get_post($post_id)));
 }

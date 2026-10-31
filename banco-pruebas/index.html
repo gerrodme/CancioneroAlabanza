@@ -68,15 +68,70 @@
       subidaPor: 'Ana', puedeBorrar: true
     });
   }
+  // POST cultos y cultos/ID: guarda los campos que llegan; la escaleta se conserva si no llega (y solo cambia si llega, también null).
+  function guardarCultoMock(c, cuerpo) {
+    ['titulo', 'fecha', 'tipo', 'notas', 'items'].forEach(function (k) { if (cuerpo[k] !== undefined) { c[k] = cuerpo[k]; } });
+    if (cuerpo.escaleta !== undefined) { c.escaleta = cuerpo.escaleta; }
+  }
   function detalleCulto(c) {
-    return Object.assign({}, c, { items: c.items.map(function (it) {
+    return Object.assign({}, c, { escaleta: c.escaleta || null, items: c.items.map(function (it) {
       var s = canciones.filter(function (x) { return x.id === it.cancion; })[0];
       return Object.assign({}, it, { datos: { titulo: s.titulo, numero: s.numero, tonalidad: s.tonalidad, letra: s.letra, partituras: detalleCancion(s).partituras } });
     }) });
   }
   // Ajustes y equipo: la lista guardada vive aquí para que guardar y enviar la bienvenida se noten al volver a abrir.
   var ahoraS = function () { return Math.floor(Date.now() / 1000); };
+  // Escaleta del culto: plantilla genérica (la misma que da el servidor mientras nadie guarde otra), sin logo ni cabecera.
+  function escaletaGenerica() {
+    function c(id, tipo, etiqueta, defecto, pequeno) {
+      return { id: id, tipo: tipo, etiqueta: etiqueta || '', defecto: defecto === undefined ? (tipo === 'cancion' || tipo === 'canciones' ? 'ninguna' : '') : defecto, pequeno: !!pequeno };
+    }
+    function s(id, titulo, campos) { return { id: id, titulo: titulo, nota: '', campos: campos }; }
+    return {
+      titulo: 'ORDEN DE CULTO', central: '', logo: null, cabecera: null,
+      secciones: [
+        s('preludio', 'PRELUDIO', [c('cancion', 'cancion', '', 'primera')]),
+        s('lectura-oracion', 'LECTURA Y ORACIÓN', [c('presidencia', 'texto', 'Presidencia'), c('lectura', 'texto', 'Lectura')]),
+        s('bienvenida', 'BIENVENIDA', [c('bienvenida', 'texto', '', 'Bienvenida a todos y a quienes nos visitan')]),
+        s('comunidad', 'VIDA DE COMUNIDAD', [c('comunidad', 'textoLargo')]),
+        s('alabanza', 'CANTOS DE ALABANZA', [c('canciones', 'canciones', '', 'ninguna')]),
+        s('ofrenda', 'OFRENDA', [c('musica', 'cancion', 'Música instrumental', 'siguiente'), c('responsables', 'texto', 'Responsables'), c('nota', 'texto', '', '', true)]),
+        s('ninos', 'NIÑOS', [c('ninos', 'texto', '', 'Los niños pasan a sus clases')]),
+        s('predicacion', 'PREDICACIÓN', [c('lectura-biblica', 'texto', 'Lectura'), c('titulo', 'texto', 'Título'), c('predicacion', 'texto', 'Predicación')]),
+        s('despedida', 'DESPEDIDA', [c('despedida', 'textoLargo')]),
+        s('doxologia', 'DOXOLOGÍA', [c('doxologia', 'texto')]),
+        s('postludio', 'POSTLUDIO', [c('postludio', 'canciones', '', 'restantes')])
+      ]
+    };
+  }
+  // Escaleta de ejemplo del primer culto (valores inventados): copia de la plantilla con valores; lo que queda en null sigue al defecto.
+  // El segundo culto no tiene (escaleta: null) y parte de la plantilla.
+  (function () {
+    var e = escaletaGenerica();
+    e.secciones.forEach(function (s) { s.oculta = false; s.extra = false; s.campos.forEach(function (c) { c.valor = null; }); });
+    function pon(sec, campo, valor) {
+      e.secciones.filter(function (s) { return s.id === sec; })[0].campos.filter(function (c) { return c.id === campo; })[0].valor = valor;
+    }
+    pon('preludio', 'cancion', { cancion: 432, nombre: 'A Ti la gloria' });
+    pon('lectura-oracion', 'presidencia', 'Marta Ruiz');
+    pon('lectura-oracion', 'lectura', 'Salmo 23');
+    pon('comunidad', 'comunidad', 'Reunión de jóvenes el sábado a las 18:00\nComida compartida el domingo 25 (cada uno trae un plato)\n\nCumpleaños del mes: Ana, Luis y Sara');
+    pon('alabanza', 'canciones', [{ cancion: 440, nombre: 'Cuán grande es Él' }]);
+    pon('ofrenda', 'responsables', 'Pablo (fila 1), Elena (fila 2)');
+    pon('ofrenda', 'nota', 'Se ora por las ofrendas desde el centro');
+    pon('predicacion', 'lectura-biblica', 'Mateo 5:1-12');
+    pon('predicacion', 'titulo', '«Bienaventurados»');
+    pon('predicacion', 'predicacion', 'Pastor invitado');
+    pon('despedida', 'despedida', '*Recordar la reunión del jueves');
+    pon('doxologia', 'doxologia', 'Romanos 11:36');
+    e.secciones.splice(8, 0, { id: 'extra-cena', titulo: 'Santa Cena', nota: '(Al terminar la predicación)', oculta: false, extra: true,
+      campos: [{ id: 'texto', tipo: 'textoLargo', etiqueta: '', defecto: '', pequeno: false, valor: 'Se sirve en los bancos' }] });
+    cultos[0].escaleta = e;
+    cultos[1].escaleta = null;
+  })();
+  var iconoMock = '../docs/imagenes/logo/icono.png';
   var ajustesMock = {
+    escaleta: escaletaGenerica(),
     nombre: 'Cancionero', subtitulo: 'Tu iglesia', version: '1.5.5', administradores: ['ana@example.com'], papeleraDias: 30, temaDefecto: 'claro',
     googleClientId: '', dominio: '', origen: location.origin, bienvenidaAuto: true, bienvenidaTexto: 'Encontrarás el cancionero en el menú «Música» de nuestra web.', pagina: '',
     avisoBorrado: true, correoAdmin: 'webmaster@example.com',
@@ -100,6 +155,13 @@
   function guardarAjustesMock(cuerpo) {
     ['nombre', 'subtitulo', 'papeleraDias', 'temaDefecto', 'googleClientId', 'dominio', 'bienvenidaAuto', 'bienvenidaTexto', 'avisoBorrado', 'pagina']
       .forEach(function (k) { if (cuerpo[k] !== undefined) { ajustesMock[k] = cuerpo[k]; } });
+    // Escaleta: null vuelve a la genérica; si no, se guarda lo que llega y a las imágenes (que llegan solo con su id) se les pone dirección.
+    if (cuerpo.escaleta === null) { ajustesMock.escaleta = escaletaGenerica(); }
+    else if (cuerpo.escaleta !== undefined) {
+      var esc = JSON.parse(JSON.stringify(cuerpo.escaleta));
+      ['logo', 'cabecera'].forEach(function (k) { esc[k] = esc[k] && esc[k].id ? { id: esc[k].id, url: iconoMock } : null; });
+      ajustesMock.escaleta = esc;
+    }
     var pendientes = [];
     if (cuerpo.emails !== undefined || cuerpo.administradores !== undefined) {
       var antes = minusculas(ajustesMock.emails);
@@ -201,8 +263,19 @@
     try { cuerpo = opts && opts.body ? JSON.parse(opts.body) : {}; } catch (e) { cuerpo = {}; }
     if (ruta === 'canciones') { datos = canciones; }
     else if ((mc = ruta.match(/^canciones\/(\d+)$/))) { datos = detalleCancion(canciones.filter(function (c) { return c.id === +mc[1]; })[0]); }
-    else if (ruta === 'cultos' && (!opts || !opts.method || opts.method === 'GET')) { datos = cultos; }
-    else if ((mc = ruta.match(/^cultos\/(\d+)$/))) { datos = detalleCulto(cultos.filter(function (c) { return c.id === +mc[1]; })[0]); }
+    else if (ruta === 'cultos' && (!opts || !opts.method || opts.method === 'GET')) { datos = cultos.map(function (c) { var l = Object.assign({}, c); delete l.escaleta; return l; }); }
+    else if (ruta === 'cultos' && opts && opts.method === 'POST') {
+      var nuevoCulto = { id: 910 + cultos.length, creadoPor: 'Ana', puedeBorrar: true, escaleta: null };
+      guardarCultoMock(nuevoCulto, cuerpo);
+      cultos.push(nuevoCulto);
+      datos = detalleCulto(nuevoCulto);
+    }
+    else if ((mc = ruta.match(/^cultos\/(\d+)$/))) {
+      var culto = cultos.filter(function (c) { return c.id === +mc[1]; })[0];
+      if (opts && opts.method === 'POST') { guardarCultoMock(culto, cuerpo); }
+      datos = detalleCulto(culto);
+    }
+    else if (ruta === 'escaleta' && (!opts || !opts.method || opts.method === 'GET')) { datos = ajustesMock.escaleta; }
     else if (ruta === 'preferencias' && opts && opts.body) {
       // Recuerda idioma y notación en esta pestaña para que la recarga los aplique, como en WordPress.
       var p = JSON.parse(opts.body), guardadas = {};
@@ -230,6 +303,28 @@
     var respuesta = function () { return new Response(JSON.stringify(datos), { status: estado, headers: { 'Content-Type': 'application/json' } }); };
     if (!espera) { return Promise.resolve(respuesta()); }
     return new Promise(function (resolver) { setTimeout(function () { resolver(respuesta()); }, espera); });
+  };
+  // POST escaleta/imagen: la subida va por XMLHttpRequest (con progreso). Tarda ~400 ms y devuelve {id, url}; cada subida recibe un id
+  // nuevo (9001, 9002…) y la misma imagen. Con ?imagen=error la subida falla, para probar el aviso.
+  var xhrAbrir = XMLHttpRequest.prototype.open, xhrEnviar = XMLHttpRequest.prototype.send, xhrCabecera = XMLHttpRequest.prototype.setRequestHeader, imagenesSubidas = 0;
+  XMLHttpRequest.prototype.open = function (metodo, url) {
+    this._simulada = /^\/api\/escaleta\/imagen$/.test(String(url));
+    return this._simulada ? undefined : xhrAbrir.apply(this, arguments);
+  };
+  XMLHttpRequest.prototype.setRequestHeader = function () { return this._simulada ? undefined : xhrCabecera.apply(this, arguments); };
+  XMLHttpRequest.prototype.send = function () {
+    if (!this._simulada) { return xhrEnviar.apply(this, arguments); }
+    var xhr = this, paso = 0;
+    var reloj = setInterval(function () {
+      paso++;
+      if (xhr.upload.onprogress) { xhr.upload.onprogress({ lengthComputable: true, loaded: paso, total: 4 }); }
+      if (paso < 4) { return; }
+      clearInterval(reloj);
+      var fallo = params.get('imagen') === 'error';
+      Object.defineProperty(xhr, 'status', { value: fallo ? 400 : 200 });
+      Object.defineProperty(xhr, 'responseText', { value: JSON.stringify(fallo ? { code: 'pieb_imagen', message: 'No se pudo guardar la imagen en la biblioteca de medios.' } : { id: 9001 + imagenesSubidas++, url: iconoMock }) });
+      xhr.onload();
+    }, 100);
   };
 })();
 </script>

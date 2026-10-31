@@ -23,7 +23,7 @@ renombrada completa exigiría una migración de datos.
 
 - `pieb-cancionero/` plugin: `pieb-cancionero.php` (arranque, roles, shortcode), `includes/` (PHP: `canciones`, `rest`,
   `cultos`, `ajustes`, `google`, `bienvenida`,
-  `correo` (aspecto común de los correos), `migracion`), `assets/` (`cancionero.js` interfaz principal sin dependencias,
+  `correo` (aspecto común de los correos), `accesos`, `avisos`, `escaleta` (hoja impresa del culto), `migracion`), `assets/` (`cancionero.js` interfaz principal sin dependencias,
   `cultos.js`, `visor.js`, `login.js`, `cancionero.css`).
 - `banco-pruebas/` interfaz con datos simulados (`index.html`); `.claude/launch.json` define el servidor
   `banco-cancionero` (puerto 8765) para verla.

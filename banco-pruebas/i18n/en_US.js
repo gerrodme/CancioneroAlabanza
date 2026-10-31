@@ -2158,6 +2158,411 @@ window.PIEB_I18N = {
   ],
   "Hay correos escritos sin añadir. Pulsa «Añadir» o «Cancelar» en el formulario de añadir personas.": [
    "There are emails typed but not added. Press “Add” or “Cancel” in the add people form."
+  ],
+  "Escaleta": [
+   "Order of service"
+  ],
+  "Cabecera y secciones de la hoja impresa del culto": [
+   "Header and sections of the printed order of service"
+  ],
+  "Texto largo": [
+   "Long text"
+  ],
+  "Una canción del culto": [
+   "One song from the service"
+  ],
+  "Varias canciones del culto": [
+   "Several songs from the service"
+  ],
+  "Texto corto": [
+   "Short text"
+  ],
+  "Varias líneas: cada línea se imprime en su línea.": [
+   "Several lines: each line is printed on its own line."
+  ],
+  "Se elige una de las canciones del culto o se escribe un nombre.": [
+   "Pick one of the service’s songs or type a name."
+  ],
+  "Se eligen varias de las canciones del culto o se escriben nombres.": [
+   "Pick several of the service’s songs or type names."
+  ],
+  "Una línea de texto.": [
+   "A single line of text."
+  ],
+  "La primera del culto": [
+   "The first one in the service"
+  ],
+  "La siguiente a la última asignada antes": [
+   "The next one after the last one assigned earlier"
+  ],
+  "Ninguna": [
+   "None"
+  ],
+  "Las que no estén en otras secciones": [
+   "Those not in other sections"
+  ],
+  "Culto de ejemplo": [
+   "Sample service"
+  ],
+  "Canción de ejemplo %d": [
+   "Sample song %d"
+  ],
+  "%1$s: ahora en la posición %2$d de %3$d": [
+   "%1$s: now in position %2$d of %3$d"
+  ],
+  "Elegir imagen": [
+   "Choose image"
+  ],
+  "Quitar": [
+   "Remove"
+  ],
+  "Solo se admiten imágenes JPG o PNG.": [
+   "Only JPG or PNG images are allowed."
+  ],
+  "La imagen pesa %s y el máximo son 2 MB.": [
+   "The image is %s and the maximum is 2 MB."
+  ],
+  "Imagen de cabecera (arriba a la izquierda)": [
+   "Header image (top left)"
+  ],
+  "Vista previa de la imagen de cabecera": [
+   "Header image preview"
+  ],
+  "Sin imagen": [
+   "No image"
+  ],
+  "JPG o PNG, de hasta 2 MB. Si no eliges ninguna, se imprime el nombre del cancionero.": [
+   "JPG or PNG, up to 2 MB. If you don’t choose one, the songbook name is printed."
+  ],
+  "Logo de la iglesia (arriba a la derecha)": [
+   "Church logo (top right)"
+  ],
+  "Vista previa del logo": [
+   "Logo preview"
+  ],
+  "Sin logo": [
+   "No logo"
+  ],
+  "JPG o PNG, de hasta 2 MB. Si no eliges ninguno, se imprime el logo del Cancionero.": [
+   "JPG or PNG, up to 2 MB. If you don’t choose one, the Songbook logo is printed."
+  ],
+  "p. ej. LECTURAS EN RVR1960": [
+   "e.g. READINGS IN KJV"
+  ],
+  "No hay ninguna sección. Pulsa «Añadir sección» para crear la primera.": [
+   "There are no sections. Press “Add section” to create the first one."
+  ],
+  "Añadir sección": [
+   "Add section"
+  ],
+  "(sin título)": [
+   "(untitled)"
+  ],
+  "Sin campos": [
+   "No fields"
+  ],
+  "Subir la sección «%s»": [
+   "Move section “%s” up"
+  ],
+  "Bajar la sección «%s»": [
+   "Move section “%s” down"
+  ],
+  "mover una sección o un campo de la escaleta hacia arriba\u0004Subir": [
+   "Move up"
+  ],
+  "mover una sección o un campo de la escaleta hacia abajo\u0004Bajar": [
+   "Move down"
+  ],
+  "p. ej. Anuncios": [
+   "e.g. Announcements"
+  ],
+  "p. ej. (Indicación breve para este momento)": [
+   "e.g. (Short note for this moment)"
+  ],
+  "Esta sección no tiene campos y saldrá vacía en la hoja. Pulsa «Añadir campo».": [
+   "This section has no fields and will come out empty on the sheet. Press “Add field”."
+  ],
+  "Añadir campo": [
+   "Add field"
+  ],
+  "Canción propuesta": [
+   "Suggested song"
+  ],
+  "Canciones propuestas": [
+   "Suggested songs"
+  ],
+  "Aparece ya elegida en cada culto; se puede cambiar.": [
+   "Already selected in each service; it can be changed."
+  ],
+  "Texto inicial (opcional)": [
+   "Initial text (optional)"
+  ],
+  "Aparece ya escrito en cada culto; se puede cambiar.": [
+   "Already filled in for each service; it can be changed."
+  ],
+  "p. ej. Presidencia": [
+   "e.g. Leading"
+  ],
+  "Subir el campo «%s»": [
+   "Move field “%s” up"
+  ],
+  "Bajar el campo «%s»": [
+   "Move field “%s” down"
+  ],
+  "Quitar el campo «%s»": [
+   "Remove field “%s”"
+  ],
+  "Campo «%s» quitado": [
+   "Field “%s” removed"
+  ],
+  "Tipo de campo": [
+   "Field type"
+  ],
+  "Etiqueta (opcional)": [
+   "Label (optional)"
+  ],
+  "Si la pones, sale impresa delante del valor, como «Presidencia: …».": [
+   "If you set one, it is printed before the value, like “Leading: …”."
+  ],
+  "Letra pequeña": [
+   "Small text"
+  ],
+  "Imprime este campo con letra más pequeña, por ejemplo para una nota.": [
+   "Prints this field in smaller text, for example for a note."
+  ],
+  "Se quitará la sección «%s» y todos sus campos de la escaleta.": [
+   "Section “%s” and all its fields will be removed from the order of service."
+  ],
+  "Quitar sección": [
+   "Remove section"
+  ],
+  "Sección «%s» quitada": [
+   "Section “%s” removed"
+  ],
+  "Sí, quitar la sección": [
+   "Yes, remove the section"
+  ],
+  "Título de la sección": [
+   "Section title"
+  ],
+  "Se imprime siempre en MAYÚSCULAS.": [
+   "It is always printed in UPPERCASE."
+  ],
+  "Nota bajo el título (opcional)": [
+   "Note under the title (optional)"
+  ],
+  "Sale debajo del título, en rojo y con letra más pequeña.": [
+   "Shown below the title, in red and in smaller text."
+  ],
+  "Campos de la sección": [
+   "Section fields"
+  ],
+  "Cada campo es una línea que se rellena en cada culto: un texto, o una o varias canciones del culto.": [
+   "Each field is a line that is filled in for each service: a text, or one or several of the service’s songs."
+  ],
+  "El PDF de ejemplo no está disponible en este momento.": [
+   "The sample PDF is not available right now."
+  ],
+  "Preparando el PDF…": [
+   "Preparing the PDF…"
+  ],
+  "No se pudo preparar el PDF.": [
+   "Could not prepare the PDF."
+  ],
+  "Ver un ejemplo en PDF": [
+   "View a sample PDF"
+  ],
+  "Volver a la plantilla de ejemplo": [
+   "Restore the sample template"
+  ],
+  "Se perderán la cabecera, los títulos y las secciones que has cambiado, y se pondrá la plantilla de ejemplo.": [
+   "The header, titles and sections you changed will be lost, and the sample template will be restored."
+  ],
+  "Plantilla de ejemplo puesta. Pulsa «Guardar ajustes» para conservarla.": [
+   "Sample template restored. Press “Save settings” to keep it."
+  ],
+  "Sí, volver al ejemplo": [
+   "Yes, restore the sample"
+  ],
+  "La sección %d no tiene título: escríbelo para poder guardar.": [
+   "Section %d has no title: enter one in order to save."
+  ],
+  "La escaleta es la hoja impresa con el orden del culto. Aquí decides cómo es: la cabecera, los títulos y las secciones. En cada culto se rellena con sus datos y se puede imprimir en PDF.": [
+   "The order of service is the printed sheet with the running order of the service. Here you decide what it looks like: the header, the titles and the sections. It is filled in with each service’s details and can be printed as a PDF."
+  ],
+  "Cabecera de la hoja impresa": [
+   "Header of the printed sheet"
+  ],
+  "Fila de títulos": [
+   "Title row"
+  ],
+  "Va bajo la cabecera. A la derecha se pone sola la fecha del culto.": [
+   "It goes below the header. The service date is added automatically on the right."
+  ],
+  "Si lo dejas vacío se usa «ORDEN DE CULTO».": [
+   "If you leave it empty, “ORDER OF SERVICE” is used."
+  ],
+  "Texto central (opcional)": [
+   "Center text (optional)"
+  ],
+  "Por ejemplo, la versión de la Biblia de las lecturas.": [
+   "For example, the Bible version used for the readings."
+  ],
+  "Secciones de la escaleta": [
+   "Order of service sections"
+  ],
+  "Cada sección es una fila de la hoja: su título a la izquierda y lo que se rellena en cada culto a la derecha. Pulsa «Editar» para cambiarla. Para cambiar el orden, arrastra el asa de la izquierda o usa «Subir» y «Bajar».": [
+   "Each section is a row of the sheet: its title on the left and what is filled in for each service on the right. Press “Edit” to change it. To change the order, drag the handle on the left or use “Move up” and “Move down”."
+  ],
+  "Ejemplo y plantilla de partida": [
+   "Sample and starting template"
+  ],
+  "Crea un PDF con un culto inventado y la escaleta tal como está ahora en pantalla, aunque aún no la hayas guardado.": [
+   "Creates a PDF with a made-up service and the order of service as it currently looks on screen, even if you haven’t saved it yet."
+  ],
+  "Sustituye la cabecera, los títulos y las secciones por los de la plantilla de ejemplo. No se guarda hasta que pulses «Guardar ajustes».": [
+   "Replaces the header, titles and sections with those of the sample template. Nothing is saved until you press “Save settings”."
+  ],
+  "Espera a que termine de subirse la imagen para guardar.": [
+   "Wait for the image to finish uploading before saving."
+  ],
+  "Exportar escaleta": [
+   "Export order of service"
+  ],
+  "pestaña del editor del culto: la hoja impresa con el orden del culto\u0004Escaleta": [
+   "Order of service"
+  ],
+  "Partes del culto": [
+   "Parts of the service"
+  ],
+  "Sección nueva": [
+   "New section"
+  ],
+  "Se imprime en letra pequeña": [
+   "Printed in small text"
+  ],
+  "Otra (escribe el nombre)": [
+   "Other (type the name)"
+  ],
+  "Este culto aún no tiene canciones: añádelas en la pestaña Canciones o escribe el nombre.": [
+   "This service has no songs yet: add them in the Songs tab or type the name."
+  ],
+  "Nombre escrito a mano": [
+   "Name typed in manually"
+  ],
+  "Este culto aún no tiene canciones: añádelas en la pestaña Canciones o escribe los nombres.": [
+   "This service has no songs yet: add them in the Songs tab or type the names."
+  ],
+  "Todas las canciones del culto están ya en otras secciones.": [
+   "All of the service’s songs are already in other sections."
+  ],
+  "Añadir otra (escribe el nombre)": [
+   "Add another (type the name)"
+  ],
+  "Arrastrar para reordenar la sección %s": [
+   "Drag to reorder section %s"
+  ],
+  "Subir la sección %s": [
+   "Move section %s up"
+  ],
+  "mover una sección de la escaleta hacia arriba\u0004Subir": [
+   "Move up"
+  ],
+  "Bajar la sección %s": [
+   "Move section %s down"
+  ],
+  "mover una sección de la escaleta hacia abajo\u0004Bajar": [
+   "Move down"
+  ],
+  "Quitar la sección %s": [
+   "Remove section %s"
+  ],
+  "No incluir en este culto": [
+   "Don’t include in this service"
+  ],
+  "Cargando la escaleta…": [
+   "Loading the order of service…"
+  ],
+  "Se rellena con las canciones del culto; cambia lo que quieras. Se guarda junto con el culto.": [
+   "It is filled in with the service’s songs; change whatever you like. It is saved together with the service."
+  ],
+  "No se pudo leer la plantilla de tu grupo: se usa la estándar.": [
+   "Could not read your group’s template: the standard one is used."
+  ],
+  "Añadir sección a este culto": [
+   "Add section to this service"
+  ],
+  "Preparando la escaleta…": [
+   "Preparing the order of service…"
+  ],
+  "Escaleta descargada, pero no se pudieron cargar las imágenes de la cabecera.": [
+   "Order of service downloaded, but the header images could not be loaded."
+  ],
+  "Escaleta descargada": [
+   "Order of service downloaded"
+  ],
+  "No se pudo generar la escaleta": [
+   "Could not generate the order of service"
+  ],
+  "título de la escaleta impresa del culto (se imprime en mayúsculas)\u0004ORDEN DE CULTO": [
+   "ORDER OF SERVICE"
+  ],
+  "sección de la escaleta del culto (en mayúsculas)\u0004PRELUDIO": [
+   "PRELUDE"
+  ],
+  "sección de la escaleta del culto (en mayúsculas)\u0004LECTURA Y ORACIÓN": [
+   "READING AND PRAYER"
+  ],
+  "etiqueta de un campo de la escaleta del culto\u0004Presidencia": [
+   "Leading"
+  ],
+  "etiqueta de un campo de la escaleta del culto\u0004Lectura": [
+   "Reading"
+  ],
+  "sección de la escaleta del culto (en mayúsculas)\u0004BIENVENIDA": [
+   "WELCOME"
+  ],
+  "Bienvenida a todos y a quienes nos visitan": [
+   "Welcome to everyone and to those visiting us"
+  ],
+  "sección de la escaleta del culto (en mayúsculas)\u0004VIDA DE COMUNIDAD": [
+   "COMMUNITY LIFE"
+  ],
+  "sección de la escaleta del culto (en mayúsculas)\u0004CANTOS DE ALABANZA": [
+   "PRAISE SONGS"
+  ],
+  "sección de la escaleta del culto (en mayúsculas)\u0004OFRENDA": [
+   "OFFERING"
+  ],
+  "etiqueta de un campo de la escaleta del culto\u0004Música instrumental": [
+   "Instrumental music"
+  ],
+  "etiqueta de un campo de la escaleta del culto\u0004Responsables": [
+   "In charge"
+  ],
+  "sección de la escaleta del culto (en mayúsculas)\u0004NIÑOS": [
+   "CHILDREN"
+  ],
+  "Los niños pasan a sus clases": [
+   "The children go to their classes"
+  ],
+  "sección de la escaleta del culto (en mayúsculas)\u0004PREDICACIÓN": [
+   "SERMON"
+  ],
+  "etiqueta de un campo de la escaleta del culto\u0004Título": [
+   "Title"
+  ],
+  "etiqueta de un campo de la escaleta del culto\u0004Predicación": [
+   "Preacher"
+  ],
+  "sección de la escaleta del culto (en mayúsculas)\u0004DESPEDIDA": [
+   "FAREWELL"
+  ],
+  "sección de la escaleta del culto (en mayúsculas)\u0004DOXOLOGÍA": [
+   "DOXOLOGY"
+  ],
+  "sección de la escaleta del culto (en mayúsculas)\u0004POSTLUDIO": [
+   "POSTLUDE"
   ]
  }
 };

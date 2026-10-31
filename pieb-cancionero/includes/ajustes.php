@@ -475,6 +475,8 @@ function pieb_can_ajustes_datos() {
         // Correo de administración de la web: también recibe el aviso de borrado (la interfaz lo muestra en la ayuda).
         'correoAdmin'    => (string) get_option('admin_email'),
         'origen'         => untrailingslashit(home_url()),
+        // Plantilla de la escaleta del culto (la guardada o la genérica; ver includes/escaleta.php).
+        'escaleta'       => pieb_can_escaleta_plantilla(),
     );
 }
 
@@ -507,6 +509,16 @@ function pieb_can_rest_ajustes_guardar(WP_REST_Request $request) {
         }
         $ajustes['google_client_id'] = $client;
     }
+    // Plantilla de la escaleta (solo si llega; null = volver a la genérica). Se valida aquí, antes de guardar nada, y se
+    // guarda más abajo junto con el resto (ver includes/escaleta.php).
+    $con_escaleta = $request->has_param('escaleta');
+    $escaleta = null;
+    if ($con_escaleta) {
+        $escaleta = pieb_can_escaleta_limpiar_plantilla($request->get_param('escaleta'), pieb_can_escaleta_guardada());
+        if (is_wp_error($escaleta)) {
+            return $escaleta;
+        }
+    }
     if ($request->has_param('dominio')) {
         $ajustes['dominio'] = strtolower(preg_replace('/[^a-z0-9.-]/i', '', (string) $request->get_param('dominio')));
     }
@@ -537,6 +549,9 @@ function pieb_can_rest_ajustes_guardar(WP_REST_Request $request) {
     }
 
     pieb_can_guardar_ajustes($ajustes);
+    if ($con_escaleta) {
+        pieb_can_escaleta_guardar($escaleta);
+    }
 
     // Aplica ya los cambios de administradores a las cuentas existentes.
     foreach (array_unique(array_merge($anterior['administradores'], $ajustes['administradores'])) as $email) {
@@ -766,7 +781,7 @@ function pieb_can_rest_copia_exportar() {
                 'nota'      => isset($item['nota']) ? (string) $item['nota'] : '',
             );
         }
-        $cultos[] = array(
+        $culto = array(
             'uid'       => pieb_can_uid($post->ID),
             'titulo'    => html_entity_decode(get_the_title($post), ENT_QUOTES, 'UTF-8'),
             'fecha'     => (string) get_post_meta($post->ID, '_pieb_fecha', true),
@@ -775,9 +790,29 @@ function pieb_can_rest_copia_exportar() {
             'creadoPor' => pieb_can_copia_email($post->post_author),
             'items'     => $items,
         );
+        // Escaleta del culto (solo si tiene; sus canciones van por uid, como las del setlist).
+        $escaleta = pieb_can_escaleta_exportar_culto($post->ID, $uids);
+        if ($escaleta !== null) {
+            $culto['escaleta'] = $escaleta;
+        }
+        $cultos[] = $culto;
     }
 
     $ajustes = pieb_can_ajustes();
+    $ajustes_copia = array(
+        'temaDefecto'    => $ajustes['tema_defecto'],
+        'emails'         => $ajustes['emails'],
+        'dominio'        => $ajustes['dominio'],
+        'googleClientId' => $ajustes['google_client_id'],
+        'bienvenidaAuto'  => (bool) $ajustes['bienvenida_auto'],
+        'bienvenidaTexto' => (string) $ajustes['bienvenida_texto'],
+        'avisoBorrado'    => (bool) $ajustes['aviso_borrado'],
+    );
+    // Plantilla de la escaleta, solo si la instalación tiene una propia y sin las imágenes (sus ids no valen en otra web).
+    $escaleta = pieb_can_escaleta_para_copia();
+    if ($escaleta !== null) {
+        $ajustes_copia['escaleta'] = $escaleta;
+    }
     return rest_ensure_response(array(
         'formato'   => 'pieb-cancionero',
         'version'   => 1,
@@ -786,15 +821,7 @@ function pieb_can_rest_copia_exportar() {
         'fecha'     => current_time('mysql'),
         'canciones' => $canciones,
         'cultos'    => $cultos,
-        'ajustes'   => array(
-            'temaDefecto'    => $ajustes['tema_defecto'],
-            'emails'         => $ajustes['emails'],
-            'dominio'        => $ajustes['dominio'],
-            'googleClientId' => $ajustes['google_client_id'],
-            'bienvenidaAuto'  => (bool) $ajustes['bienvenida_auto'],
-            'bienvenidaTexto' => (string) $ajustes['bienvenida_texto'],
-            'avisoBorrado'    => (bool) $ajustes['aviso_borrado'],
-        ),
+        'ajustes'   => $ajustes_copia,
     ));
 }
 
@@ -1008,6 +1035,14 @@ function pieb_can_rest_copia_culto(WP_REST_Request $request) {
     update_post_meta($id, '_pieb_tipo', sanitize_text_field(isset($c['tipo']) ? (string) $c['tipo'] : ''));
     update_post_meta($id, '_pieb_notas', sanitize_textarea_field(isset($c['notas']) ? (string) $c['notas'] : ''));
     update_post_meta($id, '_pieb_items', $items);
+    // La escaleta se restaura solo si la copia la trae (las anteriores no la incluyen). Sus canciones se buscan en esta web
+    // como las del setlist; las que no estén se quedan con el nombre escrito a mano.
+    if (isset($c['escaleta']) && is_array($c['escaleta'])) {
+        $escaleta = pieb_can_escaleta_limpiar_culto(pieb_can_escaleta_importar_culto($c['escaleta']));
+        if (is_array($escaleta)) {
+            pieb_can_escaleta_guardar_culto($id, $escaleta);
+        }
+    }
 
     return rest_ensure_response(array('estado' => $estado, 'id' => (int) $id, 'faltan' => $faltan));
 }
@@ -1046,6 +1081,16 @@ function pieb_can_rest_copia_ajustes(WP_REST_Request $request) {
     $emails = isset($a['emails']) ? (array) $a['emails'] : array();
     $ajustes['emails'] = pieb_can_normalizar_emails(implode(' ', array_merge($ajustes['emails'], $emails)));
     pieb_can_guardar_ajustes($ajustes);
+    // La plantilla de la escaleta se restaura solo si la copia la trae. La copia no lleva las imágenes (sus ids no valen
+    // en otra web): se quitan las que pudieran venir y se conservan el logo y la cabecera que ya tenga esta web.
+    if (isset($a['escaleta']) && is_array($a['escaleta'])) {
+        $plantilla = $a['escaleta'];
+        unset($plantilla['logo'], $plantilla['cabecera']);
+        $plantilla = pieb_can_escaleta_limpiar_plantilla($plantilla, pieb_can_escaleta_guardada());
+        if (is_array($plantilla)) {
+            pieb_can_escaleta_guardar($plantilla);
+        }
+    }
 
     return rest_ensure_response(array('estado' => 'actualizados', 'emails' => count($ajustes['emails'])));
 }

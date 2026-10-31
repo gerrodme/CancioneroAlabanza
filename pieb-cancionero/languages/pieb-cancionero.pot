@@ -1,16 +1,16 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Cancionero 1.14.0\n"
+"Project-Id-Version: Cancionero 1.14.2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-30 21:27+0000\n"
+"POT-Creation-Date: 2026-10-31 09:37+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Domain: pieb-cancionero\n"
 
 #. %d: código de error HTTP
-#: assets/cancionero.js:214 assets/cultos.js:634
+#: assets/cancionero.js:214 assets/cultos.js:699
 #, javascript-format
 msgid "Error %d"
 msgstr ""
@@ -49,12 +49,12 @@ msgstr ""
 msgid "Nº himnario"
 msgstr ""
 
-#: assets/cancionero.js:490 assets/cancionero.js:1151 assets/cancionero.js:2138 assets/cultos.js:522
+#: assets/cancionero.js:490 assets/cancionero.js:1152 assets/cancionero.js:2139 assets/cultos.js:568
 msgctxt "tonalidad de la canción"
 msgid "Tono"
 msgstr ""
 
-#: assets/cancionero.js:491 assets/cancionero.js:1152
+#: assets/cancionero.js:491 assets/cancionero.js:1153
 msgid "Tempo"
 msgstr ""
 
@@ -70,11 +70,11 @@ msgstr ""
 msgid "Partituras"
 msgstr ""
 
-#: assets/cancionero.js:492 assets/cancionero.js:1008 assets/cancionero.js:1109
+#: assets/cancionero.js:492 assets/cancionero.js:1009 assets/cancionero.js:1110
 msgid "Con letra"
 msgstr ""
 
-#: assets/cancionero.js:493 assets/cancionero.js:1535 assets/cancionero.js:1898
+#: assets/cancionero.js:493 assets/cancionero.js:1536 assets/cancionero.js:1899
 msgid "Audios"
 msgstr ""
 
@@ -86,7 +86,7 @@ msgstr ""
 msgid "Inicio"
 msgstr ""
 
-#: assets/cancionero.js:566 assets/cancionero.js:899 assets/cancionero.js:1044 assets/cultos.js:723 assets/cultos.js:1102
+#: assets/cancionero.js:566 assets/cancionero.js:899 assets/cancionero.js:1045 assets/cultos.js:788 assets/cultos.js:1958
 msgid "Estadísticas"
 msgstr ""
 
@@ -118,7 +118,7 @@ msgstr ""
 msgid "Navegación del cancionero"
 msgstr ""
 
-#: assets/cancionero.js:602 assets/cancionero.js:620 assets/cancionero.js:890 assets/cancionero.js:980
+#: assets/cancionero.js:602 assets/cancionero.js:620 assets/cancionero.js:890 assets/cancionero.js:981
 msgid "Buscar"
 msgstr ""
 
@@ -126,11 +126,11 @@ msgstr ""
 msgid "Secciones"
 msgstr ""
 
-#: assets/cancionero.js:606 assets/cultos.js:744
+#: assets/cancionero.js:606 assets/cultos.js:809
 msgid "Próximos cultos"
 msgstr ""
 
-#: assets/cancionero.js:611 assets/cancionero.js:629 assets/cancionero.js:873 assets/cancionero.js:896 assets/cancionero.js:1042 assets/cancionero.js:1988 assets/cancionero.js:1990
+#: assets/cancionero.js:611 assets/cancionero.js:629 assets/cancionero.js:873 assets/cancionero.js:896 assets/cancionero.js:1043 assets/cancionero.js:1989 assets/cancionero.js:1991
 msgid "Nueva canción"
 msgstr ""
 
@@ -152,7 +152,7 @@ msgstr ""
 msgid "Administración del cancionero"
 msgstr ""
 
-#: assets/cancionero.js:648 assets/cancionero.js:902 assets/cancionero.js:2851 assets/cancionero.js:2887
+#: assets/cancionero.js:648 assets/cancionero.js:902 assets/cancionero.js:3514 assets/cancionero.js:3550
 msgid "Equipo"
 msgstr ""
 
@@ -168,7 +168,7 @@ msgstr ""
 msgid "Administración"
 msgstr ""
 
-#: assets/cancionero.js:657 assets/cancionero.js:901 assets/cancionero.js:2240 assets/cancionero.js:3084
+#: assets/cancionero.js:657 assets/cancionero.js:901 assets/cancionero.js:2241 assets/cancionero.js:3776
 msgid "Ajustes y equipo"
 msgstr ""
 
@@ -196,7 +196,7 @@ msgstr ""
 msgid "Elegir canciones para borrarlas"
 msgstr ""
 
-#: assets/cancionero.js:690 assets/cancionero.js:1208
+#: assets/cancionero.js:690 assets/cancionero.js:1209
 msgid "Borrar"
 msgstr ""
 
@@ -218,7 +218,7 @@ msgstr ""
 msgid "Automático (idioma del sitio)"
 msgstr ""
 
-#: assets/cancionero.js:873 assets/cancionero.js:898 assets/cancionero.js:1043 assets/cultos.js:219 assets/cultos.js:282 assets/cultos.js:651 assets/cultos.js:653
+#: assets/cancionero.js:873 assets/cancionero.js:898 assets/cancionero.js:1044 assets/cultos.js:219 assets/cultos.js:282 assets/cultos.js:716 assets/cultos.js:718
 msgid "Nuevo culto"
 msgstr ""
 
@@ -230,7 +230,7 @@ msgstr ""
 msgid "Subir partitura, letra y audios"
 msgstr ""
 
-#: assets/cancionero.js:897 assets/cancionero.js:2214 assets/cancionero.js:2220
+#: assets/cancionero.js:897 assets/cancionero.js:2215 assets/cancionero.js:2221
 msgid "Subir varias canciones"
 msgstr ""
 
@@ -242,7 +242,7 @@ msgstr ""
 msgid "Preparar un setlist"
 msgstr ""
 
-#: assets/cancionero.js:899 assets/cancionero.js:1044
+#: assets/cancionero.js:899 assets/cancionero.js:1045
 msgid "Qué tocamos y qué no"
 msgstr ""
 
@@ -254,7 +254,7 @@ msgstr ""
 msgid "Correos con acceso, administradores y dominio"
 msgstr ""
 
-#: assets/cancionero.js:903 assets/cancionero.js:2851
+#: assets/cancionero.js:903 assets/cancionero.js:3514
 msgid "Accesos"
 msgstr ""
 
@@ -262,792 +262,800 @@ msgstr ""
 msgid "Quién entra y cuánto se usa"
 msgstr ""
 
-#: assets/cancionero.js:904 assets/cancionero.js:2851
+#: assets/cancionero.js:904 assets/cancionero.js:3514
+msgid "Escaleta"
+msgstr ""
+
+#: assets/cancionero.js:904
+msgid "Cabecera y secciones de la hoja impresa del culto"
+msgstr ""
+
+#: assets/cancionero.js:905 assets/cancionero.js:3514
 msgid "Acceso con Google"
 msgstr ""
 
-#: assets/cancionero.js:904 assets/cancionero.js:2932
+#: assets/cancionero.js:905 assets/cancionero.js:3595
 msgid "Client ID de Google"
 msgstr ""
 
-#: assets/cancionero.js:905 assets/cancionero.js:2852
+#: assets/cancionero.js:906 assets/cancionero.js:3515
 msgid "Archivos"
 msgstr ""
 
-#: assets/cancionero.js:905
+#: assets/cancionero.js:906
 msgid "Protección y archivos sin usar"
 msgstr ""
 
-#: assets/cancionero.js:906 assets/cancionero.js:2852 assets/cancionero.js:2879 assets/cancionero.js:2949
+#: assets/cancionero.js:907 assets/cancionero.js:3515 assets/cancionero.js:3542 assets/cancionero.js:3613
 msgid "Papelera"
 msgstr ""
 
-#: assets/cancionero.js:906
+#: assets/cancionero.js:907
 msgid "Restaurar o eliminar canciones borradas"
 msgstr ""
 
-#: assets/cancionero.js:907 assets/cancionero.js:2852
+#: assets/cancionero.js:908 assets/cancionero.js:3515
 msgid "Copias de seguridad"
 msgstr ""
 
-#: assets/cancionero.js:907
+#: assets/cancionero.js:908
 msgid "Descargar o restaurar una copia"
 msgstr ""
 
 #. %s: nombre del tema visual
-#: assets/cancionero.js:909
+#: assets/cancionero.js:910
 #, javascript-format
 msgid "Tema: %s"
 msgstr ""
 
-#: assets/cancionero.js:909
+#: assets/cancionero.js:910
 msgid "Cambiar la apariencia"
 msgstr ""
 
-#: assets/cancionero.js:920 assets/cancionero.js:1029
+#: assets/cancionero.js:921 assets/cancionero.js:1030
 msgid "Añadidas recientemente"
 msgstr ""
 
 #. %s: número de himnario
-#: assets/cancionero.js:921 assets/cancionero.js:1498 assets/cultos.js:322
+#: assets/cancionero.js:922 assets/cancionero.js:1499 assets/cultos.js:322 assets/cultos.js:1230
 #, javascript-format
 msgid "Nº %s"
 msgstr ""
 
-#: assets/cancionero.js:928
+#: assets/cancionero.js:929
 msgid "Acciones"
 msgstr ""
 
 #. %s: lo que se ha escrito en el buscador
-#: assets/cancionero.js:931
+#: assets/cancionero.js:932
 #, javascript-format
 msgid "Nada coincide con «%s»."
 msgstr ""
 
-#: assets/cancionero.js:931
+#: assets/cancionero.js:932
 msgid "Añadir esta canción"
 msgstr ""
 
-#: assets/cancionero.js:983
+#: assets/cancionero.js:984
 msgid "moverse"
 msgstr ""
 
-#: assets/cancionero.js:983
+#: assets/cancionero.js:984
 msgid "abrir"
 msgstr ""
 
-#: assets/cancionero.js:996
+#: assets/cancionero.js:997
 msgid "Buenas noches"
 msgstr ""
 
-#: assets/cancionero.js:996
+#: assets/cancionero.js:997
 msgid "Buenos días"
 msgstr ""
 
-#: assets/cancionero.js:996
+#: assets/cancionero.js:997
 msgid "Buenas tardes"
 msgstr ""
 
 #. 1: saludo («Buenos días»…), 2: nombre de pila de la persona
-#: assets/cancionero.js:997
+#: assets/cancionero.js:998
 #, javascript-format
 msgid "%1$s, %2$s"
 msgstr ""
 
-#: assets/cancionero.js:1007 assets/cancionero.js:1110
+#: assets/cancionero.js:1008 assets/cancionero.js:1111
 msgid "Con audio"
 msgstr ""
 
-#: assets/cancionero.js:1009 assets/cancionero.js:1115 assets/cultos.js:1134
+#: assets/cancionero.js:1010 assets/cancionero.js:1116 assets/cultos.js:1990
 msgid "Nunca tocadas"
 msgstr ""
 
-#: assets/cancionero.js:1009 assets/cancionero.js:1112
+#: assets/cancionero.js:1010 assets/cancionero.js:1113
 msgid "Con YouTube"
 msgstr ""
 
-#: assets/cancionero.js:1024
+#: assets/cancionero.js:1025
 msgid "El repertorio en cifras"
 msgstr ""
 
-#: assets/cancionero.js:1029
+#: assets/cancionero.js:1030
 msgid "Ver todas"
 msgstr ""
 
-#: assets/cancionero.js:1033
+#: assets/cancionero.js:1034
 msgid "Sin datos adicionales"
 msgstr ""
 
-#: assets/cancionero.js:1034
+#: assets/cancionero.js:1035
 msgid "Aún no hay canciones."
 msgstr ""
 
-#: assets/cancionero.js:1039
+#: assets/cancionero.js:1040
 msgid "¿Qué canción buscas?"
 msgstr ""
 
-#: assets/cancionero.js:1042
+#: assets/cancionero.js:1043
 msgid "Partitura, letra y audios"
 msgstr ""
 
-#: assets/cancionero.js:1043
+#: assets/cancionero.js:1044
 msgid "Preparar el setlist"
 msgstr ""
 
-#: assets/cancionero.js:1066
+#: assets/cancionero.js:1067
 msgctxt "filtro de etiquetas: todas las canciones"
 msgid "Todas"
 msgstr ""
 
-#: assets/cancionero.js:1111
+#: assets/cancionero.js:1112
 msgid "Con editable"
 msgstr ""
 
 #. %s: nombre del filtro en minúsculas (con letra, con audio…)
-#: assets/cancionero.js:1121
+#: assets/cancionero.js:1122
 #, javascript-format
 msgid "Mostrar solo: %s"
 msgstr ""
 
-#: assets/cancionero.js:1121
+#: assets/cancionero.js:1122
 msgid "Mostrar todas"
 msgstr ""
 
 #. %s: nombre de la columna
-#: assets/cancionero.js:1142
+#: assets/cancionero.js:1143
 #, javascript-format
 msgid "Ordenar por %s (pulsa otra vez para invertir)"
 msgstr ""
 
 #. %s: nombre de la columna
-#: assets/cancionero.js:1142
+#: assets/cancionero.js:1143
 #, javascript-format
 msgid "Ordenar por %s"
 msgstr ""
 
-#: assets/cancionero.js:1149 assets/cancionero.js:2128
+#: assets/cancionero.js:1150 assets/cancionero.js:2129
 msgid "Nº"
 msgstr ""
 
-#: assets/cancionero.js:1150 assets/cancionero.js:1879 assets/cultos.js:605
+#: assets/cancionero.js:1151 assets/cancionero.js:1880 assets/cancionero.js:2929 assets/cultos.js:669
 msgid "Título"
 msgstr ""
 
-#: assets/cancionero.js:1155
+#: assets/cancionero.js:1156
 msgid "partituras"
 msgstr ""
 
-#: assets/cancionero.js:1155
+#: assets/cancionero.js:1156
 msgid "letra"
 msgstr ""
 
-#: assets/cancionero.js:1155
+#: assets/cancionero.js:1156
 msgid "audios"
 msgstr ""
 
-#: assets/cancionero.js:1156
+#: assets/cancionero.js:1157
 msgid "partituras editables"
 msgstr ""
 
-#: assets/cancionero.js:1156
+#: assets/cancionero.js:1157
 msgid "vídeos de YouTube"
 msgstr ""
 
-#: assets/cancionero.js:1157
+#: assets/cancionero.js:1158
 msgid "Tocada"
 msgstr ""
 
-#: assets/cancionero.js:1158
+#: assets/cancionero.js:1159
 msgid "Añadida"
 msgstr ""
 
-#: assets/cancionero.js:1198
+#: assets/cancionero.js:1199
 #, javascript-format
 msgid "%d seleccionada"
 msgid_plural "%d seleccionadas"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:1198
+#: assets/cancionero.js:1199
 msgid "Toca las canciones que quieras borrar"
 msgstr ""
 
-#: assets/cancionero.js:1203
+#: assets/cancionero.js:1204
 msgid "Seleccionar la canción de la lista"
 msgid_plural "Seleccionar las %d de la lista"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:1207 assets/cancionero.js:2564
+#: assets/cancionero.js:1208 assets/cancionero.js:3227
 msgid "Quitar la selección"
 msgstr ""
 
-#: assets/cancionero.js:1209 assets/cancionero.js:1916 assets/cancionero.js:2317 assets/cancionero.js:2662 assets/cancionero.js:2824 assets/cancionero.js:3875 assets/cancionero.js:3975 assets/cultos.js:616
+#: assets/cancionero.js:1210 assets/cancionero.js:1917 assets/cancionero.js:2826 assets/cancionero.js:2886 assets/cancionero.js:2980 assets/cancionero.js:3325 assets/cancionero.js:3487 assets/cancionero.js:4567 assets/cancionero.js:4667 assets/cultos.js:676
 msgid "Cancelar"
 msgstr ""
 
-#: assets/cancionero.js:1212
+#: assets/cancionero.js:1213
 #, javascript-format
 msgid "Se moverá %d canción a la papelera: deja de verse en el cancionero y en los setlists aparecerá como eliminada. Un administrador puede recuperarla desde «Papelera»."
 msgid_plural "Se moverán %d canciones a la papelera: dejan de verse en el cancionero y en los setlists aparecerán como eliminadas. Un administrador puede recuperarlas desde «Papelera»."
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:1213 assets/cancionero.js:2823
+#: assets/cancionero.js:1214 assets/cancionero.js:3486
 msgid "Sí, borrar"
 msgstr ""
 
-#: assets/cancionero.js:1214
+#: assets/cancionero.js:1215
 msgid "No"
 msgstr ""
 
 #. 1: número de la canción que se está borrando, 2: total de canciones
-#: assets/cancionero.js:1221
+#: assets/cancionero.js:1222
 #, javascript-format
 msgid "Borrando %1$d de %2$d…"
 msgstr ""
 
-#: assets/cancionero.js:1226
+#: assets/cancionero.js:1227
 #, javascript-format
 msgid "%d canción movida a la papelera"
 msgid_plural "%d canciones movidas a la papelera"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:1226
+#: assets/cancionero.js:1227
 #, javascript-format
 msgid "%d no se pudo borrar"
 msgid_plural "%d no se pudieron borrar"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:1238
+#: assets/cancionero.js:1239
 msgid "Cargando canciones…"
 msgstr ""
 
 #. %s: motivo del error
-#: assets/cancionero.js:1239
+#: assets/cancionero.js:1240
 #, javascript-format
 msgid "No se pudieron cargar las canciones: %s"
 msgstr ""
 
-#: assets/cancionero.js:1243 assets/cancionero.js:3741 assets/cancionero.js:3880 assets/cancionero.js:3989 assets/cultos.js:63
+#: assets/cancionero.js:1244 assets/cancionero.js:4433 assets/cancionero.js:4572 assets/cancionero.js:4681 assets/cultos.js:63
 #, javascript-format
 msgid "%d canción"
 msgid_plural "%d canciones"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:1248
+#: assets/cancionero.js:1249
 msgid "Todavía no hay canciones."
 msgstr ""
 
-#: assets/cancionero.js:1249
+#: assets/cancionero.js:1250
 msgid "Subir la primera"
 msgstr ""
 
 #. %s: lo que se ha escrito en el buscador
-#: assets/cancionero.js:1254
+#: assets/cancionero.js:1255
 #, javascript-format
 msgid "Ninguna canción coincide con «%s»."
 msgstr ""
 
-#: assets/cancionero.js:1254
+#: assets/cancionero.js:1255
 msgid "Ninguna canción cumple este filtro."
 msgstr ""
 
-#: assets/cancionero.js:1256
+#: assets/cancionero.js:1257
 msgid "Quitar filtros"
 msgstr ""
 
-#: assets/cancionero.js:1257
+#: assets/cancionero.js:1258
 msgid "Añadirla al cancionero"
 msgstr ""
 
 #. %s: número de himnario
-#: assets/cancionero.js:1287
+#: assets/cancionero.js:1288
 #, javascript-format
 msgid "Número %s"
 msgstr ""
 
 #. %s: tempo en pulsaciones por minuto
-#: assets/cancionero.js:1295 assets/cancionero.js:1508 assets/cultos.js:323 assets/visor.js:386
+#: assets/cancionero.js:1296 assets/cancionero.js:1509 assets/cultos.js:323 assets/visor.js:386
 #, javascript-format
 msgid "%s pulsaciones por minuto"
 msgstr ""
 
-#: assets/cancionero.js:1298 assets/cultos.js:326
+#: assets/cancionero.js:1299 assets/cultos.js:326
 #, javascript-format
 msgid "%d partitura"
 msgid_plural "%d partituras"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:1298
+#: assets/cancionero.js:1299
 msgid "Sin partitura"
 msgstr ""
 
-#: assets/cancionero.js:1299
+#: assets/cancionero.js:1300
 msgid "1 letra"
 msgstr ""
 
-#: assets/cancionero.js:1299
+#: assets/cancionero.js:1300
 msgid "Sin letra"
 msgstr ""
 
-#: assets/cancionero.js:1300
+#: assets/cancionero.js:1301
 #, javascript-format
 msgid "%d audio"
 msgid_plural "%d audios"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:1300
+#: assets/cancionero.js:1301
 msgid "Sin audio"
 msgstr ""
 
-#: assets/cancionero.js:1301
+#: assets/cancionero.js:1302
 #, javascript-format
 msgid "%d partitura editable"
 msgid_plural "%d partituras editables"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:1301
+#: assets/cancionero.js:1302
 msgid "Sin partitura editable"
 msgstr ""
 
-#: assets/cancionero.js:1302
+#: assets/cancionero.js:1303
 #, javascript-format
 msgid "%d vídeo"
 msgid_plural "%d vídeos"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:1302
+#: assets/cancionero.js:1303
 msgid "Sin vídeo"
 msgstr ""
 
-#: assets/cancionero.js:1304 assets/cultos.js:1123 assets/cultos.js:1142
+#: assets/cancionero.js:1305 assets/cultos.js:1979 assets/cultos.js:1998
 #, javascript-format
 msgid "%d vez"
 msgid_plural "%d veces"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:1304
+#: assets/cancionero.js:1305
 msgid "Nunca"
 msgstr ""
 
-#: assets/cancionero.js:1399 assets/cancionero.js:1408
+#: assets/cancionero.js:1400 assets/cancionero.js:1409
 msgid "¿Cerrar sin guardar los cambios?"
 msgstr ""
 
-#: assets/cancionero.js:1437
+#: assets/cancionero.js:1438
 msgid "Volver"
 msgstr ""
 
-#: assets/cancionero.js:1440 assets/cancionero.js:2219 assets/cancionero.js:3780 assets/cancionero.js:3913 assets/visor.js:360
+#: assets/cancionero.js:1441 assets/cancionero.js:2220 assets/cancionero.js:2847 assets/cancionero.js:4472 assets/cancionero.js:4605 assets/visor.js:360
 msgid "Cerrar"
 msgstr ""
 
-#: assets/cancionero.js:1464 assets/cancionero.js:1647
+#: assets/cancionero.js:1465 assets/cancionero.js:1648
 msgid "Cargando canción…"
 msgstr ""
 
-#: assets/cancionero.js:1467 assets/cultos.js:509
+#: assets/cancionero.js:1468 assets/cultos.js:555
 msgid "Canción no disponible"
 msgstr ""
 
-#: assets/cancionero.js:1467 assets/cultos.js:301
+#: assets/cancionero.js:1468 assets/cultos.js:301
 msgid "Error"
 msgstr ""
 
-#: assets/cancionero.js:1491 assets/cancionero.js:1537 assets/cancionero.js:1885 assets/cultos.js:327 assets/visor.js:343
+#: assets/cancionero.js:1492 assets/cancionero.js:1538 assets/cancionero.js:1886 assets/cultos.js:327 assets/visor.js:343
 msgid "Letra"
 msgstr ""
 
-#: assets/cancionero.js:1492 assets/cancionero.js:1815
+#: assets/cancionero.js:1493 assets/cancionero.js:1816
 msgid "Audio"
 msgstr ""
 
-#: assets/cancionero.js:1493
+#: assets/cancionero.js:1494
 msgid "Vídeo"
 msgstr ""
 
-#: assets/cancionero.js:1501
+#: assets/cancionero.js:1502
 msgid "Ver canciones con esta etiqueta"
 msgstr ""
 
-#: assets/cancionero.js:1507 assets/cancionero.js:1881 assets/cultos.js:328
+#: assets/cancionero.js:1508 assets/cancionero.js:1882 assets/cultos.js:328
 msgid "Tonalidad"
 msgstr ""
 
 #. %s: nombre de quien subió la canción
-#: assets/cancionero.js:1510
+#: assets/cancionero.js:1511
 #, javascript-format
 msgid "Subida por %s"
 msgstr ""
 
-#: assets/cancionero.js:1514 assets/cancionero.js:1515 assets/cultos.js:236
+#: assets/cancionero.js:1515 assets/cancionero.js:1516 assets/cultos.js:236
 msgid "Tocar"
 msgstr ""
 
-#: assets/cancionero.js:1516 assets/cultos.js:343
+#: assets/cancionero.js:1517 assets/cancionero.js:2847 assets/cultos.js:343
 msgid "Editar"
 msgstr ""
 
-#: assets/cancionero.js:1518
+#: assets/cancionero.js:1519
 msgid "Copiar enlace"
 msgstr ""
 
-#: assets/cancionero.js:1518
+#: assets/cancionero.js:1519
 msgid "Enlace copiado"
 msgstr ""
 
-#: assets/cancionero.js:1519
+#: assets/cancionero.js:1520
 msgid "Descargar partitura"
 msgstr ""
 
-#: assets/cancionero.js:1520
+#: assets/cancionero.js:1521
 msgid "Abrir el PDF original"
 msgstr ""
 
-#: assets/cancionero.js:1521
+#: assets/cancionero.js:1522
 msgid "Copiar letra"
 msgstr ""
 
-#: assets/cancionero.js:1521 assets/cancionero.js:1538
+#: assets/cancionero.js:1522 assets/cancionero.js:1539
 msgid "Letra copiada"
 msgstr ""
 
-#: assets/cancionero.js:1522
+#: assets/cancionero.js:1523
 msgid "Borrar canción"
 msgstr ""
 
-#: assets/cancionero.js:1533
+#: assets/cancionero.js:1534
 msgid "Completa la ficha:"
 msgstr ""
 
-#: assets/cancionero.js:1536 assets/cancionero.js:1902
+#: assets/cancionero.js:1537 assets/cancionero.js:1903
 msgid "Partituras editables"
 msgstr ""
 
-#: assets/cancionero.js:1538
+#: assets/cancionero.js:1539
 msgid "Copiar"
 msgstr ""
 
-#: assets/cancionero.js:1539
+#: assets/cancionero.js:1540
 msgid "Versiones en YouTube"
 msgstr ""
 
-#: assets/cancionero.js:1540 assets/cancionero.js:1889
+#: assets/cancionero.js:1541 assets/cancionero.js:1890
 msgid "Notas para el equipo"
 msgstr ""
 
-#: assets/cancionero.js:1552
+#: assets/cancionero.js:1553
 msgid "Esta canción no tiene partitura."
 msgstr ""
 
 #. %s: título de la canción
-#: assets/cancionero.js:1568 assets/cancionero.js:1569 assets/cultos.js:531
+#: assets/cancionero.js:1569 assets/cancionero.js:1570 assets/cultos.js:577
 #, javascript-format
 msgid "Partitura de %s"
 msgstr ""
 
 #. %d: número de orden de la partitura %d: posición de la partitura en la lista (1, 2, 3…)
-#: assets/cancionero.js:1575 assets/visor.js:392
+#: assets/cancionero.js:1576 assets/visor.js:392
 #, javascript-format
 msgid "Partitura %d"
 msgstr ""
 
 #. %s: nombre del archivo %s: nombre del audio
-#: assets/cancionero.js:1590 assets/cancionero.js:1608
+#: assets/cancionero.js:1591 assets/cancionero.js:1609
 #, javascript-format
 msgid "Descargar %s"
 msgstr ""
 
 #. %s: descripción del vídeo
-#: assets/cancionero.js:1618
+#: assets/cancionero.js:1619
 #, javascript-format
 msgid "Reproducir %s"
 msgstr ""
 
-#: assets/cancionero.js:1618
+#: assets/cancionero.js:1619
 msgid "vídeo"
 msgstr ""
 
-#: assets/cancionero.js:1628
+#: assets/cancionero.js:1629
 msgid "Versión de referencia"
 msgstr ""
 
 #. %s: título de la canción
-#: assets/cancionero.js:1635
+#: assets/cancionero.js:1636
 #, javascript-format
 msgid "¿Borrar «%s»? Se mueve a la papelera del cancionero y un administrador podrá recuperarla."
 msgstr ""
 
-#: assets/cancionero.js:1653 assets/cancionero.js:1893
+#: assets/cancionero.js:1654 assets/cancionero.js:1894
 msgid "obligatorio"
 msgstr ""
 
 #. %s: acción en negrita («Elegir partituras», «Elegir audios»…)
-#: assets/cancionero.js:1662
+#: assets/cancionero.js:1663
 #, javascript-format
 msgid "%s o arrastrar aquí"
 msgstr ""
 
-#: assets/cancionero.js:1693
+#: assets/cancionero.js:1694
 msgid "¿Ya existe?"
 msgstr ""
 
-#: assets/cancionero.js:1700
+#: assets/cancionero.js:1701
 msgid "p. ej. 72"
 msgstr ""
 
-#: assets/cancionero.js:1712
+#: assets/cancionero.js:1713
 msgid "Navidad, Santa Cena, alabanza…"
 msgstr ""
 
-#: assets/cancionero.js:1712
+#: assets/cancionero.js:1713
 msgid "Añadir etiqueta"
 msgstr ""
 
 #. %s: nombre de la etiqueta %s: nombre del archivo %s: título de la canción
-#: assets/cancionero.js:1723 assets/cancionero.js:1752 assets/cancionero.js:2146 assets/cultos.js:544
+#: assets/cancionero.js:1724 assets/cancionero.js:1753 assets/cancionero.js:2147 assets/cultos.js:590
 #, javascript-format
 msgid "Quitar %s"
 msgstr ""
 
 #. 1: nombre del archivo, 2: tamaño del archivo, 3: tamaño máximo permitido
-#: assets/cancionero.js:1737
+#: assets/cancionero.js:1738
 #, javascript-format
 msgid "«%1$s» pesa %2$s; el máximo es %3$s"
 msgstr ""
 
-#: assets/cancionero.js:1757 assets/cancionero.js:2089
+#: assets/cancionero.js:1758 assets/cancionero.js:2090
 msgid "Elegir partituras"
 msgstr ""
 
 #. %s: tamaño máximo por archivo
-#: assets/cancionero.js:1758
+#: assets/cancionero.js:1759
 #, javascript-format
 msgid "PDF, JPG o PNG · máx. %s por archivo"
 msgstr ""
 
 #. %s: nombre del archivo
-#: assets/cancionero.js:1760 assets/cancionero.js:2092
+#: assets/cancionero.js:1761 assets/cancionero.js:2093
 #, javascript-format
 msgid "«%s» no es PDF, JPG ni PNG"
 msgstr ""
 
-#: assets/cancionero.js:1771
+#: assets/cancionero.js:1772
 msgid "Principal"
 msgstr ""
 
-#: assets/cancionero.js:1772
+#: assets/cancionero.js:1773
 msgid "Hacer principal"
 msgstr ""
 
-#: assets/cancionero.js:1776
+#: assets/cancionero.js:1777
 msgid "ver"
 msgstr ""
 
-#: assets/cancionero.js:1779 assets/cancionero.js:1788
+#: assets/cancionero.js:1780 assets/cancionero.js:1789
 msgid "Descripción (p. ej. «Original», «En Sol», «Acordes»)"
 msgstr ""
 
 #. %s: nombre del archivo
-#: assets/cancionero.js:1779 assets/cancionero.js:1788 assets/cancionero.js:1842 assets/cancionero.js:1847
+#: assets/cancionero.js:1780 assets/cancionero.js:1789 assets/cancionero.js:1843 assets/cancionero.js:1848
 #, javascript-format
 msgid "Descripción de %s"
 msgstr ""
 
 #. %s: tamaño del archivo
-#: assets/cancionero.js:1785
+#: assets/cancionero.js:1786
 #, javascript-format
 msgid "nueva · %s"
 msgstr ""
 
-#: assets/cancionero.js:1796
+#: assets/cancionero.js:1797
 msgid "Elegir audios"
 msgstr ""
 
 #. %s: tamaño máximo por archivo
-#: assets/cancionero.js:1797
+#: assets/cancionero.js:1798
 #, javascript-format
 msgid "MP3, M4A, OGG, WAV o AAC · máx. %s por archivo"
 msgstr ""
 
 #. %s: nombre del archivo
-#: assets/cancionero.js:1799
+#: assets/cancionero.js:1800
 #, javascript-format
 msgid "«%s» no es un audio MP3, M4A, OGG, WAV o AAC"
 msgstr ""
 
-#: assets/cancionero.js:1808
+#: assets/cancionero.js:1809
 msgid "Nombre (p. ej. «Ensayo voces»)"
 msgstr ""
 
-#: assets/cancionero.js:1808
+#: assets/cancionero.js:1809
 msgid "Nombre del audio"
 msgstr ""
 
-#: assets/cancionero.js:1809
+#: assets/cancionero.js:1810
 msgid "Descripción (opcional)"
 msgstr ""
 
-#: assets/cancionero.js:1809
+#: assets/cancionero.js:1810
 msgid "Descripción del audio"
 msgstr ""
 
-#: assets/cancionero.js:1815
+#: assets/cancionero.js:1816
 msgid "escuchar"
 msgstr ""
 
 #. %s: tamaño del archivo
-#: assets/cancionero.js:1819 assets/cancionero.js:1846
+#: assets/cancionero.js:1820 assets/cancionero.js:1847
 #, javascript-format
 msgid "nuevo · %s"
 msgstr ""
 
-#: assets/cancionero.js:1828
+#: assets/cancionero.js:1829
 msgid "Elegir archivos editables"
 msgstr ""
 
 #. %s: tamaño máximo por archivo
-#: assets/cancionero.js:1829
+#: assets/cancionero.js:1830
 #, javascript-format
 msgid "MuseScore, MusicXML, Sibelius, Finale, Dorico, Guitar Pro, MIDI… · máx. %s por archivo"
 msgstr ""
 
 #. %s: nombre del archivo
-#: assets/cancionero.js:1831
+#: assets/cancionero.js:1832
 #, javascript-format
 msgid "«%s» no es una partitura editable (MuseScore, MusicXML, Sibelius, Finale…)"
 msgstr ""
 
-#: assets/cancionero.js:1841
+#: assets/cancionero.js:1842
 msgid "Archivo"
 msgstr ""
 
-#: assets/cancionero.js:1841
+#: assets/cancionero.js:1842
 msgid "descargar"
 msgstr ""
 
-#: assets/cancionero.js:1842 assets/cancionero.js:1847
+#: assets/cancionero.js:1843 assets/cancionero.js:1848
 msgid "Descripción (p. ej. «Arreglo coro», «En Sol»)"
 msgstr ""
 
-#: assets/cancionero.js:1859
+#: assets/cancionero.js:1860
 msgid "Enlace de YouTube"
 msgstr ""
 
-#: assets/cancionero.js:1864
+#: assets/cancionero.js:1865
 msgid "Descripción (coro, piano…)"
 msgstr ""
 
-#: assets/cancionero.js:1864
+#: assets/cancionero.js:1865
 msgid "Descripción del vídeo"
 msgstr ""
 
-#: assets/cancionero.js:1865
+#: assets/cancionero.js:1866
 msgid "Quitar enlace"
 msgstr ""
 
-#: assets/cancionero.js:1867
+#: assets/cancionero.js:1868
 msgid "Añadir enlace"
 msgstr ""
 
-#: assets/cancionero.js:1873 assets/cancionero.js:1962 assets/cultos.js:597 assets/cultos.js:646
+#: assets/cancionero.js:1874 assets/cancionero.js:1963 assets/cultos.js:620 assets/cultos.js:711
 msgid "Guardar cambios"
 msgstr ""
 
-#: assets/cancionero.js:1873 assets/cancionero.js:1962
+#: assets/cancionero.js:1874 assets/cancionero.js:1963
 msgid "Guardar canción"
 msgstr ""
 
-#: assets/cancionero.js:1880
+#: assets/cancionero.js:1881
 msgid "Número de himnario"
 msgstr ""
 
-#: assets/cancionero.js:1882
+#: assets/cancionero.js:1883
 msgid "Tempo (BPM)"
 msgstr ""
 
-#: assets/cancionero.js:1883
+#: assets/cancionero.js:1884
 msgid "Autor / compositor"
 msgstr ""
 
-#: assets/cancionero.js:1887
+#: assets/cancionero.js:1888
 msgid "Opcional. Separa las estrofas con una línea en blanco. La letra también se usa en la búsqueda."
 msgstr ""
 
-#: assets/cancionero.js:1894
+#: assets/cancionero.js:1895
 msgid "Puedes subir varias: la original, en otra tonalidad, con acordes…"
 msgstr ""
 
 #. %s: enlace «Súbelas de golpe»
-#: assets/cancionero.js:1896
+#: assets/cancionero.js:1897
 #, javascript-format
 msgid "¿Son varias canciones distintas? %s."
 msgstr ""
 
-#: assets/cancionero.js:1896
+#: assets/cancionero.js:1897
 msgid "Súbelas de golpe"
 msgstr ""
 
-#: assets/cancionero.js:1899
+#: assets/cancionero.js:1900
 msgid "Ensayos, voces por separado, pistas… Ponle a cada uno un nombre y, si quieres, una descripción."
 msgstr ""
 
-#: assets/cancionero.js:1903
+#: assets/cancionero.js:1904
 msgid "Opcional: el archivo original para quien quiera modificar o transportar la partitura (MuseScore, Sibelius, Finale…). Se descargan; la partitura que se ve sigue siendo el PDF o la imagen."
 msgstr ""
 
-#: assets/cancionero.js:1908
+#: assets/cancionero.js:1909
 msgid "Pulsa Intro o coma para añadir cada etiqueta."
 msgstr ""
 
-#: assets/cancionero.js:1910
+#: assets/cancionero.js:1911
 msgid "Vídeos de YouTube"
 msgstr ""
 
-#: assets/cancionero.js:1922 assets/cultos.js:622
+#: assets/cancionero.js:1923 assets/cultos.js:682
 msgid "Escribe el título."
 msgstr ""
 
-#: assets/cancionero.js:1923
+#: assets/cancionero.js:1924
 msgid "Añade al menos una partitura."
 msgstr ""
 
-#: assets/cancionero.js:1924
+#: assets/cancionero.js:1925
 msgid "Hay enlaces que no son de YouTube."
 msgstr ""
 
 #. %s: nombre del archivo que se sube
-#: assets/cancionero.js:1943
+#: assets/cancionero.js:1944
 #, javascript-format
 msgid "Subiendo %s…"
 msgstr ""
 
-#: assets/cancionero.js:1949 assets/cultos.js:626
+#: assets/cancionero.js:1950 assets/cultos.js:686
 msgid "Guardando…"
 msgstr ""
 
-#: assets/cancionero.js:1953
+#: assets/cancionero.js:1954
 msgid "Cambios guardados"
 msgstr ""
 
-#: assets/cancionero.js:1953
+#: assets/cancionero.js:1954
 msgid "Canción añadida"
 msgstr ""
 
-#: assets/cancionero.js:2079 assets/cancionero.js:2167
+#: assets/cancionero.js:2080 assets/cancionero.js:2168
 msgid "Subir"
 msgstr ""
 
-#: assets/cancionero.js:2085
+#: assets/cancionero.js:2086
 #, javascript-format
 msgid "%d canción quitada de la lista"
 msgid_plural "%d canciones quitadas de la lista"
@@ -1055,100 +1063,100 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. %s: tamaño máximo por archivo
-#: assets/cancionero.js:2090
+#: assets/cancionero.js:2091
 #, javascript-format
 msgid "PDF, JPG o PNG · una canción por archivo · máx. %s cada uno"
 msgstr ""
 
-#: assets/cancionero.js:2115
+#: assets/cancionero.js:2116
 msgid "Ya hay una canción con este título"
 msgstr ""
 
-#: assets/cancionero.js:2118 assets/cancionero.js:2167
+#: assets/cancionero.js:2119 assets/cancionero.js:2168 assets/cancionero.js:2572
 msgid "Subiendo…"
 msgstr ""
 
-#: assets/cancionero.js:2119
+#: assets/cancionero.js:2120
 msgid "Subida · ver"
 msgstr ""
 
 #. 1: tamaño del archivo, 2: tamaño máximo permitido
-#: assets/cancionero.js:2121
+#: assets/cancionero.js:2122
 #, javascript-format
 msgid "Pesa %1$s; el máximo es %2$s"
 msgstr ""
 
 #. %s: nombre del archivo
-#: assets/cancionero.js:2129
+#: assets/cancionero.js:2130
 #, javascript-format
 msgid "Número de himnario de %s"
 msgstr ""
 
 #. %s: nombre del archivo
-#: assets/cancionero.js:2133
+#: assets/cancionero.js:2134
 #, javascript-format
 msgid "Título de %s"
 msgstr ""
 
 #. %s: nombre del archivo %s: título de la canción
-#: assets/cancionero.js:2139 assets/cultos.js:522
+#: assets/cancionero.js:2140 assets/cultos.js:568
 #, javascript-format
 msgid "Tonalidad de %s"
 msgstr ""
 
-#: assets/cancionero.js:2160
+#: assets/cancionero.js:2161
 #, javascript-format
 msgid "%d subida"
 msgid_plural "%d subidas"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:2160
+#: assets/cancionero.js:2161
 #, javascript-format
 msgid "%d por subir"
 msgstr ""
 
-#: assets/cancionero.js:2160
+#: assets/cancionero.js:2161
 msgid "Nada que subir"
 msgstr ""
 
-#: assets/cancionero.js:2161
+#: assets/cancionero.js:2162
 msgid "Elige o arrastra varias partituras: se creará una canción por archivo, con el nombre del archivo como título. Si el nombre lleva el número de himnario (menor de 300) o la tonalidad (C o Do, Bb o Sib…), se separan solos. Antes de subirlas puedes corregirlos."
 msgstr ""
 
-#: assets/cancionero.js:2165
+#: assets/cancionero.js:2166
 msgid "Quitar la que ya está en el cancionero"
 msgid_plural "Quitar las %d que ya están en el cancionero"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:2167
+#: assets/cancionero.js:2168
 #, javascript-format
 msgid "Subir %d canción"
 msgid_plural "Subir %d canciones"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:2186
+#: assets/cancionero.js:2187
 #, javascript-format
 msgid "%d canción no se pudo subir"
 msgid_plural "%d canciones no se pudieron subir"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:2186
+#: assets/cancionero.js:2187
 msgid "Canciones subidas"
 msgstr ""
 
-#: assets/cancionero.js:2240
+#: assets/cancionero.js:2241
 msgid "Cargando ajustes…"
 msgstr ""
 
-#: assets/cancionero.js:2240 assets/cancionero.js:3084 assets/cancionero.js:3990
+#: assets/cancionero.js:2241 assets/cancionero.js:3776 assets/cancionero.js:4682
 msgid "Ajustes"
 msgstr ""
 
-#: assets/cancionero.js:2290
+#: assets/cancionero.js:2291
 #, javascript-format
 msgid "Bienvenida enviada a %d persona"
 msgid_plural "Bienvenida enviada a %d personas"
@@ -1156,7 +1164,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. 1: número de personas, 2: lista de correos, cada uno con su motivo
-#: assets/cancionero.js:2293
+#: assets/cancionero.js:2294
 #, javascript-format
 msgid "No se envió a %1$d persona: %2$s"
 msgid_plural "No se envió a %1$d personas: %2$s"
@@ -1164,205 +1172,579 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. %s: motivo del error
-#: assets/cancionero.js:2297
+#: assets/cancionero.js:2298
 #, javascript-format
 msgid "Se interrumpió el envío (%s). Puedes enviarla a quien falte desde la lista del equipo."
 msgstr ""
 
-#: assets/cancionero.js:2304
+#: assets/cancionero.js:2312
+msgid "Texto largo"
+msgstr ""
+
+#: assets/cancionero.js:2313
+msgid "Una canción del culto"
+msgstr ""
+
+#: assets/cancionero.js:2314
+msgid "Varias canciones del culto"
+msgstr ""
+
+#: assets/cancionero.js:2314
+msgid "Texto corto"
+msgstr ""
+
+#: assets/cancionero.js:2318
+msgid "Varias líneas: cada línea se imprime en su línea."
+msgstr ""
+
+#: assets/cancionero.js:2319
+msgid "Se elige una de las canciones del culto o se escribe un nombre."
+msgstr ""
+
+#: assets/cancionero.js:2320
+msgid "Se eligen varias de las canciones del culto o se escriben nombres."
+msgstr ""
+
+#: assets/cancionero.js:2320
+msgid "Una línea de texto."
+msgstr ""
+
+#: assets/cancionero.js:2326
+msgid "La primera del culto"
+msgstr ""
+
+#: assets/cancionero.js:2326
+msgid "La siguiente a la última asignada antes"
+msgstr ""
+
+#: assets/cancionero.js:2326 assets/cancionero.js:2327 assets/cultos.js:1270
+msgid "Ninguna"
+msgstr ""
+
+#: assets/cancionero.js:2327
+msgid "Las que no estén en otras secciones"
+msgstr ""
+
+#: assets/cancionero.js:2444
+msgid "Culto de ejemplo"
+msgstr ""
+
+#. %d: número de la canción de ejemplo
+#: assets/cancionero.js:2448
+#, javascript-format
+msgid "Canción de ejemplo %d"
+msgstr ""
+
+#. 1: nombre de la sección o del campo, 2: posición nueva, 3: total
+#: assets/cancionero.js:2471
+#, javascript-format
+msgid "%1$s: ahora en la posición %2$d de %3$d"
+msgstr ""
+
+#: assets/cancionero.js:2546 assets/cultos.js:559 assets/cultos.js:1387
+msgid "Arrastrar"
+msgstr ""
+
+#: assets/cancionero.js:2560
+msgid "Elegir imagen"
+msgstr ""
+
+#: assets/cancionero.js:2567 assets/cancionero.js:2773 assets/cultos.js:1326
+msgid "Quitar"
+msgstr ""
+
+#: assets/cancionero.js:2601
+msgid "Solo se admiten imágenes JPG o PNG."
+msgstr ""
+
+#. %s: tamaño de la imagen elegida (p. ej. 3,4 MB)
+#: assets/cancionero.js:2602
+#, javascript-format
+msgid "La imagen pesa %s y el máximo son 2 MB."
+msgstr ""
+
+#: assets/cancionero.js:2637
+msgid "Imagen de cabecera (arriba a la izquierda)"
+msgstr ""
+
+#: assets/cancionero.js:2637
+msgid "Vista previa de la imagen de cabecera"
+msgstr ""
+
+#: assets/cancionero.js:2638
+msgid "Sin imagen"
+msgstr ""
+
+#: assets/cancionero.js:2638
+msgid "JPG o PNG, de hasta 2 MB. Si no eliges ninguna, se imprime el nombre del cancionero."
+msgstr ""
+
+#: assets/cancionero.js:2641
+msgid "Logo de la iglesia (arriba a la derecha)"
+msgstr ""
+
+#: assets/cancionero.js:2641
+msgid "Vista previa del logo"
+msgstr ""
+
+#: assets/cancionero.js:2642
+msgid "Sin logo"
+msgstr ""
+
+#: assets/cancionero.js:2642
+msgid "JPG o PNG, de hasta 2 MB. Si no eliges ninguno, se imprime el logo del Cancionero."
+msgstr ""
+
+#: assets/cancionero.js:2647
+msgid "p. ej. LECTURAS EN RVR1960"
+msgstr ""
+
+#: assets/cancionero.js:2653
+msgid "No hay ninguna sección. Pulsa «Añadir sección» para crear la primera."
+msgstr ""
+
+#: assets/cancionero.js:2658
+msgid "Añadir sección"
+msgstr ""
+
+#: assets/cancionero.js:2665 assets/cancionero.js:2681 assets/cancionero.js:2684
+msgid "(sin título)"
+msgstr ""
+
+#: assets/cancionero.js:2686
+msgid "Sin campos"
+msgstr ""
+
+#. %s: título de la sección
+#: assets/cancionero.js:2687 assets/cancionero.js:2697
+#, javascript-format
+msgid "Subir la sección «%s»"
+msgstr ""
+
+#. %s: título de la sección
+#: assets/cancionero.js:2688 assets/cancionero.js:2699
+#, javascript-format
+msgid "Bajar la sección «%s»"
+msgstr ""
+
+#: assets/cancionero.js:2697 assets/cancionero.js:2763
+msgctxt "mover una sección o un campo de la escaleta hacia arriba"
+msgid "Subir"
+msgstr ""
+
+#: assets/cancionero.js:2699 assets/cancionero.js:2765
+msgctxt "mover una sección o un campo de la escaleta hacia abajo"
+msgid "Bajar"
+msgstr ""
+
+#: assets/cancionero.js:2702
+msgid "p. ej. Anuncios"
+msgstr ""
+
+#: assets/cancionero.js:2703
+msgid "p. ej. (Indicación breve para este momento)"
+msgstr ""
+
+#: assets/cancionero.js:2708
+msgid "Esta sección no tiene campos y saldrá vacía en la hoja. Pulsa «Añadir campo»."
+msgstr ""
+
+#: assets/cancionero.js:2713
+msgid "Añadir campo"
+msgstr ""
+
+#: assets/cancionero.js:2740
+msgid "Canción propuesta"
+msgstr ""
+
+#: assets/cancionero.js:2740
+msgid "Canciones propuestas"
+msgstr ""
+
+#: assets/cancionero.js:2740
+msgid "Aparece ya elegida en cada culto; se puede cambiar."
+msgstr ""
+
+#: assets/cancionero.js:2747
+msgid "Texto inicial (opcional)"
+msgstr ""
+
+#: assets/cancionero.js:2747
+msgid "Aparece ya escrito en cada culto; se puede cambiar."
+msgstr ""
+
+#: assets/cancionero.js:2759
+msgid "p. ej. Presidencia"
+msgstr ""
+
+#. %s: nombre del campo
+#: assets/cancionero.js:2763 assets/cancionero.js:2777
+#, javascript-format
+msgid "Subir el campo «%s»"
+msgstr ""
+
+#. %s: nombre del campo
+#: assets/cancionero.js:2765 assets/cancionero.js:2778
+#, javascript-format
+msgid "Bajar el campo «%s»"
+msgstr ""
+
+#. %s: nombre del campo
+#: assets/cancionero.js:2767 assets/cancionero.js:2779
+#, javascript-format
+msgid "Quitar el campo «%s»"
+msgstr ""
+
+#. %s: nombre del campo
+#: assets/cancionero.js:2772
+#, javascript-format
+msgid "Campo «%s» quitado"
+msgstr ""
+
+#: assets/cancionero.js:2786
+msgid "Tipo de campo"
+msgstr ""
+
+#: assets/cancionero.js:2787
+msgid "Etiqueta (opcional)"
+msgstr ""
+
+#: assets/cancionero.js:2787
+msgid "Si la pones, sale impresa delante del valor, como «Presidencia: …»."
+msgstr ""
+
+#: assets/cancionero.js:2791
+msgid "Letra pequeña"
+msgstr ""
+
+#: assets/cancionero.js:2791
+msgid "Imprime este campo con letra más pequeña, por ejemplo para una nota."
+msgstr ""
+
+#. %s: título de la sección
+#: assets/cancionero.js:2813
+#, javascript-format
+msgid "Se quitará la sección «%s» y todos sus campos de la escaleta."
+msgstr ""
+
+#: assets/cancionero.js:2815 assets/cultos.js:1413
+msgid "Quitar sección"
+msgstr ""
+
+#. %s: título de la sección
+#: assets/cancionero.js:2824
+#, javascript-format
+msgid "Sección «%s» quitada"
+msgstr ""
+
+#: assets/cancionero.js:2825
+msgid "Sí, quitar la sección"
+msgstr ""
+
+#: assets/cancionero.js:2829 assets/cultos.js:1391
+msgid "Título de la sección"
+msgstr ""
+
+#: assets/cancionero.js:2829
+msgid "Se imprime siempre en MAYÚSCULAS."
+msgstr ""
+
+#: assets/cancionero.js:2830
+msgid "Nota bajo el título (opcional)"
+msgstr ""
+
+#: assets/cancionero.js:2830
+msgid "Sale debajo del título, en rojo y con letra más pequeña."
+msgstr ""
+
+#: assets/cancionero.js:2832
+msgid "Campos de la sección"
+msgstr ""
+
+#: assets/cancionero.js:2833
+msgid "Cada campo es una línea que se rellena en cada culto: un texto, o una o varias canciones del culto."
+msgstr ""
+
+#: assets/cancionero.js:2861
+msgid "El PDF de ejemplo no está disponible en este momento."
+msgstr ""
+
+#: assets/cancionero.js:2863
+msgid "Preparando el PDF…"
+msgstr ""
+
+#: assets/cancionero.js:2866
+msgid "No se pudo preparar el PDF."
+msgstr ""
+
+#: assets/cancionero.js:2867 assets/cancionero.js:2868
+msgid "Ver un ejemplo en PDF"
+msgstr ""
+
+#: assets/cancionero.js:2875
+msgid "Volver a la plantilla de ejemplo"
+msgstr ""
+
+#: assets/cancionero.js:2877
+msgid "Se perderán la cabecera, los títulos y las secciones que has cambiado, y se pondrá la plantilla de ejemplo."
+msgstr ""
+
+#: assets/cancionero.js:2884
+msgid "Plantilla de ejemplo puesta. Pulsa «Guardar ajustes» para conservarla."
+msgstr ""
+
+#: assets/cancionero.js:2885
+msgid "Sí, volver al ejemplo"
+msgstr ""
+
+#. %d: número de la sección dentro de la escaleta
+#: assets/cancionero.js:2904
+#, javascript-format
+msgid "La sección %d no tiene título: escríbelo para poder guardar."
+msgstr ""
+
+#: assets/cancionero.js:2921
+msgid "La escaleta es la hoja impresa con el orden del culto. Aquí decides cómo es: la cabecera, los títulos y las secciones. En cada culto se rellena con sus datos y se puede imprimir en PDF."
+msgstr ""
+
+#: assets/cancionero.js:2923
+msgid "Cabecera de la hoja impresa"
+msgstr ""
+
+#: assets/cancionero.js:2926
+msgid "Fila de títulos"
+msgstr ""
+
+#: assets/cancionero.js:2927
+msgid "Va bajo la cabecera. A la derecha se pone sola la fecha del culto."
+msgstr ""
+
+#: assets/cancionero.js:2929
+msgid "Si lo dejas vacío se usa «ORDEN DE CULTO»."
+msgstr ""
+
+#: assets/cancionero.js:2930
+msgid "Texto central (opcional)"
+msgstr ""
+
+#: assets/cancionero.js:2930
+msgid "Por ejemplo, la versión de la Biblia de las lecturas."
+msgstr ""
+
+#: assets/cancionero.js:2932
+msgid "Secciones de la escaleta"
+msgstr ""
+
+#: assets/cancionero.js:2933
+msgid "Cada sección es una fila de la hoja: su título a la izquierda y lo que se rellena en cada culto a la derecha. Pulsa «Editar» para cambiarla. Para cambiar el orden, arrastra el asa de la izquierda o usa «Subir» y «Bajar»."
+msgstr ""
+
+#: assets/cancionero.js:2937
+msgid "Ejemplo y plantilla de partida"
+msgstr ""
+
+#: assets/cancionero.js:2939
+msgid "Crea un PDF con un culto inventado y la escaleta tal como está ahora en pantalla, aunque aún no la hayas guardado."
+msgstr ""
+
+#: assets/cancionero.js:2941
+msgid "Sustituye la cabecera, los títulos y las secciones por los de la plantilla de ejemplo. No se guarda hasta que pulses «Guardar ajustes»."
+msgstr ""
+
+#: assets/cancionero.js:2959
 msgid "p. ej. Nombre de tu iglesia o grupo"
 msgstr ""
 
-#: assets/cancionero.js:2310
+#: assets/cancionero.js:2965
 msgid "p. ej. tuiglesia.org (opcional)"
 msgstr ""
 
-#: assets/cancionero.js:2316
+#: assets/cancionero.js:2979
 msgid "Guardar ajustes"
 msgstr ""
 
 #. 1: personas a las que ya se ha enviado, 2: total de personas
-#: assets/cancionero.js:2340
+#: assets/cancionero.js:3003
 #, javascript-format
 msgid "Enviando la bienvenida… %1$d de %2$d"
 msgstr ""
 
 #. %s: fecha
-#: assets/cancionero.js:2366
+#: assets/cancionero.js:3029
 #, javascript-format
 msgid "Bienvenida enviada el %s"
 msgstr ""
 
-#: assets/cancionero.js:2432
+#: assets/cancionero.js:3095
 msgid "Para no quedarte sin acceso a los ajustes, que lo haga otro administrador."
 msgstr ""
 
-#: assets/cancionero.js:2435
+#: assets/cancionero.js:3098
 msgid "Quitar de administrador"
 msgstr ""
 
 #. %s: nombre o correo de la persona
-#: assets/cancionero.js:2436
+#: assets/cancionero.js:3099
 #, javascript-format
 msgid "%s ya no es administrador del cancionero"
 msgstr ""
 
-#: assets/cancionero.js:2439
+#: assets/cancionero.js:3102
 msgid "Hacer administrador"
 msgstr ""
 
 #. %s: nombre o correo de la persona
-#: assets/cancionero.js:2440
+#: assets/cancionero.js:3103
 #, javascript-format
 msgid "%s es administrador del cancionero"
 msgstr ""
 
-#: assets/cancionero.js:2444
+#: assets/cancionero.js:3107
 msgid "Quitar del equipo"
 msgstr ""
 
 #. %s: nombre o correo de la persona
-#: assets/cancionero.js:2445
+#: assets/cancionero.js:3108
 #, javascript-format
 msgid "¿Quitar a %s del equipo? Perderá el acceso al cancionero."
 msgstr ""
 
 #. %s: nombre o correo de la persona
-#: assets/cancionero.js:2446
+#: assets/cancionero.js:3109
 #, javascript-format
 msgid "%s ya no está en el equipo"
 msgstr ""
 
-#: assets/cancionero.js:2449
+#: assets/cancionero.js:3112
 msgid "Añadir a la lista"
 msgstr ""
 
 #. %s: nombre o correo de la persona
-#: assets/cancionero.js:2450
+#: assets/cancionero.js:3113
 #, javascript-format
 msgid "%s se ha añadido a la lista"
 msgstr ""
 
 #. %s: nombre o correo de la persona
-#: assets/cancionero.js:2461 assets/cancionero.js:2464
+#: assets/cancionero.js:3124 assets/cancionero.js:3127
 #, javascript-format
 msgid "Opciones de %s"
 msgstr ""
 
-#: assets/cancionero.js:2462
+#: assets/cancionero.js:3125
 msgid "Opciones"
 msgstr ""
 
 #. %s: nombre o correo de la persona
-#: assets/cancionero.js:2489
+#: assets/cancionero.js:3152
 #, javascript-format
 msgid "Enviar la bienvenida a %s"
 msgstr ""
 
-#: assets/cancionero.js:2503 assets/cancionero.js:3432
+#: assets/cancionero.js:3166 assets/cancionero.js:4124
 msgid "Puede cambiar los ajustes, gestionar el equipo y borrar canciones"
 msgstr ""
 
-#: assets/cancionero.js:2503 assets/cancionero.js:3432
+#: assets/cancionero.js:3166 assets/cancionero.js:4124
 msgid "Administrador"
 msgstr ""
 
-#: assets/cancionero.js:2505 assets/cancionero.js:3431
+#: assets/cancionero.js:3168 assets/cancionero.js:4123
 msgid "Las cuentas de administración no reciben enlaces por correo"
 msgstr ""
 
-#: assets/cancionero.js:2505 assets/cancionero.js:3431
+#: assets/cancionero.js:3168 assets/cancionero.js:4123
 msgid "Administración · entra con contraseña"
 msgstr ""
 
-#: assets/cancionero.js:2506
+#: assets/cancionero.js:3169
 msgid "Ha entrado"
 msgstr ""
 
-#: assets/cancionero.js:2506
+#: assets/cancionero.js:3169
 msgid "Pendiente"
 msgstr ""
 
-#: assets/cancionero.js:2506 assets/cancionero.js:3433
+#: assets/cancionero.js:3169 assets/cancionero.js:4125
 msgid "Fuera de la lista"
 msgstr ""
 
-#: assets/cancionero.js:2511
+#: assets/cancionero.js:3174
 msgid "Los correos marcados son de cuentas de administración: no reciben enlaces por seguridad y entran con usuario y contraseña. Para probar el enlace, usa otro correo."
 msgstr ""
 
-#: assets/cancionero.js:2513
+#: assets/cancionero.js:3176
 msgid "Buscar en el equipo"
 msgstr ""
 
-#: assets/cancionero.js:2541
+#: assets/cancionero.js:3204
 msgid "Aún no hay nadie en la lista."
 msgstr ""
 
-#: assets/cancionero.js:2542
+#: assets/cancionero.js:3205
 msgid "Nadie coincide con la búsqueda."
 msgstr ""
 
-#: assets/cancionero.js:2555
+#: assets/cancionero.js:3218
 msgid "Seleccionar todos"
 msgstr ""
 
-#: assets/cancionero.js:2560
+#: assets/cancionero.js:3223
 msgid "Seleccionar quien no ha entrado"
 msgstr ""
 
-#: assets/cancionero.js:2576
+#: assets/cancionero.js:3239
 #, javascript-format
 msgid "Enviar la bienvenida a %d persona"
 msgid_plural "Enviar la bienvenida a %d personas"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:2590
+#: assets/cancionero.js:3253
 #, javascript-format
 msgid "¿Enviar la bienvenida a %d persona?"
 msgid_plural "¿Enviar la bienvenida a %d personas?"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:2653
+#: assets/cancionero.js:3316
 msgid "Un correo por línea"
 msgstr ""
 
-#: assets/cancionero.js:2657 assets/cultos.js:922
+#: assets/cancionero.js:3320 assets/cultos.js:1778
 msgid "Añadir"
 msgstr ""
 
-#: assets/cancionero.js:2664
+#: assets/cancionero.js:3327
 msgid "Correos"
 msgstr ""
 
-#: assets/cancionero.js:2664
+#: assets/cancionero.js:3327
 msgid "Uno o varios: uno por línea, o pega una lista (se separan por espacios, comas, puntos y comas o saltos de línea)."
 msgstr ""
 
-#: assets/cancionero.js:2669
+#: assets/cancionero.js:3332
 msgid "Añadir personas"
 msgstr ""
 
-#: assets/cancionero.js:2684
+#: assets/cancionero.js:3347
 msgid "Les llegará el correo de bienvenida."
 msgstr ""
 
-#: assets/cancionero.js:2684
+#: assets/cancionero.js:3347
 msgid "La bienvenida automática está desactivada (puedes enviarla después desde la lista)."
 msgstr ""
 
-#: assets/cancionero.js:2685
+#: assets/cancionero.js:3348
 msgid "La casilla de bienvenida de más abajo tiene un cambio sin guardar: hasta que guardes los ajustes se aplica lo anterior."
 msgstr ""
 
-#: assets/cancionero.js:2704
+#: assets/cancionero.js:3367
 msgid "Escribe al menos un correo."
 msgstr ""
 
 #. 1: número de correos, 2: lista de correos
-#: assets/cancionero.js:2707
+#: assets/cancionero.js:3370
 #, javascript-format
 msgid "Este correo no es válido: %2$s. No se ha añadido a nadie."
 msgid_plural "Estos correos no son válidos: %2$s. No se ha añadido a nadie."
@@ -1370,60 +1752,60 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. 1: número de correos, 2: lista de correos
-#: assets/cancionero.js:2713
+#: assets/cancionero.js:3376
 #, javascript-format
 msgid "Ya estaba en el equipo: %2$s"
 msgid_plural "Ya estaban en el equipo: %2$s"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:2722
+#: assets/cancionero.js:3385
 #, javascript-format
 msgid "%d persona añadida"
 msgid_plural "%d personas añadidas"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:2736
+#: assets/cancionero.js:3399
 msgid "Comprobando la protección de los archivos…"
 msgstr ""
 
-#: assets/cancionero.js:2743
+#: assets/cancionero.js:3406
 msgid "La carpeta de archivos privados está protegida: solo se entregan a quien ha iniciado sesión."
 msgstr ""
 
-#: assets/cancionero.js:2746
+#: assets/cancionero.js:3409
 msgid "Tu servidor entrega los archivos privados sin pedir sesión."
 msgstr ""
 
 #. %s: regla de configuración de Nginx
-#: assets/cancionero.js:2747
+#: assets/cancionero.js:3410
 #, javascript-format
 msgid "Si usas Nginx, añade esta regla a la configuración del sitio y recarga el servidor: %s. En Apache, comprueba que se permiten los archivos .htaccess (AllowOverride)."
 msgstr ""
 
-#: assets/cancionero.js:2748
+#: assets/cancionero.js:3411
 msgid "No se pudo comprobar la protección desde el servidor. Prueba a abrir una partitura en una ventana privada sin sesión: debe dar error."
 msgstr ""
 
-#: assets/cancionero.js:2752
+#: assets/cancionero.js:3415
 #, javascript-format
 msgid "Proteger %d archivo existente"
 msgid_plural "Proteger %d archivos existentes"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:2752
+#: assets/cancionero.js:3415
 msgid "Proteger archivos existentes"
 msgstr ""
 
 #. 1: archivos movidos, 2: total de archivos
-#: assets/cancionero.js:2759
+#: assets/cancionero.js:3422
 #, javascript-format
 msgid "Moviendo archivos… %1$d de %2$d"
 msgstr ""
 
-#: assets/cancionero.js:2764 assets/cancionero.js:2766
+#: assets/cancionero.js:3427 assets/cancionero.js:3429
 #, javascript-format
 msgid "%d archivo protegido"
 msgid_plural "%d archivos protegidos"
@@ -1431,63 +1813,63 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. 1: número de archivos, 2: lista de archivos con su motivo
-#: assets/cancionero.js:2765
+#: assets/cancionero.js:3428
 #, javascript-format
 msgid "%1$d no se pudieron mover: %2$s"
 msgstr ""
 
 #. %s: motivo del error
-#: assets/cancionero.js:2769
+#: assets/cancionero.js:3432
 #, javascript-format
 msgid "Se interrumpió: %s Vuelve a pulsar el botón para continuar."
 msgstr ""
 
-#: assets/cancionero.js:2776
+#: assets/cancionero.js:3439
 #, javascript-format
 msgid "Hay %d archivo subido antes de esta versión que todavía se puede abrir con su dirección directa. Muévelo a la carpeta privada (se hace por tandas; los enlaces directos antiguos dejarán de funcionar)."
 msgid_plural "Hay %d archivos subidos antes de esta versión que todavía se pueden abrir con su dirección directa. Muévelos a la carpeta privada (se hace por tandas; los enlaces directos antiguos dejarán de funcionar)."
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:2777
+#: assets/cancionero.js:3440
 msgid "Todos los archivos del cancionero están en la carpeta privada."
 msgstr ""
 
-#: assets/cancionero.js:2788
+#: assets/cancionero.js:3451
 msgid "Buscando archivos sin usar…"
 msgstr ""
 
-#: assets/cancionero.js:2797
+#: assets/cancionero.js:3460
 #, javascript-format
 msgid "%d archivo es de una canción que está en la papelera: se conserva por si se recupera y aparecerá aquí cuando la papelera se vacíe."
 msgid_plural "%d archivos son de canciones que están en la papelera: se conservan por si se recuperan y aparecerán aquí cuando la papelera se vacíe."
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:2799
+#: assets/cancionero.js:3462
 msgid "No hay archivos sin usar: todas las partituras, audios y editables pertenecen a alguna canción."
 msgstr ""
 
 #. 1: número de archivos, 2: tamaño total
-#: assets/cancionero.js:2808
+#: assets/cancionero.js:3471
 #, javascript-format
 msgid "Borrar %1$d archivo (%2$s)"
 msgid_plural "Borrar %1$d archivos (%2$s)"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:2808
+#: assets/cancionero.js:3471
 msgid "Marca los archivos que quieras borrar"
 msgstr ""
 
-#: assets/cancionero.js:2816
+#: assets/cancionero.js:3479
 #, javascript-format
 msgid "Se borrará %d archivo del servidor. No se puede deshacer."
 msgid_plural "Se borrarán %d archivos del servidor. No se puede deshacer."
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:2820
+#: assets/cancionero.js:3483
 #, javascript-format
 msgid "%d archivo borrado"
 msgid_plural "%d archivos borrados"
@@ -1495,13 +1877,13 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. %s: espacio liberado (p. ej. 3 MB)
-#: assets/cancionero.js:2820
+#: assets/cancionero.js:3483
 #, javascript-format
 msgid "%s liberados"
 msgstr ""
 
 #. 1: número de archivos, 2: tamaño total
-#: assets/cancionero.js:2829
+#: assets/cancionero.js:3492
 #, javascript-format
 msgid "Ninguna canción usa este archivo · %2$s en total."
 msgid_plural "Ninguna canción usa estos %1$d archivos · %2$s en total."
@@ -1509,446 +1891,450 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. %s: nombre del archivo
-#: assets/cancionero.js:2832
+#: assets/cancionero.js:3495
 #, javascript-format
 msgid "Borrar %s"
 msgstr ""
 
 #. %s: título de la canción a la que pertenecía el archivo
-#: assets/cancionero.js:2835
+#: assets/cancionero.js:3498
 #, javascript-format
 msgid "era de «%s»"
 msgstr ""
 
-#: assets/cancionero.js:2851 assets/cancionero.js:2872
+#: assets/cancionero.js:3514 assets/cancionero.js:3535
 msgid "General"
 msgstr ""
 
-#: assets/cancionero.js:2873
+#: assets/cancionero.js:3536
 msgid "Nombre del cancionero"
 msgstr ""
 
-#: assets/cancionero.js:2873
+#: assets/cancionero.js:3536
 msgid "Se muestra arriba a la izquierda y en la pantalla de acceso. Por ejemplo: «Cancionero de la iglesia»."
 msgstr ""
 
-#: assets/cancionero.js:2874
+#: assets/cancionero.js:3537
 msgid "Línea bajo el nombre"
 msgstr ""
 
-#: assets/cancionero.js:2874
+#: assets/cancionero.js:3537
 msgid "Texto pequeño debajo del nombre. Por defecto es el nombre de la web; déjalo vacío para no mostrar nada."
 msgstr ""
 
-#: assets/cancionero.js:2876
+#: assets/cancionero.js:3539
 msgid "Apariencia"
 msgstr ""
 
-#: assets/cancionero.js:2877
+#: assets/cancionero.js:3540
 msgid "Tema por defecto"
 msgstr ""
 
-#: assets/cancionero.js:2877
+#: assets/cancionero.js:3540
 msgid "Para quien aún no ha elegido tema. Cada persona puede cambiarlo en su menú."
 msgstr ""
 
-#: assets/cancionero.js:2880
+#: assets/cancionero.js:3543
 msgid "Días que se conservan las canciones borradas"
 msgstr ""
 
-#: assets/cancionero.js:2880
+#: assets/cancionero.js:3543
 msgid "Pasado este plazo se eliminan solas, con sus partituras y audios. Pon 0 para no eliminarlas nunca automáticamente."
 msgstr ""
 
-#: assets/cancionero.js:2883
+#: assets/cancionero.js:3546
 msgid "Avisar por correo cuando alguien borre una canción"
 msgstr ""
 
 #. %s: correo de administración de la web
-#: assets/cancionero.js:2884
+#: assets/cancionero.js:3547
 #, javascript-format
 msgid "Les llega a los administradores del cancionero y al correo de administración de la web (%s), con la canción, sus archivos, quién la borró y cuándo. Los borrados seguidos llegan juntos en un solo correo, un minuto después."
 msgstr ""
 
-#: assets/cancionero.js:2888
+#: assets/cancionero.js:3551
 msgid "Cada persona entra con un enlace que recibe en su correo (o con Google, si lo configuras) y quien sale de la lista pierde el acceso. Los administradores pueden cambiar los ajustes, gestionar el equipo y borrar canciones."
 msgstr ""
 
 #. %s: dirección de correo
-#: assets/cancionero.js:2896
+#: assets/cancionero.js:3559
 #, javascript-format
 msgid "Correo de prueba enviado a %s"
 msgstr ""
 
-#: assets/cancionero.js:2899
+#: assets/cancionero.js:3562
 msgid "Enviarme un correo de prueba"
 msgstr ""
 
-#: assets/cancionero.js:2900
+#: assets/cancionero.js:3563
 msgid "Comprueba que el servidor puede enviar los enlaces de acceso."
 msgstr ""
 
-#: assets/cancionero.js:2902
+#: assets/cancionero.js:3565
 msgid "Correo de bienvenida"
 msgstr ""
 
-#: assets/cancionero.js:2905
+#: assets/cancionero.js:3568
 msgid "Enviar un correo de bienvenida a quien se añada a la lista"
 msgstr ""
 
-#: assets/cancionero.js:2906
+#: assets/cancionero.js:3569
 msgid "Le llega el logo del cancionero, un botón para abrirlo y cómo entrar."
 msgstr ""
 
-#: assets/cancionero.js:2907
+#: assets/cancionero.js:3570
 msgid "Texto añadido a la bienvenida (opcional)"
 msgstr ""
 
-#: assets/cancionero.js:2907
+#: assets/cancionero.js:3570
 msgid "Aparece en el correo debajo de las instrucciones. Por ejemplo, dónde encontrar el cancionero en vuestra web."
 msgstr ""
 
 #. %s: dirección de correo
-#: assets/cancionero.js:2916
+#: assets/cancionero.js:3579
 #, javascript-format
 msgid "Bienvenida de prueba enviada a %s"
 msgstr ""
 
-#: assets/cancionero.js:2917
+#: assets/cancionero.js:3580
 msgid "Como tu cuenta es de administración, en tu correo el botón abre el cancionero sin iniciar sesión; al resto del equipo le deja dentro."
 msgstr ""
 
-#: assets/cancionero.js:2924
+#: assets/cancionero.js:3587
 msgid "Enviarme una bienvenida de prueba"
 msgstr ""
 
-#: assets/cancionero.js:2925
+#: assets/cancionero.js:3588
 msgid "Te llega a ti, con el texto de arriba aunque aún no esté guardado."
 msgstr ""
 
-#: assets/cancionero.js:2927
+#: assets/cancionero.js:3590
 msgid "Acceso por dominio"
 msgstr ""
 
-#: assets/cancionero.js:2928
+#: assets/cancionero.js:3591
 msgid "Dominio permitido"
 msgstr ""
 
-#: assets/cancionero.js:2928
+#: assets/cancionero.js:3591
 msgid "Opcional: cualquier cuenta de este dominio de Google Workspace podrá entrar."
 msgstr ""
 
-#: assets/cancionero.js:2931
+#: assets/cancionero.js:3594
 msgid "Acceso con Google (opcional)"
 msgstr ""
 
-#: assets/cancionero.js:2934
+#: assets/cancionero.js:3597
 msgid "Cómo obtenerlo (5 minutos)"
 msgstr ""
 
 #. %s: enlace «Google Cloud Console → Credenciales»
-#: assets/cancionero.js:2936
+#: assets/cancionero.js:3599
 #, javascript-format
 msgid "Entra en %s con una cuenta de la iglesia."
 msgstr ""
 
-#: assets/cancionero.js:2936
+#: assets/cancionero.js:3599
 msgid "Google Cloud Console → Credenciales"
 msgstr ""
 
-#: assets/cancionero.js:2937
+#: assets/cancionero.js:3600
 msgid "Configura la «Pantalla de consentimiento de OAuth» (tipo Externo, nombre «Cancionero»)."
 msgstr ""
 
-#: assets/cancionero.js:2938
+#: assets/cancionero.js:3601
 msgid "Crear credenciales → ID de cliente de OAuth → Aplicación web."
 msgstr ""
 
 #. %s: dirección web de este sitio
-#: assets/cancionero.js:2939
+#: assets/cancionero.js:3602
 #, javascript-format
 msgid "En «Orígenes de JavaScript autorizados» añade: %s"
 msgstr ""
 
-#: assets/cancionero.js:2940
+#: assets/cancionero.js:3603
 msgid "Copia el ID de cliente y pégalo aquí."
 msgstr ""
 
-#: assets/cancionero.js:2944
+#: assets/cancionero.js:3608
 msgid "Protección de los archivos"
 msgstr ""
 
-#: assets/cancionero.js:2947
+#: assets/cancionero.js:3611
 msgid "Archivos sin usar"
 msgstr ""
 
-#: assets/cancionero.js:2957
+#: assets/cancionero.js:3621
 msgid "Secciones de los ajustes"
 msgstr ""
 
-#: assets/cancionero.js:3001
+#: assets/cancionero.js:3662
 msgid "Hay cambios sin guardar"
 msgstr ""
 
-#: assets/cancionero.js:3040
+#: assets/cancionero.js:3715
 msgid "Hay correos escritos sin añadir. Pulsa «Añadir» o «Cancelar» en el formulario de añadir personas."
 msgstr ""
 
-#: assets/cancionero.js:3064
+#: assets/cancionero.js:3723
+msgid "Espera a que termine de subirse la imagen para guardar."
+msgstr ""
+
+#: assets/cancionero.js:3756
 msgid "Ajustes guardados"
 msgstr ""
 
 #. %s: número de versión del plugin
-#: assets/cancionero.js:3082
+#: assets/cancionero.js:3774
 #, javascript-format
 msgid "Cancionero · versión %s"
 msgstr ""
 
-#: assets/cancionero.js:3123 assets/cultos.js:68 assets/cultos.js:174
+#: assets/cancionero.js:3815 assets/cultos.js:68 assets/cultos.js:174
 msgctxt "fecha relativa"
 msgid "hoy"
 msgstr ""
 
-#: assets/cancionero.js:3124 assets/cultos.js:69
+#: assets/cancionero.js:3816 assets/cultos.js:69
 msgctxt "fecha relativa"
 msgid "ayer"
 msgstr ""
 
-#: assets/cancionero.js:3125 assets/cultos.js:72
+#: assets/cancionero.js:3817 assets/cultos.js:72
 #, javascript-format
 msgid "hace %d día"
 msgid_plural "hace %d días"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:3126 assets/cultos.js:73
+#: assets/cancionero.js:3818 assets/cultos.js:73
 #, javascript-format
 msgid "hace %d semana"
 msgid_plural "hace %d semanas"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:3127 assets/cultos.js:74
+#: assets/cancionero.js:3819 assets/cultos.js:74
 #, javascript-format
 msgid "hace %d mes"
 msgid_plural "hace %d meses"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:3130
+#: assets/cancionero.js:3822
 #, javascript-format
 msgid "%d persona"
 msgid_plural "%d personas"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:3131
+#: assets/cancionero.js:3823
 #, javascript-format
 msgid "%d inicio"
 msgid_plural "%d inicios"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:3132
+#: assets/cancionero.js:3824
 #, javascript-format
 msgid "%d día de uso"
 msgid_plural "%d días de uso"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:3135
+#: assets/cancionero.js:3827
 msgid "Enlace por correo"
 msgstr ""
 
-#: assets/cancionero.js:3135
+#: assets/cancionero.js:3827
 msgid "Usuario y contraseña"
 msgstr ""
 
-#: assets/cancionero.js:3139
+#: assets/cancionero.js:3831
 msgid "Móvil"
 msgstr ""
 
-#: assets/cancionero.js:3139
+#: assets/cancionero.js:3831
 msgid "Tableta"
 msgstr ""
 
-#: assets/cancionero.js:3139
+#: assets/cancionero.js:3831
 msgid "Ordenador"
 msgstr ""
 
 #. %s: fecha corta del lunes de esa semana («12 oct»)
-#: assets/cancionero.js:3185
+#: assets/cancionero.js:3877
 #, javascript-format
 msgid "Semana del %s"
 msgstr ""
 
 #. 1: tramo («Semana del 12 oct»), 2: número de personas («3 personas»), 3: número de inicios de sesión («5 inicios»)
-#: assets/cancionero.js:3237
+#: assets/cancionero.js:3929
 #, javascript-format
 msgid "%1$s: %2$s · %3$s"
 msgstr ""
 
-#: assets/cancionero.js:3244 assets/cultos.js:1081
+#: assets/cancionero.js:3936 assets/cultos.js:1937
 msgid "Ver como tabla"
 msgstr ""
 
-#: assets/cancionero.js:3246 assets/cancionero.js:3446
+#: assets/cancionero.js:3938 assets/cancionero.js:4138
 msgid "Personas"
 msgstr ""
 
-#: assets/cancionero.js:3246
+#: assets/cancionero.js:3938
 msgid "Inicios"
 msgstr ""
 
-#: assets/cancionero.js:3246 assets/cancionero.js:3326
+#: assets/cancionero.js:3938 assets/cancionero.js:4018
 msgid "Días de uso"
 msgstr ""
 
-#: assets/cancionero.js:3272
+#: assets/cancionero.js:3964
 msgid "Cargando accesos…"
 msgstr ""
 
 #. %s: motivo del error
-#: assets/cancionero.js:3276
+#: assets/cancionero.js:3968
 #, javascript-format
 msgid "No se pudieron cargar los accesos: %s"
 msgstr ""
 
-#: assets/cancionero.js:3277
+#: assets/cancionero.js:3969
 msgid "Reintentar"
 msgstr ""
 
-#: assets/cancionero.js:3284
+#: assets/cancionero.js:3976
 msgid "Se guardan los últimos 12 meses y no se anotan direcciones IP."
 msgstr ""
 
-#: assets/cancionero.js:3290
+#: assets/cancionero.js:3982
 msgid "Todavía no hay accesos registrados"
 msgstr ""
 
-#: assets/cancionero.js:3291
+#: assets/cancionero.js:3983
 msgid "Los inicios de sesión se empiezan a registrar a partir de ahora. Cuando alguien entre en el cancionero, aquí verás quién lo usa, cada cuánto y desde qué dispositivos."
 msgstr ""
 
-#: assets/cancionero.js:3303
+#: assets/cancionero.js:3995
 msgid "7 días"
 msgstr ""
 
-#: assets/cancionero.js:3303
+#: assets/cancionero.js:3995
 msgid "30 días"
 msgstr ""
 
-#: assets/cancionero.js:3303
+#: assets/cancionero.js:3995
 msgid "90 días"
 msgstr ""
 
-#: assets/cancionero.js:3303 assets/cultos.js:942
+#: assets/cancionero.js:3995 assets/cultos.js:1798
 msgid "12 meses"
 msgstr ""
 
-#: assets/cancionero.js:3304 assets/cultos.js:1094
+#: assets/cancionero.js:3996 assets/cultos.js:1950
 msgid "Periodo"
 msgstr ""
 
 #. %s: fecha (p. ej. 30 oct 2026)
-#: assets/cancionero.js:3307
+#: assets/cancionero.js:3999
 #, javascript-format
 msgid "Se registra desde el %s."
 msgstr ""
 
-#: assets/cancionero.js:3324
+#: assets/cancionero.js:4016
 msgid "Personas activas"
 msgstr ""
 
 #. %d: personas que tienen acceso al cancionero
-#: assets/cancionero.js:3324
+#: assets/cancionero.js:4016
 #, javascript-format
 msgid "de %d con acceso"
 msgstr ""
 
-#: assets/cancionero.js:3325
+#: assets/cancionero.js:4017
 msgid "Inicios de sesión"
 msgstr ""
 
 #. %s: número medio de inicios por persona, con un decimal («2,5»)
-#: assets/cancionero.js:3325
+#: assets/cancionero.js:4017
 #, javascript-format
 msgid "%s de media por persona activa"
 msgstr ""
 
-#: assets/cancionero.js:3326
+#: assets/cancionero.js:4018
 msgid "Suma de días en que se abrió, por persona"
 msgstr ""
 
-#: assets/cancionero.js:3327 assets/cancionero.js:3443
+#: assets/cancionero.js:4019 assets/cancionero.js:4135
 msgid "Nunca han entrado"
 msgstr ""
 
-#: assets/cancionero.js:3327
+#: assets/cancionero.js:4019
 msgid "Personas con acceso que no han entrado jamás"
 msgstr ""
 
-#: assets/cancionero.js:3341
+#: assets/cancionero.js:4033
 msgid "Personas activas por día"
 msgstr ""
 
-#: assets/cancionero.js:3341
+#: assets/cancionero.js:4033
 msgid "Personas activas por semana"
 msgstr ""
 
-#: assets/cancionero.js:3341
+#: assets/cancionero.js:4033
 msgid "Personas activas por mes"
 msgstr ""
 
-#: assets/cancionero.js:3342
+#: assets/cancionero.js:4034
 msgid "Día"
 msgstr ""
 
-#: assets/cancionero.js:3342
+#: assets/cancionero.js:4034
 msgid "Semana"
 msgstr ""
 
-#: assets/cancionero.js:3342 assets/cultos.js:1083
+#: assets/cancionero.js:4034 assets/cultos.js:1939
 msgid "Mes"
 msgstr ""
 
-#: assets/cancionero.js:3343
+#: assets/cancionero.js:4035
 msgid "Personas distintas que abrieron el cancionero"
 msgstr ""
 
-#: assets/cancionero.js:3359 assets/cultos.js:1125 assets/cultos.js:1127
+#: assets/cancionero.js:4051 assets/cultos.js:1981 assets/cultos.js:1983
 msgid "Sin datos en este periodo."
 msgstr ""
 
-#: assets/cancionero.js:3369
+#: assets/cancionero.js:4061
 msgid "Cómo entran"
 msgstr ""
 
-#: assets/cancionero.js:3369
+#: assets/cancionero.js:4061
 msgid "Porcentaje de los inicios de sesión"
 msgstr ""
 
-#: assets/cancionero.js:3370
+#: assets/cancionero.js:4062
 msgid "Desde dónde"
 msgstr ""
 
-#: assets/cancionero.js:3370
+#: assets/cancionero.js:4062
 msgid "Dispositivo de cada inicio de sesión"
 msgstr ""
 
-#: assets/cancionero.js:3371
+#: assets/cancionero.js:4063
 msgid "Qué días se usa"
 msgstr ""
 
-#: assets/cancionero.js:3371
+#: assets/cancionero.js:4063
 msgid "Días de uso de cada día de la semana"
 msgstr ""
 
-#: assets/cancionero.js:3389
+#: assets/cancionero.js:4081
 msgid "No hay nadie en este grupo."
 msgstr ""
 
-#: assets/cancionero.js:3402
+#: assets/cancionero.js:4094
 #, javascript-format
 msgid "%d día de uso en este periodo"
 msgid_plural "%d días de uso en este periodo"
@@ -1956,67 +2342,67 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. %s: fecha desde la que se registran los accesos
-#: assets/cancionero.js:3403
+#: assets/cancionero.js:4095
 #, javascript-format
 msgid "Ya había entrado antes de que empezara el registro (%s)."
 msgstr ""
 
-#: assets/cancionero.js:3404
+#: assets/cancionero.js:4096
 msgid "Últimos inicios de sesión"
 msgstr ""
 
-#: assets/cancionero.js:3409
+#: assets/cancionero.js:4101
 msgid "Sin inicios de sesión registrados."
 msgstr ""
 
-#: assets/cancionero.js:3410
+#: assets/cancionero.js:4102
 msgid "Se muestran los 20 más recientes."
 msgstr ""
 
-#: assets/cancionero.js:3429
+#: assets/cancionero.js:4121
 msgid "Nunca ha entrado"
 msgstr ""
 
-#: assets/cancionero.js:3429
+#: assets/cancionero.js:4121
 msgid "Sin accesos registrados"
 msgstr ""
 
 #. %s: cuándo fue («hace 3 días»)
-#: assets/cancionero.js:3429
+#: assets/cancionero.js:4121
 #, javascript-format
 msgid "Último acceso: %s"
 msgstr ""
 
-#: assets/cancionero.js:3440
+#: assets/cancionero.js:4132
 msgctxt "filtro de las personas en Accesos"
 msgid "Todas"
 msgstr ""
 
-#: assets/cancionero.js:3441
+#: assets/cancionero.js:4133
 msgid "Activas"
 msgstr ""
 
-#: assets/cancionero.js:3442
+#: assets/cancionero.js:4134
 msgid "Sin actividad"
 msgstr ""
 
-#: assets/cancionero.js:3444
+#: assets/cancionero.js:4136
 msgid "Mostrar"
 msgstr ""
 
-#: assets/cancionero.js:3446
+#: assets/cancionero.js:4138
 msgid "Inicios de sesión y días de uso del periodo elegido. Toca una persona para ver su detalle."
 msgstr ""
 
-#: assets/cancionero.js:3455
+#: assets/cancionero.js:4147
 msgid "Se conserva hasta que un administrador la elimine"
 msgstr ""
 
-#: assets/cancionero.js:3456
+#: assets/cancionero.js:4148
 msgid "Se eliminará hoy"
 msgstr ""
 
-#: assets/cancionero.js:3457
+#: assets/cancionero.js:4149
 #, javascript-format
 msgid "Se eliminará en %d día"
 msgid_plural "Se eliminará en %d días"
@@ -2024,94 +2410,94 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. 1: fecha, 2: nombre de quien la borró
-#: assets/cancionero.js:3462
+#: assets/cancionero.js:4154
 #, javascript-format
 msgid "Borrada el %1$s por %2$s"
 msgstr ""
 
 #. %s: fecha
-#: assets/cancionero.js:3463
+#: assets/cancionero.js:4155
 #, javascript-format
 msgid "Borrada el %s"
 msgstr ""
 
-#: assets/cancionero.js:3470
+#: assets/cancionero.js:4162
 msgid "Esta canción está en la papelera"
 msgstr ""
 
-#: assets/cancionero.js:3473 assets/cancionero.js:3534
+#: assets/cancionero.js:4165 assets/cancionero.js:4226
 msgid "Restaurar"
 msgstr ""
 
-#: assets/cancionero.js:3474
+#: assets/cancionero.js:4166
 msgid "Eliminar para siempre"
 msgstr ""
 
-#: assets/cancionero.js:3485
+#: assets/cancionero.js:4177
 msgid "Restaurando…"
 msgstr ""
 
 #. %s: título de la canción
-#: assets/cancionero.js:3487
+#: assets/cancionero.js:4179
 #, javascript-format
 msgid "«%s» restaurada"
 msgstr ""
 
 #. %s: título de la canción
-#: assets/cancionero.js:3496
+#: assets/cancionero.js:4188
 #, javascript-format
 msgid "¿Eliminar «%s» para siempre? Se borran también sus partituras y audios y no se puede deshacer."
 msgstr ""
 
-#: assets/cancionero.js:3497
+#: assets/cancionero.js:4189
 msgid "Eliminando…"
 msgstr ""
 
 #. %s: título de la canción
-#: assets/cancionero.js:3499
+#: assets/cancionero.js:4191
 #, javascript-format
 msgid "«%s» eliminada para siempre"
 msgstr ""
 
-#: assets/cancionero.js:3516
+#: assets/cancionero.js:4208
 msgid "Cargando la papelera…"
 msgstr ""
 
-#: assets/cancionero.js:3520
+#: assets/cancionero.js:4212
 #, javascript-format
 msgid "Las canciones borradas se conservan %d día y después se eliminan solas, con sus partituras y audios."
 msgid_plural "Las canciones borradas se conservan %d días y después se eliminan solas, con sus partituras y audios."
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:3521
+#: assets/cancionero.js:4213
 msgid "Las canciones borradas se conservan hasta que un administrador las elimine (el borrado automático está desactivado)."
 msgstr ""
 
-#: assets/cancionero.js:3523
+#: assets/cancionero.js:4215
 msgid "Cambiar el plazo"
 msgstr ""
 
-#: assets/cancionero.js:3525
+#: assets/cancionero.js:4217
 msgid "La papelera está vacía."
 msgstr ""
 
-#: assets/cancionero.js:3531 assets/cancionero.js:3741 assets/cancionero.js:3986
+#: assets/cancionero.js:4223 assets/cancionero.js:4433 assets/cancionero.js:4678
 #, javascript-format
 msgid "%d archivo"
 msgid_plural "%d archivos"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:3533
+#: assets/cancionero.js:4225
 msgid "Ver"
 msgstr ""
 
-#: assets/cancionero.js:3535
+#: assets/cancionero.js:4227
 msgid "Eliminar"
 msgstr ""
 
-#: assets/cancionero.js:3539
+#: assets/cancionero.js:4231
 #, javascript-format
 msgid "¿Vaciar la papelera? Se elimina para siempre %d canción con sus archivos. No se puede deshacer."
 msgid_plural "¿Vaciar la papelera? Se eliminan para siempre %d canciones con sus archivos. No se puede deshacer."
@@ -2119,42 +2505,42 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. 1: número de la canción que se elimina, 2: total
-#: assets/cancionero.js:3543 assets/cancionero.js:3551
+#: assets/cancionero.js:4235 assets/cancionero.js:4243
 #, javascript-format
 msgid "Eliminando %1$d de %2$d…"
 msgstr ""
 
-#: assets/cancionero.js:3546
+#: assets/cancionero.js:4238
 msgid "Vaciando la papelera"
 msgstr ""
 
-#: assets/cancionero.js:3547
+#: assets/cancionero.js:4239
 msgid "No cierres esta ventana hasta que termine."
 msgstr ""
 
-#: assets/cancionero.js:3559
+#: assets/cancionero.js:4251
 #, javascript-format
 msgid "%d canción eliminada para siempre"
 msgid_plural "%d canciones eliminadas para siempre"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:3559
+#: assets/cancionero.js:4251
 #, javascript-format
 msgid "%d no se pudo eliminar"
 msgid_plural "%d no se pudieron eliminar"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:3562
+#: assets/cancionero.js:4254
 msgid "Vaciar la papelera"
 msgstr ""
 
-#: assets/cancionero.js:3583
+#: assets/cancionero.js:4275
 msgid "No se pudo cargar el compresor de copias. Revisa la conexión."
 msgstr ""
 
-#: assets/cancionero.js:3605
+#: assets/cancionero.js:4297
 msgid ""
 "Copia de seguridad del Cancionero (plugin Cancionero).\n"
 "\n"
@@ -2166,272 +2552,272 @@ msgid ""
 msgstr ""
 
 #. 1: número de archivo, 2: total de archivos, 3: nombre del archivo
-#: assets/cancionero.js:3640
+#: assets/cancionero.js:4332
 #, javascript-format
 msgid "Descargando archivo %1$d de %2$d: %3$s"
 msgstr ""
 
 #. 1: nombre del archivo, 2: código de error HTTP
-#: assets/cancionero.js:3642
+#: assets/cancionero.js:4334
 #, javascript-format
 msgid "No se pudo descargar «%1$s» (error %2$d)."
 msgstr ""
 
-#: assets/cancionero.js:3653
+#: assets/cancionero.js:4345
 msgid "Preparando el archivo…"
 msgstr ""
 
-#: assets/cancionero.js:3667
+#: assets/cancionero.js:4359
 msgid "Este archivo no es una copia del cancionero (falta copia.json)."
 msgstr ""
 
-#: assets/cancionero.js:3670
+#: assets/cancionero.js:4362
 msgid "Este archivo no es una copia del cancionero."
 msgstr ""
 
-#: assets/cancionero.js:3676
+#: assets/cancionero.js:4368
 msgid "No se pudo abrir el archivo: ¿es un .zip de copia del cancionero?"
 msgstr ""
 
-#: assets/cancionero.js:3722
+#: assets/cancionero.js:4414
 #, javascript-format
 msgid "%d canción con sus datos, letra, etiquetas y enlaces de YouTube."
 msgid_plural "%d canciones con sus datos, letras, etiquetas y enlaces de YouTube."
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:3723
+#: assets/cancionero.js:4415
 msgid "Partituras, audios y editables"
 msgstr ""
 
-#: assets/cancionero.js:3723
+#: assets/cancionero.js:4415
 msgid "Los archivos de cada canción. Sin ellos la copia ocupa muy poco, pero no sirve para empezar en otra web."
 msgstr ""
 
-#: assets/cancionero.js:3724
+#: assets/cancionero.js:4416
 msgid "Todos los cultos con el orden de sus canciones (de ahí salen las estadísticas)."
 msgstr ""
 
-#: assets/cancionero.js:3725 assets/cancionero.js:3843
+#: assets/cancionero.js:4417 assets/cancionero.js:4535
 msgid "Ajustes y lista del equipo"
 msgstr ""
 
-#: assets/cancionero.js:3725
+#: assets/cancionero.js:4417
 msgid "Tema por defecto, correos con acceso y acceso con Google."
 msgstr ""
 
-#: assets/cancionero.js:3729
+#: assets/cancionero.js:4421
 msgid "Descargar copia"
 msgstr ""
 
-#: assets/cancionero.js:3732
+#: assets/cancionero.js:4424
 msgid "Marca al menos una cosa para copiar."
 msgstr ""
 
-#: assets/cancionero.js:3733
+#: assets/cancionero.js:4425
 msgid "Los cultos se restauran enlazando sus canciones: incluye también las canciones, o asegúrate de que ya estén donde vayas a restaurar."
 msgstr ""
 
 #. 1: lo que contiene la copia (p. ej. «12 canciones, 3 cultos»), 2: tamaño del archivo
-#: assets/cancionero.js:3740
+#: assets/cancionero.js:4432
 #, javascript-format
 msgid "Copia descargada: %1$s · %2$s. Guárdala fuera de este servidor."
 msgstr ""
 
-#: assets/cancionero.js:3741 assets/cancionero.js:3880 assets/cultos.js:64
+#: assets/cancionero.js:4433 assets/cancionero.js:4572 assets/cultos.js:64
 #, javascript-format
 msgid "%d culto"
 msgid_plural "%d cultos"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:3742
+#: assets/cancionero.js:4434
 msgid "Copia descargada"
 msgstr ""
 
-#: assets/cancionero.js:3744
+#: assets/cancionero.js:4436
 msgid "No se pudo crear la copia"
 msgstr ""
 
-#: assets/cancionero.js:3751
+#: assets/cancionero.js:4443
 msgid "Elegir copia (.zip)"
 msgstr ""
 
-#: assets/cancionero.js:3751
+#: assets/cancionero.js:4443
 msgid "El archivo que descargaste con «Descargar copia»"
 msgstr ""
 
-#: assets/cancionero.js:3756
+#: assets/cancionero.js:4448
 msgid "Leyendo la copia…"
 msgstr ""
 
-#: assets/cancionero.js:3820
+#: assets/cancionero.js:4512
 msgid "Marcar todas"
 msgstr ""
 
-#: assets/cancionero.js:3827
+#: assets/cancionero.js:4519
 msgid "Ya existe"
 msgstr ""
 
-#: assets/cancionero.js:3827
+#: assets/cancionero.js:4519
 msgctxt "estado de una canción o culto de la copia que aún no existe en esta web"
 msgid "Nueva"
 msgstr ""
 
-#: assets/cancionero.js:3840
+#: assets/cancionero.js:4532
 msgctxt "casilla para marcar todas las filas de la lista"
 msgid "Todas"
 msgstr ""
 
-#: assets/cancionero.js:3844
+#: assets/cancionero.js:4536
 #, javascript-format
 msgid "%d correo: se añade a la lista actual, nadie pierde el acceso."
 msgid_plural "%d correos: se añaden a la lista actual, nadie pierde el acceso."
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:3844
+#: assets/cancionero.js:4536
 msgid "Esta copia no los incluye."
 msgstr ""
 
-#: assets/cancionero.js:3847
+#: assets/cancionero.js:4539
 msgid "Si ya existe"
 msgstr ""
 
-#: assets/cancionero.js:3848
+#: assets/cancionero.js:4540
 msgid "Dejar la que ya hay (recomendado)"
 msgstr ""
 
-#: assets/cancionero.js:3848
+#: assets/cancionero.js:4540
 msgid "Sustituirla por la de la copia"
 msgstr ""
 
-#: assets/cancionero.js:3852
+#: assets/cancionero.js:4544
 msgid "Qué mostrar"
 msgstr ""
 
 #. %d: número de elementos de la copia
-#: assets/cancionero.js:3853
+#: assets/cancionero.js:4545
 #, javascript-format
 msgid "Mostrar todas (%d)"
 msgstr ""
 
 #. %d: número de elementos de la copia que aún no existen
-#: assets/cancionero.js:3853
+#: assets/cancionero.js:4545
 #, javascript-format
 msgid "Mostrar solo las que no existen (%d)"
 msgstr ""
 
 #. 1: fecha de la copia, 2: dirección de la web de origen, 3: tamaño del archivo
-#: assets/cancionero.js:3871
+#: assets/cancionero.js:4563
 #, javascript-format
 msgid "Copia del %1$s · %2$s · %3$s · con archivos"
 msgstr ""
 
 #. 1: fecha de la copia, 2: dirección de la web de origen, 3: tamaño del archivo
-#: assets/cancionero.js:3872
+#: assets/cancionero.js:4564
 #, javascript-format
 msgid "Copia del %1$s · %2$s · %3$s · solo datos"
 msgstr ""
 
-#: assets/cancionero.js:3874
+#: assets/cancionero.js:4566
 msgid "Restaurar una copia"
 msgstr ""
 
-#: assets/cancionero.js:3880
+#: assets/cancionero.js:4572
 msgid "los ajustes"
 msgstr ""
 
 #. %s: lo que se va a restaurar (p. ej. «12 canciones, 3 cultos»)
-#: assets/cancionero.js:3881
+#: assets/cancionero.js:4573
 #, javascript-format
 msgid "Restaurar %s"
 msgstr ""
 
-#: assets/cancionero.js:3881
+#: assets/cancionero.js:4573
 msgid "Marca qué restaurar"
 msgstr ""
 
-#: assets/cancionero.js:3884
+#: assets/cancionero.js:4576
 msgid "Lo que ya existe se deja como está; solo se añade lo nuevo."
 msgstr ""
 
-#: assets/cancionero.js:3884
+#: assets/cancionero.js:4576
 msgid "Lo que ya existe se sustituirá por la versión de la copia, incluidas sus partituras y audios."
 msgstr ""
 
-#: assets/cancionero.js:3884
+#: assets/cancionero.js:4576
 msgid "Lo que ya existe se sustituirá por la versión de la copia (sus archivos actuales se conservan)."
 msgstr ""
 
-#: assets/cancionero.js:3885
+#: assets/cancionero.js:4577
 msgid "Nada de la copia existe todavía en esta web: se añadirá todo lo que marques."
 msgstr ""
 
-#: assets/cancionero.js:3901
+#: assets/cancionero.js:4593
 #, javascript-format
 msgid "Restauración terminada con %d aviso"
 msgid_plural "Restauración terminada con %d avisos"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cancionero.js:3901
+#: assets/cancionero.js:4593
 msgid "Copia restaurada"
 msgstr ""
 
 #. 1: elementos añadidos, 2: elementos sustituidos, 3: elementos que ya estaban y no se han tocado
-#: assets/cancionero.js:3907
+#: assets/cancionero.js:4599
 #, javascript-format
 msgid "Añadido: %1$d · sustituido: %2$d · sin cambios: %3$d"
 msgstr ""
 
-#: assets/cancionero.js:3912
+#: assets/cancionero.js:4604
 msgid "Ver el cancionero restaurado"
 msgstr ""
 
 #. %s: título de la canción
-#: assets/cancionero.js:3930 assets/cancionero.js:3936
+#: assets/cancionero.js:4622 assets/cancionero.js:4628
 #, javascript-format
 msgid "«%s»: ya estaba, sin cambios"
 msgstr ""
 
 #. %s: título de la canción
-#: assets/cancionero.js:3934
+#: assets/cancionero.js:4626
 #, javascript-format
 msgid "«%s»: añadida"
 msgstr ""
 
 #. %s: título de la canción
-#: assets/cancionero.js:3935
+#: assets/cancionero.js:4627
 #, javascript-format
 msgid "«%s»: sustituida"
 msgstr ""
 
 #. 1: título de la canción, 2: motivo del error
-#: assets/cancionero.js:3937
+#: assets/cancionero.js:4629
 #, javascript-format
 msgid "«%1$s»: %2$s"
 msgstr ""
 
 #. 1: título del culto, 2: fecha
-#: assets/cancionero.js:3946
+#: assets/cancionero.js:4638
 #, javascript-format
 msgid "Culto «%1$s» (%2$s): añadido"
 msgstr ""
 
 #. 1: título del culto, 2: fecha
-#: assets/cancionero.js:3947
+#: assets/cancionero.js:4639
 #, javascript-format
 msgid "Culto «%1$s» (%2$s): sustituido"
 msgstr ""
 
 #. 1: título del culto, 2: fecha
-#: assets/cancionero.js:3948
+#: assets/cancionero.js:4640
 #, javascript-format
 msgid "Culto «%1$s» (%2$s): ya estaba, sin cambios"
 msgstr ""
 
-#: assets/cancionero.js:3949
+#: assets/cancionero.js:4641
 #, javascript-format
 msgid "%d canción no está en esta web"
 msgid_plural "%d canciones no están en esta web"
@@ -2439,12 +2825,12 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. 1: título del culto, 2: motivo del error
-#: assets/cancionero.js:3950
+#: assets/cancionero.js:4642
 #, javascript-format
 msgid "Culto «%1$s»: %2$s"
 msgstr ""
 
-#: assets/cancionero.js:3957
+#: assets/cancionero.js:4649
 #, javascript-format
 msgid "Ajustes restaurados · %d correo en la lista del equipo"
 msgid_plural "Ajustes restaurados · %d correos en la lista del equipo"
@@ -2452,62 +2838,62 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. %s: motivo del error
-#: assets/cancionero.js:3958
+#: assets/cancionero.js:4650
 #, javascript-format
 msgid "Ajustes: %s"
 msgstr ""
 
 #. 1: paso actual, 2: total de pasos
-#: assets/cancionero.js:3962
+#: assets/cancionero.js:4654
 #, javascript-format
 msgid "Restaurando %1$d de %2$d…"
 msgstr ""
 
-#: assets/cancionero.js:3971
+#: assets/cancionero.js:4663
 msgid "Sí, restaurar"
 msgstr ""
 
-#: assets/cancionero.js:3974
+#: assets/cancionero.js:4666
 msgid "Lo que ya existe se sustituirá por la versión de la copia. ¿Seguimos?"
 msgstr ""
 
-#: assets/cancionero.js:3974
+#: assets/cancionero.js:4666
 msgid "¿Restaurar lo marcado?"
 msgstr ""
 
-#: assets/cancionero.js:3982
+#: assets/cancionero.js:4674
 msgid "Qué ver"
 msgstr ""
 
 #. %d: número de canciones de la copia
-#: assets/cancionero.js:3983
+#: assets/cancionero.js:4675
 #, javascript-format
 msgid "Canciones (%d)"
 msgstr ""
 
 #. %d: número de cultos de la copia
-#: assets/cancionero.js:3988
+#: assets/cancionero.js:4680
 #, javascript-format
 msgid "Cultos (%d)"
 msgstr ""
 
-#: assets/cancionero.js:3991
+#: assets/cancionero.js:4683
 msgid "Si una canción o un culto ya existe"
 msgstr ""
 
-#: assets/cancionero.js:3999
+#: assets/cancionero.js:4691
 msgid "Crear una copia"
 msgstr ""
 
-#: assets/cancionero.js:4000
+#: assets/cancionero.js:4692
 msgid "Se descarga un .zip con todo lo que marques. Con él puedes recuperar el cancionero aquí o continuar en otra web con WordPress y este plugin."
 msgstr ""
 
-#: assets/cancionero.js:4005
+#: assets/cancionero.js:4697
 msgid "Restaurar desde una copia"
 msgstr ""
 
-#: assets/cancionero.js:4006
+#: assets/cancionero.js:4698
 msgid "Abre una copia y elige qué recuperar: todo, o solo algunas canciones o cultos. Antes de cambiar nada verás qué ya existe en esta web."
 msgstr ""
 
@@ -2583,7 +2969,7 @@ msgid "También en «%1$s» (%2$s, %3$s)"
 msgstr ""
 
 #. 1: cuántos cultos hay programados («3 programados»), 2: cuántos son anteriores («5 anteriores») 1: número de canciones («3 canciones»), 2: cuándo es el culto («dentro de 4 días») 1: cuántos cultos hay programados («3 cultos programados»), 2: cuántos se han celebrado («5 celebrados») 1: tipo de culto («Culto dominical»), 2: fecha corta («26 oct») 1: fecha completa del culto, 2: número de canciones («3 canciones») 1: nombre de la etiqueta, 2: veces que han sonado («3 veces»)
-#: assets/cultos.js:132 assets/cultos.js:203 assets/cultos.js:276 assets/cultos.js:281 assets/cultos.js:428 assets/cultos.js:745 assets/cultos.js:1142
+#: assets/cultos.js:132 assets/cultos.js:203 assets/cultos.js:276 assets/cultos.js:281 assets/cultos.js:471 assets/cultos.js:810 assets/cultos.js:1998
 #, javascript-format
 msgid "%1$s · %2$s"
 msgstr ""
@@ -2681,7 +3067,7 @@ msgstr ""
 msgid "Editar setlist"
 msgstr ""
 
-#: assets/cultos.js:237 assets/cultos.js:259 assets/cultos.js:343 assets/cultos.js:353
+#: assets/cultos.js:237 assets/cultos.js:259 assets/cultos.js:343 assets/cultos.js:354
 msgid "Añadir canciones"
 msgstr ""
 
@@ -2727,7 +3113,7 @@ msgid_plural "%d celebrados"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cultos.js:295 assets/cultos.js:393
+#: assets/cultos.js:295 assets/cultos.js:436
 msgid "Cargando culto…"
 msgstr ""
 
@@ -2767,362 +3153,473 @@ msgstr ""
 msgid "Setlist copiado (para WhatsApp)"
 msgstr ""
 
-#: assets/cultos.js:347
-msgid "Duplicar para otro día"
+#: assets/cultos.js:347 assets/cultos.js:1439
+msgid "Exportar escaleta"
 msgstr ""
 
 #: assets/cultos.js:348
+msgid "Duplicar para otro día"
+msgstr ""
+
+#: assets/cultos.js:349
 msgid "Borrar culto"
 msgstr ""
 
-#: assets/cultos.js:352
+#: assets/cultos.js:353
 msgid "Este culto aún no tiene canciones."
 msgstr ""
 
 #. 1: título del culto, 2: fecha completa («Domingo, 26 de octubre de 2026»)
-#: assets/cultos.js:358
+#: assets/cultos.js:359
 #, javascript-format
 msgid "%1$s — %2$s"
 msgstr ""
 
 #. %s: número de himnario
-#: assets/cultos.js:365
+#: assets/cultos.js:366
 #, javascript-format
 msgid "(nº %s)"
 msgstr ""
 
 #. %s: título del culto
-#: assets/cultos.js:374
+#: assets/cultos.js:375
 #, javascript-format
 msgid "¿Borrar el culto «%s»? Un administrador podrá recuperarlo desde la papelera."
 msgstr ""
 
-#: assets/cultos.js:376
+#: assets/cultos.js:377
 msgid "Culto borrado"
 msgstr ""
 
-#: assets/cultos.js:420
+#: assets/cultos.js:463
 msgid "Tema del culto, quién predica, indicaciones para el equipo…"
 msgstr ""
 
-#: assets/cultos.js:438
+#: assets/cultos.js:481
 msgid "Buscar canción por título, número o letra…"
 msgstr ""
 
-#: assets/cultos.js:439
+#: assets/cultos.js:482
 msgid "Añadir canción al setlist"
 msgstr ""
 
-#: assets/cultos.js:452
+#: assets/cultos.js:495
 msgid "Sin resultados."
 msgstr ""
 
-#: assets/cultos.js:452
+#: assets/cultos.js:495
 msgid "Subir una canción nueva"
 msgstr ""
 
-#: assets/cultos.js:467
+#: assets/cultos.js:510
 msgid "Ya está en este setlist"
 msgstr ""
 
-#: assets/cultos.js:504
+#: assets/cultos.js:550
 msgid "Busca canciones arriba para añadirlas. Después puedes arrastrarlas para cambiar el orden."
 msgstr ""
 
 #. %s: título de la canción
-#: assets/cultos.js:513
+#: assets/cultos.js:559
 #, javascript-format
 msgid "Arrastrar para reordenar %s"
 msgstr ""
 
-#: assets/cultos.js:513
-msgid "Arrastrar"
-msgstr ""
-
-#: assets/cultos.js:526
+#: assets/cultos.js:572
 msgid "Nota (p. ej. «solo estrofas 1 y 3»)"
 msgstr ""
 
 #. %s: título de la canción
-#: assets/cultos.js:527
+#: assets/cultos.js:573
 #, javascript-format
 msgid "Nota para %s"
 msgstr ""
 
-#: assets/cultos.js:531
+#: assets/cultos.js:577
 msgid "Partitura que se usa en este culto (modo culto y PDF)"
 msgstr ""
 
-#: assets/cultos.js:533
+#: assets/cultos.js:579
 msgid "Partitura: la principal"
 msgstr ""
 
 #. %s: nombre de la partitura (el que le puso el equipo, o «n.º 2»)
-#: assets/cultos.js:534
+#: assets/cultos.js:580
 #, javascript-format
 msgid "Partitura: %s"
 msgstr ""
 
 #. %d: posición de la partitura en la lista
-#: assets/cultos.js:534
+#: assets/cultos.js:580
 #, javascript-format
 msgid "n.º %d"
 msgstr ""
 
-#: assets/cultos.js:539
+#: assets/cultos.js:585
 msgid "Está repetida en este setlist"
 msgstr ""
 
-#: assets/cultos.js:542
+#: assets/cultos.js:588
 msgctxt "mover una canción hacia arriba en el setlist"
 msgid "Subir"
 msgstr ""
 
-#: assets/cultos.js:543
+#: assets/cultos.js:589
 msgctxt "mover una canción hacia abajo en el setlist"
 msgid "Bajar"
 msgstr ""
 
-#: assets/cultos.js:597 assets/cultos.js:646
+#: assets/cultos.js:620 assets/cultos.js:711
 msgid "Crear culto"
 msgstr ""
 
-#: assets/cultos.js:603
-msgid "Fecha"
-msgstr ""
-
-#: assets/cultos.js:604
-msgid "Tipo de culto"
-msgstr ""
-
-#: assets/cultos.js:605
-msgid "Se rellena solo con el tipo y la fecha; puedes cambiarlo."
-msgstr ""
-
-#: assets/cultos.js:607
+#: assets/cultos.js:627
 msgid "Setlist"
 msgstr ""
 
-#: assets/cultos.js:611
+#: assets/cultos.js:631
 msgid "Notas"
 msgstr ""
 
-#: assets/cultos.js:621
+#: assets/cultos.js:636
+msgctxt "pestaña del editor del culto: la hoja impresa con el orden del culto"
+msgid "Escaleta"
+msgstr ""
+
+#: assets/cultos.js:661
+msgid "Partes del culto"
+msgstr ""
+
+#: assets/cultos.js:667
+msgid "Fecha"
+msgstr ""
+
+#: assets/cultos.js:668
+msgid "Tipo de culto"
+msgstr ""
+
+#: assets/cultos.js:669
+msgid "Se rellena solo con el tipo y la fecha; puedes cambiarlo."
+msgstr ""
+
+#: assets/cultos.js:681
 msgid "Indica la fecha."
 msgstr ""
 
-#: assets/cultos.js:637
+#: assets/cultos.js:702
 msgid "Culto guardado"
 msgstr ""
 
-#: assets/cultos.js:637
+#: assets/cultos.js:702
 msgid "Culto creado"
 msgstr ""
 
-#: assets/cultos.js:677
+#: assets/cultos.js:742
 msgid "Este culto no tiene partituras"
 msgstr ""
 
-#: assets/cultos.js:723
+#: assets/cultos.js:788
 msgid "Para recuperar"
 msgstr ""
 
 #. %s: cuándo fue («hace 4 meses»)
-#: assets/cultos.js:727
+#: assets/cultos.js:792
 #, javascript-format
 msgid "Última vez %s"
 msgstr ""
 
-#: assets/cultos.js:727
+#: assets/cultos.js:792
 msgid "Nunca se ha tocado"
 msgstr ""
 
-#: assets/cultos.js:728
+#: assets/cultos.js:793
 msgid "Todo el repertorio ha sonado en los últimos 3 meses."
 msgstr ""
 
-#: assets/cultos.js:757
+#: assets/cultos.js:822
 msgid "No se pudo cargar el generador de PDF."
 msgstr ""
 
-#: assets/cultos.js:830
+#: assets/cultos.js:895
 msgid "Preparando el PDF del setlist…"
 msgstr ""
 
 #. %s: número de himnario
-#: assets/cultos.js:851
+#: assets/cultos.js:916
 #, javascript-format
 msgid "(n.º %s)"
 msgstr ""
 
 #. %s: títulos de las canciones cuya partitura no se pudo añadir, separados por comas
-#: assets/cultos.js:886
+#: assets/cultos.js:951
 #, javascript-format
 msgid "No se pudo incluir: %s"
 msgstr ""
 
-#: assets/cultos.js:887
+#: assets/cultos.js:952
 msgid "PDF descargado"
 msgstr ""
 
-#: assets/cultos.js:891
+#: assets/cultos.js:956
 msgid "No se pudo generar el PDF"
 msgstr ""
 
-#: assets/cultos.js:905
+#: assets/cultos.js:1224
+msgid "Sección nueva"
+msgstr ""
+
+#: assets/cultos.js:1246
+msgid "Se imprime en letra pequeña"
+msgstr ""
+
+#: assets/cultos.js:1277
+msgid "Otra (escribe el nombre)"
+msgstr ""
+
+#: assets/cultos.js:1285
+msgid "Este culto aún no tiene canciones: añádelas en la pestaña Canciones o escribe el nombre."
+msgstr ""
+
+#: assets/cultos.js:1324
+msgid "Nombre escrito a mano"
+msgstr ""
+
+#: assets/cultos.js:1342
+msgid "Este culto aún no tiene canciones: añádelas en la pestaña Canciones o escribe los nombres."
+msgstr ""
+
+#: assets/cultos.js:1343
+msgid "Todas las canciones del culto están ya en otras secciones."
+msgstr ""
+
+#: assets/cultos.js:1346
+msgid "Añadir otra (escribe el nombre)"
+msgstr ""
+
+#. %s: título de la sección de la escaleta
+#: assets/cultos.js:1387
+#, javascript-format
+msgid "Arrastrar para reordenar la sección %s"
+msgstr ""
+
+#. %s: título de la sección de la escaleta
+#: assets/cultos.js:1404
+#, javascript-format
+msgid "Subir la sección %s"
+msgstr ""
+
+#: assets/cultos.js:1405
+msgctxt "mover una sección de la escaleta hacia arriba"
+msgid "Subir"
+msgstr ""
+
+#. %s: título de la sección de la escaleta
+#: assets/cultos.js:1408
+#, javascript-format
+msgid "Bajar la sección %s"
+msgstr ""
+
+#: assets/cultos.js:1409
+msgctxt "mover una sección de la escaleta hacia abajo"
+msgid "Bajar"
+msgstr ""
+
+#. %s: título de la sección de la escaleta
+#: assets/cultos.js:1412
+#, javascript-format
+msgid "Quitar la sección %s"
+msgstr ""
+
+#: assets/cultos.js:1415
+msgid "No incluir en este culto"
+msgstr ""
+
+#: assets/cultos.js:1435
+msgid "Cargando la escaleta…"
+msgstr ""
+
+#: assets/cultos.js:1441
+msgid "Se rellena con las canciones del culto; cambia lo que quieras. Se guarda junto con el culto."
+msgstr ""
+
+#: assets/cultos.js:1442
+msgid "No se pudo leer la plantilla de tu grupo: se usa la estándar."
+msgstr ""
+
+#: assets/cultos.js:1444
+msgid "Añadir sección a este culto"
+msgstr ""
+
+#: assets/cultos.js:1719
+msgid "Preparando la escaleta…"
+msgstr ""
+
+#: assets/cultos.js:1741
+msgid "Escaleta descargada, pero no se pudieron cargar las imágenes de la cabecera."
+msgstr ""
+
+#: assets/cultos.js:1742
+msgid "Escaleta descargada"
+msgstr ""
+
+#: assets/cultos.js:1745
+msgid "No se pudo generar la escaleta"
+msgstr ""
+
+#: assets/cultos.js:1761
 msgid "Elegir culto"
 msgstr ""
 
-#: assets/cultos.js:907
+#: assets/cultos.js:1763
 msgid "+ Nuevo culto…"
 msgstr ""
 
 #. %s: título del culto
-#: assets/cultos.js:919
+#: assets/cultos.js:1775
 #, javascript-format
 msgid "Añadida a «%s»"
 msgstr ""
 
-#: assets/cultos.js:928
+#: assets/cultos.js:1784
 msgid "vez tocada"
 msgid_plural "veces tocada"
 msgstr[0] ""
 msgstr[1] ""
 
 #. %s: fecha corta del último culto en que se tocó (enlace al culto) %s: fecha corta de la última vez que se tocó
-#: assets/cultos.js:930 assets/cultos.js:1122
+#: assets/cultos.js:1786 assets/cultos.js:1978
 #, javascript-format
 msgid "Última: %s"
 msgstr ""
 
-#: assets/cultos.js:931
+#: assets/cultos.js:1787
 msgid "Aún no ha sonado en un culto"
 msgstr ""
 
 #. %s: fecha corta del culto en que está programada (enlace al culto)
-#: assets/cultos.js:932
+#: assets/cultos.js:1788
 #, javascript-format
 msgid "Programada: %s"
 msgstr ""
 
-#: assets/cultos.js:933
+#: assets/cultos.js:1789
 msgid "Añadir a un culto"
 msgstr ""
 
-#: assets/cultos.js:940
+#: assets/cultos.js:1796
 msgid "3 meses"
 msgstr ""
 
-#: assets/cultos.js:941
+#: assets/cultos.js:1797
 msgid "6 meses"
 msgstr ""
 
-#: assets/cultos.js:943
+#: assets/cultos.js:1799
 msgctxt "periodo de las estadísticas: todo el tiempo"
 msgid "Todo"
 msgstr ""
 
-#: assets/cultos.js:956
+#: assets/cultos.js:1812
 msgid "Sin etiqueta"
 msgstr ""
 
-#: assets/cultos.js:1072
+#: assets/cultos.js:1928
 msgid "Canciones tocadas por mes"
 msgstr ""
 
 #. 1: mes y año («octubre de 2026»), 2: número de canciones («12 canciones»), 3: número de cultos («3 cultos»)
-#: assets/cultos.js:1074
+#: assets/cultos.js:1930
 #, javascript-format
 msgid "%1$s: %2$s en %3$s"
 msgstr ""
 
-#: assets/cultos.js:1106
+#: assets/cultos.js:1962
 msgid "Aún no hay cultos celebrados en este periodo. Las estadísticas salen solas de los setlists: en cuanto pase el primer culto con canciones, aparecerán aquí."
 msgstr ""
 
-#: assets/cultos.js:1107
+#: assets/cultos.js:1963
 msgid "Ir a cultos"
 msgstr ""
 
-#: assets/cultos.js:1111
+#: assets/cultos.js:1967
 msgid "Cultos celebrados"
 msgstr ""
 
 #. %s: media de canciones por culto, con un decimal («3,5»)
-#: assets/cultos.js:1111
+#: assets/cultos.js:1967
 #, javascript-format
 msgid "%s canciones de media"
 msgstr ""
 
-#: assets/cultos.js:1112
+#: assets/cultos.js:1968
 msgid "Canciones distintas"
 msgstr ""
 
 #. %d: total de canciones del cancionero
-#: assets/cultos.js:1112
+#: assets/cultos.js:1968
 #, javascript-format
 msgid "de %d en el cancionero"
 msgstr ""
 
-#: assets/cultos.js:1113
+#: assets/cultos.js:1969
 msgid "La mitad de lo que tocamos"
 msgstr ""
 
-#: assets/cultos.js:1113
+#: assets/cultos.js:1969
 msgid "Cuantas menos, más repetimos"
 msgstr ""
 
-#: assets/cultos.js:1114
+#: assets/cultos.js:1970
 msgid "Canciones nuevas"
 msgstr ""
 
-#: assets/cultos.js:1114
+#: assets/cultos.js:1970
 #, javascript-format
 msgid "%d ya se ha tocado"
 msgid_plural "%d ya se han tocado"
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/cultos.js:1114
+#: assets/cultos.js:1970
 msgid "Añadidas en el periodo"
 msgstr ""
 
-#: assets/cultos.js:1118
+#: assets/cultos.js:1974
 msgid "Las más tocadas"
 msgstr ""
 
-#: assets/cultos.js:1118
+#: assets/cultos.js:1974
 msgid "Veces que ha sonado cada canción"
 msgstr ""
 
 #. 1: título de la canción, 2: veces que se ha tocado («3 veces»), 3: fecha completa de la última vez
-#: assets/cultos.js:1123
+#: assets/cultos.js:1979
 #, javascript-format
 msgid "%1$s · %2$s · última %3$s"
 msgstr ""
 
-#: assets/cultos.js:1126
+#: assets/cultos.js:1982
 msgid "Actividad por mes"
 msgstr ""
 
-#: assets/cultos.js:1126
+#: assets/cultos.js:1982
 msgid "Canciones tocadas cada mes"
 msgstr ""
 
-#: assets/cultos.js:1128
+#: assets/cultos.js:1984
 msgid "Hace tiempo que no suenan"
 msgstr ""
 
-#: assets/cultos.js:1128
+#: assets/cultos.js:1984
 msgid "Tocadas alguna vez, pero no en los últimos 3 meses"
 msgstr ""
 
-#: assets/cultos.js:1133
+#: assets/cultos.js:1989
 msgid "Ninguna: todo lo que tocamos ha sonado hace poco."
 msgstr ""
 
 #. 1: canciones que nunca se han tocado, 2: total de canciones del cancionero
-#: assets/cultos.js:1134
+#: assets/cultos.js:1990
 #, javascript-format
 msgid "%1$d de %2$d canciones aún no ha sonado en un culto"
 msgid_plural "%1$d de %2$d canciones aún no han sonado en un culto"
@@ -3130,35 +3627,35 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. %s: cuándo se añadió («hace 2 semanas»)
-#: assets/cultos.js:1138
+#: assets/cultos.js:1994
 #, javascript-format
 msgid "Añadida %s"
 msgstr ""
 
 #. %d: canciones que no caben en la lista
-#: assets/cultos.js:1139
+#: assets/cultos.js:1995
 #, javascript-format
 msgid "y %d más"
 msgstr ""
 
-#: assets/cultos.js:1139
+#: assets/cultos.js:1995
 msgid "Todas se han tocado al menos una vez."
 msgstr ""
 
-#: assets/cultos.js:1140
+#: assets/cultos.js:1996
 msgid "Por etiqueta"
 msgstr ""
 
-#: assets/cultos.js:1140
+#: assets/cultos.js:1996
 msgid "Veces que han sonado canciones de cada etiqueta"
 msgstr ""
 
-#: assets/cultos.js:1149
+#: assets/cultos.js:2005
 msgid "Calculando estadísticas…"
 msgstr ""
 
 #. %s: motivo del error
-#: assets/cultos.js:1152
+#: assets/cultos.js:2008
 #, javascript-format
 msgid "No se pudieron calcular las estadísticas: %s"
 msgstr ""
@@ -3245,7 +3742,7 @@ msgstr ""
 msgid "Escenario"
 msgstr ""
 
-#: includes/ajustes.php:24 assets/cancionero.js:1526 assets/cancionero.js:1778 assets/cancionero.js:1893 assets/cultos.js:326 assets/visor.js:358
+#: includes/ajustes.php:24 assets/cancionero.js:1527 assets/cancionero.js:1779 assets/cancionero.js:1894 assets/cultos.js:326 assets/visor.js:358
 msgid "Partitura"
 msgstr ""
 
@@ -3266,15 +3763,15 @@ msgstr ""
 msgid "Notación desconocida."
 msgstr ""
 
-#: includes/ajustes.php:506
+#: includes/ajustes.php:508
 msgid "El Client ID de Google no tiene el formato esperado (…apps.googleusercontent.com)."
 msgstr ""
 
-#: includes/ajustes.php:856
+#: includes/ajustes.php:883
 msgid "Hay una canción sin título en la copia."
 msgstr ""
 
-#: includes/ajustes.php:959
+#: includes/ajustes.php:986
 msgid "Hay un culto sin título o con una fecha no válida en la copia."
 msgstr ""
 
@@ -3308,7 +3805,7 @@ msgid_plural "Se han borrado %d canciones del cancionero"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/avisos.php:179 assets/cancionero.js:1637
+#: includes/avisos.php:179 assets/cancionero.js:1638
 msgid "Canción borrada"
 msgstr ""
 
@@ -3404,7 +3901,7 @@ msgstr ""
 msgid "Cómo entrar"
 msgstr ""
 
-#: includes/bienvenida.php:179 includes/google.php:246 pieb-cancionero.php:352
+#: includes/bienvenida.php:179 includes/google.php:246 pieb-cancionero.php:308
 msgid "Entrar al cancionero"
 msgstr ""
 
@@ -3502,13 +3999,13 @@ msgid "«%s» no es un PDF ni una imagen JPG/PNG."
 msgstr ""
 
 #. 1: nombre del archivo, 2: código de error de PHP
-#: includes/canciones.php:292
+#: includes/canciones.php:292 includes/escaleta.php:509
 #, php-format
 msgid "No se pudo subir «%1$s» (error %2$d)."
 msgstr ""
 
 #. 1: nombre del archivo, 2: tamaño del archivo, 3: tamaño máximo permitido
-#: includes/canciones.php:315 includes/rest.php:83
+#: includes/canciones.php:315 includes/escaleta.php:518 includes/rest.php:83
 #, php-format
 msgid "«%1$s» pesa %2$s; el máximo es %3$s."
 msgstr ""
@@ -3519,40 +4016,156 @@ msgstr ""
 msgid "No se encontró «%s» en el servidor: vuelve a elegir el archivo."
 msgstr ""
 
-#: includes/cultos.php:21 assets/cancionero.js:565 assets/cultos.js:132 assets/cultos.js:744 assets/cultos.js:1083
+#: includes/cultos.php:23 assets/cancionero.js:565 assets/cultos.js:132 assets/cultos.js:809 assets/cultos.js:1939
 msgid "Cultos"
 msgstr ""
 
-#: includes/cultos.php:22 assets/cultos.js:295 assets/cultos.js:333 assets/cultos.js:427
+#: includes/cultos.php:24 assets/cultos.js:295 assets/cultos.js:333 assets/cultos.js:470
 msgid "Culto"
 msgstr ""
 
-#: includes/cultos.php:23 assets/cancionero.js:3724
+#: includes/cultos.php:25 assets/cancionero.js:4416
 msgid "Cultos y setlists"
 msgstr ""
 
-#: includes/cultos.php:24 assets/cultos.js:393 assets/cultos.js:651 assets/cultos.js:653
+#: includes/cultos.php:26 assets/cultos.js:436 assets/cultos.js:716 assets/cultos.js:718
 msgid "Editar culto"
 msgstr ""
 
-#: includes/cultos.php:25
+#: includes/cultos.php:27
 msgid "No hay cultos"
 msgstr ""
 
-#: includes/cultos.php:142
+#: includes/cultos.php:147
 msgid "El culto no existe."
 msgstr ""
 
-#: includes/cultos.php:176 includes/rest.php:156 includes/rest.php:194
+#: includes/cultos.php:181 includes/rest.php:156 includes/rest.php:194
 msgid "El título es obligatorio."
 msgstr ""
 
-#: includes/cultos.php:180
+#: includes/cultos.php:185
 msgid "La fecha no es válida."
 msgstr ""
 
-#: includes/cultos.php:236
+#: includes/cultos.php:254
 msgid "Solo quien creó el culto o un administrador puede borrarlo."
+msgstr ""
+
+#: includes/escaleta.php:73 assets/cancionero.js:2342 assets/cancionero.js:2415 assets/cancionero.js:2646 assets/cultos.js:984
+msgctxt "título de la escaleta impresa del culto (se imprime en mayúsculas)"
+msgid "ORDEN DE CULTO"
+msgstr ""
+
+#: includes/escaleta.php:78 assets/cancionero.js:2344 assets/cultos.js:986
+msgctxt "sección de la escaleta del culto (en mayúsculas)"
+msgid "PRELUDIO"
+msgstr ""
+
+#: includes/escaleta.php:81 assets/cancionero.js:2345 assets/cultos.js:987
+msgctxt "sección de la escaleta del culto (en mayúsculas)"
+msgid "LECTURA Y ORACIÓN"
+msgstr ""
+
+#: includes/escaleta.php:82 assets/cancionero.js:2346 assets/cultos.js:987
+msgctxt "etiqueta de un campo de la escaleta del culto"
+msgid "Presidencia"
+msgstr ""
+
+#: includes/escaleta.php:83 includes/escaleta.php:103 assets/cancionero.js:2347 assets/cancionero.js:2357 assets/cultos.js:987 assets/cultos.js:993
+msgctxt "etiqueta de un campo de la escaleta del culto"
+msgid "Lectura"
+msgstr ""
+
+#: includes/escaleta.php:85 assets/cancionero.js:2348 assets/cultos.js:988
+msgctxt "sección de la escaleta del culto (en mayúsculas)"
+msgid "BIENVENIDA"
+msgstr ""
+
+#: includes/escaleta.php:86 assets/cancionero.js:2348 assets/cultos.js:988
+msgid "Bienvenida a todos y a quienes nos visitan"
+msgstr ""
+
+#: includes/escaleta.php:88 assets/cancionero.js:2349 assets/cultos.js:989
+msgctxt "sección de la escaleta del culto (en mayúsculas)"
+msgid "VIDA DE COMUNIDAD"
+msgstr ""
+
+#: includes/escaleta.php:91 assets/cancionero.js:2350 assets/cultos.js:990
+msgctxt "sección de la escaleta del culto (en mayúsculas)"
+msgid "CANTOS DE ALABANZA"
+msgstr ""
+
+#: includes/escaleta.php:94 assets/cancionero.js:2351 assets/cultos.js:991
+msgctxt "sección de la escaleta del culto (en mayúsculas)"
+msgid "OFRENDA"
+msgstr ""
+
+#: includes/escaleta.php:95 assets/cancionero.js:2352 assets/cultos.js:991
+msgctxt "etiqueta de un campo de la escaleta del culto"
+msgid "Música instrumental"
+msgstr ""
+
+#: includes/escaleta.php:96 assets/cancionero.js:2353 assets/cultos.js:991
+msgctxt "etiqueta de un campo de la escaleta del culto"
+msgid "Responsables"
+msgstr ""
+
+#: includes/escaleta.php:99 assets/cancionero.js:2355 assets/cultos.js:992
+msgctxt "sección de la escaleta del culto (en mayúsculas)"
+msgid "NIÑOS"
+msgstr ""
+
+#: includes/escaleta.php:100 assets/cancionero.js:2355 assets/cultos.js:992
+msgid "Los niños pasan a sus clases"
+msgstr ""
+
+#: includes/escaleta.php:102 assets/cancionero.js:2356 assets/cultos.js:993
+msgctxt "sección de la escaleta del culto (en mayúsculas)"
+msgid "PREDICACIÓN"
+msgstr ""
+
+#: includes/escaleta.php:104 assets/cancionero.js:2358 assets/cultos.js:993
+msgctxt "etiqueta de un campo de la escaleta del culto"
+msgid "Título"
+msgstr ""
+
+#: includes/escaleta.php:105 assets/cancionero.js:2359 assets/cultos.js:993
+msgctxt "etiqueta de un campo de la escaleta del culto"
+msgid "Predicación"
+msgstr ""
+
+#: includes/escaleta.php:107 assets/cancionero.js:2360 assets/cultos.js:994
+msgctxt "sección de la escaleta del culto (en mayúsculas)"
+msgid "DESPEDIDA"
+msgstr ""
+
+#: includes/escaleta.php:110 assets/cancionero.js:2361 assets/cultos.js:995
+msgctxt "sección de la escaleta del culto (en mayúsculas)"
+msgid "DOXOLOGÍA"
+msgstr ""
+
+#: includes/escaleta.php:113 assets/cancionero.js:2362 assets/cultos.js:996
+msgctxt "sección de la escaleta del culto (en mayúsculas)"
+msgid "POSTLUDIO"
+msgstr ""
+
+#: includes/escaleta.php:329
+msgid "La escaleta no es válida."
+msgstr ""
+
+#: includes/escaleta.php:501
+msgid "No llegó la imagen."
+msgstr ""
+
+#: includes/escaleta.php:504
+msgid "La imagen supera el límite de subida del servidor."
+msgstr ""
+
+#. %s: nombre del archivo
+#: includes/escaleta.php:530
+#, php-format
+msgid "«%s» no es una imagen JPG o PNG."
 msgstr ""
 
 #: includes/google.php:27
@@ -3707,117 +4320,117 @@ msgstr ""
 msgid "Solo quien subió la canción o un administrador puede borrarla."
 msgstr ""
 
-#: pieb-cancionero.php:62 assets/cancionero.js:564 assets/cancionero.js:920 assets/cancionero.js:1006 assets/cancionero.js:1108 assets/cancionero.js:3722 assets/cultos.js:1083 assets/visor.js:347
+#: pieb-cancionero.php:63 assets/cancionero.js:564 assets/cancionero.js:921 assets/cancionero.js:1007 assets/cancionero.js:1109 assets/cancionero.js:4414 assets/cultos.js:635 assets/cultos.js:1341 assets/cultos.js:1939 assets/visor.js:347
 msgid "Canciones"
 msgstr ""
 
-#: pieb-cancionero.php:63 assets/cancionero.js:1464 assets/cancionero.js:1543
+#: pieb-cancionero.php:64 assets/cancionero.js:1465 assets/cancionero.js:1544 assets/cultos.js:1284
 msgid "Canción"
 msgstr ""
 
-#: pieb-cancionero.php:65
+#: pieb-cancionero.php:66
 msgid "Todas las canciones"
 msgstr ""
 
-#: pieb-cancionero.php:66 assets/cancionero.js:1647 assets/cancionero.js:1988 assets/cancionero.js:1990
+#: pieb-cancionero.php:67 assets/cancionero.js:1648 assets/cancionero.js:1989 assets/cancionero.js:1991
 msgid "Editar canción"
 msgstr ""
 
-#: pieb-cancionero.php:67
+#: pieb-cancionero.php:68
 msgid "Buscar canciones"
 msgstr ""
 
-#: pieb-cancionero.php:68
+#: pieb-cancionero.php:69
 msgid "No hay canciones"
 msgstr ""
 
-#: pieb-cancionero.php:97
+#: pieb-cancionero.php:98
 msgid "Etiquetas de canción"
 msgstr ""
 
-#: pieb-cancionero.php:98
+#: pieb-cancionero.php:99
 msgid "Etiqueta"
 msgstr ""
 
-#: pieb-cancionero.php:99 assets/cancionero.js:491 assets/cancionero.js:1153 assets/cancionero.js:1906
+#: pieb-cancionero.php:100 assets/cancionero.js:491 assets/cancionero.js:1154 assets/cancionero.js:1907
 msgid "Etiquetas"
-msgstr ""
-
-#: pieb-cancionero.php:138
-msgctxt "User role"
-msgid "Equipo de adoración"
 msgstr ""
 
 #: pieb-cancionero.php:139
 msgctxt "User role"
+msgid "Equipo de adoración"
+msgstr ""
+
+#: pieb-cancionero.php:140
+msgctxt "User role"
 msgid "Administrador del cancionero"
 msgstr ""
 
-#: pieb-cancionero.php:280
+#: pieb-cancionero.php:236
 msgid "Sin acceso al cancionero"
 msgstr ""
 
-#: pieb-cancionero.php:281
+#: pieb-cancionero.php:237
 msgid "Tu cuenta no está en la lista del equipo de adoración. Pide a un responsable que añada tu correo."
 msgstr ""
 
-#: pieb-cancionero.php:282
+#: pieb-cancionero.php:238
 msgid "Salir y entrar con otra cuenta"
 msgstr ""
 
-#: pieb-cancionero.php:328
+#: pieb-cancionero.php:284
 msgid "Cargando cancionero…"
 msgstr ""
 
-#: pieb-cancionero.php:348
+#: pieb-cancionero.php:304
 msgid "Pulsa el botón para entrar."
 msgstr ""
 
-#: pieb-cancionero.php:376
+#: pieb-cancionero.php:332
 msgid "Ese enlace ya se ha usado o ha caducado. Pide uno nuevo."
 msgstr ""
 
-#: pieb-cancionero.php:378
+#: pieb-cancionero.php:334
 msgid "No se ha podido iniciar la sesión. Inténtalo de nuevo o avisa a un responsable."
 msgstr ""
 
-#: pieb-cancionero.php:381
+#: pieb-cancionero.php:337
 msgid "Escribe tu correo y te enviaremos un enlace para entrar. Sin contraseñas."
 msgstr ""
 
-#: pieb-cancionero.php:383
+#: pieb-cancionero.php:339
 msgid "Tu correo"
 msgstr ""
 
-#: pieb-cancionero.php:384
+#: pieb-cancionero.php:340
 msgid "tu@correo.com"
 msgstr ""
 
-#: pieb-cancionero.php:385
+#: pieb-cancionero.php:341
 msgid "Enviarme el enlace"
 msgstr ""
 
-#: pieb-cancionero.php:391
+#: pieb-cancionero.php:347
 msgctxt "separador entre el acceso por correo y el acceso con Google"
 msgid "o"
 msgstr ""
 
-#: pieb-cancionero.php:397
+#: pieb-cancionero.php:353
 msgid "Usuario o correo"
 msgstr ""
 
-#: pieb-cancionero.php:398
+#: pieb-cancionero.php:354
 msgid "Contraseña"
 msgstr ""
 
-#: pieb-cancionero.php:399
+#: pieb-cancionero.php:355
 msgid "Recordarme en este dispositivo"
 msgstr ""
 
-#: pieb-cancionero.php:400
+#: pieb-cancionero.php:356
 msgid "Entrar"
 msgstr ""
 
-#: pieb-cancionero.php:402
+#: pieb-cancionero.php:358
 msgid "Entrar con usuario y contraseña"
 msgstr ""

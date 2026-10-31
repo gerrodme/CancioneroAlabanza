@@ -901,6 +901,7 @@
       { titulo: __('Ajustes y equipo'), sub: __('Nombre, tema por defecto, plazo de la papelera'), icono: 'ajustes', href: '#/ajustes' },
       { titulo: __('Equipo'), sub: __('Correos con acceso, administradores y dominio'), icono: 'equipo', href: '#/ajustes/equipo' },
       { titulo: __('Accesos'), sub: __('Quién entra y cuánto se usa'), icono: 'grafica', href: '#/ajustes/accesos' },
+      { titulo: __('Escaleta'), sub: __('Cabecera y secciones de la hoja impresa del culto'), icono: 'lista', href: '#/ajustes/escaleta' },
       { titulo: __('Acceso con Google'), sub: __('Client ID de Google'), icono: 'acceso', href: '#/ajustes/google' },
       { titulo: __('Archivos'), sub: __('Protección y archivos sin usar'), icono: 'partitura', href: '#/ajustes/archivos' },
       { titulo: __('Papelera'), sub: __('Restaurar o eliminar canciones borradas'), icono: 'borrar', href: '#/ajustes/papelera' },
@@ -2226,10 +2227,10 @@
   // Panel «Ajustes y equipo» abierto (null si no lo está) y turno de la última carga, para ignorar respuestas viejas.
   var ajustesAbierto = null;
   var turnoAjustes = 0;
-  var SECCIONES_AJUSTES = ['general', 'equipo', 'accesos', 'google', 'archivos', 'papelera', 'copias'];
+  var SECCIONES_AJUSTES = ['general', 'equipo', 'accesos', 'escaleta', 'google', 'archivos', 'papelera', 'copias'];
   var RUTA_AJUSTES = /^#\/(ajustes|papelera|copias)(\/|$)/;
 
-  /** Abre «Ajustes y equipo» en una sección (general, equipo, accesos, google, archivos, papelera o copias).
+  /** Abre «Ajustes y equipo» en una sección (general, equipo, accesos, escaleta, google, archivos, papelera o copias).
    *  Si el panel ya está abierto solo cambia de sección: no se vuelven a pedir los datos. */
   function abrirAjustes(seccion) {
     if (!CFG.gestionar) { location.hash = '#/'; return; }
@@ -2299,8 +2300,662 @@
     return partes.join(' · ');
   }
 
+  // ---------------------------------------------------------------- escaleta (plantilla de la hoja impresa del culto)
+
+  var ESC_TIPOS = ['texto', 'textoLargo', 'cancion', 'canciones'];
+  var ESC_MAX_IMAGEN = 2 * 1048576;
+  var escContador = 0;
+
+  function escEsCancion(tipo) { return tipo === 'cancion' || tipo === 'canciones'; }
+
+  function escTextoTipo(tipo) {
+    return tipo === 'textoLargo' ? __('Texto largo')
+      : tipo === 'cancion' ? __('Una canción del culto')
+        : tipo === 'canciones' ? __('Varias canciones del culto') : __('Texto corto');
+  }
+
+  function escAyudaTipo(tipo) {
+    return tipo === 'textoLargo' ? __('Varias líneas: cada línea se imprime en su línea.')
+      : tipo === 'cancion' ? __('Se elige una de las canciones del culto o se escribe un nombre.')
+        : tipo === 'canciones' ? __('Se eligen varias de las canciones del culto o se escriben nombres.') : __('Una línea de texto.');
+  }
+
+  /** Valores iniciales que se pueden elegir para las canciones (null en los campos de texto, que llevan un texto libre). */
+  function escOpcionesDefecto(tipo) {
+    return tipo === 'cancion'
+      ? [['primera', __('La primera del culto')], ['siguiente', __('La siguiente a la última asignada antes')], ['ninguna', __('Ninguna')]]
+      : tipo === 'canciones' ? [['ninguna', __('Ninguna')], ['restantes', __('Las que no estén en otras secciones')]] : null;
+  }
+
+  function escDefectoDeTipo(tipo) { return escEsCancion(tipo) ? 'ninguna' : ''; }
+
+  function escNombreCampo(c) { return String(c.etiqueta || '').trim() || escTextoTipo(c.tipo); }
+
+  /** Plantilla de ejemplo: la misma (ids y textos) que devuelve el servidor mientras no se guarde otra; sin nada de ninguna iglesia.
+   *  Los textos llevan los mismos contextos que en includes/escaleta.php para compartir traducción. */
+  function escaletaDeEjemplo() {
+    function c(id, tipo, etiqueta, defecto, pequeno) {
+      return { id: id, tipo: tipo, etiqueta: etiqueta || '', defecto: defecto === undefined ? escDefectoDeTipo(tipo) : defecto, pequeno: !!pequeno };
+    }
+    function s(id, titulo, campos) { return { id: id, titulo: titulo, nota: '', campos: campos }; }
+    return {
+      titulo: _x('ORDEN DE CULTO', 'título de la escaleta impresa del culto (se imprime en mayúsculas)'), central: '', logo: null, cabecera: null,
+      secciones: [
+        s('preludio', _x('PRELUDIO', 'sección de la escaleta del culto (en mayúsculas)'), [c('cancion', 'cancion', '', 'primera')]),
+        s('lectura-oracion', _x('LECTURA Y ORACIÓN', 'sección de la escaleta del culto (en mayúsculas)'), [
+          c('presidencia', 'texto', _x('Presidencia', 'etiqueta de un campo de la escaleta del culto')),
+          c('lectura', 'texto', _x('Lectura', 'etiqueta de un campo de la escaleta del culto'))]),
+        s('bienvenida', _x('BIENVENIDA', 'sección de la escaleta del culto (en mayúsculas)'), [c('bienvenida', 'texto', '', __('Bienvenida a todos y a quienes nos visitan'))]),
+        s('comunidad', _x('VIDA DE COMUNIDAD', 'sección de la escaleta del culto (en mayúsculas)'), [c('comunidad', 'textoLargo')]),
+        s('alabanza', _x('CANTOS DE ALABANZA', 'sección de la escaleta del culto (en mayúsculas)'), [c('canciones', 'canciones', '', 'ninguna')]),
+        s('ofrenda', _x('OFRENDA', 'sección de la escaleta del culto (en mayúsculas)'), [
+          c('musica', 'cancion', _x('Música instrumental', 'etiqueta de un campo de la escaleta del culto'), 'siguiente'),
+          c('responsables', 'texto', _x('Responsables', 'etiqueta de un campo de la escaleta del culto')),
+          c('nota', 'texto', '', '', true)]),
+        s('ninos', _x('NIÑOS', 'sección de la escaleta del culto (en mayúsculas)'), [c('ninos', 'texto', '', __('Los niños pasan a sus clases'))]),
+        s('predicacion', _x('PREDICACIÓN', 'sección de la escaleta del culto (en mayúsculas)'), [
+          c('lectura-biblica', 'texto', _x('Lectura', 'etiqueta de un campo de la escaleta del culto')),
+          c('titulo', 'texto', _x('Título', 'etiqueta de un campo de la escaleta del culto')),
+          c('predicacion', 'texto', _x('Predicación', 'etiqueta de un campo de la escaleta del culto'))]),
+        s('despedida', _x('DESPEDIDA', 'sección de la escaleta del culto (en mayúsculas)'), [c('despedida', 'textoLargo')]),
+        s('doxologia', _x('DOXOLOGÍA', 'sección de la escaleta del culto (en mayúsculas)'), [c('doxologia', 'texto')]),
+        s('postludio', _x('POSTLUDIO', 'sección de la escaleta del culto (en mayúsculas)'), [c('postludio', 'canciones', '', 'restantes')])
+      ]
+    };
+  }
+
+  function escCopiarCampo(c) {
+    c = c && typeof c === 'object' ? c : {};
+    var tipo = ESC_TIPOS.indexOf(c.tipo) === -1 ? 'texto' : c.tipo;
+    var opciones = escOpcionesDefecto(tipo);
+    var defecto = c.defecto === undefined || c.defecto === null ? '' : String(c.defecto);
+    if (opciones && !opciones.some(function (x) { return x[0] === defecto; })) { defecto = 'ninguna'; }
+    // _evitar: identificadores que este campo ya tuvo (al cambiar de tipo no debe volver a recibirlos).
+    return { id: String(c.id || ''), tipo: tipo, etiqueta: String(c.etiqueta || ''), defecto: defecto, pequeno: !!c.pequeno, _evitar: [] };
+  }
+
+  /** Copia de trabajo de una plantilla: se edita ésta, nunca el objeto que llegó del servidor. */
+  function escCopiar(e) {
+    e = e && typeof e === 'object' ? e : {};
+    var imagen = function (v) { return v && v.id ? { id: +v.id, url: String(v.url || '') } : null; };
+    return {
+      titulo: String(e.titulo === undefined || e.titulo === null ? '' : e.titulo),
+      central: String(e.central === undefined || e.central === null ? '' : e.central),
+      logo: imagen(e.logo),
+      cabecera: imagen(e.cabecera),
+      secciones: (Array.isArray(e.secciones) ? e.secciones : []).map(function (s) {
+        s = s && typeof s === 'object' ? s : {};
+        return { id: String(s.id || ''), titulo: String(s.titulo || ''), nota: String(s.nota || ''), campos: (Array.isArray(s.campos) ? s.campos : []).map(escCopiarCampo), _abierta: false };
+      })
+    };
+  }
+
+  function escIdLimpio(texto, respaldo) {
+    var id = norm(texto).replace(/ /g, '-').slice(0, 40).replace(/^-+|-+$/g, '');
+    return id || respaldo;
+  }
+
+  function escIdUnico(base, usados) {
+    var id = base, n = 2;
+    while (usados[id]) { id = base + '-' + n++; }
+    usados[id] = true;
+    return id;
+  }
+
+  /**
+   * La plantilla tal como se envía al servidor o se pasa al PDF. Los identificadores de las secciones y campos nuevos
+   * (vacíos hasta ahora) se generan aquí, a partir del título o la etiqueta, sin repetirse; los que ya existían no cambian.
+   * `paraGuardar`: las imágenes van solo con su id.
+   */
+  function escValor(pl, paraGuardar) {
+    var imagen = function (v) { return v ? (paraGuardar ? { id: v.id } : { id: v.id, url: v.url }) : null; };
+    var usadasSec = {};
+    pl.secciones.forEach(function (s) { if (s.id) { usadasSec[s.id] = true; } });
+    return {
+      titulo: pl.titulo.trim() || _x('ORDEN DE CULTO', 'título de la escaleta impresa del culto (se imprime en mayúsculas)'),
+      central: pl.central.trim(),
+      logo: imagen(pl.logo),
+      cabecera: imagen(pl.cabecera),
+      secciones: pl.secciones.map(function (s) {
+        var usadas = {};
+        s.campos.forEach(function (c) {
+          if (c.id) { usadas[c.id] = true; }
+          c._evitar.forEach(function (x) { usadas[x] = true; });
+        });
+        return {
+          id: s.id || escIdUnico(escIdLimpio(s.titulo, 'seccion'), usadasSec),
+          titulo: s.titulo.trim(),
+          nota: s.nota.trim(),
+          campos: s.campos.map(function (c) {
+            return {
+              id: c.id || escIdUnico(escIdLimpio(c.etiqueta, c.tipo === 'textoLargo' ? 'texto-largo' : c.tipo), usadas),
+              tipo: c.tipo, etiqueta: c.etiqueta.trim(), defecto: c.defecto, pequeno: !!c.pequeno
+            };
+          })
+        };
+      })
+    };
+  }
+
+  /** Culto inventado (seis canciones) para el «ejemplo en PDF» de los ajustes. Nada de esto se guarda. */
+  function cultoDeEjemplo() {
+    var tonos = ['Sol', 'Re', 'Mib', 'La', 'Do', 'Fa'];
+    return {
+      id: 0, titulo: __('Culto de ejemplo'), fecha: textoDeFecha(new Date()), tipo: '', notas: '', escaleta: null,
+      items: tonos.map(function (tono, i) {
+        return {
+          cancion: 990001 + i, tonalidad: tono, nota: '', partitura: 0,
+          datos: { titulo: sprintf(/* translators: %d: número de la canción de ejemplo */ __('Canción de ejemplo %d'), i + 1), numero: '', tonalidad: tono, letra: '', partituras: [] }
+        };
+      })
+    };
+  }
+
+  /**
+   * Editor de la plantilla de la escaleta (sección «Escaleta» de los ajustes).
+   * o: { inicial, alCambiar(), alSubir() }. Devuelve { nodo, valor(paraGuardar), validar(), subiendo() }.
+   */
+  function crearEditorEscaleta(o) {
+    var pl = escCopiar(o.inicial || escaletaDeEjemplo());
+    var subidas = 0;
+    var slots = [];
+    var anuncio = h('p', { class: 'pcan-esc-anuncio', role: 'status' });
+
+    function anunciar(texto) {
+      anuncio.textContent = '';
+      setTimeout(function () { anuncio.textContent = texto; }, 30);
+    }
+    function cambio() { o.alCambiar(); }
+    function mover(lista, de, a) { lista.splice(a, 0, lista.splice(de, 1)[0]); }
+    function posicion(nombre, i, total) {
+      return sprintf(/* translators: 1: nombre de la sección o del campo, 2: posición nueva, 3: total */ __('%1$s: ahora en la posición %2$d de %3$d'), nombre, i + 1, total);
+    }
+
+    /** Devuelve el foco a un botón (o campo) de la fila `foco.i` tras volver a pintar la lista. */
+    function enfocar(ol, foco) {
+      var fila = foco && ol.children[foco.i];
+      if (!fila) { return; }
+      var el = fila.querySelector('[data-accion="' + foco.accion + '"]');
+      if (el && el.disabled && (foco.accion === 'subir' || foco.accion === 'bajar')) {
+        el = fila.querySelector('[data-accion="' + (foco.accion === 'subir' ? 'bajar' : 'subir') + '"]');
+      }
+      if (el && !el.disabled) { el.focus(); }
+    }
+
+    /** Reordenar arrastrando el asa (ratón y dedo): la fila se mueve en el DOM y al soltar se reordena la lista de datos. */
+    function arrastrable(asa, li, ol, lista, terminar) {
+      asa.addEventListener('pointerdown', function (e) {
+        if (e.button !== 0) { return; }
+        e.preventDefault();
+        var puntero = e.pointerId, y = e.clientY, raf = 0;
+        var zona = ol.closest('.pcan-ajustes-scroll');
+        li.classList.add('is-dragging');
+        ol.classList.add('is-sorting');
+
+        function colocar() {
+          var otras = Array.prototype.slice.call(ol.children).filter(function (n) { return n !== li; });
+          var antes = null;
+          for (var k = 0; k < otras.length; k++) {
+            var r = otras[k].getBoundingClientRect();
+            if (y < r.top + r.height / 2) { antes = otras[k]; break; }
+          }
+          if (antes) { if (li.nextSibling !== antes) { ol.insertBefore(li, antes); } }
+          else if (ol.lastChild !== li) { ol.appendChild(li); }
+        }
+        // Cerca del borde de la zona con desplazamiento, ésta se mueve sola para poder llegar a las filas lejanas.
+        function desplazar() {
+          if (zona) {
+            var r = zona.getBoundingClientRect(), borde = 56, v = 0;
+            if (y < r.top + borde) { v = -Math.ceil((r.top + borde - y) / 4); }
+            else if (y > r.bottom - borde) { v = Math.ceil((y - (r.bottom - borde)) / 4); }
+            v = Math.max(-24, Math.min(24, v));
+            if (v) { zona.scrollTop += v; colocar(); }
+          }
+          raf = requestAnimationFrame(desplazar);
+        }
+        function mueve(ev) {
+          if (ev.pointerId !== puntero) { return; }
+          ev.preventDefault();
+          y = ev.clientY;
+          colocar();
+        }
+        function suelta(ev) {
+          if (ev.pointerId !== puntero) { return; }
+          cancelAnimationFrame(raf);
+          window.removeEventListener('pointermove', mueve);
+          window.removeEventListener('pointerup', suelta);
+          window.removeEventListener('pointercancel', suelta);
+          li.classList.remove('is-dragging');
+          ol.classList.remove('is-sorting');
+          var orden = Array.prototype.map.call(ol.children, function (n) { return +n.getAttribute('data-i'); });
+          var movido = lista[+li.getAttribute('data-i')];
+          var hubo = orden.some(function (k, p) { return k !== p; });
+          var nuevos = orden.map(function (k) { return lista[k]; });
+          lista.length = 0;
+          Array.prototype.push.apply(lista, nuevos);
+          terminar(hubo, lista.indexOf(movido));
+        }
+        window.addEventListener('pointermove', mueve, { passive: false });
+        window.addEventListener('pointerup', suelta);
+        window.addEventListener('pointercancel', suelta);
+        raf = requestAnimationFrame(desplazar);
+      });
+    }
+
+    function asaDeArrastre() {
+      return h('button', { type: 'button', class: 'pcan-drag', tabindex: '-1', 'aria-hidden': 'true', title: __('Arrastrar') }, icono('arrastrar'));
+    }
+
+    // ---- cabecera de la hoja: imagen de cabecera y logo
+    function slotImagen(cfg) {
+      var ticket = 0, activa = false;
+      var idTitulo = 'pcan-esc-i' + (++escContador);
+      var img = h('img', { class: 'pcan-esc-img', alt: cfg.alt });
+      var vacio = h('span', { class: 'pcan-esc-img-vacio', text: cfg.vacio });
+      var error = h('p', { class: 'pcan-form-error', role: 'alert', hidden: true });
+      var textoSubida = h('span');
+      var relleno = h('span');
+      var barra = h('div', { class: 'pcan-esc-subida', role: 'status', hidden: true }, textoSubida, h('div', { class: 'pcan-progress' }, relleno));
+      var entrada = h('input', { type: 'file', class: 'pcan-file-hidden', accept: 'image/jpeg,image/png', tabindex: '-1', 'aria-hidden': 'true' });
+      var bElegir = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () { entrada.click(); } }, icono('subir'), __('Elegir imagen'));
+      var bQuitar = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-sec is-danger', onclick: function () {
+        pl[cfg.clave] = null;
+        mostrarError('');
+        pintar();
+        bElegir.focus();
+        cambio();
+      } }, icono('borrar'), __('Quitar'));
+
+      function mostrarError(texto) { error.textContent = texto || ''; error.hidden = !texto; }
+      function progreso(p) {
+        var pct = Math.round(p * 100);
+        textoSubida.textContent = __('Subiendo…') + ' ' + pct + ' %';
+        relleno.style.width = pct + '%';
+      }
+      function pintar() {
+        var v = pl[cfg.clave], hay = !!(v && v.url);
+        if (hay) { img.src = v.url; } else { img.removeAttribute('src'); }
+        img.hidden = !hay;
+        vacio.hidden = hay;
+        bQuitar.hidden = !v;
+      }
+      function terminar() {
+        if (!activa) { return; }
+        activa = false;
+        subidas--;
+        bElegir.disabled = false;
+        bQuitar.disabled = false;
+        barra.hidden = true;
+        o.alSubir();
+      }
+      // Descarta una subida en curso (al volver a la plantilla de ejemplo): su resultado ya no se aplica.
+      function cancelar() { if (activa) { ticket++; terminar(); } mostrarError(''); }
+
+      img.addEventListener('error', function () { img.hidden = true; vacio.hidden = false; });
+      entrada.addEventListener('change', function (e) {
+        e.stopPropagation();
+        var f = entrada.files && entrada.files[0];
+        entrada.value = '';
+        if (!f || activa) { return; }
+        var valida = /^image\/(jpeg|png)$/.test(f.type) || (!f.type && /\.(jpe?g|png)$/i.test(f.name));
+        if (!valida) { mostrarError(__('Solo se admiten imágenes JPG o PNG.')); return; }
+        if (f.size > ESC_MAX_IMAGEN) { mostrarError(sprintf(/* translators: %s: tamaño de la imagen elegida (p. ej. 3,4 MB) */ __('La imagen pesa %s y el máximo son 2 MB.'), tamano(f.size))); return; }
+        mostrarError('');
+        var mio = ++ticket;
+        activa = true;
+        subidas++;
+        bElegir.disabled = true;
+        bQuitar.disabled = true;
+        progreso(0);
+        barra.hidden = false;
+        o.alSubir();
+        var fd = new FormData();
+        fd.append('archivo', f);
+        apiSubir('escaleta/imagen', fd, function (p) { if (mio === ticket) { progreso(p); } }).then(function (r) {
+          if (mio !== ticket) { return; }
+          pl[cfg.clave] = { id: +r.id, url: String(r.url || '') };
+          pintar();
+          cambio();
+        }).catch(function (err) {
+          if (mio === ticket) { mostrarError(err.message); }
+        }).then(function () { if (mio === ticket) { terminar(); } });
+      });
+
+      var slot = { cancelar: cancelar, pintar: pintar };
+      slots.push(slot);
+      pintar();
+      slot.nodo = h('div', { class: 'pcan-esc-slot', role: 'group', 'aria-labelledby': idTitulo },
+        h('strong', { class: 'pcan-label', id: idTitulo, text: cfg.titulo }),
+        h('div', { class: 'pcan-esc-img-vista' }, img, vacio),
+        h('div', { class: 'pcan-esc-slot-botones' }, bElegir, bQuitar, entrada),
+        barra, error,
+        h('p', { class: 'pcan-help', text: cfg.ayuda }));
+      return slot;
+    }
+
+    var slotCabecera = slotImagen({
+      clave: 'cabecera', titulo: __('Imagen de cabecera (arriba a la izquierda)'), alt: __('Vista previa de la imagen de cabecera'),
+      vacio: __('Sin imagen'), ayuda: __('JPG o PNG, de hasta 2 MB. Si no eliges ninguna, se imprime el nombre del cancionero.')
+    });
+    var slotLogo = slotImagen({
+      clave: 'logo', titulo: __('Logo de la iglesia (arriba a la derecha)'), alt: __('Vista previa del logo'),
+      vacio: __('Sin logo'), ayuda: __('JPG o PNG, de hasta 2 MB. Si no eliges ninguno, se imprime el logo del Cancionero.')
+    });
+
+    // ---- fila de títulos
+    var fTitulo = h('input', { type: 'text', class: 'pcan-input', maxlength: '60', placeholder: _x('ORDEN DE CULTO', 'título de la escaleta impresa del culto (se imprime en mayúsculas)'), spellcheck: 'false', oninput: function (e) { pl.titulo = e.target.value; } });
+    var fCentral = h('input', { type: 'text', class: 'pcan-input', maxlength: '80', placeholder: __('p. ej. LECTURAS EN RVR1960'), spellcheck: 'false', oninput: function (e) { pl.central = e.target.value; } });
+    fTitulo.value = pl.titulo;
+    fCentral.value = pl.central;
+
+    // ---- secciones
+    var lista = h('ol', { class: 'pcan-esc-lista' });
+    var vacia = h('p', { class: 'pcan-set-placeholder', text: __('No hay ninguna sección. Pulsa «Añadir sección» para crear la primera.') });
+    var bAnadirSeccion = h('button', { type: 'button', class: 'pcan-btn pcan-btn-primary', onclick: function () {
+      pl.secciones.push({ id: '', titulo: '', nota: '', campos: [escCopiarCampo({ tipo: 'texto' })], _abierta: true });
+      pintarSecciones({ i: pl.secciones.length - 1, accion: 'titulo' });
+      cambio();
+    } }, icono('mas'), __('Añadir sección'));
+
+    function moverSeccion(de, a) {
+      var s = pl.secciones[de];
+      mover(pl.secciones, de, a);
+      pintarSecciones({ i: a, accion: de > a ? 'subir' : 'bajar' });
+      cambio();
+      anunciar(posicion(s.titulo.trim() || __('(sin título)'), a, pl.secciones.length));
+    }
+
+    function pintarSecciones(foco) {
+      lista.innerHTML = '';
+      vacia.hidden = pl.secciones.length > 0;
+      pl.secciones.forEach(function (s, i) { append(lista, filaSeccion(s, i)); });
+      enfocar(lista, foco);
+    }
+
+    function filaSeccion(s, i) {
+      var total = pl.secciones.length;
+      var idCuerpo = 'pcan-esc-c' + (++escContador);
+      var nombre = h('span', { class: 'pcan-esc-nombre' });
+      var resumen = h('span', { class: 'pcan-esc-resumen' });
+      var accion = h('span', { class: 'pcan-esc-accion' });
+      var nombreS = function () { return s.titulo.trim() || __('(sin título)'); };
+
+      function cabecera() {
+        nombre.textContent = s.titulo.trim() ? s.titulo.trim().toLocaleUpperCase(LOCALE) : __('(sin título)');
+        nombre.classList.toggle('is-vacio', !s.titulo.trim());
+        resumen.textContent = s.campos.length ? s.campos.map(escNombreCampo).join(' · ') : __('Sin campos');
+        bSubir.setAttribute('aria-label', sprintf(/* translators: %s: título de la sección */ __('Subir la sección «%s»'), nombreS()));
+        bBajar.setAttribute('aria-label', sprintf(/* translators: %s: título de la sección */ __('Bajar la sección «%s»'), nombreS()));
+      }
+
+      var toggle = h('button', { type: 'button', class: 'pcan-esc-toggle', 'aria-expanded': 'false', 'aria-controls': idCuerpo, onclick: function () { abrir(!s._abierta); } },
+        h('span', { class: 'pcan-set-n', text: String(i + 1) }),
+        h('span', { class: 'pcan-esc-textos' }, nombre, resumen),
+        accion);
+      var asa = asaDeArrastre();
+      var bSubir = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-sec', 'data-accion': 'subir', disabled: i === 0,
+        'aria-label': sprintf(/* translators: %s: título de la sección */ __('Subir la sección «%s»'), nombreS()), onclick: function () { moverSeccion(i, i - 1); } }, icono('arriba'), _x('Subir', 'mover una sección o un campo de la escaleta hacia arriba'));
+      var bBajar = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-sec', 'data-accion': 'bajar', disabled: i === total - 1,
+        'aria-label': sprintf(/* translators: %s: título de la sección */ __('Bajar la sección «%s»'), nombreS()), onclick: function () { moverSeccion(i, i + 1); } }, icono('abajo'), _x('Bajar', 'mover una sección o un campo de la escaleta hacia abajo'));
+
+      // Cuerpo: lo que se edita al desplegar la sección.
+      var fTit = h('input', { type: 'text', class: 'pcan-input', 'data-accion': 'titulo', maxlength: '60', placeholder: __('p. ej. Anuncios'), oninput: function (e) { s.titulo = e.target.value; cabecera(); } });
+      var fNota = h('input', { type: 'text', class: 'pcan-input', maxlength: '120', placeholder: __('p. ej. (Indicación breve para este momento)'), oninput: function (e) { s.nota = e.target.value; } });
+      fTit.value = s.titulo;
+      fNota.value = s.nota;
+
+      var listaCampos = h('ol', { class: 'pcan-esc-campos' });
+      var sinCampos = h('p', { class: 'pcan-set-placeholder', text: __('Esta sección no tiene campos y saldrá vacía en la hoja. Pulsa «Añadir campo».') });
+      var bAnadirCampo = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () {
+        s.campos.push(escCopiarCampo({ tipo: 'texto' }));
+        pintarCampos({ i: s.campos.length - 1, accion: 'tipo' });
+        cambio();
+      } }, icono('mas'), __('Añadir campo'));
+
+      function moverCampo(de, a) {
+        var c = s.campos[de];
+        mover(s.campos, de, a);
+        pintarCampos({ i: a, accion: de > a ? 'subir' : 'bajar' });
+        cambio();
+        anunciar(posicion(escNombreCampo(c), a, s.campos.length));
+      }
+
+      /** Cambiar el tipo cambia lo que se guarda en cada culto: salvo entre texto corto y largo, el campo recibe otro id y su valor inicial. */
+      function cambiarTipo(c, nuevo) {
+        var viejo = c.tipo;
+        if (nuevo === viejo) { return; }
+        c.tipo = nuevo;
+        if (escEsCancion(viejo) || escEsCancion(nuevo)) {
+          c.defecto = escDefectoDeTipo(nuevo);
+          if (c.id) { c._evitar.push(c.id); c.id = ''; }
+        }
+      }
+
+      function controlDefecto(c) {
+        var opciones = escOpcionesDefecto(c.tipo);
+        if (opciones) {
+          var sel = h('select', { class: 'pcan-input', onchange: function (e) { c.defecto = e.target.value; } },
+            opciones.map(function (x) { return h('option', { value: x[0], text: x[1] }); }));
+          sel.value = c.defecto;
+          return campo(c.tipo === 'cancion' ? __('Canción propuesta') : __('Canciones propuestas'), sel, __('Aparece ya elegida en cada culto; se puede cambiar.'));
+        }
+        var texto = c.tipo === 'textoLargo'
+          ? h('textarea', { class: 'pcan-input pcan-textarea', rows: '3', maxlength: '1000' })
+          : h('input', { type: 'text', class: 'pcan-input', maxlength: '200' });
+        texto.value = c.defecto;
+        texto.addEventListener('input', function () { c.defecto = texto.value; });
+        return campo(__('Texto inicial (opcional)'), texto, __('Aparece ya escrito en cada culto; se puede cambiar.'));
+      }
+
+      function tarjetaCampo(c, k) {
+        var n = s.campos.length;
+        var nombreC = escNombreCampo(c);
+        var selTipo = h('select', { class: 'pcan-input', 'data-accion': 'tipo', onchange: function (e) {
+          cambiarTipo(c, e.target.value);
+          pintarCampos({ i: s.campos.indexOf(c), accion: 'tipo' });
+          cambio();
+        } }, ESC_TIPOS.map(function (t) { return h('option', { value: t, text: escTextoTipo(t) }); }));
+        selTipo.value = c.tipo;
+        var fEtiqueta = h('input', { type: 'text', class: 'pcan-input', maxlength: '40', placeholder: __('p. ej. Presidencia'), oninput: function (e) { c.etiqueta = e.target.value; cabecera(); rotular(); } });
+        fEtiqueta.value = c.etiqueta;
+        var chk = h('input', { type: 'checkbox', checked: !!c.pequeno, onchange: function (e) { c.pequeno = e.target.checked; } });
+        var bSubirC = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-sec', 'data-accion': 'subir', disabled: k === 0,
+          'aria-label': sprintf(/* translators: %s: nombre del campo */ __('Subir el campo «%s»'), nombreC), onclick: function () { moverCampo(k, k - 1); } }, icono('arriba'), _x('Subir', 'mover una sección o un campo de la escaleta hacia arriba'));
+        var bBajarC = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-sec', 'data-accion': 'bajar', disabled: k === n - 1,
+          'aria-label': sprintf(/* translators: %s: nombre del campo */ __('Bajar el campo «%s»'), nombreC), onclick: function () { moverCampo(k, k + 1); } }, icono('abajo'), _x('Bajar', 'mover una sección o un campo de la escaleta hacia abajo'));
+        var bQuitarC = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-sec is-danger', 'data-accion': 'quitar',
+          'aria-label': sprintf(/* translators: %s: nombre del campo */ __('Quitar el campo «%s»'), nombreC), onclick: function () {
+            s.campos.splice(k, 1);
+            pintarCampos({ i: Math.min(k, s.campos.length - 1), accion: 'quitar' });
+            if (!s.campos.length) { bAnadirCampo.focus(); }
+            cambio();
+            anunciar(sprintf(/* translators: %s: nombre del campo */ __('Campo «%s» quitado'), nombreC));
+          } }, icono('borrar'), __('Quitar'));
+        // Los botones llevan el nombre del campo, que cambia mientras se escribe la etiqueta.
+        function rotular() {
+          nombreC = escNombreCampo(c);
+          bSubirC.setAttribute('aria-label', sprintf(/* translators: %s: nombre del campo */ __('Subir el campo «%s»'), nombreC));
+          bBajarC.setAttribute('aria-label', sprintf(/* translators: %s: nombre del campo */ __('Bajar el campo «%s»'), nombreC));
+          bQuitarC.setAttribute('aria-label', sprintf(/* translators: %s: nombre del campo */ __('Quitar el campo «%s»'), nombreC));
+        }
+        var asaC = asaDeArrastre();
+        var li = h('li', { class: 'pcan-esc-campo', 'data-i': String(k) },
+          asaC,
+          h('div', { class: 'pcan-esc-campo-main' },
+            h('div', { class: 'pcan-esc-campo-grid' },
+              campo(__('Tipo de campo'), selTipo, escAyudaTipo(c.tipo)),
+              campo(__('Etiqueta (opcional)'), fEtiqueta, __('Si la pones, sale impresa delante del valor, como «Presidencia: …».'))),
+            controlDefecto(c),
+            h('div', { class: 'pcan-esc-campo-pie' },
+              h('label', { class: 'pcan-copia-opcion' }, chk,
+                h('span', null, h('strong', { text: __('Letra pequeña') }), h('small', { text: __('Imprime este campo con letra más pequeña, por ejemplo para una nota.') }))),
+              h('div', { class: 'pcan-esc-campo-herr' }, bSubirC, bBajarC, bQuitarC))));
+        arrastrable(asaC, li, listaCampos, s.campos, function (hubo, nueva) {
+          pintarCampos();
+          if (hubo) { cambio(); anunciar(posicion(nombreC, nueva, s.campos.length)); }
+        });
+        return li;
+      }
+
+      function pintarCampos(foco) {
+        listaCampos.innerHTML = '';
+        sinCampos.hidden = s.campos.length > 0;
+        s.campos.forEach(function (c, k) { append(listaCampos, tarjetaCampo(c, k)); });
+        enfocar(listaCampos, foco);
+        cabecera();
+      }
+
+      var confirmar = h('div', { class: 'pcan-confirmar pcan-esc-confirmar', role: 'alert', hidden: true });
+      var textoConfirmar = h('span');
+      var bQuitarSeccion = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-sec is-danger', 'aria-expanded': 'false', onclick: function () {
+        confirmar.hidden = !confirmar.hidden;
+        bQuitarSeccion.setAttribute('aria-expanded', confirmar.hidden ? 'false' : 'true');
+        textoConfirmar.textContent = sprintf(/* translators: %s: título de la sección */ __('Se quitará la sección «%s» y todos sus campos de la escaleta.'), nombreS());
+        if (!confirmar.hidden) { confirmar.querySelector('[data-accion="cancelar"]').focus(); }
+      } }, icono('borrar'), __('Quitar sección'));
+      append(confirmar, [
+        textoConfirmar,
+        h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', onclick: function () {
+          var nom = nombreS();
+          pl.secciones.splice(pl.secciones.indexOf(s), 1);
+          pintarSecciones();
+          bAnadirSeccion.focus();
+          cambio();
+          anunciar(sprintf(/* translators: %s: título de la sección */ __('Sección «%s» quitada'), nom));
+        } }, __('Sí, quitar la sección')),
+        h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', 'data-accion': 'cancelar', onclick: function () { confirmar.hidden = true; bQuitarSeccion.setAttribute('aria-expanded', 'false'); bQuitarSeccion.focus(); } }, __('Cancelar'))]);
+
+      var cuerpo = h('div', { class: 'pcan-esc-cuerpo', id: idCuerpo, hidden: true },
+        campo(__('Título de la sección'), fTit, __('Se imprime siempre en MAYÚSCULAS.')),
+        campo(__('Nota bajo el título (opcional)'), fNota, __('Sale debajo del título, en rojo y con letra más pequeña.')),
+        h('div', { class: 'pcan-esc-campos-bloque' },
+          h('h3', { class: 'pcan-esc-subtitulo', text: __('Campos de la sección') }),
+          h('p', { class: 'pcan-help', text: __('Cada campo es una línea que se rellena en cada culto: un texto, o una o varias canciones del culto.') }),
+          sinCampos, listaCampos,
+          h('div', { class: 'pcan-actions' }, bAnadirCampo)),
+        h('div', { class: 'pcan-esc-pie' }, bQuitarSeccion, confirmar));
+
+      var fila = h('li', { class: 'pcan-esc-sec', 'data-i': String(i) },
+        h('div', { class: 'pcan-esc-cab' }, asa, toggle, h('div', { class: 'pcan-esc-herr' }, bSubir, bBajar)),
+        cuerpo);
+
+      function abrir(si) {
+        s._abierta = si;
+        fila.classList.toggle('is-open', si);
+        cuerpo.hidden = !si;
+        toggle.setAttribute('aria-expanded', si ? 'true' : 'false');
+        accion.textContent = si ? __('Cerrar') : __('Editar');
+      }
+
+      arrastrable(asa, fila, lista, pl.secciones, function (hubo, nueva) {
+        pintarSecciones();
+        if (hubo) { cambio(); anunciar(posicion(nombreS(), nueva, pl.secciones.length)); }
+      });
+      pintarCampos();
+      abrir(!!s._abierta);
+      return fila;
+    }
+
+    // ---- ejemplo en PDF y vuelta a la plantilla de ejemplo
+    var bPdf = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () {
+      if (typeof P.escaletaPdf !== 'function') { aviso(__('El PDF de ejemplo no está disponible en este momento.'), 'error'); return; }
+      bPdf.disabled = true;
+      bPdf.lastChild.textContent = __('Preparando el PDF…');
+      // Con la escaleta tal como está en pantalla, guardada o no, y un culto inventado.
+      Promise.resolve().then(function () { return P.escaletaPdf(cultoDeEjemplo(), null, escValor(pl)); })
+        .catch(function (err) { aviso((err && err.message) || __('No se pudo preparar el PDF.'), 'error'); })
+        .then(function () { bPdf.disabled = false; bPdf.lastChild.textContent = __('Ver un ejemplo en PDF'); });
+    } }, icono('descargar'), h('span', { text: __('Ver un ejemplo en PDF') }));
+
+    var confirmarEjemplo = h('div', { class: 'pcan-confirmar pcan-esc-confirmar', role: 'alert', hidden: true });
+    var bEjemplo = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-sec is-danger', 'aria-expanded': 'false', onclick: function () {
+      confirmarEjemplo.hidden = !confirmarEjemplo.hidden;
+      bEjemplo.setAttribute('aria-expanded', confirmarEjemplo.hidden ? 'false' : 'true');
+      if (!confirmarEjemplo.hidden) { confirmarEjemplo.querySelector('[data-accion="cancelar"]').focus(); }
+    } }, icono('borrar'), __('Volver a la plantilla de ejemplo'));
+    append(confirmarEjemplo, [
+      h('span', { text: __('Se perderán la cabecera, los títulos y las secciones que has cambiado, y se pondrá la plantilla de ejemplo.') }),
+      h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', onclick: function () {
+        confirmarEjemplo.hidden = true;
+        bEjemplo.setAttribute('aria-expanded', 'false');
+        poner(escaletaDeEjemplo());
+        cambio();
+        bEjemplo.focus();
+        aviso(__('Plantilla de ejemplo puesta. Pulsa «Guardar ajustes» para conservarla.'));
+      } }, __('Sí, volver al ejemplo')),
+      h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', 'data-accion': 'cancelar', onclick: function () { confirmarEjemplo.hidden = true; bEjemplo.setAttribute('aria-expanded', 'false'); bEjemplo.focus(); } }, __('Cancelar'))]);
+
+    /** Sustituye toda la plantilla (volver al ejemplo): descarta subidas en curso y vuelve a pintar todo. */
+    function poner(e) {
+      slots.forEach(function (s) { s.cancelar(); });
+      pl = escCopiar(e);
+      fTitulo.value = pl.titulo;
+      fCentral.value = pl.central;
+      slots.forEach(function (s) { s.pintar(); });
+      pintarSecciones();
+    }
+
+    /** Si falta algo para poder guardar: { mensaje, enfocar() }; si no, null. */
+    function validar() {
+      for (var i = 0; i < pl.secciones.length; i++) {
+        if (pl.secciones[i].titulo.trim()) { continue; }
+        var s = pl.secciones[i], pos = i;
+        return {
+          mensaje: sprintf(/* translators: %d: número de la sección dentro de la escaleta */ __('La sección %d no tiene título: escríbelo para poder guardar.'), pos + 1),
+          enfocar: function () {
+            s._abierta = true;
+            pintarSecciones();
+            var titulo = lista.children[pos].querySelector('[data-accion="titulo"]');
+            titulo.classList.add('is-invalid');
+            titulo.setAttribute('aria-invalid', 'true');
+            titulo.focus();
+          }
+        };
+      }
+      return null;
+    }
+
+    pintarSecciones();
+
+    var nodo = h('div', { class: 'pcan-esc' },
+      h('p', { class: 'pcan-help', text: __('La escaleta es la hoja impresa con el orden del culto. Aquí decides cómo es: la cabecera, los títulos y las secciones. En cada culto se rellena con sus datos y se puede imprimir en PDF.') }),
+      h('fieldset', { class: 'pcan-fieldset' },
+        h('legend', { text: __('Cabecera de la hoja impresa') }),
+        h('div', { class: 'pcan-esc-cabeceras' }, slotCabecera.nodo, slotLogo.nodo)),
+      h('fieldset', { class: 'pcan-fieldset' },
+        h('legend', { text: __('Fila de títulos') }),
+        h('p', { class: 'pcan-help', text: __('Va bajo la cabecera. A la derecha se pone sola la fecha del culto.') }),
+        h('div', { class: 'pcan-esc-titulos' },
+          campo(__('Título'), fTitulo, __('Si lo dejas vacío se usa «ORDEN DE CULTO».')),
+          campo(__('Texto central (opcional)'), fCentral, __('Por ejemplo, la versión de la Biblia de las lecturas.')))),
+      h('fieldset', { class: 'pcan-fieldset' },
+        h('legend', { text: __('Secciones de la escaleta') }),
+        h('p', { class: 'pcan-help', text: __('Cada sección es una fila de la hoja: su título a la izquierda y lo que se rellena en cada culto a la derecha. Pulsa «Editar» para cambiarla. Para cambiar el orden, arrastra el asa de la izquierda o usa «Subir» y «Bajar».') }),
+        vacia, lista,
+        h('div', { class: 'pcan-actions' }, bAnadirSeccion)),
+      h('fieldset', { class: 'pcan-fieldset' },
+        h('legend', { text: __('Ejemplo y plantilla de partida') }),
+        h('div', { class: 'pcan-esc-bloque' }, bPdf,
+          h('p', { class: 'pcan-help', text: __('Crea un PDF con un culto inventado y la escaleta tal como está ahora en pantalla, aunque aún no la hayas guardado.') })),
+        h('div', { class: 'pcan-esc-bloque' }, bEjemplo,
+          h('p', { class: 'pcan-help', text: __('Sustituye la cabecera, los títulos y las secciones por los de la plantilla de ejemplo. No se guarda hasta que pulses «Guardar ajustes».') }),
+          confirmarEjemplo)),
+      anuncio);
+    // Pulsar Intro en un campo de texto no debe guardar los ajustes y cerrar el panel (el formulario es uno solo).
+    nodo.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); }
+    });
+
+    return {
+      nodo: nodo,
+      valor: function (paraGuardar) { return escValor(pl, paraGuardar); },
+      validar: validar,
+      subiendo: function () { return subidas; }
+    };
+  }
+
   function pintarAjustes(a, seccionInicial) {
-    var fNombre = h('input', { type: 'text', class: 'pcan-input', value: a.nombre || '', maxlength: '40', placeholder: 'Cancionero', spellcheck: 'false' });
+    var fNombre =h('input', { type: 'text', class: 'pcan-input', value: a.nombre || '', maxlength: '40', placeholder: 'Cancionero', spellcheck: 'false' });
     var fSubtitulo = h('input', { type: 'text', class: 'pcan-input', value: a.subtitulo || '', maxlength: '60', placeholder: __('p. ej. Nombre de tu iglesia o grupo'), spellcheck: 'false' });
     var fPapelera = h('input', { type: 'number', class: 'pcan-input', min: '0', max: '3650', value: String(a.papeleraDias === undefined ? 30 : a.papeleraDias) });
     var fAvisoBorrado = h('input', { type: 'checkbox', checked: !!a.avisoBorrado });
@@ -2311,6 +2966,14 @@
     var fBienvAuto = h('input', { type: 'checkbox', checked: !!a.bienvenidaAuto });
     var fBienvTexto = h('textarea', { class: 'pcan-input pcan-textarea', rows: '3', maxlength: '1000' });
     fBienvTexto.value = a.bienvenidaTexto || '';
+    // Plantilla de la escaleta (la hoja impresa del culto): se edita en su propia sección y se guarda con «Guardar ajustes».
+    // Subir una imagen sí es inmediato (va a la biblioteca de medios); su id se guarda con el resto.
+    var editorEscaleta = crearEditorEscaleta({
+      inicial: a.escaleta,
+      alCambiar: function () { recalcularSucio(); },
+      alSubir: function () { bloquear(); }
+    });
+    var escInicial = JSON.stringify(editorEscaleta.valor(true));
 
     var errorBox = h('div', { class: 'pcan-form-error', role: 'alert', hidden: true });
     var guardar = h('button', { type: 'submit', class: 'pcan-btn pcan-btn-primary' }, __('Guardar ajustes'));
@@ -2319,7 +2982,7 @@
     // Guardando, cambiando la lista del equipo o enviando la bienvenida: no se puede guardar, cancelar ni lanzar otra acción a la vez.
     var enCurso = false;
     function bloquear() {
-      guardar.disabled = enCurso;
+      guardar.disabled = enCurso || editorEscaleta.subiendo() > 0;
       cancelar.disabled = enCurso;
       bAnadir.disabled = enCurso;
       bConfirmarAnadir.disabled = enCurso;
@@ -2844,11 +3507,11 @@
       });
     }
 
-    // Secciones: General, Equipo y Google son un solo formulario con un único «Guardar ajustes»;
+    // Secciones: General, Equipo, Escaleta y Google son un solo formulario con un único «Guardar ajustes»;
     // Accesos, Archivos, Papelera y Copias de seguridad tienen sus propias acciones y no muestran «Guardar».
-    var SEC_FORMULARIO = { general: true, equipo: true, google: true };
+    var SEC_FORMULARIO = { general: true, equipo: true, escaleta: true, google: true };
     var etiquetas = {
-      general: [__('General'), 'ajustes'], equipo: [__('Equipo'), 'equipo'], accesos: [__('Accesos'), 'grafica'], google: [__('Acceso con Google'), 'acceso'],
+      general: [__('General'), 'ajustes'], equipo: [__('Equipo'), 'equipo'], accesos: [__('Accesos'), 'grafica'], escaleta: [__('Escaleta'), 'lista'], google: [__('Acceso con Google'), 'acceso'],
       archivos: [__('Archivos'), 'partitura'], papelera: [__('Papelera'), 'borrar'], copias: [__('Copias de seguridad'), 'descargar']
     };
     var cuerpoPapelera = h('div', { class: 'pcan-form' });
@@ -2939,6 +3602,7 @@
               h('li', null, conNodo(/* translators: %s: dirección web de este sitio */ __('En «Orígenes de JavaScript autorizados» añade: %s'), h('code', { text: a.origen }))),
               h('li', { text: __('Copia el ID de cliente y pégalo aquí.') }))))],
       accesos: [cuerpoAccesos],
+      escaleta: [editorEscaleta.nodo],
       archivos: [
         h('fieldset', { class: 'pcan-fieldset' },
           h('legend', { text: __('Protección de los archivos') }),
@@ -2988,21 +3652,32 @@
 
     function valores() {
       // La lista del equipo (correos y administradores) no está aquí: se guarda al momento desde la propia lista.
-      return JSON.stringify([fNombre.value, fSubtitulo.value, fPapelera.value, fTema.value, fClient.value, fDominio.value, fBienvAuto.checked, fBienvTexto.value, fAvisoBorrado.checked]);
+      return JSON.stringify([fNombre.value, fSubtitulo.value, fPapelera.value, fTema.value, fClient.value, fDominio.value, fBienvAuto.checked, fBienvTexto.value, fAvisoBorrado.checked, editorEscaleta.valor(true)]);
     }
     var inicial = valores();
     // El aviso de «cambios sin guardar» al cerrar lo da panelSucio; aquí se calcula comparando con lo cargado.
-    function alCambiar(e) {
-      e.stopPropagation();
-      if (e.target.classList) { e.target.classList.remove('is-invalid'); }
-      errorBox.hidden = true;
+    function recalcularSucio() {
       var sucio = valores() !== inicial;
       panelSucio = sucio;
       estado.textContent = sucio ? __('Hay cambios sin guardar') : '';
       barra.classList.toggle('is-sucio', sucio);
     }
+    function alCambiar(e) {
+      e.stopPropagation();
+      if (e.target.classList) { e.target.classList.remove('is-invalid'); }
+      errorBox.hidden = true;
+      recalcularSucio();
+    }
     form.addEventListener('input', alCambiar);
     form.addEventListener('change', alCambiar);
+
+    /** Lo que se envía de la escaleta: nada si no se ha tocado (así, mientras nadie la cambie, sigue la plantilla de ejemplo del
+     *  plugin); null si ha quedado igual que la plantilla de ejemplo (el servidor vuelve a la suya); si no, la plantilla completa. */
+    function escaletaParaGuardar() {
+      var actual = editorEscaleta.valor(true), texto = JSON.stringify(actual);
+      if (texto === escInicial) { return undefined; }
+      return texto === JSON.stringify(escValor(escCopiar(escaletaDeEjemplo()), true)) ? null : actual;
+    }
 
     /** Cambia de sección. La dirección cambia (para poder enlazarla) sin añadir entradas al historial:
      *  así «Atrás» cierra el panel en vez de recorrer cada sección. */
@@ -3043,12 +3718,26 @@
         fNuevos.focus();
         return;
       }
+      if (editorEscaleta.subiendo()) {
+        ir('escaleta');
+        errorBox.textContent = __('Espera a que termine de subirse la imagen para guardar.');
+        errorBox.hidden = false;
+        return;
+      }
+      var fallo = editorEscaleta.validar();
+      if (fallo) {
+        ir('escaleta');
+        fallo.enfocar();
+        errorBox.textContent = fallo.mensaje;
+        errorBox.hidden = false;
+        return;
+      }
       enCurso = true;
       bloquear();
       errorBox.hidden = true;
       // No envía `emails` ni `administradores`: esas listas se guardan al momento desde la lista del equipo y,
       // si fueran con lo que se cargó al abrir, pisarían esos cambios.
-      api('ajustes', { json: {
+      var cuerpo = {
         nombre: fNombre.value.trim(),
         subtitulo: fSubtitulo.value.trim(),
         papeleraDias: parseInt(fPapelera.value, 10) || 0,
@@ -3059,7 +3748,10 @@
         bienvenidaTexto: fBienvTexto.value.trim(),
         avisoBorrado: fAvisoBorrado.checked,
         pagina: paginaActual()
-      } }).then(function () {
+      };
+      var escaleta = escaletaParaGuardar();
+      if (escaleta !== undefined) { cuerpo.escaleta = escaleta; }
+      api('ajustes', { json: cuerpo }).then(function () {
         panelSucio = false;
         aviso(__('Ajustes guardados'));
         cerrarPanel();

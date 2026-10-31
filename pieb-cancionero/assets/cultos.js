@@ -344,6 +344,7 @@
           P.accionesSecundarias([
             { texto: __('Copiar como texto'), icono: 'copiar', fn: function () { P.copiar(textoSetlist(c), __('Setlist copiado (para WhatsApp)')); } },
             validos.length ? pdfItem : null,
+            { texto: __('Exportar escaleta'), icono: 'descargar', fn: function (e) { exportarEscaleta(c, e.currentTarget); } },
             { texto: __('Duplicar para otro día'), icono: 'mas', href: '#/culto/duplicar/' + c.id },
             c.puedeBorrar ? { texto: __('Borrar culto'), icono: 'borrar', peligro: true, fn: function () { borrar(c); } } : null
           ])),
@@ -382,6 +383,48 @@
   }
 
   // ---------------------------------------------------------------- editor
+
+  /**
+   * Arrastrar con puntero (ratón y pantalla táctil) para reordenar los hijos de `lista`: se mueve el elemento en el DOM
+   * y al soltar se avisa con el orden nuevo, como los data-i que llevaban los hijos antes de moverlos.
+   */
+  function arrastrarFila(asa, li, lista, alSoltar) {
+    asa.addEventListener('pointerdown', function (e) {
+      if (e.button !== 0) { return; }
+      e.preventDefault();
+      // Se escucha en la ventana: al mover la fila en el DOM el navegador suelta la captura del puntero.
+      var puntero = e.pointerId;
+      li.classList.add('is-dragging');
+      lista.classList.add('is-sorting');
+
+      function mueve(ev) {
+        if (ev.pointerId !== puntero) { return; }
+        ev.preventDefault();
+        var hermanos = Array.prototype.slice.call(lista.children).filter(function (n) { return n !== li; });
+        var antes = null;
+        for (var k = 0; k < hermanos.length; k++) {
+          var r = hermanos[k].getBoundingClientRect();
+          if (ev.clientY < r.top + r.height / 2) { antes = hermanos[k]; break; }
+        }
+        if (antes) { if (li.nextSibling !== antes) { lista.insertBefore(li, antes); } }
+        else if (lista.lastChild !== li) { lista.appendChild(li); }
+      }
+
+      function suelta(ev) {
+        if (ev.pointerId !== puntero) { return; }
+        window.removeEventListener('pointermove', mueve);
+        window.removeEventListener('pointerup', suelta);
+        window.removeEventListener('pointercancel', suelta);
+        li.classList.remove('is-dragging');
+        lista.classList.remove('is-sorting');
+        alSoltar(Array.prototype.map.call(lista.children, function (n) { return +n.getAttribute('data-i'); }));
+      }
+
+      window.addEventListener('pointermove', mueve, { passive: false });
+      window.addEventListener('pointerup', suelta);
+      window.addEventListener('pointercancel', suelta);
+    });
+  }
 
   function abrirEditor(id, opciones) {
     opciones = opciones || {};
@@ -490,6 +533,7 @@
 
     // Lista ordenable.
     var lista = h('ol', { class: 'pcan-setlist is-edit' });
+    var escEd = null;
 
     function mover(desde, hasta) {
       if (hasta < 0 || hasta >= items.length || desde === hasta) { return; }
@@ -500,6 +544,8 @@
 
     function pintarItems() {
       lista.innerHTML = '';
+      // Las listas de canciones de la escaleta siguen al setlist.
+      if (escEd) { escEd.setlistCambio(); }
       if (!items.length) {
         append(lista, h('li', { class: 'pcan-set-placeholder', text: __('Busca canciones arriba para añadirlas. Después puedes arrastrarlas para cambiar el orden.') }));
         return;
@@ -548,48 +594,25 @@
       });
     }
 
-    // Arrastrar con puntero (ratón y pantalla táctil): se mueve el elemento en el DOM y al soltar se reordena el array.
     function arrastrable(asa, li) {
-      asa.addEventListener('pointerdown', function (e) {
-        if (e.button !== 0) { return; }
-        e.preventDefault();
-        // Se escucha en la ventana: al mover la fila en el DOM el navegador suelta la captura del puntero.
-        var puntero = e.pointerId;
-        li.classList.add('is-dragging');
-        lista.classList.add('is-sorting');
-
-        function mueve(ev) {
-          if (ev.pointerId !== puntero) { return; }
-          ev.preventDefault();
-          var hermanos = Array.prototype.slice.call(lista.children).filter(function (n) { return n !== li; });
-          var antes = null;
-          for (var k = 0; k < hermanos.length; k++) {
-            var r = hermanos[k].getBoundingClientRect();
-            if (ev.clientY < r.top + r.height / 2) { antes = hermanos[k]; break; }
-          }
-          if (antes) { if (li.nextSibling !== antes) { lista.insertBefore(li, antes); } }
-          else if (lista.lastChild !== li) { lista.appendChild(li); }
-        }
-
-        function suelta(ev) {
-          if (ev.pointerId !== puntero) { return; }
-          window.removeEventListener('pointermove', mueve);
-          window.removeEventListener('pointerup', suelta);
-          window.removeEventListener('pointercancel', suelta);
-          li.classList.remove('is-dragging');
-          lista.classList.remove('is-sorting');
-          var orden = Array.prototype.map.call(lista.children, function (n) { return +n.getAttribute('data-i'); });
-          var nuevos = orden.map(function (k) { return items[k]; });
-          items.length = 0;
-          Array.prototype.push.apply(items, nuevos);
-          pintarItems();
-        }
-
-        window.addEventListener('pointermove', mueve, { passive: false });
-        window.addEventListener('pointerup', suelta);
-        window.addEventListener('pointercancel', suelta);
+      arrastrarFila(asa, li, lista, function (orden) {
+        var nuevos = orden.map(function (k) { return items[k]; });
+        items.length = 0;
+        Array.prototype.push.apply(items, nuevos);
+        pintarItems();
       });
     }
+
+    // Pestaña «Escaleta»: se crea antes del primer pintarItems() para que este la avise de los cambios del setlist.
+    escEd = crearEscaletaEditor({
+      inicial: editando && c.escaleta ? c.escaleta : null,
+      culto: function () {
+        return {
+          titulo: fTitulo.value.trim(), fecha: fFecha.value, tipo: fTipo.value.trim(),
+          items: items.map(function (it) { var s = P.cancion(it.cancion); return s ? { cancion: it.cancion, datos: { titulo: s.titulo, numero: s.numero } } : null; }).filter(Boolean)
+        };
+      }
+    });
 
     pintarItems();
 
@@ -597,19 +620,56 @@
     var guardar = h('button', { type: 'submit', class: 'pcan-btn pcan-btn-primary' }, editando ? __('Guardar cambios') : __('Crear culto'));
     var tonos = h('datalist', { id: 'pcan-tonos-set' }, P.tonalidades.map(function (t) { return h('option', { value: P.tono(t) }); }));
 
-    // En pantallas anchas los datos van en una fila y cada canción del setlist en una línea (ver «editor del culto» en el CSS).
-    var form = h('form', { class: 'pcan-form pcan-form-culto', novalidate: true },
-      h('div', { class: 'pcan-grid-2 pcan-culto-datos' },
-        P.campo(__('Fecha'), fFecha, null, true),
-        P.campo(__('Tipo de culto'), h('span', null, fTipo, listaTipos)),
-        h('div', { class: 'pcan-span-2' }, P.campo(__('Título'), fTitulo, __('Se rellena solo con el tipo y la fecha; puedes cambiarlo.'), true))),
+    // Dos pestañas bajo los datos del culto: «Canciones» (el setlist y las notas) y «Escaleta» (la hoja impresa del orden del culto).
+    var idPestanas = 'pcan-pest-' + (++contadorEsc);
+    var panelCanciones = h('div', { class: 'pcan-ec-panel', role: 'tabpanel', id: idPestanas + '-canciones', 'aria-labelledby': idPestanas + '-tab-canciones' },
       h('fieldset', { class: 'pcan-fieldset' },
         h('legend', { text: __('Setlist') }),
         h('div', { class: 'pcan-picker' }, buscador, resultados),
         lista, tonos),
       h('fieldset', { class: 'pcan-fieldset' },
         h('legend', { text: __('Notas') }),
-        fNotas),
+        fNotas));
+    var panelEscaleta = h('div', { class: 'pcan-ec-panel', role: 'tabpanel', id: idPestanas + '-escaleta', 'aria-labelledby': idPestanas + '-tab-escaleta', hidden: true }, escEd.el);
+    var pestanas = [
+      { clave: 'canciones', texto: __('Canciones'), panel: panelCanciones },
+      { clave: 'escaleta', texto: _x('Escaleta', 'pestaña del editor del culto: la hoja impresa con el orden del culto'), panel: panelEscaleta }
+    ];
+    pestanas.forEach(function (p) {
+      p.boton = h('button', {
+        type: 'button', role: 'tab', class: 'pcan-seg', id: idPestanas + '-tab-' + p.clave, 'aria-controls': idPestanas + '-' + p.clave,
+        onclick: function () { elegirPestana(p.clave); },
+        onkeydown: function (e) {
+          if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') { return; }
+          e.preventDefault();
+          var otra = pestanas[(pestanas.indexOf(p) + 1) % pestanas.length];
+          elegirPestana(otra.clave);
+          otra.boton.focus();
+        }
+      }, p.texto);
+    });
+    function elegirPestana(clave) {
+      pestanas.forEach(function (p) {
+        var activa = p.clave === clave;
+        p.boton.classList.toggle('is-active', activa);
+        p.boton.setAttribute('aria-selected', activa ? 'true' : 'false');
+        p.boton.tabIndex = activa ? 0 : -1;
+        p.panel.hidden = !activa;
+      });
+      if (clave === 'escaleta') { escEd.mostrar(); }
+    }
+    var barraPestanas = h('div', { class: 'pcan-segment pcan-ec-tabs', role: 'tablist', 'aria-label': __('Partes del culto') }, pestanas.map(function (p) { return p.boton; }));
+    elegirPestana('canciones');
+
+    // En pantallas anchas los datos van en una fila y cada canción del setlist en una línea (ver «editor del culto» en el CSS).
+    var form = h('form', { class: 'pcan-form pcan-form-culto', novalidate: true },
+      h('div', { class: 'pcan-grid-2 pcan-culto-datos' },
+        P.campo(__('Fecha'), fFecha, null, true),
+        P.campo(__('Tipo de culto'), h('span', null, fTipo, listaTipos)),
+        h('div', { class: 'pcan-span-2' }, P.campo(__('Título'), fTitulo, __('Se rellena solo con el tipo y la fecha; puedes cambiarlo.'), true))),
+      barraPestanas,
+      panelCanciones,
+      panelEscaleta,
       errorBox,
       h('div', { class: 'pcan-form-actions' },
         guardar,
@@ -625,11 +685,16 @@
       guardar.disabled = true;
       guardar.textContent = __('Guardando…');
 
+      // La escaleta solo viaja si el culto ya tenía una o si se abrió la pestaña (los valores por defecto pasan a explícitos).
+      var cuerpo = { titulo: fTitulo.value.trim(), fecha: fFecha.value, tipo: fTipo.value.trim(), notas: fNotas.value, items: items };
+      var escaleta = escEd.valor();
+      if (escaleta) { cuerpo.escaleta = escaleta; }
+
       fetch(P.cfg.api + (editando ? 'cultos/' + c.id : 'cultos'), {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'X-WP-Nonce': P.cfg.nonce, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ titulo: fTitulo.value.trim(), fecha: fFecha.value, tipo: fTipo.value.trim(), notas: fNotas.value, items: items })
+        body: JSON.stringify(cuerpo)
       }).then(function (r) {
         return r.json().then(function (d) { if (!r.ok) { throw new Error(d.message || sprintf(/* translators: %d: código de error HTTP */ __('Error %d'), r.status)); } return d; });
       }).then(function (guardado) {
@@ -761,7 +826,7 @@
 
   // Las fuentes estándar del PDF solo admiten Latin-1: se sustituyen los caracteres que no caben.
   function latin1(t) {
-    return String(t || '').replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/[–—]/g, '-').replace(/[^\x20-\x7E\xA0-\xFF]/g, '');
+    return String(t || '').replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/[–—]/g, '-').replace(/…/g, '...').replace(/[^\x20-\x7E\xA0-\xFF]/g, '');
   }
 
   // Las partituras del PDF del setlist van sin el margen en blanco que traen muchas (el mismo recorte que al tocar):
@@ -890,6 +955,797 @@
       });
     }).catch(function (e) { aviso(e.message || __('No se pudo generar el PDF'), 'error'); });
   }
+
+  // ---------------------------------------------------------------- escaleta: datos y lógica común
+  //
+  // La escaleta es la hoja impresa del orden del culto: una tabla con una fila por sección. Cada culto guarda una copia de
+  // la plantilla (Ajustes y equipo) con sus valores. Un valor null significa «sin tocar»: se aplica el defecto de la
+  // plantilla al mostrarlo y al imprimirlo, de modo que sigue al setlist mientras nadie lo cambie a mano.
+
+  var TIPOS_CAMPO = ['texto', 'textoLargo', 'cancion', 'canciones'];
+  var TAM_TEXTO = 12;
+  var TAM_PEQUENO = 8;
+  var contadorEsc = 0;
+
+  // Carpeta assets/ del plugin, a partir de la dirección de este mismo script (la config no la trae).
+  var BASE_ASSETS = (function () {
+    var s = document.currentScript || document.querySelector('script[src*="cultos.js"]');
+    return s && s.src ? s.src.replace(/[^\/?#]*([?#].*)?$/, '') : '';
+  })();
+
+  /** Plantilla estándar, sin textos de ninguna iglesia: la misma que da el servidor mientras nadie guarde la suya. */
+  function plantillaGenerica() {
+    function campo(id, tipo, etiqueta, defecto, pequeno) {
+      return { id: id, tipo: tipo, etiqueta: etiqueta || '', defecto: defecto === undefined ? '' : defecto, pequeno: !!pequeno };
+    }
+    function sec(id, titulo, campos) { return { id: id, titulo: titulo, nota: '', campos: campos }; }
+    // Mismos textos y contextos que la plantilla del servidor (includes/escaleta.php), para que compartan traducción.
+    return {
+      titulo: _x('ORDEN DE CULTO', 'título de la escaleta impresa del culto (se imprime en mayúsculas)'), central: '', logo: null, cabecera: null,
+      secciones: [
+        sec('preludio', _x('PRELUDIO', 'sección de la escaleta del culto (en mayúsculas)'), [campo('cancion', 'cancion', '', 'primera')]),
+        sec('lectura-oracion', _x('LECTURA Y ORACIÓN', 'sección de la escaleta del culto (en mayúsculas)'), [campo('presidencia', 'texto', _x('Presidencia', 'etiqueta de un campo de la escaleta del culto')), campo('lectura', 'texto', _x('Lectura', 'etiqueta de un campo de la escaleta del culto'))]),
+        sec('bienvenida', _x('BIENVENIDA', 'sección de la escaleta del culto (en mayúsculas)'), [campo('bienvenida', 'texto', '', __('Bienvenida a todos y a quienes nos visitan'))]),
+        sec('comunidad', _x('VIDA DE COMUNIDAD', 'sección de la escaleta del culto (en mayúsculas)'), [campo('comunidad', 'textoLargo')]),
+        sec('alabanza', _x('CANTOS DE ALABANZA', 'sección de la escaleta del culto (en mayúsculas)'), [campo('canciones', 'canciones', '', 'ninguna')]),
+        sec('ofrenda', _x('OFRENDA', 'sección de la escaleta del culto (en mayúsculas)'), [campo('musica', 'cancion', _x('Música instrumental', 'etiqueta de un campo de la escaleta del culto'), 'siguiente'), campo('responsables', 'texto', _x('Responsables', 'etiqueta de un campo de la escaleta del culto')), campo('nota', 'texto', '', '', true)]),
+        sec('ninos', _x('NIÑOS', 'sección de la escaleta del culto (en mayúsculas)'), [campo('ninos', 'texto', '', __('Los niños pasan a sus clases'))]),
+        sec('predicacion', _x('PREDICACIÓN', 'sección de la escaleta del culto (en mayúsculas)'), [campo('lectura-biblica', 'texto', _x('Lectura', 'etiqueta de un campo de la escaleta del culto')), campo('titulo', 'texto', _x('Título', 'etiqueta de un campo de la escaleta del culto')), campo('predicacion', 'texto', _x('Predicación', 'etiqueta de un campo de la escaleta del culto'))]),
+        sec('despedida', _x('DESPEDIDA', 'sección de la escaleta del culto (en mayúsculas)'), [campo('despedida', 'textoLargo')]),
+        sec('doxologia', _x('DOXOLOGÍA', 'sección de la escaleta del culto (en mayúsculas)'), [campo('doxologia', 'texto')]),
+        sec('postludio', _x('POSTLUDIO', 'sección de la escaleta del culto (en mayúsculas)'), [campo('postludio', 'canciones', '', 'restantes')])
+      ]
+    };
+  }
+
+  /** Copia limpia de una escaleta (o de una plantilla): solo lo conocido y con el tipo correcto, por si el servidor trae algo raro. */
+  function sanearEscaleta(e) {
+    return { secciones: (e && Array.isArray(e.secciones) ? e.secciones : []).map(function (s) {
+      return {
+        id: String(s.id || ''), titulo: String(s.titulo || ''), nota: String(s.nota || ''), oculta: !!s.oculta, extra: !!s.extra,
+        campos: (Array.isArray(s.campos) ? s.campos : []).map(function (c) {
+          return {
+            id: String(c.id || ''), tipo: TIPOS_CAMPO.indexOf(c.tipo) !== -1 ? c.tipo : 'texto', etiqueta: String(c.etiqueta || ''), pequeno: !!c.pequeno,
+            defecto: c.defecto === undefined || c.defecto === null ? '' : c.defecto, valor: c.valor === undefined ? null : c.valor
+          };
+        })
+      };
+    }) };
+  }
+
+  /** Escaleta de un culto sin valores propios: copia de la plantilla con todo «sin tocar». */
+  function nuevaEscaleta(plantilla) {
+    var e = sanearEscaleta(plantilla);
+    e.secciones.forEach(function (s) {
+      s.oculta = false;
+      s.extra = false;
+      s.campos.forEach(function (c) { c.valor = null; });
+    });
+    return e;
+  }
+
+  /** Plantilla tal como la trae GET escaleta, completada; `generica: true` si hubo que usar la estándar. */
+  function plantillaDe(t) {
+    var base = plantillaGenerica();
+    if (!t || !Array.isArray(t.secciones)) { base.generica = true; return base; }
+    return {
+      titulo: typeof t.titulo === 'string' ? t.titulo : base.titulo,
+      central: typeof t.central === 'string' ? t.central : '',
+      logo: t.logo && t.logo.url ? t.logo : null,
+      cabecera: t.cabecera && t.cabecera.url ? t.cabecera : null,
+      secciones: sanearEscaleta(t).secciones.map(function (s) { return { id: s.id, titulo: s.titulo, nota: s.nota, campos: s.campos }; })
+    };
+  }
+
+  /**
+   * Pide la plantilla de la escaleta (GET escaleta, al alcance de todo el equipo; los ajustes solo los lee quien administra).
+   * Si la petición falla o no trae plantilla se sigue con la estándar. Nunca rechaza.
+   */
+  function cargarPlantilla() {
+    return api('escaleta').then(function (t) { return plantillaDe(t); }, function () { return plantillaDe(null); });
+  }
+
+  function tituloMay(t) { return String(t || '').toLocaleUpperCase(LOCALE); }
+
+  /** Canciones del culto, en orden y sin repetir: [{id, titulo, numero}]. Se ignoran las eliminadas. */
+  function cancionesDeCulto(culto) {
+    var vistas = {}, lista = [];
+    (culto.items || []).forEach(function (it) {
+      var id = +it.cancion;
+      if (it.eliminada || !it.datos || vistas[id]) { return; }
+      vistas[id] = true;
+      lista.push({ id: id, titulo: String(it.datos.titulo || ''), numero: it.datos.numero || '' });
+    });
+    return lista;
+  }
+
+  /** Una canción guardada ({cancion, nombre}) con el título actual si sigue en el culto; si ya no está, queda escrita a mano con su nombre. */
+  function valorCancion(v, porId) {
+    if (!v || typeof v !== 'object') { return null; }
+    var id = +v.cancion || 0;
+    if (id && porId[id]) { return { cancion: id, nombre: porId[id].titulo }; }
+    return { cancion: 0, nombre: String(v.nombre || '') };
+  }
+
+  /** Lista de canciones: las del culto primero, en el orden del culto; después las escritas a mano. */
+  function listaCanciones(valor, porId, orden) {
+    var marcadas = {}, escritas = [];
+    (Array.isArray(valor) ? valor : []).forEach(function (x) {
+      var r = valorCancion(x, porId);
+      if (!r) { return; }
+      if (r.cancion) { marcadas[r.cancion] = true; } else { escritas.push(r); }
+    });
+    return orden.filter(function (id) { return marcadas[id]; }).map(function (id) { return { cancion: id, nombre: porId[id].titulo }; }).concat(escritas);
+  }
+
+  /**
+   * Valor de cada campo de la escaleta aplicando los defectos donde no se ha tocado nada.
+   * Devuelve { valores: Map campo → valor, usadasFuera(campo) → {id: true} con lo asignado en los demás campos }.
+   * Texto: string. Una canción: {cancion, nombre} ({0, ''} = ninguna). Varias: [{cancion, nombre}] (las escritas a mano con cancion 0).
+   * Las secciones ocultas no se resuelven ni cuentan como asignadas.
+   */
+  function resolverEscaleta(esc, canciones) {
+    var porId = {}, orden = [];
+    canciones.forEach(function (s) { porId[s.id] = s; orden.push(s.id); });
+    var valores = new Map();
+    var ultima = -1;      // posición, en el culto, de la última canción asignada hasta ahora («siguiente» es la que viene detrás)
+    var diferidos = [];   // «restantes» sin tocar: se calculan al final, con lo que no haya cogido nadie
+
+    esc.secciones.forEach(function (sec) {
+      if (sec.oculta) { return; }
+      sec.campos.forEach(function (c) {
+        var v = c.valor;
+        var sinTocar = v === null || v === undefined;
+        if (c.tipo === 'texto' || c.tipo === 'textoLargo') {
+          valores.set(c, sinTocar ? String(c.defecto || '') : String(v));
+        } else if (c.tipo === 'cancion') {
+          var r;
+          if (sinTocar) {
+            var k = c.defecto === 'primera' ? 0 : c.defecto === 'siguiente' ? ultima + 1 : -1;
+            r = k >= 0 && k < orden.length ? { cancion: orden[k], nombre: porId[orden[k]].titulo } : { cancion: 0, nombre: '' };
+          } else {
+            r = valorCancion(v, porId) || { cancion: 0, nombre: '' };
+          }
+          if (r.cancion) { ultima = orden.indexOf(r.cancion); }
+          valores.set(c, r);
+        } else if (c.tipo === 'canciones') {
+          if (sinTocar && c.defecto === 'restantes') { diferidos.push(c); valores.set(c, []); return; }
+          var lista = sinTocar ? [] : listaCanciones(v, porId, orden);
+          lista.forEach(function (x) { if (x.cancion) { ultima = Math.max(ultima, orden.indexOf(x.cancion)); } });
+          valores.set(c, lista);
+        }
+      });
+    });
+
+    var usadas = {};
+    valores.forEach(function (val, c) {
+      if (c.tipo === 'cancion' && val.cancion) { usadas[val.cancion] = true; }
+      else if (c.tipo === 'canciones') { val.forEach(function (x) { if (x.cancion) { usadas[x.cancion] = true; } }); }
+    });
+    diferidos.forEach(function (c) {
+      var resto = orden.filter(function (id) { return !usadas[id]; });
+      valores.set(c, resto.map(function (id) { return { cancion: id, nombre: porId[id].titulo }; }));
+      resto.forEach(function (id) { usadas[id] = true; });
+    });
+
+    return {
+      valores: valores,
+      usadasFuera: function (campo) {
+        var fuera = {};
+        valores.forEach(function (val, c) {
+          if (c === campo) { return; }
+          if (c.tipo === 'cancion' && val.cancion) { fuera[val.cancion] = true; }
+          else if (c.tipo === 'canciones') { val.forEach(function (x) { if (x.cancion) { fuera[x.cancion] = true; } }); }
+        });
+        return fuera;
+      }
+    };
+  }
+
+  /** Copia de la escaleta con los defectos ya aplicados como valores explícitos (lo que se guarda con el culto). */
+  function explicitar(esc, canciones) {
+    var copia = JSON.parse(JSON.stringify(esc));
+    var res = resolverEscaleta(esc, canciones);
+    esc.secciones.forEach(function (sec, i) {
+      if (sec.oculta) { return; }
+      sec.campos.forEach(function (c, j) {
+        var v = res.valores.get(c);
+        copia.secciones[i].campos[j].valor = c.tipo === 'canciones'
+          ? v.filter(function (x) { return x.cancion || x.nombre.trim() !== ''; })
+          : v;
+      });
+    });
+    return copia;
+  }
+
+  /**
+   * Lo que se imprime: una entrada por sección no oculta, { titulo, nota, lineas }, donde cada línea es
+   * { runs: [{t, f}], size } (f: 'n' normal, 'b' negrita, 'i' cursiva; una línea sin runs es una línea en blanco).
+   */
+  function filasImpresion(esc, canciones) {
+    var res = resolverEscaleta(esc, canciones);
+    return esc.secciones.filter(function (s) { return !s.oculta; }).map(function (sec) {
+      var lineas = [];
+      sec.campos.forEach(function (c) {
+        var v = res.valores.get(c);
+        var size = c.pequeno ? TAM_PEQUENO : TAM_TEXTO;
+        var et = c.etiqueta.trim();
+        var prefijo = et ? [{ t: et + ': ', f: 'n' }] : [];
+        function linea(runs) { lineas.push({ runs: runs, size: size }); }
+        if (c.tipo === 'texto') {
+          if (v.trim()) { linea(prefijo.concat([{ t: v.trim(), f: 'n' }])); }
+        } else if (c.tipo === 'textoLargo') {
+          var ls = v.replace(/\r/g, '').split('\n').map(function (l) { return l.replace(/\s+$/, ''); });
+          while (ls.length && !ls[0].trim()) { ls.shift(); }
+          while (ls.length && !ls[ls.length - 1].trim()) { ls.pop(); }
+          ls.forEach(function (l, k) { linea(!l.trim() ? [] : (k === 0 ? prefijo : []).concat([{ t: l, f: 'n' }])); });
+        } else if (c.tipo === 'cancion') {
+          if (v.nombre.trim()) { linea(prefijo.concat([{ t: v.nombre.trim(), f: 'i' }])); }
+        } else {
+          var nombres = v.map(function (x) { return x.nombre.trim(); }).filter(Boolean);
+          if (nombres.length && et) { linea([{ t: et + ':', f: 'n' }]); }
+          nombres.forEach(function (n) { linea([{ t: n, f: 'i' }]); });
+        }
+      });
+      return { titulo: tituloMay(sec.titulo), nota: sec.nota, lineas: lineas };
+    });
+  }
+
+  // ---------------------------------------------------------------- escaleta: pestaña del editor del culto
+
+  /**
+   * Pestaña «Escaleta» del editor. opc: { inicial: escaleta del culto o null, culto: () → {titulo, fecha, tipo, items} con el
+   * estado actual del formulario }. Devuelve { el, mostrar(), setlistCambio(), valor() }: valor() es la escaleta con los
+   * defectos ya explícitos, o undefined si el culto no tenía y no se abrió la pestaña (entonces no se guarda nada).
+   */
+  function crearEscaletaEditor(opc) {
+    var esc = opc.inicial ? sanearEscaleta(opc.inicial) : null;
+    var plantillaP = null;
+    var generica = false;
+    var pintado = false;
+    var res = null;
+    var widgets = [];   // los campos de canciones, que se repintan cuando cambia el setlist o lo asignado en otras secciones
+    var cont = h('div', { class: 'pcan-ec' });
+
+    function plantilla() { return plantillaP || (plantillaP = cargarPlantilla()); }
+    function canciones() { return cancionesDeCulto(opc.culto()); }
+    function recalcular() { res = resolverEscaleta(esc, canciones()); }
+    // Los botones no disparan input/change: se avisa a mano para que el panel sepa que hay cambios sin guardar.
+    function marcarCambio() { cont.dispatchEvent(new Event('change', { bubbles: true })); }
+    function repintarCanciones(origen) { widgets.forEach(function (w) { if (w !== origen) { w.pintar(); } }); }
+    // Un campo de canciones cambió: los demás se ajustan (él ya está como lo dejó quien lo tocó).
+    function cambio(origen) { recalcular(); repintarCanciones(origen); }
+
+    // Intro dentro de un campo de texto no guarda el culto: se pulsa «Guardar».
+    cont.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.type === 'text') { e.preventDefault(); }
+    });
+
+    function nombreSeccion(sec) { return tituloMay(sec.titulo) || __('Sección nueva'); }
+
+    function textoCancion(s, i) {
+      return [
+        h('span', { class: 'pcan-ec-op-n', 'aria-hidden': 'true', text: String(i + 1) }),
+        h('span', { class: 'pcan-ec-op-t', text: s.titulo }),
+        s.numero ? h('small', { class: 'pcan-ec-op-num', text: sprintf(/* translators: %s: número de himnario */ __('Nº %s'), s.numero) }) : null
+      ];
+    }
+
+    function ayuda(texto) { return h('p', { class: 'pcan-help', text: texto }); }
+
+    function campoTexto(sec, c) {
+      var largo = c.tipo === 'textoLargo';
+      var el = largo ? h('textarea', { class: 'pcan-input pcan-textarea', rows: '3' }) : h('input', { type: 'text', class: 'pcan-input', maxlength: '300' });
+      el.value = c.valor === null || c.valor === undefined ? String(c.defecto || '') : String(c.valor);
+      if (c.pequeno) { el.classList.add('is-pequeno'); }
+      if (!c.etiqueta) { el.setAttribute('aria-label', nombreSeccion(sec)); }
+      el.addEventListener('input', function () { c.valor = el.value; });
+      return h('label', { class: 'pcan-field' },
+        c.etiqueta ? h('span', { class: 'pcan-label', text: c.etiqueta }) : null,
+        el,
+        c.pequeno ? h('span', { class: 'pcan-help', text: __('Se imprime en letra pequeña') }) : null);
+    }
+
+    /** Una canción del culto: botones de radio con las canciones, «Otra» con su nombre escrito y «Ninguna». */
+    function campoCancion(sec, c) {
+      var grupo = 'pcan-ec-' + (++contadorEsc);
+      var caja = h('div', { class: 'pcan-ec-campo', role: 'group', 'aria-labelledby': grupo + '-et' });
+      var modoOtra = false;
+      var w = { pintar: pintar };
+      widgets.push(w);
+
+      function opcion(marcada, contenido, alElegir, clase) {
+        var input = h('input', { type: 'radio', name: grupo, checked: marcada, onchange: function () { if (input.checked) { alElegir(); } } });
+        return { input: input, el: h('label', { class: 'pcan-ec-op' + (clase ? ' ' + clase : '') }, input, contenido) };
+      }
+
+      function pintar() {
+        var v = res.valores.get(c);
+        caja.innerHTML = '';
+        if (!v) { return; }   // sección oculta: no se resuelve
+        modoOtra = v.cancion === 0 && (modoOtra || v.nombre.trim() !== '');
+        var lista = canciones();
+
+        var ops = h('div', { class: 'pcan-ec-ops' });
+        append(ops, opcion(!v.cancion && !modoOtra, h('span', { class: 'pcan-ec-op-t pcan-muted', text: __('Ninguna') }),
+          function () { modoOtra = false; c.valor = { cancion: 0, nombre: '' }; cambio(w); }).el);
+        lista.forEach(function (s, i) {
+          append(ops, opcion(v.cancion === s.id, textoCancion(s, i), function () { modoOtra = false; c.valor = { cancion: s.id, nombre: s.titulo }; cambio(w); }).el);
+        });
+        var txt = h('input', {
+          type: 'text', class: 'pcan-input pcan-input-sm pcan-ec-otra-txt', maxlength: '120', value: modoOtra ? v.nombre : '',
+          placeholder: __('Otra (escribe el nombre)'), 'aria-label': __('Otra (escribe el nombre)')
+        });
+        var otra = opcion(modoOtra, txt, function () { modoOtra = true; c.valor = { cancion: 0, nombre: txt.value }; cambio(w); txt.focus(); }, 'is-otra');
+        txt.addEventListener('input', function () { modoOtra = true; otra.input.checked = true; c.valor = { cancion: 0, nombre: txt.value }; cambio(w); });
+        append(ops, otra.el);
+
+        append(caja, [
+          h('span', { class: 'pcan-label', id: grupo + '-et', text: c.etiqueta || __('Canción') }),
+          lista.length ? null : ayuda(__('Este culto aún no tiene canciones: añádelas en la pestaña Canciones o escribe el nombre.')),
+          ops
+        ]);
+      }
+
+      pintar();
+      return caja;
+    }
+
+    /** Varias canciones: casillas con las del culto (con «restantes», solo las que no están en otras secciones) y nombres escritos a mano. */
+    function campoCanciones(sec, c) {
+      var grupo = 'pcan-ec-' + (++contadorEsc);
+      var caja = h('div', { class: 'pcan-ec-campo', role: 'group', 'aria-labelledby': grupo + '-et' });
+      var w = { pintar: pintar };
+      widgets.push(w);
+
+      function pintar() {
+        var v = res.valores.get(c);
+        caja.innerHTML = '';
+        if (!v) { return; }
+        var lista = canciones();
+        var marcadas = {};
+        v.forEach(function (x) { if (x.cancion) { marcadas[x.cancion] = true; } });
+        var fuera = c.defecto === 'restantes' ? res.usadasFuera(c) : {};
+        var visibles = lista.filter(function (s) { return !fuera[s.id] || marcadas[s.id]; });
+        var casillas = [];
+        var escritas = [];   // los campos de texto de los nombres escritos a mano
+        var cajaEscritas = h('div', { class: 'pcan-ec-escritas' });
+
+        // El valor sale de lo que hay en pantalla: así lo primero que se toca ya fija lo que se veía por defecto.
+        function guardar() {
+          var elegidas = {};
+          casillas.forEach(function (k) { if (k.input.checked) { elegidas[k.s.id] = true; } });
+          c.valor = lista.filter(function (s) { return elegidas[s.id]; }).map(function (s) { return { cancion: s.id, nombre: s.titulo }; })
+            .concat(escritas.map(function (t) { return { cancion: 0, nombre: t.value }; }));
+          cambio(w);
+        }
+
+        function filaEscrita(nombre, enfocar) {
+          var txt = h('input', { type: 'text', class: 'pcan-input pcan-input-sm', maxlength: '120', value: nombre, placeholder: __('Nombre escrito a mano'), 'aria-label': __('Nombre escrito a mano'), oninput: guardar });
+          var fila = h('div', { class: 'pcan-ec-escrita' }, txt,
+            h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', onclick: function () { fila.remove(); escritas.splice(escritas.indexOf(txt), 1); guardar(); } }, icono('cerrar'), __('Quitar')));
+          escritas.push(txt);
+          append(cajaEscritas, fila);
+          if (enfocar) { txt.focus(); }
+        }
+
+        var ops = h('div', { class: 'pcan-ec-ops' });
+        visibles.forEach(function (s) {
+          var input = h('input', { type: 'checkbox', checked: !!marcadas[s.id], onchange: guardar });
+          casillas.push({ s: s, input: input });
+          append(ops, h('label', { class: 'pcan-ec-op' }, input, textoCancion(s, lista.indexOf(s))));
+        });
+        v.filter(function (x) { return !x.cancion; }).forEach(function (x) { filaEscrita(x.nombre, false); });
+
+        append(caja, [
+          h('span', { class: 'pcan-label', id: grupo + '-et', text: c.etiqueta || __('Canciones') }),
+          !lista.length ? ayuda(__('Este culto aún no tiene canciones: añádelas en la pestaña Canciones o escribe los nombres.'))
+            : !visibles.length ? ayuda(__('Todas las canciones del culto están ya en otras secciones.')) : null,
+          ops,
+          cajaEscritas,
+          h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-ec-anadir', onclick: function () { filaEscrita('', true); guardar(); } }, icono('mas'), __('Añadir otra (escribe el nombre)'))
+        ]);
+      }
+
+      pintar();
+      return caja;
+    }
+
+    function campoDe(sec, c) {
+      return c.tipo === 'cancion' ? campoCancion(sec, c) : c.tipo === 'canciones' ? campoCanciones(sec, c) : campoTexto(sec, c);
+    }
+
+    function mover(desde, hasta, accion) {
+      if (hasta < 0 || hasta >= esc.secciones.length) { return; }
+      var s = esc.secciones.splice(desde, 1)[0];
+      esc.secciones.splice(hasta, 0, s);
+      pintarTodo({ i: hasta, accion: accion });
+      marcarCambio();
+    }
+
+    function quitar(i) {
+      esc.secciones.splice(i, 1);
+      pintarTodo();
+      marcarCambio();
+    }
+
+    function anadirSeccion() {
+      esc.secciones.push({
+        id: 'extra-' + Date.now().toString(36), titulo: '', nota: '', oculta: false, extra: true,
+        campos: [{ id: 'texto', tipo: 'textoLargo', etiqueta: '', pequeno: false, defecto: '', valor: '' }]
+      });
+      pintarTodo();
+      marcarCambio();
+      var titulos = cont.querySelectorAll('.pcan-ec-titulo-input');
+      var nueva = titulos[titulos.length - 1];
+      if (nueva) { nueva.focus(); nueva.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+    }
+
+    function tarjeta(sec, i, lista) {
+      var nombre = nombreSeccion(sec);
+      var li = h('li', { class: 'pcan-ec-sec' + (sec.oculta ? ' is-oculta' : ''), 'data-i': String(i) });
+      var asa = h('button', { type: 'button', class: 'pcan-drag', 'aria-label': sprintf(/* translators: %s: título de la sección de la escaleta */ __('Arrastrar para reordenar la sección %s'), nombre), title: __('Arrastrar') }, icono('arrastrar'));
+      var titulo = sec.extra
+        ? h('input', {
+          type: 'text', class: 'pcan-input pcan-input-sm pcan-ec-titulo-input', value: sec.titulo, maxlength: '60',
+          placeholder: __('Título de la sección'), 'aria-label': __('Título de la sección'), oninput: function (e) { sec.titulo = e.target.value; }
+        })
+        : h('h4', { class: 'pcan-ec-titulo', text: tituloMay(sec.titulo) });
+      var oculta = h('input', {
+        type: 'checkbox', checked: !!sec.oculta,
+        onchange: function (e) { sec.oculta = e.target.checked; li.classList.toggle('is-oculta', sec.oculta); cambio(null); }
+      });
+
+      append(li, [
+        h('div', { class: 'pcan-ec-cab' }, asa, titulo,
+          h('div', { class: 'pcan-ec-tools' },
+            h('button', {
+              type: 'button', class: 'pcan-btn pcan-btn-sm', 'data-accion': 'subir', disabled: i === 0,
+              'aria-label': sprintf(/* translators: %s: título de la sección de la escaleta */ __('Subir la sección %s'), nombre), onclick: function () { mover(i, i - 1, 'subir'); }
+            }, icono('arriba'), _x('Subir', 'mover una sección de la escaleta hacia arriba')),
+            h('button', {
+              type: 'button', class: 'pcan-btn pcan-btn-sm', 'data-accion': 'bajar', disabled: i === esc.secciones.length - 1,
+              'aria-label': sprintf(/* translators: %s: título de la sección de la escaleta */ __('Bajar la sección %s'), nombre), onclick: function () { mover(i, i + 1, 'bajar'); }
+            }, icono('abajo'), _x('Bajar', 'mover una sección de la escaleta hacia abajo')),
+            sec.extra ? h('button', {
+              type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger',
+              'aria-label': sprintf(/* translators: %s: título de la sección de la escaleta */ __('Quitar la sección %s'), nombre), onclick: function () { quitar(i); }
+            }, icono('borrar'), __('Quitar sección')) : null)),
+        sec.nota ? h('p', { class: 'pcan-ec-nota', text: sec.nota }) : null,
+        h('label', { class: 'pcan-ec-oculta' }, oculta, h('span', { text: __('No incluir en este culto') })),
+        h('div', { class: 'pcan-ec-campos' }, sec.campos.map(function (c) { return campoDe(sec, c); }))
+      ]);
+      arrastrarFila(asa, li, lista, function (orden) {
+        esc.secciones = orden.map(function (k) { return esc.secciones[k]; });
+        pintarTodo();
+        marcarCambio();
+      });
+      return li;
+    }
+
+    function exportar(boton) {
+      boton.disabled = true;
+      return plantilla().then(function (pl) { return P.escaletaPdf(opc.culto(), esc, pl); }).then(function () { boton.disabled = false; });
+    }
+
+    // foco: { i, accion } deja el foco en el botón «Subir» o «Bajar» de la sección que acaba de moverse.
+    function pintarTodo(foco) {
+      cont.innerHTML = '';
+      widgets = [];
+      if (!esc) { append(cont, h('p', { class: 'pcan-muted', role: 'status', text: __('Cargando la escaleta…') })); return; }
+      recalcular();
+      var lista = h('ol', { class: 'pcan-ec-lista' });
+      esc.secciones.forEach(function (sec, i) { append(lista, tarjeta(sec, i, lista)); });
+      var bExportar = h('button', { type: 'button', class: 'pcan-btn', onclick: function () { exportar(bExportar); } }, icono('descargar'), __('Exportar escaleta'));
+      append(cont, [
+        h('div', { class: 'pcan-ec-barra' }, bExportar, h('p', { class: 'pcan-help', text: __('Se rellena con las canciones del culto; cambia lo que quieras. Se guarda junto con el culto.') })),
+        generica ? ayuda(__('No se pudo leer la plantilla de tu grupo: se usa la estándar.')) : null,
+        lista,
+        h('div', { class: 'pcan-ec-pie' }, h('button', { type: 'button', class: 'pcan-btn', onclick: anadirSeccion }, icono('mas'), __('Añadir sección a este culto')))
+      ]);
+      if (foco && lista.children[foco.i]) {
+        var b = lista.children[foco.i].querySelector('[data-accion="' + foco.accion + '"]');
+        if (!b || b.disabled) { b = lista.children[foco.i].querySelector('[data-accion]:not(:disabled)'); }
+        if (b) { b.focus(); }
+      }
+    }
+
+    return {
+      el: cont,
+      // Al abrir la pestaña por primera vez; si el culto no tenía escaleta, se parte de la plantilla.
+      mostrar: function () {
+        if (pintado) { return; }
+        pintado = true;
+        pintarTodo();
+        if (!esc) {
+          plantilla().then(function (pl) { generica = !!pl.generica; esc = nuevaEscaleta(pl); pintarTodo(); });
+        }
+      },
+      setlistCambio: function () { if (pintado && esc) { recalcular(); repintarCanciones(null); } },
+      valor: function () { return esc ? explicitar(esc, canciones()) : undefined; }
+    };
+  }
+
+  /** Botón «Exportar escaleta» de la ficha del culto: la plantilla se pide aparte (imágenes, título y texto central). */
+  function exportarEscaleta(c, boton) {
+    if (boton) { boton.disabled = true; }
+    return cargarPlantilla().then(function (pl) { return P.escaletaPdf(c, c.escaleta || null, pl); }).then(function () { if (boton) { boton.disabled = false; } });
+  }
+
+  // ---------------------------------------------------------------- escaleta: PDF
+
+  /** Descarga unos bytes como PDF. */
+  function guardarPdf(bytes, nombre) {
+    var url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+    var a = h('a', { href: url, download: nombre });
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+  }
+
+  /** Fecha corta numérica en el orden del idioma del usuario, con guiones: 18-10-26 (es), 10-18-26 (en-US). */
+  function fechaNumerica(iso) {
+    try {
+      return new Intl.DateTimeFormat(LOCALE, { day: '2-digit', month: '2-digit', year: '2-digit' }).formatToParts(fechaLocal(iso))
+        .filter(function (p) { return p.type === 'day' || p.type === 'month' || p.type === 'year'; })
+        .map(function (p) { return p.value; }).join('-');
+    } catch (e) {
+      return iso;
+    }
+  }
+
+  /** Imagen (PNG o JPG; otros formatos pasan por un lienzo) lista para el PDF, o null si no hay dirección o no se puede cargar. */
+  function imagenParaPdf(doc, url) {
+    if (!url) { return Promise.resolve(null); }
+    return fetch(url, { credentials: 'same-origin' }).then(function (r) {
+      if (!r.ok) { throw new Error(r.status); }
+      return r.arrayBuffer();
+    }).then(function (buf) {
+      var b = new Uint8Array(buf);
+      if (b[0] === 0x89 && b[1] === 0x50) { return doc.embedPng(buf); }
+      if (b[0] === 0xFF && b[1] === 0xD8) { return doc.embedJpg(buf); }
+      return createImageBitmap(new Blob([buf])).then(function (img) {
+        var lienzo = document.createElement('canvas');
+        lienzo.width = img.width;
+        lienzo.height = img.height;
+        lienzo.getContext('2d').drawImage(img, 0, 0);
+        return new Promise(function (resolve) { lienzo.toBlob(resolve, 'image/png'); });
+      }).then(function (blob) { return blob.arrayBuffer(); }).then(function (png) { return doc.embedPng(png); });
+    }).catch(function () { return null; });
+  }
+
+  /** Reduce el tamaño de letra (hasta un mínimo) hasta que el texto quepa en el ancho. */
+  function tamanoQueCabe(fuente, texto, size, ancho, minimo) {
+    while (size > minimo && fuente.widthOfTextAtSize(texto, size) > ancho) { size -= 0.5; }
+    return size;
+  }
+
+  /**
+   * Parte unos trozos de texto con distinta letra en líneas de como mucho `ancho` puntos, midiendo con las fuentes del PDF.
+   * runs: [{t, f}] (f: 'n', 'b' o 'i', que son claves de `fuentes`). Devuelve [{segs: [{t, f, w, esp}], w}]; una línea vacía por runs vacíos.
+   */
+  function envolverTexto(runs, ancho, size, fuentes) {
+    var palabras = [];
+    runs.forEach(function (r) {
+      latin1(r.t).split(/(\s+)/).forEach(function (p) {
+        if (p === '') { return; }
+        var esp = /^\s+$/.test(p);
+        palabras.push({ t: esp ? ' ' : p, f: r.f, esp: esp });
+      });
+    });
+    function medir(t, f) { return fuentes[f].widthOfTextAtSize(t, size); }
+    var lineas = [], seg = [], w = 0;
+    function cerrar() {
+      while (seg.length && seg[seg.length - 1].esp) { w -= seg.pop().w; }
+      lineas.push({ segs: seg, w: w });
+      seg = [];
+      w = 0;
+    }
+    palabras.forEach(function (p) {
+      p.w = medir(p.t, p.f);
+      if (p.esp) { if (seg.length) { seg.push(p); w += p.w; } return; }   // sin espacios al principio de la línea
+      if (w + p.w > ancho && seg.length) { cerrar(); }
+      if (p.w > ancho) {
+        // Una palabra más larga que la línea se parte por letras.
+        var resto = p.t;
+        while (resto) {
+          var n = resto.length;
+          while (n > 1 && medir(resto.slice(0, n), p.f) > ancho) { n--; }
+          var trozo = resto.slice(0, n);
+          seg.push({ t: trozo, f: p.f, w: medir(trozo, p.f) });
+          w += seg[seg.length - 1].w;
+          resto = resto.slice(n);
+          if (resto) { cerrar(); }
+        }
+        return;
+      }
+      seg.push(p);
+      w += p.w;
+    });
+    if (seg.length || !lineas.length) { cerrar(); }
+    return lineas;
+  }
+
+  /** Letra espaciada (para el nombre del cancionero cuando no hay imagen de cabecera). */
+  function anchoEspaciado(fuente, texto, size, sep) {
+    return texto.split('').reduce(function (s, ch) { return s + fuente.widthOfTextAtSize(ch, size); }, 0) + sep * Math.max(0, texto.length - 1);
+  }
+
+  function dibujarEspaciado(pagina, fuente, texto, centroX, y, size, sep, color) {
+    var x = centroX - anchoEspaciado(fuente, texto, size, sep) / 2;
+    texto.split('').forEach(function (ch) {
+      pagina.drawText(ch, { x: x, y: y, size: size, font: fuente, color: color });
+      x += fuente.widthOfTextAtSize(ch, size) + sep;
+    });
+  }
+
+  /** Dibuja la escaleta en un documento nuevo (A4 vertical): cabecera con dos imágenes y la tabla de secciones. */
+  function dibujarEscaletaPdf(L, doc, fuentes, imagenes, culto, plantilla, filas) {
+    var A4 = [595.28, 841.89];
+    var M = 30;                  // margen lateral
+    var W = A4[0] - 2 * M;
+    var TOP = 28, TOP_SIG = 36, BOT = 36;
+    var ALTO_CAB = 66, ALTO_TIT = 26;
+    var PX = 8, PY = 7;          // relleno de las celdas
+    var INTERLINEA = 1.3;
+    var GROSOR = 0.75, MARCO = 1.8;
+    var colIzq = W * 0.28, colDer = W - colIzq;
+    var negro = L.rgb(0, 0, 0), gris = L.rgb(0.83, 0.83, 0.83), rojo = L.rgb(0.8, 0, 0), tinta = L.rgb(0.3, 0.3, 0.3);
+    var normal = fuentes.n, negrita = fuentes.b;
+    var fecha = culto.fecha ? fechaNumerica(culto.fecha) : '';
+    var pag, y, inicio;
+
+    function encajar(img, maxW, maxH) {
+      var e = Math.min(maxW / img.width, maxH / img.height);
+      return { w: img.width * e, h: img.height * e };
+    }
+
+    // Arriba a la izquierda, la imagen de cabecera o el nombre del cancionero; a la derecha, el logo.
+    function cabecera() {
+      var arriba = A4[1] - TOP;
+      if (imagenes.cabecera) {
+        var d = encajar(imagenes.cabecera, 180, 55);
+        pag.drawImage(imagenes.cabecera, { x: M, y: arriba - d.h, width: d.w, height: d.h });
+      } else {
+        var cx = M + 90;
+        var nombre = latin1(tituloMay(P.cfg.nombre || 'Cancionero')).trim();
+        var sitio = latin1(tituloMay(P.cfg.sitio || '')).trim();
+        pag.drawRectangle({ x: M, y: arriba - 55, width: 180, height: 55, borderColor: tinta, borderWidth: GROSOR });
+        var s1 = 15;
+        while (s1 > 8 && anchoEspaciado(normal, nombre, s1, 2) > 160) { s1 -= 0.5; }
+        dibujarEspaciado(pag, normal, nombre, cx, arriba - (sitio ? 27 : 33), s1, 2, tinta);
+        if (sitio) {
+          var s2 = 7.5;
+          while (s2 > 5 && anchoEspaciado(normal, sitio, s2, 1.4) > 160) { s2 -= 0.5; }
+          dibujarEspaciado(pag, normal, sitio, cx, arriba - 42, s2, 1.4, tinta);
+        }
+      }
+      if (imagenes.logo) {
+        var e = encajar(imagenes.logo, 105, 65);
+        pag.drawImage(imagenes.logo, { x: M + W - e.w, y: arriba - e.h, width: e.w, height: e.h });
+      }
+    }
+
+    // Fila de títulos: título, texto central y fecha del culto, sobre gris claro.
+    function titulos() {
+      var a1 = W * 0.36, a2 = W * 0.34;
+      [{ x: M, w: a1, t: plantilla.titulo, s: 14 }, { x: M + a1, w: a2, t: plantilla.central, s: 11 }, { x: M + a1 + a2, w: W - a1 - a2, t: fecha, s: 14 }].forEach(function (c) {
+        pag.drawRectangle({ x: c.x, y: y - ALTO_TIT, width: c.w, height: ALTO_TIT, color: gris, borderColor: negro, borderWidth: GROSOR });
+        var t = latin1(c.t || '').trim();
+        if (!t) { return; }
+        var s = tamanoQueCabe(negrita, t, c.s, c.w - 2 * PX, 6);
+        pag.drawText(t, { x: c.x + (c.w - negrita.widthOfTextAtSize(t, s)) / 2, y: y - ALTO_TIT / 2 - s * 0.35, size: s, font: negrita, color: negro });
+      });
+      y -= ALTO_TIT;
+    }
+
+    function nuevaPagina(primera) {
+      pag = doc.addPage(A4);
+      y = A4[1] - (primera ? TOP : TOP_SIG);
+      if (primera) { cabecera(); y -= ALTO_CAB + 14; }
+      inicio = y;
+      titulos();
+    }
+
+    // Marco exterior, algo más grueso que las líneas de las celdas.
+    function cerrarPagina() {
+      pag.drawRectangle({ x: M, y: y, width: W, height: inicio - y, borderColor: negro, borderWidth: MARCO });
+    }
+
+    function lineasDe(runs, ancho, size, color) {
+      return envolverTexto(runs, ancho, size, fuentes).map(function (l) { return { segs: l.segs, w: l.w, size: size, h: size * INTERLINEA, color: color }; });
+    }
+
+    function alto(lineas) { return lineas.reduce(function (s, l) { return s + l.h; }, 0); }
+
+    // Todo arriba y centrado en su celda, como en la hoja de referencia.
+    function pintarLineas(lineas, x0, ancho) {
+      var yy = y - PY;
+      lineas.forEach(function (l) {
+        var xx = x0 + (ancho - l.w) / 2;
+        l.segs.forEach(function (s) {
+          if (!s.esp) { pag.drawText(s.t, { x: xx, y: yy - (l.h - l.size * 0.925) / 2 - l.size * 0.718, size: l.size, font: fuentes[s.f], color: l.color || negro }); }
+          xx += s.w;
+        });
+        yy -= l.h;
+      });
+    }
+
+    function dibujarTrozo(izq, der, altoTrozo) {
+      pag.drawRectangle({ x: M, y: y - altoTrozo, width: colIzq, height: altoTrozo, borderColor: negro, borderWidth: GROSOR });
+      pag.drawRectangle({ x: M + colIzq, y: y - altoTrozo, width: colDer, height: altoTrozo, borderColor: negro, borderWidth: GROSOR });
+      pintarLineas(izq, M, colIzq);
+      pintarLineas(der, M + colIzq, colDer);
+      y -= altoTrozo;
+    }
+
+    var ALTO_MIN = 30;
+    var paginaLlena = A4[1] - TOP_SIG - ALTO_TIT - BOT;
+
+    nuevaPagina(true);
+    filas.forEach(function (fila) {
+      var izq = lineasDe([{ t: fila.titulo, f: 'b' }], colIzq - 2 * PX, 11);
+      String(fila.nota || '').split(/\r?\n/).forEach(function (n) { if (n.trim()) { izq = izq.concat(lineasDe([{ t: n, f: 'n' }], colIzq - 2 * PX, 9, rojo)); } });
+      var der = [];
+      fila.lineas.forEach(function (l) { der = der.concat(lineasDe(l.runs, colDer - 2 * PX, l.size)); });
+      var total = Math.max(alto(izq), alto(der)) + 2 * PY;
+      total = Math.max(total, ALTO_MIN);
+
+      if (total <= y - BOT) { dibujarTrozo(izq, der, total); return; }
+      if (total <= paginaLlena) { cerrarPagina(); nuevaPagina(false); dibujarTrozo(izq, der, total); return; }
+
+      // Una sección más alta que una hoja entera: se parte por líneas, con el título solo en la primera hoja.
+      var resto = der.slice(), primera = true;
+      while (resto.length || primera) {
+        var izqAqui = primera ? izq : [];
+        if (y - BOT < alto(izqAqui) + 2 * PY + (resto.length ? resto[0].h : 0)) { cerrarPagina(); nuevaPagina(false); }
+        var libre = y - BOT - 2 * PY, aqui = [], usado = 0;
+        while (resto.length && (usado + resto[0].h <= libre || !aqui.length)) { usado += resto[0].h; aqui.push(resto.shift()); }
+        dibujarTrozo(izqAqui, aqui, Math.max(Math.max(alto(izqAqui), usado) + 2 * PY, ALTO_MIN));
+        primera = false;
+        if (resto.length) { cerrarPagina(); nuevaPagina(false); }
+      }
+    });
+    cerrarPagina();
+  }
+
+  /**
+   * Genera y descarga `escaleta-AAAA-MM-DD.pdf`. culto: el de GET cultos/{id} (o algo con fecha e items); escaleta: la del culto,
+   * o null para sacarla de la plantilla con sus defectos; plantilla: la de GET ajustes (logo, cabecera, título y texto central).
+   * Avisa del progreso y de los errores por sí misma; la promesa nunca rechaza y devuelve true si se descargó.
+   */
+  P.escaletaPdf = function (culto, escaleta, plantilla) {
+    aviso(__('Preparando la escaleta…'));
+    plantilla = plantilla || plantillaGenerica();
+    var esc = escaleta ? sanearEscaleta(escaleta) : nuevaEscaleta(plantilla);
+    var sinImagenes = false;
+    return cargarPdfLib().then(function (L) {
+      var filas = filasImpresion(esc, cancionesDeCulto(culto));
+      return L.PDFDocument.create().then(function (doc) {
+        return Promise.all([
+          doc.embedFont(L.StandardFonts.Helvetica), doc.embedFont(L.StandardFonts.HelveticaBold), doc.embedFont(L.StandardFonts.HelveticaOblique),
+          imagenParaPdf(doc, plantilla.cabecera && plantilla.cabecera.url),
+          imagenParaPdf(doc, plantilla.logo && plantilla.logo.url)
+        ]).then(function (r) {
+          sinImagenes = !!((plantilla.cabecera && plantilla.cabecera.url && !r[3]) || (plantilla.logo && plantilla.logo.url && !r[4]));
+          // Sin logo de la iglesia (o si no se pudo cargar), va el icono del Cancionero.
+          return (r[4] ? Promise.resolve(r[4]) : imagenParaPdf(doc, BASE_ASSETS ? BASE_ASSETS + 'icono.png' : '')).then(function (logo) {
+            dibujarEscaletaPdf(L, doc, { n: r[0], b: r[1], i: r[2] }, { cabecera: r[3], logo: logo }, culto, plantilla, filas);
+            return doc.save();
+          });
+        });
+      });
+    }).then(function (bytes) {
+      guardarPdf(bytes, 'escaleta-' + (culto.fecha || hoyISO()) + '.pdf');
+      if (sinImagenes) { aviso(__('Escaleta descargada, pero no se pudieron cargar las imágenes de la cabecera.'), 'error', 5000); }
+      else { aviso(__('Escaleta descargada')); }
+      return true;
+    }).catch(function (e) {
+      aviso(e && e.message ? e.message : __('No se pudo generar la escaleta'), 'error');
+      return false;
+    });
+  };
 
   // ---------------------------------------------------------------- ficha de canción: historial y «añadir a un culto»
 

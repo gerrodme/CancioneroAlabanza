@@ -32,6 +32,9 @@ la herramienta: **no incluye ninguna canción ni partitura**; cada instalación 
   y la tonalidad se deducen del nombre del archivo).
 - **Cultos y setlists:** orden de canciones por culto, con tonalidad, nota y partitura elegida por canción, cuenta atrás al próximo culto
   y PDF del setlist.
+- **Escaleta del culto:** la hoja impresa con el orden del culto (cabecera con el logo de la iglesia y una tabla con
+  las secciones). La plantilla se define en Ajustes y equipo → Escaleta; cada culto la rellena con sus canciones en su
+  pestaña Escaleta y se exporta en PDF.
 - **Visor / modo culto:** pantalla pensada para tableta, con la partitura grande y cambio rápido entre canciones.
 - **Acceso:** rol «Equipo de adoración», inicio de sesión con Google (Google Identity Services) o con enlace por correo.
 - **Bienvenida:** quien se añade a la lista del equipo recibe un correo con el logo y un botón que le deja dentro

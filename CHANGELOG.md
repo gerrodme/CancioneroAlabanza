@@ -2,6 +2,14 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.15.0 · 2026-10-31
+
+Escaleta del culto: la hoja impresa con el orden del culto. En Ajustes y equipo → Escaleta se define la plantilla
+(imagen de cabecera, logo de la iglesia, fila de títulos y secciones ordenables arrastrando, con campos de texto o de
+canciones del culto y sus valores por defecto). Cada culto tiene una pestaña Escaleta que se rellena sola con sus
+canciones (preludio, ofrenda, postludio…), se puede retocar, ocultar secciones o añadir otras, y «Exportar escaleta»
+genera un PDF A4
+
 ## 1.14.2 · 2026-10-31
 
 El plugin deja de llevar código propio de una web concreta: una redirección de una página antigua y un ajuste del menú

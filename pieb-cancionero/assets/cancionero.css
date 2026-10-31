@@ -1082,6 +1082,72 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
 .pcan-ayuda summary { cursor: pointer; font-weight: 600; color: var(--pc-accent); }
 [data-pcan-theme] .pcan-ayuda ol { list-style: decimal; padding-left: 20px; margin-top: 8px; display: grid; gap: 6px; }
 
+/* ---- escaleta: plantilla en Ajustes */
+.pcan-esc { container: esc / inline-size; display: flex; flex-direction: column; gap: 18px; }
+/* Imagen de cabecera y logo: vista previa sobre blanco (como el papel), botones y barra de subida */
+.pcan-esc-cabeceras { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.pcan-esc-slot { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.pcan-esc-img-vista { display: grid; place-items: center; min-height: 96px; padding: 8px; border: 1px solid var(--pc-line); border-radius: var(--pc-radius-sm); background: #fff; }
+.pcan-esc-img { display: block; max-width: 100%; max-height: 88px; object-fit: contain; }
+.pcan-esc-img-vacio { color: #5f6672; font-size: 13px; text-align: center; }
+.pcan-esc-slot-botones { display: flex; flex-wrap: wrap; gap: 8px; }
+.pcan-esc-subida { display: grid; gap: 6px; color: var(--pc-text); font-size: 13px; font-weight: 600; }
+.pcan-esc-subida .pcan-progress { height: 10px; }
+.pcan-esc-slot .pcan-form-error, .pcan-esc-confirmar { font-size: 14px; }
+.pcan-esc-slot .pcan-form-error { padding: 8px 12px; }
+.pcan-esc-titulos { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px 16px; }
+/* Lista de secciones: cada una, una tarjeta con su cabecera (asa, título, subir y bajar) y el cuerpo desplegable */
+[data-pcan-theme] .pcan-esc-lista, [data-pcan-theme] .pcan-esc-campos { display: flex; flex-direction: column; gap: 8px; }
+.pcan-esc-lista > li, .pcan-esc-campos > li { margin-left: 0 !important; }
+.pcan-esc-sec { border: 1px solid var(--pc-line); border-radius: var(--pc-radius); background: var(--pc-surface); }
+.pcan-esc-sec.is-open { border-color: color-mix(in srgb, var(--pc-accent) 55%, var(--pc-line)); }
+.pcan-esc-cab { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding: 6px 8px 6px 10px; }
+[data-pcan-theme] .pcan-esc-cab .pcan-drag { margin: 0; }
+[data-pcan-theme] .pcan-esc-toggle {
+  display: flex; align-items: center; gap: 12px; flex: 1 1 220px; min-width: 0; min-height: 48px; padding: 4px 8px 4px 4px; border: 0; border-radius: var(--pc-radius-sm);
+  background: transparent; color: var(--pc-text); text-align: left;
+}
+[data-pcan-theme] .pcan-esc-toggle:hover { background: var(--pc-surface-2); }
+.pcan-esc-textos { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.pcan-esc-nombre { font-size: 15px; font-weight: 700; letter-spacing: .02em; overflow-wrap: anywhere; }
+.pcan-esc-nombre.is-vacio { color: var(--pc-muted); font-style: italic; font-weight: 600; letter-spacing: 0; }
+.pcan-esc-resumen { overflow: hidden; color: var(--pc-muted); font-size: 12.5px; text-overflow: ellipsis; white-space: nowrap; }
+.pcan-esc-accion { flex: 0 0 auto; padding: 3px 12px; border: 1px solid var(--pc-line); border-radius: 999px; color: var(--pc-accent); font-size: 13px; font-weight: 650; }
+.pcan-esc-sec.is-open .pcan-esc-accion { border-color: var(--pc-accent); }
+.pcan-esc-herr, .pcan-esc-campo-herr { display: flex; flex: 0 0 auto; gap: 6px; }
+.pcan-esc-cuerpo { display: flex; flex-direction: column; gap: 14px; padding: 14px 14px 16px; border-top: 1px solid var(--pc-line); }
+.pcan-esc-campos-bloque { display: flex; flex-direction: column; gap: 8px; }
+[data-pcan-theme] .pcan-esc-subtitulo { font-family: var(--pc-font); font-size: 14px; font-weight: 700; }
+.pcan-esc-campos-bloque .pcan-actions { margin: 4px 0 0; }
+.pcan-esc-campo { display: flex; align-items: flex-start; gap: 8px; padding: 10px 10px 10px 6px; border: 1px solid var(--pc-line); border-radius: var(--pc-radius-sm); background: var(--pc-surface-2); }
+[data-pcan-theme] .pcan-esc-campo .pcan-drag { height: 44px; margin: 0; }
+.pcan-esc-campo-main { display: flex; flex: 1; flex-direction: column; gap: 12px; min-width: 0; }
+.pcan-esc-campo-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 12px; align-items: start; }
+.pcan-esc-campo-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+.pcan-esc-campo-pie .pcan-copia-opcion { flex: 1 1 220px; padding: 0; }
+.pcan-esc-pie { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding-top: 12px; border-top: 1px dashed var(--pc-line); }
+.pcan-esc-pie .pcan-confirmar { align-self: stretch; }
+.pcan-esc-confirmar .pcan-btn-danger { border-color: var(--pc-danger); }
+.pcan-esc-sec.is-dragging, .pcan-esc-campo.is-dragging { position: relative; z-index: 1; border-color: var(--pc-accent); background: var(--pc-surface); box-shadow: var(--pc-shadow-lg); }
+.pcan-esc-sec.is-dragging > .pcan-esc-cuerpo { display: none; }
+/* Ejemplo y plantilla de partida */
+.pcan-esc-bloque { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.pcan-esc-bloque .pcan-confirmar { align-self: stretch; }
+.pcan-esc-anuncio { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* En el móvil (o con poco ancho) todo en una columna; subir y bajar pasan a una fila propia con el ancho repartido */
+@container esc (max-width: 560px) {
+  .pcan-esc-cabeceras, .pcan-esc-titulos, .pcan-esc-campo-grid { grid-template-columns: minmax(0, 1fr); }
+  .pcan-esc-toggle { flex-basis: 0; }
+  .pcan-esc-herr { flex: 1 1 100%; }
+  .pcan-esc-herr .pcan-btn { flex: 1; }
+  .pcan-esc-cuerpo { padding: 12px 10px 14px; }
+  .pcan-esc-campo { flex-direction: column; padding: 10px; }
+  .pcan-esc-campo-main { width: 100%; }
+  [data-pcan-theme] .pcan-esc-campo .pcan-drag { align-self: flex-start; width: 100%; height: 32px; margin: -2px 0 0; }
+  .pcan-esc-campo-herr { flex: 1 1 100%; }
+  .pcan-esc-campo-herr .pcan-btn { flex: 1; }
+}
+
 /* ================================================================== cultos */
 
 [data-pcan-theme] .pcan-section-empty { padding: 16px; border: 1px dashed var(--pc-line); border-radius: var(--pc-radius); text-align: center; font-size: 14px; }
@@ -2096,4 +2162,50 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
   [data-pcan-theme] .pcan-setlist.is-edit .pcan-set-n { width: 26px; height: 26px; font-size: 12px; }
   [data-pcan-theme] .pcan-setlist.is-edit .pcan-icon-btn { width: 32px; height: 32px; }
   [data-pcan-theme] .pcan-form-culto .pcan-textarea { min-height: 60px; }
+}
+
+/* ---- escaleta: culto
+ * Pestañas «Canciones» y «Escaleta» del editor del culto, y las tarjetas de sección de la escaleta (prefijo pcan-ec-).
+ */
+.pcan-ec-tabs { align-self: flex-start; margin: 0; }
+.pcan-ec-panel { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.pcan-ec { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.pcan-ec-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.pcan-ec-barra .pcan-help { flex: 1 1 220px; margin: 0; }
+[data-pcan-theme] .pcan-ec-lista { display: flex; flex-direction: column; gap: 10px; }
+.pcan-ec-lista > li { margin-left: 0 !important; }
+.pcan-ec-sec { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border: 1px solid var(--pc-line); border-radius: var(--pc-radius); background: var(--pc-surface); }
+.pcan-ec-sec.is-dragging { border-color: var(--pc-accent); box-shadow: var(--pc-shadow-lg); position: relative; z-index: 1; }
+.pcan-ec-sec.is-oculta { background: var(--pc-surface-2); }
+.pcan-ec-sec.is-oculta .pcan-ec-campos { display: none; }
+.pcan-ec-sec.is-oculta .pcan-ec-titulo, .pcan-ec-sec.is-oculta .pcan-ec-titulo-input { color: var(--pc-muted); text-decoration: line-through; }
+.pcan-ec-cab { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.pcan-ec-cab .pcan-drag { margin: 0 -2px 0 -6px; }
+[data-pcan-theme] .pcan-ec-titulo { flex: 1 1 140px; min-width: 0; margin: 0; color: var(--pc-text); font: 800 15px/1.3 var(--pc-font); letter-spacing: .04em; overflow-wrap: anywhere; }
+[data-pcan-theme] .pcan-ec-titulo-input { flex: 1 1 180px; width: auto; min-width: 0; font-weight: 700; text-transform: uppercase; }
+.pcan-ec-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+.pcan-ec-nota { margin: 0; color: var(--pc-danger); font-size: 13px; }
+.pcan-ec-oculta { display: flex; align-items: center; gap: 10px; min-height: 32px; font-size: 14px; cursor: pointer; }
+.pcan-ec-oculta input, .pcan-ec-op input[type=radio], .pcan-ec-op input[type=checkbox] { width: 18px; height: 18px; margin: 0; flex: 0 0 auto; accent-color: var(--pc-accent); }
+.pcan-ec-campos { display: flex; flex-direction: column; gap: 14px; }
+[data-pcan-theme] .pcan-ec-campos .pcan-input.is-pequeno { font-size: 14px; min-height: 38px; }
+.pcan-ec-campo { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.pcan-ec-campo > .pcan-help { margin: 0; }
+.pcan-ec-ops { display: flex; flex-direction: column; gap: 2px; }
+.pcan-ec-op { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 4px 10px; border-radius: var(--pc-radius-sm); cursor: pointer; }
+.pcan-ec-op:hover { background: var(--pc-surface-2); }
+.pcan-ec-op:has(input:checked) { background: var(--pc-accent-soft); }
+.pcan-ec-op-n { display: grid; place-items: center; flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; background: var(--pc-surface-2); color: var(--pc-muted); font-size: 12px; font-weight: 800; }
+.pcan-ec-op-t { min-width: 0; overflow-wrap: anywhere; font-size: 15px; }
+.pcan-ec-op-num { flex: 0 0 auto; color: var(--pc-muted); font-size: 12px; }
+.pcan-ec-op.is-otra { flex-wrap: wrap; }
+[data-pcan-theme] .pcan-ec-otra-txt { flex: 1 1 180px; width: auto; min-width: 0; }
+.pcan-ec-escritas { display: flex; flex-direction: column; gap: 6px; }
+.pcan-ec-escrita { display: flex; align-items: center; gap: 8px; }
+[data-pcan-theme] .pcan-ec-escrita .pcan-input { flex: 1 1 auto; width: auto; min-width: 0; }
+.pcan-ec-anadir { align-self: flex-start; margin-top: 4px; }
+.pcan-ec-pie { display: flex; }
+@media (max-width: 520px) {
+  .pcan-ec-tools { margin-left: 0; width: 100%; }
+  .pcan-ec-sec { padding: 10px 12px; }
 }
