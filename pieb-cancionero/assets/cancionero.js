@@ -901,7 +901,7 @@
       { titulo: __('Ajustes y equipo'), sub: __('Nombre, tema por defecto, plazo de la papelera'), icono: 'ajustes', href: '#/ajustes' },
       { titulo: __('Equipo'), sub: __('Correos con acceso, administradores y dominio'), icono: 'equipo', href: '#/ajustes/equipo' },
       { titulo: __('Accesos'), sub: __('Quién entra y cuánto se usa'), icono: 'grafica', href: '#/ajustes/accesos' },
-      { titulo: __('Escaleta'), sub: __('Cabecera y secciones de la hoja impresa del culto'), icono: 'lista', href: '#/ajustes/escaleta' },
+      { titulo: __('Escaleta'), sub: __('Logo e imagen de cabecera de la hoja impresa del culto'), icono: 'lista', href: '#/ajustes/escaleta' },
       { titulo: __('Acceso con Google'), sub: __('Client ID de Google'), icono: 'acceso', href: '#/ajustes/google' },
       { titulo: __('Archivos'), sub: __('Protección y archivos sin usar'), icono: 'partitura', href: '#/ajustes/archivos' },
       { titulo: __('Papelera'), sub: __('Restaurar o eliminar canciones borradas'), icono: 'borrar', href: '#/ajustes/papelera' },
@@ -2300,7 +2300,11 @@
     return partes.join(' · ');
   }
 
-  // ---------------------------------------------------------------- escaleta (plantilla de la hoja impresa del culto)
+  // ---------------------------------------------------------------- escaleta (imágenes de la cabecera y editor de secciones)
+  //
+  // La escaleta de cada culto se prepara en el propio culto (cultos.js). Desde aquí, en Ajustes, solo se eligen las dos
+  // imágenes de la cabecera (identidad de la iglesia). El editor de secciones vive aquí para reutilizarlo en el culto
+  // (P.crearEditorEscaleta).
 
   var ESC_TIPOS = ['texto', 'textoLargo', 'cancion', 'canciones'];
   var ESC_MAX_IMAGEN = 2 * 1048576;
@@ -2331,39 +2335,6 @@
 
   function escNombreCampo(c) { return String(c.etiqueta || '').trim() || escTextoTipo(c.tipo); }
 
-  /** Plantilla de ejemplo: la misma (ids y textos) que devuelve el servidor mientras no se guarde otra; sin nada de ninguna iglesia.
-   *  Los textos llevan los mismos contextos que en includes/escaleta.php para compartir traducción. */
-  function escaletaDeEjemplo() {
-    function c(id, tipo, etiqueta, defecto, pequeno) {
-      return { id: id, tipo: tipo, etiqueta: etiqueta || '', defecto: defecto === undefined ? escDefectoDeTipo(tipo) : defecto, pequeno: !!pequeno };
-    }
-    function s(id, titulo, campos) { return { id: id, titulo: titulo, nota: '', campos: campos }; }
-    return {
-      titulo: _x('ORDEN DE CULTO', 'título de la escaleta impresa del culto (se imprime en mayúsculas)'), central: '', logo: null, cabecera: null,
-      secciones: [
-        s('preludio', _x('PRELUDIO', 'sección de la escaleta del culto (en mayúsculas)'), [c('cancion', 'cancion', '', 'primera')]),
-        s('lectura-oracion', _x('LECTURA Y ORACIÓN', 'sección de la escaleta del culto (en mayúsculas)'), [
-          c('presidencia', 'texto', _x('Presidencia', 'etiqueta de un campo de la escaleta del culto')),
-          c('lectura', 'texto', _x('Lectura', 'etiqueta de un campo de la escaleta del culto'))]),
-        s('bienvenida', _x('BIENVENIDA', 'sección de la escaleta del culto (en mayúsculas)'), [c('bienvenida', 'texto', '', __('Bienvenida a todos y a quienes nos visitan'))]),
-        s('comunidad', _x('VIDA DE COMUNIDAD', 'sección de la escaleta del culto (en mayúsculas)'), [c('comunidad', 'textoLargo')]),
-        s('alabanza', _x('CANTOS DE ALABANZA', 'sección de la escaleta del culto (en mayúsculas)'), [c('canciones', 'canciones', '', 'ninguna')]),
-        s('ofrenda', _x('OFRENDA', 'sección de la escaleta del culto (en mayúsculas)'), [
-          c('musica', 'cancion', _x('Música instrumental', 'etiqueta de un campo de la escaleta del culto'), 'siguiente'),
-          c('responsables', 'texto', _x('Responsables', 'etiqueta de un campo de la escaleta del culto')),
-          c('nota', 'texto', '', '', true)]),
-        s('ninos', _x('NIÑOS', 'sección de la escaleta del culto (en mayúsculas)'), [c('ninos', 'texto', '', __('Los niños pasan a sus clases'))]),
-        s('predicacion', _x('PREDICACIÓN', 'sección de la escaleta del culto (en mayúsculas)'), [
-          c('lectura-biblica', 'texto', _x('Lectura', 'etiqueta de un campo de la escaleta del culto')),
-          c('titulo', 'texto', _x('Título', 'etiqueta de un campo de la escaleta del culto')),
-          c('predicacion', 'texto', _x('Predicación', 'etiqueta de un campo de la escaleta del culto'))]),
-        s('despedida', _x('DESPEDIDA', 'sección de la escaleta del culto (en mayúsculas)'), [c('despedida', 'textoLargo')]),
-        s('doxologia', _x('DOXOLOGÍA', 'sección de la escaleta del culto (en mayúsculas)'), [c('doxologia', 'texto')]),
-        s('postludio', _x('POSTLUDIO', 'sección de la escaleta del culto (en mayúsculas)'), [c('postludio', 'canciones', '', 'restantes')])
-      ]
-    };
-  }
-
   function escCopiarCampo(c) {
     c = c && typeof c === 'object' ? c : {};
     var tipo = ESC_TIPOS.indexOf(c.tipo) === -1 ? 'texto' : c.tipo;
@@ -2374,21 +2345,14 @@
     return { id: String(c.id || ''), tipo: tipo, etiqueta: String(c.etiqueta || ''), defecto: defecto, pequeno: !!c.pequeno, _evitar: [] };
   }
 
-  /** Copia de trabajo de una plantilla: se edita ésta, nunca el objeto que llegó del servidor. */
-  function escCopiar(e) {
-    e = e && typeof e === 'object' ? e : {};
-    var imagen = function (v) { return v && v.id ? { id: +v.id, url: String(v.url || '') } : null; };
-    return {
-      titulo: String(e.titulo === undefined || e.titulo === null ? '' : e.titulo),
-      central: String(e.central === undefined || e.central === null ? '' : e.central),
-      logo: imagen(e.logo),
-      cabecera: imagen(e.cabecera),
-      secciones: (Array.isArray(e.secciones) ? e.secciones : []).map(function (s) {
-        s = s && typeof s === 'object' ? s : {};
-        return { id: String(s.id || ''), titulo: String(s.titulo || ''), nota: String(s.nota || ''), campos: (Array.isArray(s.campos) ? s.campos : []).map(escCopiarCampo), _abierta: false };
-      })
-    };
+  /** Copia de trabajo de una lista de secciones: se edita ésta, nunca el objeto que llegó de fuera. */
+  function escCopiarSecciones(lista) {
+    return (Array.isArray(lista) ? lista : []).map(function (s) {
+      s = s && typeof s === 'object' ? s : {};
+      return { id: String(s.id || ''), titulo: String(s.titulo || ''), nota: String(s.nota || ''), campos: (Array.isArray(s.campos) ? s.campos : []).map(escCopiarCampo), _abierta: false };
+    });
   }
+
 
   function escIdLimpio(texto, respaldo) {
     var id = norm(texto).replace(/ /g, '-').slice(0, 40).replace(/^-+|-+$/g, '');
@@ -2403,69 +2367,170 @@
   }
 
   /**
-   * La plantilla tal como se envía al servidor o se pasa al PDF. Los identificadores de las secciones y campos nuevos
-   * (vacíos hasta ahora) se generan aquí, a partir del título o la etiqueta, sin repetirse; los que ya existían no cambian.
-   * `paraGuardar`: las imágenes van solo con su id.
+   * Las secciones tal como las devuelve el editor. Los identificadores de las secciones y campos nuevos (vacíos hasta ahora) se
+   * generan aquí, a partir del título o la etiqueta, sin repetirse; los que ya existían no cambian.
    */
-  function escValor(pl, paraGuardar) {
-    var imagen = function (v) { return v ? (paraGuardar ? { id: v.id } : { id: v.id, url: v.url }) : null; };
+  function escSeccionesValor(secciones) {
     var usadasSec = {};
-    pl.secciones.forEach(function (s) { if (s.id) { usadasSec[s.id] = true; } });
-    return {
-      titulo: pl.titulo.trim() || _x('ORDEN DE CULTO', 'título de la escaleta impresa del culto (se imprime en mayúsculas)'),
-      central: pl.central.trim(),
-      logo: imagen(pl.logo),
-      cabecera: imagen(pl.cabecera),
-      secciones: pl.secciones.map(function (s) {
-        var usadas = {};
-        s.campos.forEach(function (c) {
-          if (c.id) { usadas[c.id] = true; }
-          c._evitar.forEach(function (x) { usadas[x] = true; });
-        });
-        return {
-          id: s.id || escIdUnico(escIdLimpio(s.titulo, 'seccion'), usadasSec),
-          titulo: s.titulo.trim(),
-          nota: s.nota.trim(),
-          campos: s.campos.map(function (c) {
-            return {
-              id: c.id || escIdUnico(escIdLimpio(c.etiqueta, c.tipo === 'textoLargo' ? 'texto-largo' : c.tipo), usadas),
-              tipo: c.tipo, etiqueta: c.etiqueta.trim(), defecto: c.defecto, pequeno: !!c.pequeno
-            };
-          })
-        };
-      })
-    };
-  }
-
-  /** Culto inventado (seis canciones) para el «ejemplo en PDF» de los ajustes. Nada de esto se guarda. */
-  function cultoDeEjemplo() {
-    var tonos = ['Sol', 'Re', 'Mib', 'La', 'Do', 'Fa'];
-    return {
-      id: 0, titulo: __('Culto de ejemplo'), fecha: textoDeFecha(new Date()), tipo: '', notas: '', escaleta: null,
-      items: tonos.map(function (tono, i) {
-        return {
-          cancion: 990001 + i, tonalidad: tono, nota: '', partitura: 0,
-          datos: { titulo: sprintf(/* translators: %d: número de la canción de ejemplo */ __('Canción de ejemplo %d'), i + 1), numero: '', tonalidad: tono, letra: '', partituras: [] }
-        };
-      })
-    };
+    secciones.forEach(function (s) { if (s.id) { usadasSec[s.id] = true; } });
+    return secciones.map(function (s) {
+      var usadas = {};
+      s.campos.forEach(function (c) {
+        if (c.id) { usadas[c.id] = true; }
+        c._evitar.forEach(function (x) { usadas[x] = true; });
+      });
+      return {
+        id: s.id || escIdUnico(escIdLimpio(s.titulo, 'seccion'), usadasSec),
+        titulo: s.titulo.trim(),
+        nota: s.nota.trim(),
+        campos: s.campos.map(function (c) {
+          return {
+            id: c.id || escIdUnico(escIdLimpio(c.etiqueta, c.tipo === 'textoLargo' ? 'texto-largo' : c.tipo), usadas),
+            tipo: c.tipo, etiqueta: c.etiqueta.trim(), defecto: c.defecto, pequeno: !!c.pequeno
+          };
+        })
+      };
+    });
   }
 
   /**
-   * Editor de la plantilla de la escaleta (sección «Escaleta» de los ajustes).
-   * o: { inicial, alCambiar(), alSubir() }. Devuelve { nodo, valor(paraGuardar), validar(), subiendo() }.
+   * Imágenes de la cabecera de la hoja impresa (sección «Escaleta» de los ajustes): la imagen de cabecera y el logo, comunes a
+   * toda la instalación. o: { inicial: { logo, cabecera }, alCambiar(), alSubir() }.
+   * Devuelve { nodo, valor(paraGuardar), subiendo() }; con `paraGuardar` cada imagen va solo con su id.
    */
-  function crearEditorEscaleta(o) {
-    var pl = escCopiar(o.inicial || escaletaDeEjemplo());
+  function crearImagenesEscaleta(o) {
+    var ini = o.inicial || {};
+    var imagen = function (v) { return v && v.id ? { id: +v.id, url: String(v.url || '') } : null; };
+    var im = { logo: imagen(ini.logo), cabecera: imagen(ini.cabecera) };
     var subidas = 0;
-    var slots = [];
+    function cambio() { o.alCambiar(); }
+
+    function slotImagen(cfg) {
+      var ticket = 0, activa = false;
+      var idTitulo = 'pcan-esc-i' + (++escContador);
+      var img = h('img', { class: 'pcan-esc-img', alt: cfg.alt });
+      var vacio = h('span', { class: 'pcan-esc-img-vacio', text: cfg.vacio });
+      var error = h('p', { class: 'pcan-form-error', role: 'alert', hidden: true });
+      var textoSubida = h('span');
+      var relleno = h('span');
+      var barra = h('div', { class: 'pcan-esc-subida', role: 'status', hidden: true }, textoSubida, h('div', { class: 'pcan-progress' }, relleno));
+      var entrada = h('input', { type: 'file', class: 'pcan-file-hidden', accept: 'image/jpeg,image/png', tabindex: '-1', 'aria-hidden': 'true' });
+      var bElegir = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () { entrada.click(); } }, icono('subir'), __('Elegir imagen'));
+      var bQuitar = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-sec is-danger', onclick: function () {
+        im[cfg.clave] = null;
+        mostrarError('');
+        pintar();
+        bElegir.focus();
+        cambio();
+      } }, icono('borrar'), __('Quitar'));
+
+      function mostrarError(texto) { error.textContent = texto || ''; error.hidden = !texto; }
+      function progreso(p) {
+        var pct = Math.round(p * 100);
+        textoSubida.textContent = __('Subiendo…') + ' ' + pct + ' %';
+        relleno.style.width = pct + '%';
+      }
+      function pintar() {
+        var v = im[cfg.clave], hay = !!(v && v.url);
+        if (hay) { img.src = v.url; } else { img.removeAttribute('src'); }
+        img.hidden = !hay;
+        vacio.hidden = hay;
+        bQuitar.hidden = !v;
+      }
+      function terminar() {
+        if (!activa) { return; }
+        activa = false;
+        subidas--;
+        bElegir.disabled = false;
+        bQuitar.disabled = false;
+        barra.hidden = true;
+        o.alSubir();
+      }
+      img.addEventListener('error', function () { img.hidden = true; vacio.hidden = false; });
+      entrada.addEventListener('change', function (e) {
+        e.stopPropagation();
+        var f = entrada.files && entrada.files[0];
+        entrada.value = '';
+        if (!f || activa) { return; }
+        var valida = /^image\/(jpeg|png)$/.test(f.type) || (!f.type && /\.(jpe?g|png)$/i.test(f.name));
+        if (!valida) { mostrarError(__('Solo se admiten imágenes JPG o PNG.')); return; }
+        if (f.size > ESC_MAX_IMAGEN) { mostrarError(sprintf(/* translators: %s: tamaño de la imagen elegida (p. ej. 3,4 MB) */ __('La imagen pesa %s y el máximo son 2 MB.'), tamano(f.size))); return; }
+        mostrarError('');
+        var mio = ++ticket;
+        activa = true;
+        subidas++;
+        bElegir.disabled = true;
+        bQuitar.disabled = true;
+        progreso(0);
+        barra.hidden = false;
+        o.alSubir();
+        var fd = new FormData();
+        fd.append('archivo', f);
+        apiSubir('escaleta/imagen', fd, function (p) { if (mio === ticket) { progreso(p); } }).then(function (r) {
+          if (mio !== ticket) { return; }
+          im[cfg.clave] = { id: +r.id, url: String(r.url || '') };
+          pintar();
+          cambio();
+        }).catch(function (err) {
+          if (mio === ticket) { mostrarError(err.message); }
+        }).then(function () { if (mio === ticket) { terminar(); } });
+      });
+
+      var slot = {};
+      pintar();
+      slot.nodo = h('div', { class: 'pcan-esc-slot', role: 'group', 'aria-labelledby': idTitulo },
+        h('strong', { class: 'pcan-label', id: idTitulo, text: cfg.titulo }),
+        h('div', { class: 'pcan-esc-img-vista' }, img, vacio),
+        h('div', { class: 'pcan-esc-slot-botones' }, bElegir, bQuitar, entrada),
+        barra, error,
+        h('p', { class: 'pcan-help', text: cfg.ayuda }));
+      return slot;
+    }
+
+    var slotCabecera = slotImagen({
+      clave: 'cabecera', titulo: __('Imagen de cabecera (arriba a la izquierda)'), alt: __('Vista previa de la imagen de cabecera'),
+      vacio: __('Sin imagen'), ayuda: __('JPG o PNG, de hasta 2 MB. Si no eliges ninguna, se imprime el nombre del cancionero.')
+    });
+    var slotLogo = slotImagen({
+      clave: 'logo', titulo: __('Logo de la iglesia (arriba a la derecha)'), alt: __('Vista previa del logo'),
+      vacio: __('Sin logo'), ayuda: __('JPG o PNG, de hasta 2 MB. Si no eliges ninguno, se imprime el logo del Cancionero.')
+    });
+
+    var nodo = h('div', { class: 'pcan-esc' },
+      h('p', { class: 'pcan-help', text: __('Aquí solo se eligen las dos imágenes de la cabecera de la hoja impresa. Las secciones, los títulos y el resto de la escaleta se preparan en cada culto, en su pestaña Escaleta.') }),
+      h('fieldset', { class: 'pcan-fieldset' },
+        h('legend', { text: __('Cabecera de la hoja impresa') }),
+        h('div', { class: 'pcan-esc-cabeceras' }, slotCabecera.nodo, slotLogo.nodo)));
+
+    return {
+      nodo: nodo,
+      valor: function (paraGuardar) {
+        var img = function (v) { return v ? (paraGuardar ? { id: v.id } : { id: v.id, url: v.url }) : null; };
+        return { logo: img(im.logo), cabecera: img(im.cabecera) };
+      },
+      subiendo: function () { return subidas; }
+    };
+  }
+
+
+  /**
+   * Editor de las secciones de una escaleta: títulos, notas, campos (tipo, etiqueta, texto o canción inicial, letra pequeña),
+   * orden, añadir y quitar. Se usa en la pestaña Escaleta de cada culto (cultos.js, con P.crearEditorEscaleta).
+   * plantilla: { secciones: [...] } (solo cuenta la estructura; los identificadores que ya existen se conservan);
+   * o: { alCambiar() }. Devuelve { nodo, valor(), validar() }: valor() es la lista de secciones con los identificadores de las
+   * nuevas ya generados; validar() devuelve null o { mensaje, enfocar() } si falta algo (una sección sin título).
+   */
+  function crearEditorEscaleta(plantilla, o) {
+    o = o || {};
+    var pl = { secciones: escCopiarSecciones(plantilla && plantilla.secciones) };
     var anuncio = h('p', { class: 'pcan-esc-anuncio', role: 'status' });
 
     function anunciar(texto) {
       anuncio.textContent = '';
       setTimeout(function () { anuncio.textContent = texto; }, 30);
     }
-    function cambio() { o.alCambiar(); }
+    function cambio() { if (o.alCambiar) { o.alCambiar(); } }
+
     function mover(lista, de, a) { lista.splice(a, 0, lista.splice(de, 1)[0]); }
     function posicion(nombre, i, total) {
       return sprintf(/* translators: 1: nombre de la sección o del campo, 2: posición nueva, 3: total */ __('%1$s: ahora en la posición %2$d de %3$d'), nombre, i + 1, total);
@@ -2488,7 +2553,7 @@
         if (e.button !== 0) { return; }
         e.preventDefault();
         var puntero = e.pointerId, y = e.clientY, raf = 0;
-        var zona = ol.closest('.pcan-ajustes-scroll');
+        var zona = ol.closest('.pcan-ajustes-scroll, .pcan-panel');
         li.classList.add('is-dragging');
         ol.classList.add('is-sorting');
 
@@ -2546,107 +2611,6 @@
       return h('button', { type: 'button', class: 'pcan-drag', tabindex: '-1', 'aria-hidden': 'true', title: __('Arrastrar') }, icono('arrastrar'));
     }
 
-    // ---- cabecera de la hoja: imagen de cabecera y logo
-    function slotImagen(cfg) {
-      var ticket = 0, activa = false;
-      var idTitulo = 'pcan-esc-i' + (++escContador);
-      var img = h('img', { class: 'pcan-esc-img', alt: cfg.alt });
-      var vacio = h('span', { class: 'pcan-esc-img-vacio', text: cfg.vacio });
-      var error = h('p', { class: 'pcan-form-error', role: 'alert', hidden: true });
-      var textoSubida = h('span');
-      var relleno = h('span');
-      var barra = h('div', { class: 'pcan-esc-subida', role: 'status', hidden: true }, textoSubida, h('div', { class: 'pcan-progress' }, relleno));
-      var entrada = h('input', { type: 'file', class: 'pcan-file-hidden', accept: 'image/jpeg,image/png', tabindex: '-1', 'aria-hidden': 'true' });
-      var bElegir = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () { entrada.click(); } }, icono('subir'), __('Elegir imagen'));
-      var bQuitar = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-sec is-danger', onclick: function () {
-        pl[cfg.clave] = null;
-        mostrarError('');
-        pintar();
-        bElegir.focus();
-        cambio();
-      } }, icono('borrar'), __('Quitar'));
-
-      function mostrarError(texto) { error.textContent = texto || ''; error.hidden = !texto; }
-      function progreso(p) {
-        var pct = Math.round(p * 100);
-        textoSubida.textContent = __('Subiendo…') + ' ' + pct + ' %';
-        relleno.style.width = pct + '%';
-      }
-      function pintar() {
-        var v = pl[cfg.clave], hay = !!(v && v.url);
-        if (hay) { img.src = v.url; } else { img.removeAttribute('src'); }
-        img.hidden = !hay;
-        vacio.hidden = hay;
-        bQuitar.hidden = !v;
-      }
-      function terminar() {
-        if (!activa) { return; }
-        activa = false;
-        subidas--;
-        bElegir.disabled = false;
-        bQuitar.disabled = false;
-        barra.hidden = true;
-        o.alSubir();
-      }
-      // Descarta una subida en curso (al volver a la plantilla de ejemplo): su resultado ya no se aplica.
-      function cancelar() { if (activa) { ticket++; terminar(); } mostrarError(''); }
-
-      img.addEventListener('error', function () { img.hidden = true; vacio.hidden = false; });
-      entrada.addEventListener('change', function (e) {
-        e.stopPropagation();
-        var f = entrada.files && entrada.files[0];
-        entrada.value = '';
-        if (!f || activa) { return; }
-        var valida = /^image\/(jpeg|png)$/.test(f.type) || (!f.type && /\.(jpe?g|png)$/i.test(f.name));
-        if (!valida) { mostrarError(__('Solo se admiten imágenes JPG o PNG.')); return; }
-        if (f.size > ESC_MAX_IMAGEN) { mostrarError(sprintf(/* translators: %s: tamaño de la imagen elegida (p. ej. 3,4 MB) */ __('La imagen pesa %s y el máximo son 2 MB.'), tamano(f.size))); return; }
-        mostrarError('');
-        var mio = ++ticket;
-        activa = true;
-        subidas++;
-        bElegir.disabled = true;
-        bQuitar.disabled = true;
-        progreso(0);
-        barra.hidden = false;
-        o.alSubir();
-        var fd = new FormData();
-        fd.append('archivo', f);
-        apiSubir('escaleta/imagen', fd, function (p) { if (mio === ticket) { progreso(p); } }).then(function (r) {
-          if (mio !== ticket) { return; }
-          pl[cfg.clave] = { id: +r.id, url: String(r.url || '') };
-          pintar();
-          cambio();
-        }).catch(function (err) {
-          if (mio === ticket) { mostrarError(err.message); }
-        }).then(function () { if (mio === ticket) { terminar(); } });
-      });
-
-      var slot = { cancelar: cancelar, pintar: pintar };
-      slots.push(slot);
-      pintar();
-      slot.nodo = h('div', { class: 'pcan-esc-slot', role: 'group', 'aria-labelledby': idTitulo },
-        h('strong', { class: 'pcan-label', id: idTitulo, text: cfg.titulo }),
-        h('div', { class: 'pcan-esc-img-vista' }, img, vacio),
-        h('div', { class: 'pcan-esc-slot-botones' }, bElegir, bQuitar, entrada),
-        barra, error,
-        h('p', { class: 'pcan-help', text: cfg.ayuda }));
-      return slot;
-    }
-
-    var slotCabecera = slotImagen({
-      clave: 'cabecera', titulo: __('Imagen de cabecera (arriba a la izquierda)'), alt: __('Vista previa de la imagen de cabecera'),
-      vacio: __('Sin imagen'), ayuda: __('JPG o PNG, de hasta 2 MB. Si no eliges ninguna, se imprime el nombre del cancionero.')
-    });
-    var slotLogo = slotImagen({
-      clave: 'logo', titulo: __('Logo de la iglesia (arriba a la derecha)'), alt: __('Vista previa del logo'),
-      vacio: __('Sin logo'), ayuda: __('JPG o PNG, de hasta 2 MB. Si no eliges ninguno, se imprime el logo del Cancionero.')
-    });
-
-    // ---- fila de títulos
-    var fTitulo = h('input', { type: 'text', class: 'pcan-input', maxlength: '60', placeholder: _x('ORDEN DE CULTO', 'título de la escaleta impresa del culto (se imprime en mayúsculas)'), spellcheck: 'false', oninput: function (e) { pl.titulo = e.target.value; } });
-    var fCentral = h('input', { type: 'text', class: 'pcan-input', maxlength: '80', placeholder: __('p. ej. LECTURAS EN RVR1960'), spellcheck: 'false', oninput: function (e) { pl.central = e.target.value; } });
-    fTitulo.value = pl.titulo;
-    fCentral.value = pl.central;
 
     // ---- secciones
     var lista = h('ol', { class: 'pcan-esc-lista' });
@@ -2699,7 +2663,8 @@
         'aria-label': sprintf(/* translators: %s: título de la sección */ __('Bajar la sección «%s»'), nombreS()), onclick: function () { moverSeccion(i, i + 1); } }, icono('abajo'), _x('Bajar', 'mover una sección o un campo de la escaleta hacia abajo'));
 
       // Cuerpo: lo que se edita al desplegar la sección.
-      var fTit = h('input', { type: 'text', class: 'pcan-input', 'data-accion': 'titulo', maxlength: '60', placeholder: __('p. ej. Anuncios'), oninput: function (e) { s.titulo = e.target.value; cabecera(); } });
+      var fTit = h('input', { type: 'text', class: 'pcan-input', 'data-accion': 'titulo', maxlength: '60', placeholder: __('p. ej. Anuncios'), oninput: function (e) { s.titulo = e.target.value; errorTitulo.hidden = true; cabecera(); } });
+      var errorTitulo = h('p', { class: 'pcan-form-error', role: 'alert', 'data-accion': 'error-titulo', hidden: true });
       var fNota = h('input', { type: 'text', class: 'pcan-input', maxlength: '120', placeholder: __('p. ej. (Indicación breve para este momento)'), oninput: function (e) { s.nota = e.target.value; } });
       fTit.value = s.titulo;
       fNota.value = s.nota;
@@ -2737,14 +2702,14 @@
           var sel = h('select', { class: 'pcan-input', onchange: function (e) { c.defecto = e.target.value; } },
             opciones.map(function (x) { return h('option', { value: x[0], text: x[1] }); }));
           sel.value = c.defecto;
-          return campo(c.tipo === 'cancion' ? __('Canción propuesta') : __('Canciones propuestas'), sel, __('Aparece ya elegida en cada culto; se puede cambiar.'));
+          return campo(c.tipo === 'cancion' ? __('Canción propuesta') : __('Canciones propuestas'), sel, __('Aparece ya elegida al rellenar la escaleta; se puede cambiar.'));
         }
         var texto = c.tipo === 'textoLargo'
           ? h('textarea', { class: 'pcan-input pcan-textarea', rows: '3', maxlength: '1000' })
           : h('input', { type: 'text', class: 'pcan-input', maxlength: '200' });
         texto.value = c.defecto;
         texto.addEventListener('input', function () { c.defecto = texto.value; });
-        return campo(__('Texto inicial (opcional)'), texto, __('Aparece ya escrito en cada culto; se puede cambiar.'));
+        return campo(__('Texto inicial (opcional)'), texto, __('Aparece ya escrito al rellenar la escaleta; se puede cambiar.'));
       }
 
       function tarjetaCampo(c, k) {
@@ -2827,10 +2792,11 @@
 
       var cuerpo = h('div', { class: 'pcan-esc-cuerpo', id: idCuerpo, hidden: true },
         campo(__('Título de la sección'), fTit, __('Se imprime siempre en MAYÚSCULAS.')),
+        errorTitulo,
         campo(__('Nota bajo el título (opcional)'), fNota, __('Sale debajo del título, en rojo y con letra más pequeña.')),
         h('div', { class: 'pcan-esc-campos-bloque' },
           h('h3', { class: 'pcan-esc-subtitulo', text: __('Campos de la sección') }),
-          h('p', { class: 'pcan-help', text: __('Cada campo es una línea que se rellena en cada culto: un texto, o una o varias canciones del culto.') }),
+          h('p', { class: 'pcan-help', text: __('Cada campo es una línea que se rellena al preparar la escaleta: un texto, o una o varias canciones del culto.') }),
           sinCampos, listaCampos,
           h('div', { class: 'pcan-actions' }, bAnadirCampo)),
         h('div', { class: 'pcan-esc-pie' }, bQuitarSeccion, confirmar));
@@ -2856,58 +2822,23 @@
       return fila;
     }
 
-    // ---- ejemplo en PDF y vuelta a la plantilla de ejemplo
-    var bPdf = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () {
-      if (typeof P.escaletaPdf !== 'function') { aviso(__('El PDF de ejemplo no está disponible en este momento.'), 'error'); return; }
-      bPdf.disabled = true;
-      bPdf.lastChild.textContent = __('Preparando el PDF…');
-      // Con la escaleta tal como está en pantalla, guardada o no, y un culto inventado.
-      Promise.resolve().then(function () { return P.escaletaPdf(cultoDeEjemplo(), null, escValor(pl)); })
-        .catch(function (err) { aviso((err && err.message) || __('No se pudo preparar el PDF.'), 'error'); })
-        .then(function () { bPdf.disabled = false; bPdf.lastChild.textContent = __('Ver un ejemplo en PDF'); });
-    } }, icono('descargar'), h('span', { text: __('Ver un ejemplo en PDF') }));
-
-    var confirmarEjemplo = h('div', { class: 'pcan-confirmar pcan-esc-confirmar', role: 'alert', hidden: true });
-    var bEjemplo = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-sec is-danger', 'aria-expanded': 'false', onclick: function () {
-      confirmarEjemplo.hidden = !confirmarEjemplo.hidden;
-      bEjemplo.setAttribute('aria-expanded', confirmarEjemplo.hidden ? 'false' : 'true');
-      if (!confirmarEjemplo.hidden) { confirmarEjemplo.querySelector('[data-accion="cancelar"]').focus(); }
-    } }, icono('borrar'), __('Volver a la plantilla de ejemplo'));
-    append(confirmarEjemplo, [
-      h('span', { text: __('Se perderán la cabecera, los títulos y las secciones que has cambiado, y se pondrá la plantilla de ejemplo.') }),
-      h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', onclick: function () {
-        confirmarEjemplo.hidden = true;
-        bEjemplo.setAttribute('aria-expanded', 'false');
-        poner(escaletaDeEjemplo());
-        cambio();
-        bEjemplo.focus();
-        aviso(__('Plantilla de ejemplo puesta. Pulsa «Guardar ajustes» para conservarla.'));
-      } }, __('Sí, volver al ejemplo')),
-      h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', 'data-accion': 'cancelar', onclick: function () { confirmarEjemplo.hidden = true; bEjemplo.setAttribute('aria-expanded', 'false'); bEjemplo.focus(); } }, __('Cancelar'))]);
-
-    /** Sustituye toda la plantilla (volver al ejemplo): descarta subidas en curso y vuelve a pintar todo. */
-    function poner(e) {
-      slots.forEach(function (s) { s.cancelar(); });
-      pl = escCopiar(e);
-      fTitulo.value = pl.titulo;
-      fCentral.value = pl.central;
-      slots.forEach(function (s) { s.pintar(); });
-      pintarSecciones();
-    }
-
     /** Si falta algo para poder guardar: { mensaje, enfocar() }; si no, null. */
     function validar() {
       for (var i = 0; i < pl.secciones.length; i++) {
         if (pl.secciones[i].titulo.trim()) { continue; }
         var s = pl.secciones[i], pos = i;
+        var mensaje = sprintf(/* translators: %d: número de la sección dentro de la escaleta */ __('La sección %d no tiene título: escríbelo para continuar.'), pos + 1);
         return {
-          mensaje: sprintf(/* translators: %d: número de la sección dentro de la escaleta */ __('La sección %d no tiene título: escríbelo para poder guardar.'), pos + 1),
+          mensaje: mensaje,
           enfocar: function () {
             s._abierta = true;
             pintarSecciones();
             var titulo = lista.children[pos].querySelector('[data-accion="titulo"]');
             titulo.classList.add('is-invalid');
             titulo.setAttribute('aria-invalid', 'true');
+            var aviso_ = lista.children[pos].querySelector('[data-accion="error-titulo"]');
+            aviso_.textContent = mensaje;
+            aviso_.hidden = false;
             titulo.focus();
           }
         };
@@ -2918,41 +2849,22 @@
     pintarSecciones();
 
     var nodo = h('div', { class: 'pcan-esc' },
-      h('p', { class: 'pcan-help', text: __('La escaleta es la hoja impresa con el orden del culto. Aquí decides cómo es: la cabecera, los títulos y las secciones. En cada culto se rellena con sus datos y se puede imprimir en PDF.') }),
-      h('fieldset', { class: 'pcan-fieldset' },
-        h('legend', { text: __('Cabecera de la hoja impresa') }),
-        h('div', { class: 'pcan-esc-cabeceras' }, slotCabecera.nodo, slotLogo.nodo)),
-      h('fieldset', { class: 'pcan-fieldset' },
-        h('legend', { text: __('Fila de títulos') }),
-        h('p', { class: 'pcan-help', text: __('Va bajo la cabecera. A la derecha se pone sola la fecha del culto.') }),
-        h('div', { class: 'pcan-esc-titulos' },
-          campo(__('Título'), fTitulo, __('Si lo dejas vacío se usa «ORDEN DE CULTO».')),
-          campo(__('Texto central (opcional)'), fCentral, __('Por ejemplo, la versión de la Biblia de las lecturas.')))),
-      h('fieldset', { class: 'pcan-fieldset' },
-        h('legend', { text: __('Secciones de la escaleta') }),
-        h('p', { class: 'pcan-help', text: __('Cada sección es una fila de la hoja: su título a la izquierda y lo que se rellena en cada culto a la derecha. Pulsa «Editar» para cambiarla. Para cambiar el orden, arrastra el asa de la izquierda o usa «Subir» y «Bajar».') }),
-        vacia, lista,
-        h('div', { class: 'pcan-actions' }, bAnadirSeccion)),
-      h('fieldset', { class: 'pcan-fieldset' },
-        h('legend', { text: __('Ejemplo y plantilla de partida') }),
-        h('div', { class: 'pcan-esc-bloque' }, bPdf,
-          h('p', { class: 'pcan-help', text: __('Crea un PDF con un culto inventado y la escaleta tal como está ahora en pantalla, aunque aún no la hayas guardado.') })),
-        h('div', { class: 'pcan-esc-bloque' }, bEjemplo,
-          h('p', { class: 'pcan-help', text: __('Sustituye la cabecera, los títulos y las secciones por los de la plantilla de ejemplo. No se guarda hasta que pulses «Guardar ajustes».') }),
-          confirmarEjemplo)),
+      h('p', { class: 'pcan-help', text: __('Cada sección es una fila de la hoja: su título a la izquierda y lo que se rellena a la derecha. Pulsa «Editar» para cambiarla. Para cambiar el orden, arrastra el asa de la izquierda o usa «Subir» y «Bajar».') }),
+      vacia, lista,
+      h('div', { class: 'pcan-actions' }, bAnadirSeccion),
       anuncio);
-    // Pulsar Intro en un campo de texto no debe guardar los ajustes y cerrar el panel (el formulario es uno solo).
+    // Pulsar Intro en un campo de texto no debe enviar el formulario que lo contiene (el del culto o el de los ajustes).
     nodo.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); }
     });
 
     return {
       nodo: nodo,
-      valor: function (paraGuardar) { return escValor(pl, paraGuardar); },
-      validar: validar,
-      subiendo: function () { return subidas; }
+      valor: function () { return escSeccionesValor(pl.secciones); },
+      validar: validar
     };
   }
+
 
   function pintarAjustes(a, seccionInicial) {
     var fNombre =h('input', { type: 'text', class: 'pcan-input', value: a.nombre || '', maxlength: '40', placeholder: 'Cancionero', spellcheck: 'false' });
@@ -2966,14 +2878,15 @@
     var fBienvAuto = h('input', { type: 'checkbox', checked: !!a.bienvenidaAuto });
     var fBienvTexto = h('textarea', { class: 'pcan-input pcan-textarea', rows: '3', maxlength: '1000' });
     fBienvTexto.value = a.bienvenidaTexto || '';
-    // Plantilla de la escaleta (la hoja impresa del culto): se edita en su propia sección y se guarda con «Guardar ajustes».
-    // Subir una imagen sí es inmediato (va a la biblioteca de medios); su id se guarda con el resto.
-    var editorEscaleta = crearEditorEscaleta({
+    // Escaleta: aquí solo van las dos imágenes de la cabecera de la hoja impresa (logo e imagen de cabecera), que se guardan con
+    // «Guardar ajustes». Subir una imagen sí es inmediato (va a la biblioteca de medios); su id se guarda con el resto.
+    // La estructura de la escaleta (secciones, títulos…) se prepara en cada culto.
+    var imagenesEscaleta = crearImagenesEscaleta({
       inicial: a.escaleta,
       alCambiar: function () { recalcularSucio(); },
       alSubir: function () { bloquear(); }
     });
-    var escInicial = JSON.stringify(editorEscaleta.valor(true));
+    var escInicial = JSON.stringify(imagenesEscaleta.valor(true));
 
     var errorBox = h('div', { class: 'pcan-form-error', role: 'alert', hidden: true });
     var guardar = h('button', { type: 'submit', class: 'pcan-btn pcan-btn-primary' }, __('Guardar ajustes'));
@@ -2982,7 +2895,7 @@
     // Guardando, cambiando la lista del equipo o enviando la bienvenida: no se puede guardar, cancelar ni lanzar otra acción a la vez.
     var enCurso = false;
     function bloquear() {
-      guardar.disabled = enCurso || editorEscaleta.subiendo() > 0;
+      guardar.disabled = enCurso || imagenesEscaleta.subiendo() > 0;
       cancelar.disabled = enCurso;
       bAnadir.disabled = enCurso;
       bConfirmarAnadir.disabled = enCurso;
@@ -3602,7 +3515,7 @@
               h('li', null, conNodo(/* translators: %s: dirección web de este sitio */ __('En «Orígenes de JavaScript autorizados» añade: %s'), h('code', { text: a.origen }))),
               h('li', { text: __('Copia el ID de cliente y pégalo aquí.') }))))],
       accesos: [cuerpoAccesos],
-      escaleta: [editorEscaleta.nodo],
+      escaleta: [imagenesEscaleta.nodo],
       archivos: [
         h('fieldset', { class: 'pcan-fieldset' },
           h('legend', { text: __('Protección de los archivos') }),
@@ -3652,7 +3565,7 @@
 
     function valores() {
       // La lista del equipo (correos y administradores) no está aquí: se guarda al momento desde la propia lista.
-      return JSON.stringify([fNombre.value, fSubtitulo.value, fPapelera.value, fTema.value, fClient.value, fDominio.value, fBienvAuto.checked, fBienvTexto.value, fAvisoBorrado.checked, editorEscaleta.valor(true)]);
+      return JSON.stringify([fNombre.value, fSubtitulo.value, fPapelera.value, fTema.value, fClient.value, fDominio.value, fBienvAuto.checked, fBienvTexto.value, fAvisoBorrado.checked, imagenesEscaleta.valor(true)]);
     }
     var inicial = valores();
     // El aviso de «cambios sin guardar» al cerrar lo da panelSucio; aquí se calcula comparando con lo cargado.
@@ -3671,12 +3584,11 @@
     form.addEventListener('input', alCambiar);
     form.addEventListener('change', alCambiar);
 
-    /** Lo que se envía de la escaleta: nada si no se ha tocado (así, mientras nadie la cambie, sigue la plantilla de ejemplo del
-     *  plugin); null si ha quedado igual que la plantilla de ejemplo (el servidor vuelve a la suya); si no, la plantilla completa. */
+    /** Lo que se envía de la escaleta: nada si no se han tocado las imágenes; si no, solo el logo y la cabecera ({id} o null).
+     *  El servidor conserva el resto (secciones y títulos, que ya no se tocan desde aquí). */
     function escaletaParaGuardar() {
-      var actual = editorEscaleta.valor(true), texto = JSON.stringify(actual);
-      if (texto === escInicial) { return undefined; }
-      return texto === JSON.stringify(escValor(escCopiar(escaletaDeEjemplo()), true)) ? null : actual;
+      var actual = imagenesEscaleta.valor(true);
+      return JSON.stringify(actual) === escInicial ? undefined : actual;
     }
 
     /** Cambia de sección. La dirección cambia (para poder enlazarla) sin añadir entradas al historial:
@@ -3718,17 +3630,9 @@
         fNuevos.focus();
         return;
       }
-      if (editorEscaleta.subiendo()) {
+      if (imagenesEscaleta.subiendo()) {
         ir('escaleta');
         errorBox.textContent = __('Espera a que termine de subirse la imagen para guardar.');
-        errorBox.hidden = false;
-        return;
-      }
-      var fallo = editorEscaleta.validar();
-      if (fallo) {
-        ir('escaleta');
-        fallo.enfocar();
-        errorBox.textContent = fallo.mensaje;
         errorBox.hidden = false;
         return;
       }
@@ -4785,6 +4689,7 @@
     alCerrarPanel: function (fn) { alCerrarPanel.push(fn); },
     marcarGuardado: function () { panelSucio = false; },
     campo: campo,
+    crearEditorEscaleta: crearEditorEscaleta,
     mostrarVista: mostrarVista,
     abrirPaleta: abrirPaleta,
     tonalidades: TONALIDADES,

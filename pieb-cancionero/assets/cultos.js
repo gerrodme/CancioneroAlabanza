@@ -681,6 +681,15 @@
       if (!fFecha.value) { errores.push(__('Indica la fecha.')); }
       if (!fTitulo.value.trim()) { errores.push(__('Escribe el título.')); }
       if (errores.length) { errorBox.textContent = errores.join(' '); errorBox.hidden = false; return; }
+      // Una sección sin título en el editor de secciones de la escaleta: se vuelve a esa pestaña para completarla.
+      var fallo = escEd.validar();
+      if (fallo) {
+        elegirPestana('escaleta');
+        fallo.enfocar();
+        errorBox.textContent = fallo.mensaje;
+        errorBox.hidden = false;
+        return;
+      }
       errorBox.hidden = true;
       guardar.disabled = true;
       guardar.textContent = __('Guardando…');
@@ -958,9 +967,11 @@
 
   // ---------------------------------------------------------------- escaleta: datos y lógica común
   //
-  // La escaleta es la hoja impresa del orden del culto: una tabla con una fila por sección. Cada culto guarda una copia de
-  // la plantilla (Ajustes y equipo) con sus valores. Un valor null significa «sin tocar»: se aplica el defecto de la
-  // plantilla al mostrarlo y al imprimirlo, de modo que sigue al setlist mientras nadie lo cambie a mano.
+  // La escaleta es la hoja impresa del orden del culto: una tabla con una fila por sección. Cada culto tiene la suya: su fila
+  // de títulos, sus secciones con sus campos (y los textos por defecto) y los valores. Se prepara en la pestaña Escaleta del
+  // editor del culto y solo afecta a ese culto; un culto nuevo parte de la última escaleta guardada (GET escaleta). Un valor
+  // null significa «sin tocar»: se aplica el defecto del campo al mostrarlo y al imprimirlo, de modo que sigue al setlist
+  // mientras nadie lo cambie a mano. Solo el logo y la imagen de cabecera son de la instalación (Ajustes y equipo → Escaleta).
 
   var TIPOS_CAMPO = ['texto', 'textoLargo', 'cancion', 'canciones'];
   var TAM_TEXTO = 12;
@@ -998,24 +1009,34 @@
     };
   }
 
-  /** Copia limpia de una escaleta (o de una plantilla): solo lo conocido y con el tipo correcto, por si el servidor trae algo raro. */
+  /**
+   * Copia limpia de una escaleta (o de una base): solo lo conocido y con el tipo correcto, por si el servidor trae algo raro.
+   * `titulo` y `central` son null si la escaleta no los trae (las guardadas antes de que cada culto tuviera los suyos).
+   * Ninguna sección es «extra»: todas se pueden editar en el culto.
+   */
   function sanearEscaleta(e) {
-    return { secciones: (e && Array.isArray(e.secciones) ? e.secciones : []).map(function (s) {
-      return {
-        id: String(s.id || ''), titulo: String(s.titulo || ''), nota: String(s.nota || ''), oculta: !!s.oculta, extra: !!s.extra,
-        campos: (Array.isArray(s.campos) ? s.campos : []).map(function (c) {
-          return {
-            id: String(c.id || ''), tipo: TIPOS_CAMPO.indexOf(c.tipo) !== -1 ? c.tipo : 'texto', etiqueta: String(c.etiqueta || ''), pequeno: !!c.pequeno,
-            defecto: c.defecto === undefined || c.defecto === null ? '' : c.defecto, valor: c.valor === undefined ? null : c.valor
-          };
-        })
-      };
-    }) };
+    return {
+      titulo: e && typeof e.titulo === 'string' ? e.titulo : null,
+      central: e && typeof e.central === 'string' ? e.central : null,
+      secciones: (e && Array.isArray(e.secciones) ? e.secciones : []).map(function (s) {
+        return {
+          id: String(s.id || ''), titulo: String(s.titulo || ''), nota: String(s.nota || ''), oculta: !!s.oculta, extra: false,
+          campos: (Array.isArray(s.campos) ? s.campos : []).map(function (c) {
+            return {
+              id: String(c.id || ''), tipo: TIPOS_CAMPO.indexOf(c.tipo) !== -1 ? c.tipo : 'texto', etiqueta: String(c.etiqueta || ''), pequeno: !!c.pequeno,
+              defecto: c.defecto === undefined || c.defecto === null ? '' : c.defecto, valor: c.valor === undefined ? null : c.valor
+            };
+          })
+        };
+      })
+    };
   }
 
-  /** Escaleta de un culto sin valores propios: copia de la plantilla con todo «sin tocar». */
+  /** Escaleta de un culto sin valores propios: copia de la base (título, texto central y secciones) con todo «sin tocar». */
   function nuevaEscaleta(plantilla) {
     var e = sanearEscaleta(plantilla);
+    e.titulo = String(plantilla.titulo || '');
+    e.central = String(plantilla.central || '');
     e.secciones.forEach(function (s) {
       s.oculta = false;
       s.extra = false;
@@ -1024,22 +1045,28 @@
     return e;
   }
 
-  /** Plantilla tal como la trae GET escaleta, completada; `generica: true` si hubo que usar la estándar. */
+  /**
+   * Base de una escaleta nueva tal como la trae GET escaleta, completada: la estructura y la fila de títulos de la última
+   * escaleta guardada (`desde`: {id, titulo} de ese culto, o null si sale de la plantilla estándar) y el logo y la cabecera de
+   * la instalación. `generica: true` si hubo que usar la estándar porque no se pudo leer.
+   */
   function plantillaDe(t) {
     var base = plantillaGenerica();
+    base.desde = null;
     if (!t || !Array.isArray(t.secciones)) { base.generica = true; return base; }
     return {
       titulo: typeof t.titulo === 'string' ? t.titulo : base.titulo,
       central: typeof t.central === 'string' ? t.central : '',
       logo: t.logo && t.logo.url ? t.logo : null,
       cabecera: t.cabecera && t.cabecera.url ? t.cabecera : null,
+      desde: t.desde && t.desde.id ? { id: +t.desde.id, titulo: String(t.desde.titulo || '') } : null,
       secciones: sanearEscaleta(t).secciones.map(function (s) { return { id: s.id, titulo: s.titulo, nota: s.nota, campos: s.campos }; })
     };
   }
 
   /**
-   * Pide la plantilla de la escaleta (GET escaleta, al alcance de todo el equipo; los ajustes solo los lee quien administra).
-   * Si la petición falla o no trae plantilla se sigue con la estándar. Nunca rechaza.
+   * Pide la base de la escaleta (GET escaleta, al alcance de todo el equipo; los ajustes solo los lee quien administra).
+   * Si la petición falla o no trae base se sigue con la estándar. Nunca rechaza.
    */
   function cargarPlantilla() {
     return api('escaleta').then(function (t) { return plantillaDe(t); }, function () { return plantillaDe(null); });
@@ -1195,13 +1222,22 @@
 
   /**
    * Pestaña «Escaleta» del editor. opc: { inicial: escaleta del culto o null, culto: () → {titulo, fecha, tipo, items} con el
-   * estado actual del formulario }. Devuelve { el, mostrar(), setlistCambio(), valor() }: valor() es la escaleta con los
-   * defectos ya explícitos, o undefined si el culto no tenía y no se abrió la pestaña (entonces no se guarda nada).
+   * estado actual del formulario }. Devuelve { el, mostrar(), setlistCambio(), validar(), valor() }: valor() es la escaleta
+   * ({titulo, central, secciones}) con los defectos ya explícitos, o undefined si el culto no tenía y no se abrió la pestaña
+   * (entonces no se guarda nada); validar() es null o { mensaje, enfocar() } si el editor de secciones tiene algo sin acabar.
+   *
+   * Tiene dos modos: «Rellenar» (el valor de cada campo) y «Editar secciones» (la estructura: títulos, notas, campos, tipos,
+   * textos por defecto, orden, añadir y quitar, con el editor de P.crearEditorEscaleta). Todo afecta solo a este culto.
+   * Al volver a «Rellenar» se conservan los valores de los campos que siguen existiendo (por sección y campo) con el mismo tipo.
    */
   function crearEscaletaEditor(opc) {
     var esc = opc.inicial ? sanearEscaleta(opc.inicial) : null;
     var plantillaP = null;
     var generica = false;
+    var desde = null;       // {id, titulo} del culto de cuya escaleta parte esta, si salió de la base
+    var deBase = false;     // la escaleta sale de la base y el culto aún no tiene una guardada
+    var modo = 'rellenar';  // 'rellenar' | 'editar'
+    var editor = null;      // el editor de secciones, mientras el modo es 'editar'
     var pintado = false;
     var res = null;
     var widgets = [];   // los campos de canciones, que se repintan cuando cambia el setlist o lo asignado en otras secciones
@@ -1220,6 +1256,15 @@
     cont.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.type === 'text') { e.preventDefault(); }
     });
+
+    // Una escaleta guardada antes de que cada culto tuviera su fila de títulos toma la de la base.
+    if (esc && (esc.titulo === null || esc.central === null)) {
+      plantilla().then(function (pl) {
+        if (esc.titulo === null) { esc.titulo = pl.titulo; }
+        if (esc.central === null) { esc.central = pl.central; }
+        if (pintado) { pintarTodo(); }
+      });
+    }
 
     function nombreSeccion(sec) { return tituloMay(sec.titulo) || __('Sección nueva'); }
 
@@ -1363,41 +1408,17 @@
       marcarCambio();
     }
 
-    function quitar(i) {
-      esc.secciones.splice(i, 1);
-      pintarTodo();
-      marcarCambio();
-    }
-
-    function anadirSeccion() {
-      esc.secciones.push({
-        id: 'extra-' + Date.now().toString(36), titulo: '', nota: '', oculta: false, extra: true,
-        campos: [{ id: 'texto', tipo: 'textoLargo', etiqueta: '', pequeno: false, defecto: '', valor: '' }]
-      });
-      pintarTodo();
-      marcarCambio();
-      var titulos = cont.querySelectorAll('.pcan-ec-titulo-input');
-      var nueva = titulos[titulos.length - 1];
-      if (nueva) { nueva.focus(); nueva.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
-    }
-
     function tarjeta(sec, i, lista) {
       var nombre = nombreSeccion(sec);
       var li = h('li', { class: 'pcan-ec-sec' + (sec.oculta ? ' is-oculta' : ''), 'data-i': String(i) });
       var asa = h('button', { type: 'button', class: 'pcan-drag', 'aria-label': sprintf(/* translators: %s: título de la sección de la escaleta */ __('Arrastrar para reordenar la sección %s'), nombre), title: __('Arrastrar') }, icono('arrastrar'));
-      var titulo = sec.extra
-        ? h('input', {
-          type: 'text', class: 'pcan-input pcan-input-sm pcan-ec-titulo-input', value: sec.titulo, maxlength: '60',
-          placeholder: __('Título de la sección'), 'aria-label': __('Título de la sección'), oninput: function (e) { sec.titulo = e.target.value; }
-        })
-        : h('h4', { class: 'pcan-ec-titulo', text: tituloMay(sec.titulo) });
       var oculta = h('input', {
         type: 'checkbox', checked: !!sec.oculta,
         onchange: function (e) { sec.oculta = e.target.checked; li.classList.toggle('is-oculta', sec.oculta); cambio(null); }
       });
 
       append(li, [
-        h('div', { class: 'pcan-ec-cab' }, asa, titulo,
+        h('div', { class: 'pcan-ec-cab' }, asa, h('h4', { class: 'pcan-ec-titulo', text: tituloMay(sec.titulo) }),
           h('div', { class: 'pcan-ec-tools' },
             h('button', {
               type: 'button', class: 'pcan-btn pcan-btn-sm', 'data-accion': 'subir', disabled: i === 0,
@@ -1406,11 +1427,7 @@
             h('button', {
               type: 'button', class: 'pcan-btn pcan-btn-sm', 'data-accion': 'bajar', disabled: i === esc.secciones.length - 1,
               'aria-label': sprintf(/* translators: %s: título de la sección de la escaleta */ __('Bajar la sección %s'), nombre), onclick: function () { mover(i, i + 1, 'bajar'); }
-            }, icono('abajo'), _x('Bajar', 'mover una sección de la escaleta hacia abajo')),
-            sec.extra ? h('button', {
-              type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger',
-              'aria-label': sprintf(/* translators: %s: título de la sección de la escaleta */ __('Quitar la sección %s'), nombre), onclick: function () { quitar(i); }
-            }, icono('borrar'), __('Quitar sección')) : null)),
+            }, icono('abajo'), _x('Bajar', 'mover una sección de la escaleta hacia abajo')))),
         sec.nota ? h('p', { class: 'pcan-ec-nota', text: sec.nota }) : null,
         h('label', { class: 'pcan-ec-oculta' }, oculta, h('span', { text: __('No incluir en este culto') })),
         h('div', { class: 'pcan-ec-campos' }, sec.campos.map(function (c) { return campoDe(sec, c); }))
@@ -1423,9 +1440,102 @@
       return li;
     }
 
+    // ---- modo «Editar secciones»
+
+    function esTexto(c) { return c.tipo === 'texto' || c.tipo === 'textoLargo'; }
+
+    /** La escaleta con la estructura que sale del editor de secciones (sin tocar `esc`): cada campo conserva su valor si sigue
+     *  existiendo (misma sección y mismo id) y tiene el mismo tipo; los nuevos empiezan «sin tocar». También se conserva lo
+     *  de «No incluir en este culto». */
+    function conEstructura(secciones) {
+      var antes = {};
+      esc.secciones.forEach(function (s) { antes[s.id] = s; });
+      return {
+        titulo: esc.titulo, central: esc.central,
+        secciones: secciones.map(function (n) {
+          var vieja = antes[n.id], viejos = {};
+          if (vieja) { vieja.campos.forEach(function (c) { viejos[c.id] = c; }); }
+          return {
+            id: n.id, titulo: n.titulo, nota: n.nota, oculta: vieja ? !!vieja.oculta : false, extra: false,
+            campos: n.campos.map(function (c) {
+              var v = viejos[c.id], valor = null;
+              if (v && v.valor !== null && v.valor !== undefined) {
+                if (v.tipo === c.tipo) { valor = v.valor; }
+                else if (esTexto(v) && esTexto(c)) { valor = c.tipo === 'texto' ? String(v.valor).replace(/\s*\n\s*/g, ' ') : v.valor; }
+              }
+              return { id: c.id, tipo: c.tipo, etiqueta: c.etiqueta, pequeno: !!c.pequeno, defecto: c.defecto, valor: valor };
+            })
+          };
+        })
+      };
+    }
+
+    /** La escaleta tal como está ahora: en modo «editar», con lo que lleve el editor de secciones. */
+    function actual() { return modo === 'editar' && editor ? conEstructura(editor.valor()) : esc; }
+
+    function irEditar() {
+      var estructura = { secciones: esc.secciones.map(function (s) {
+        return { id: s.id, titulo: s.titulo, nota: s.nota, campos: s.campos.map(function (c) {
+          return { id: c.id, tipo: c.tipo, etiqueta: c.etiqueta, defecto: c.defecto, pequeno: c.pequeno };
+        }) };
+      }) };
+      editor = P.crearEditorEscaleta(estructura, { alCambiar: marcarCambio });
+      modo = 'editar';
+      pintarTodo();
+    }
+
+    function irRellenar() {
+      var fallo = editor.validar();
+      if (fallo) { fallo.enfocar(); return; }   // el editor marca la sección sin título y avisa bajo su campo
+      esc = conEstructura(editor.valor());
+      editor = null;
+      modo = 'rellenar';
+      pintarTodo();
+    }
+
+    // ---- fila de títulos, selector de modo y nota de origen
+
+    function filaTitulos() {
+      var fTitulo = h('input', { type: 'text', class: 'pcan-input', maxlength: '60', placeholder: _x('ORDEN DE CULTO', 'título de la escaleta impresa del culto (se imprime en mayúsculas)'), spellcheck: 'false', oninput: function (e) { esc.titulo = e.target.value; } });
+      var fCentral = h('input', { type: 'text', class: 'pcan-input', maxlength: '60', placeholder: __('p. ej. LECTURAS EN RVR1960'), spellcheck: 'false', oninput: function (e) { esc.central = e.target.value; } });
+      fTitulo.value = esc.titulo || '';
+      fCentral.value = esc.central || '';
+      return h('fieldset', { class: 'pcan-fieldset' },
+        h('legend', { text: __('Fila de títulos') }),
+        ayuda(__('Va bajo la cabecera. A la derecha se pone sola la fecha del culto.')),
+        h('div', { class: 'pcan-ec-titulos' },
+          P.campo(__('Título'), fTitulo, __('Si lo dejas vacío se usa «ORDEN DE CULTO».')),
+          P.campo(__('Texto central (opcional)'), fCentral, __('Por ejemplo, la versión de la Biblia de las lecturas.'))));
+    }
+
+    function selectorModo() {
+      var editando = modo === 'editar';
+      function boton(clave, texto) {
+        var activo = modo === clave;
+        return h('button', {
+          type: 'button', class: 'pcan-seg' + (activo ? ' is-active' : ''), 'aria-pressed': activo ? 'true' : 'false',
+          onclick: function () { if (!activo) { if (clave === 'editar') { irEditar(); } else { irRellenar(); } } }
+        }, texto);
+      }
+      return h('div', { class: 'pcan-ec-modo' },
+        h('div', { class: 'pcan-segment', role: 'group', 'aria-label': __('Qué quieres hacer con la escaleta') },
+          boton('rellenar', __('Rellenar')), boton('editar', __('Editar secciones'))),
+        ayuda(editando
+          ? __('Cambia las secciones y sus campos solo para este culto. Al volver a «Rellenar» se conserva lo que ya habías escrito en los campos que sigan existiendo.')
+          : __('Escribe lo que corresponde a cada sección. Con «Editar secciones» cambias la estructura de la hoja, solo en este culto.')));
+    }
+
+    function notaOrigen() {
+      if (!deBase) { return null; }
+      var t = desde && desde.titulo.trim();
+      return h('p', { class: 'pcan-ec-origen', role: 'status', text: t
+        ? sprintf(/* translators: %s: título del culto de cuya escaleta parte esta */ __('Parte de la escaleta de «%s». Lo que cambies aquí solo afecta a este culto.'), t)
+        : __('Parte de la escaleta estándar. Lo que cambies aquí solo afecta a este culto.') });
+    }
+
     function exportar(boton) {
       boton.disabled = true;
-      return plantilla().then(function (pl) { return P.escaletaPdf(opc.culto(), esc, pl); }).then(function () { boton.disabled = false; });
+      return plantilla().then(function (pl) { return P.escaletaPdf(opc.culto(), actual(), pl); }).then(function () { boton.disabled = false; });
     }
 
     // foco: { i, accion } deja el foco en el botón «Subir» o «Bajar» de la sección que acaba de moverse.
@@ -1433,16 +1543,19 @@
       cont.innerHTML = '';
       widgets = [];
       if (!esc) { append(cont, h('p', { class: 'pcan-muted', role: 'status', text: __('Cargando la escaleta…') })); return; }
-      recalcular();
-      var lista = h('ol', { class: 'pcan-ec-lista' });
-      esc.secciones.forEach(function (sec, i) { append(lista, tarjeta(sec, i, lista)); });
       var bExportar = h('button', { type: 'button', class: 'pcan-btn', onclick: function () { exportar(bExportar); } }, icono('descargar'), __('Exportar escaleta'));
       append(cont, [
         h('div', { class: 'pcan-ec-barra' }, bExportar, h('p', { class: 'pcan-help', text: __('Se rellena con las canciones del culto; cambia lo que quieras. Se guarda junto con el culto.') })),
         generica ? ayuda(__('No se pudo leer la plantilla de tu grupo: se usa la estándar.')) : null,
-        lista,
-        h('div', { class: 'pcan-ec-pie' }, h('button', { type: 'button', class: 'pcan-btn', onclick: anadirSeccion }, icono('mas'), __('Añadir sección a este culto')))
+        notaOrigen(),
+        filaTitulos(),
+        selectorModo()
       ]);
+      if (modo === 'editar') { append(cont, editor.nodo); return; }
+      recalcular();
+      var lista = h('ol', { class: 'pcan-ec-lista' });
+      esc.secciones.forEach(function (sec, i) { append(lista, tarjeta(sec, i, lista)); });
+      append(cont, esc.secciones.length ? lista : ayuda(__('Esta escaleta no tiene secciones. Pulsa «Editar secciones» para añadirlas.')));
       if (foco && lista.children[foco.i]) {
         var b = lista.children[foco.i].querySelector('[data-accion="' + foco.accion + '"]');
         if (!b || b.disabled) { b = lista.children[foco.i].querySelector('[data-accion]:not(:disabled)'); }
@@ -1452,17 +1565,24 @@
 
     return {
       el: cont,
-      // Al abrir la pestaña por primera vez; si el culto no tenía escaleta, se parte de la plantilla.
+      // Al abrir la pestaña por primera vez; si el culto no tenía escaleta, se parte de la base (la última escaleta guardada).
       mostrar: function () {
         if (pintado) { return; }
         pintado = true;
         pintarTodo();
         if (!esc) {
-          plantilla().then(function (pl) { generica = !!pl.generica; esc = nuevaEscaleta(pl); pintarTodo(); });
+          plantilla().then(function (pl) {
+            generica = !!pl.generica;
+            desde = pl.desde;
+            deBase = true;
+            esc = nuevaEscaleta(pl);
+            pintarTodo();
+          });
         }
       },
-      setlistCambio: function () { if (pintado && esc) { recalcular(); repintarCanciones(null); } },
-      valor: function () { return esc ? explicitar(esc, canciones()) : undefined; }
+      setlistCambio: function () { if (pintado && esc && modo === 'rellenar') { recalcular(); repintarCanciones(null); } },
+      validar: function () { return modo === 'editar' && editor ? editor.validar() : null; },
+      valor: function () { return esc ? explicitar(actual(), canciones()) : undefined; }
     };
   }
 
@@ -1712,13 +1832,19 @@
 
   /**
    * Genera y descarga `escaleta-AAAA-MM-DD.pdf`. culto: el de GET cultos/{id} (o algo con fecha e items); escaleta: la del culto,
-   * o null para sacarla de la plantilla con sus defectos; plantilla: la de GET ajustes (logo, cabecera, título y texto central).
+   * o null para sacarla de la base con sus defectos; plantilla: la base de GET escaleta (logo y cabecera de la instalación y, si la
+   * escaleta no trae los suyos, el título y el texto central).
    * Avisa del progreso y de los errores por sí misma; la promesa nunca rechaza y devuelve true si se descargó.
    */
   P.escaletaPdf = function (culto, escaleta, plantilla) {
     aviso(__('Preparando la escaleta…'));
     plantilla = plantilla || plantillaGenerica();
     var esc = escaleta ? sanearEscaleta(escaleta) : nuevaEscaleta(plantilla);
+    // La fila de títulos es la de la escaleta del culto; si no la trae (guardada antes), la de la base. Logo y cabecera, los de la instalación.
+    plantilla = Object.assign({}, plantilla, {
+      titulo: (esc.titulo || '').trim() || plantilla.titulo || '',
+      central: esc.central !== null ? esc.central : (plantilla.central || '')
+    });
     var sinImagenes = false;
     return cargarPdfLib().then(function (L) {
       var filas = filasImpresion(esc, cancionesDeCulto(culto));

@@ -2,6 +2,12 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.15.1 · 2026-10-31
+
+La escaleta se prepara en cada culto: su pestaña Escaleta tiene «Rellenar» y «Editar secciones» (secciones, campos,
+textos por defecto y orden), y su propia fila de títulos; lo que se cambia solo afecta a ese culto. Un culto nuevo parte
+de la última escaleta preparada. En Ajustes y equipo → Escaleta quedan solo el logo y la imagen de cabecera
+
 ## 1.15.0 · 2026-10-31
 
 Escaleta del culto: la hoja impresa con el orden del culto. En Ajustes y equipo → Escaleta se define la plantilla

@@ -58,11 +58,11 @@ La interfaz es una aplicación de una sola página dentro de la página de WordP
 - Metadatos de **culto**: `_pieb_fecha`, `_pieb_tipo`, `_pieb_notas`, `_pieb_items` (lista de
   `{cancion, tonalidad, nota, partitura}` en orden; `partitura` es el ID del adjunto elegido para ese culto, 0 = la principal (la primera de la canción). Al
   servir el culto, la elegida se coloca la primera en `datos.partituras`, que es la que usan el modo culto y el PDF),
-  `_pieb_escaleta` (opcional: la escaleta de ese culto, copia de la plantilla con sus valores; ver
+  `_pieb_escaleta` (opcional: la escaleta de ese culto, con su fila de títulos, sus secciones y sus valores; ver
   [Escaleta del culto](#escaleta-del-culto)).
 - Opciones de WordPress: `pieb_can_ajustes` (ajustes: `nombre`, `tema_defecto`, `google_client_id`, `emails`,
   `administradores`, `dominio`, `bienvenida_auto`, `bienvenida_texto`, `pagina`, `aviso_borrado`), `pieb_can_escaleta`
-  (plantilla de la escaleta de la instalación; sin autoload; si no existe se usa la genérica), `pieb_can_bienvenidas`
+  (identidad de la escaleta de la instalación: logo y cabecera; sin autoload; si no existe se usa la genérica), `pieb_can_bienvenidas`
   (registro de los correos de bienvenida enviados: correo → marca de tiempo; sin autoload), `pieb_can_avisos_borrado`
   (cola de canciones borradas pendientes de avisar; sin autoload; ver [Aviso de canciones borradas](#aviso-de-canciones-borradas)),
   `pieb_can_accesos_desde` (desde cuándo se registran los accesos; sin autoload), `pieb_can_version`, `pieb_can_migrado`.
@@ -80,10 +80,10 @@ Todas las rutas exigen sesión iniciada con la capacidad `pieb_cancionero_acceso
 | `/canciones/{id}` | GET, POST, DELETE | GET devuelve la ficha completa (partituras con `archivo`/`url`, audios, `youtube` con `videoId`, notas…). POST **actualiza reemplazando todo** (ver abajo). DELETE manda a la papelera. |
 | `/subidas` | POST | Subida de archivos **por trozos** (un audio de 10 MB cabe aunque PHP limite a 2 MB por petición). |
 | `/cultos`, `/cultos/{id}` | GET, POST, DELETE | Cultos y setlists. `GET /cultos/{id}` devuelve además `escaleta` (objeto o `null`; no va en el listado) y `POST` la acepta solo si llega (`null` la borra). Ver [Escaleta del culto](#escaleta-del-culto). |
-| `/escaleta` | GET | Plantilla de la escaleta (la guardada o la genérica). La lee todo el equipo, porque preparar la escaleta de un culto la necesita. |
+| `/escaleta` | GET | **Base de la escaleta de un culto nuevo**: la estructura (sin valores) y la fila de títulos de la última escaleta guardada en cualquier culto, con el logo y la cabecera de la instalación y `desde: {id, titulo}` (el culto de origen; `null` si sale de la plantilla genérica). La lee todo el equipo, porque preparar la escaleta de un culto la necesita. |
 | `/escaleta/imagen` | POST | Sube el logo o la imagen de cabecera de la escaleta (JPG o PNG, máx. 2 MB) a la biblioteca de medios normal; responde `{ id, url }` (exige `pieb_cancionero_gestionar`). |
 | `/etiquetas`, `/preferencias`, `/huerfanos` | varios | Etiquetas con color, preferencias del usuario (`tema`, `idioma` y `notacion`, todos opcionales; vacío = automático), archivos sin usar. |
-| `/ajustes` | GET, POST | Ajustes del cancionero y lista del equipo (exige `pieb_cancionero_gestionar`). Los campos de la bienvenida, en [Bienvenida al equipo](#bienvenida-al-equipo). `GET` devuelve además la plantilla de la escaleta en `escaleta` y `POST` la acepta solo si llega (`null` vuelve a la genérica); ver [Escaleta del culto](#escaleta-del-culto). |
+| `/ajustes` | GET, POST | Ajustes del cancionero y lista del equipo (exige `pieb_cancionero_gestionar`). Los campos de la bienvenida, en [Bienvenida al equipo](#bienvenida-al-equipo). La escaleta de la instalación son solo sus imágenes: `GET` devuelve `escaleta: { logo, cabecera }` y `POST` acepta `escaleta: { logo: {id}|null, cabecera: {id}|null }` solo si llega (lo demás de la escaleta no se toca); ver [Escaleta del culto](#escaleta-del-culto). |
 | `/bienvenida` | POST | Envía el correo de bienvenida a una tanda de correos (exige `pieb_cancionero_gestionar`). Ver [Bienvenida al equipo](#bienvenida-al-equipo). |
 | `/accesos` | GET | Registro de accesos de cada persona del equipo, en bruto, para las estadísticas (exige `pieb_cancionero_gestionar`). Ver [Registro de accesos](#registro-de-accesos). |
 | `/google`, `/enlace`, `/correo-prueba` | POST | Acceso con Google, enlace por correo y prueba de envío. |
@@ -222,19 +222,37 @@ una fila de títulos («ORDEN DE CULTO · texto central · fecha») y una tabla 
 mayúsculas (y una nota opcional debajo, en rojo) y su contenido. El servidor solo guarda, sanea y sirve los datos; el PDF
 (`escaleta-AAAA-MM-DD.pdf`) lo genera el navegador (`P.escaletaPdf` en `cultos.js`), sin dependencias.
 
-**Plantilla** (opción `pieb_can_escaleta`, sin autoload; `GET`/`POST /ajustes`, clave `escaleta`). Si nunca se ha guardado, el
-servidor devuelve la **genérica** del plugin (`pieb_can_escaleta_generica`: preludio, lectura y oración, bienvenida, vida de
-comunidad, cantos, ofrenda, niños, predicación, despedida, doxología y postludio; textos con `__()`, se arma al llamarla) y
-`POST` con `escaleta: null` vuelve a ella.
+**Cada culto tiene su escaleta, y se prepara en el propio culto.** La configuración de la escaleta no es una tarea de
+administración: el equipo la prepara en la pestaña Escaleta del editor del culto y solo afecta a ese culto. Allí se editan la
+fila de títulos (`titulo`, `central`) y, con el botón «Editar secciones», toda la estructura (secciones con sus títulos y notas,
+campos, tipos, etiquetas, letra pequeña, textos o valores por defecto, orden, añadir y quitar; el editor es
+`P.crearEditorEscaleta` de `cancionero.js`, reutilizado en `cultos.js`). Con «Rellenar» se escribe el valor de cada campo. Al volver
+de «Editar secciones» a «Rellenar» se conservan los valores de los campos que siguen existiendo (misma sección y mismo `id`
+de campo) con el mismo tipo; los nuevos empiezan «sin tocar».
+
+**Base para un culto nuevo** (`GET /escaleta`). Un culto sin escaleta propia parte de la **última escaleta guardada en
+cualquier culto** (`pieb_can_escaleta_ultima`: el culto con `_pieb_escaleta` modificado más recientemente): su estructura sin
+valores y sin `oculta`, con su `titulo` y `central`, más el `logo` y la `cabecera` de la instalación y
+`desde: { id, titulo }` (el culto de origen, que la interfaz nombra en una nota; `null` si no hay ninguna y sale de la plantilla).
+Si no hay ninguna escaleta guardada, se usa la **genérica** del plugin (`pieb_can_escaleta_generica`: preludio, lectura y
+oración, bienvenida, vida de comunidad, cantos, ofrenda, niños, predicación, despedida, doxología y postludio; textos con
+`__()`, se arma al llamarla). La base se copia al culto al abrir su pestaña Escaleta y se guarda con el culto.
 
 ```
-escaleta: {
-  titulo, central,                 // celda izquierda y celda central de la fila de títulos
-  logo: { id, url } | null,        // arriba a la derecha (en POST basta { id } o null; sin la clave se conserva)
-  cabecera: { id, url } | null,    // arriba a la izquierda
-  secciones: [ { id, titulo, nota, campos: [ { id, tipo, etiqueta, defecto, pequeno } ] } ]
+escaleta (de un culto): {
+  titulo, central,                 // celda izquierda y celda central de la fila de títulos (vacío = «ORDEN DE CULTO» y celda vacía)
+  secciones: [ {
+    id, titulo, nota,
+    oculta,                        // no se imprime en este culto
+    extra,                         // sin uso: todas las secciones se pueden editar; la interfaz lo deja en false
+    campos: [ { id, tipo, etiqueta, pequeno, defecto, valor } ]
+  } ]
 }
 ```
+
+`GET /cultos/{id}` la devuelve en `escaleta` (objeto o `null`; no va en el listado de cultos, para no engordarlo) y `POST
+/cultos/{id}` la acepta solo si llega (`null` la borra). Las escaletas guardadas antes de que cada culto llevara su fila de
+títulos no traen `titulo` ni `central`: la interfaz toma los de la base al abrirlas y el PDF los de la base si faltan.
 
 | `tipo` del campo | Qué es | `defecto` |
 |---|---|---|
@@ -243,37 +261,30 @@ escaleta: {
 | `cancion` | Una canción del culto o un nombre escrito a mano. | `primera`, `siguiente` (la que va justo después de la última asignada en las secciones anteriores) o `ninguna`. |
 | `canciones` | Varias canciones del culto y/o nombres a mano. | `ninguna` o `restantes` (las que no están en ninguna otra sección). |
 
-Con `etiqueta` se imprime «Etiqueta: valor»; `pequeno` imprime el valor en letra pequeña. **Saneado** (`pieb_can_escaleta_limpiar_*`):
-como mucho 30 secciones de 10 campos; los `id` ([a-z0-9-]) se limpian y se hacen únicos (las secciones entre sí y los campos
-dentro de su sección); título 60, nota 120, etiqueta 60 y defecto 500 caracteres; un campo de tipo desconocido se descarta; el
-defecto de las canciones solo puede ser uno de los valores de la tabla; logo y cabecera deben ser el id de una imagen de la
-biblioteca de medios que no sea un archivo privado del cancionero (si no, `null`) y se devuelven como `{ id, url }`
-(`wp_get_attachment_image_url`, `url` absoluta; `null` si la imagen ya no existe).
+Con `etiqueta` se imprime «Etiqueta: valor»; `pequeno` imprime el valor en letra pequeña. `valor`: `texto`/`textoLargo` → texto
+(500 y 2000 caracteres como máximo); `cancion` → `{ cancion: id de canción | 0, nombre }` (0 + nombre = escrita a mano);
+`canciones` → lista de lo mismo (100 como máximo; las entradas vacías se descartan); `null` en cualquier tipo = «aún sin
+tocar»: la interfaz aplica el `defecto` al mostrar y al imprimir. El id de canción debe ser el de una canción que exista (si no,
+pasa a 0 y se queda el nombre); el `nombre` se guarda también para las canciones del culto, por si luego se quitan del setlist
+(sin nombre se usa el título).
+
+**Saneado** (`pieb_can_escaleta_limpiar_*`): como mucho 30 secciones de 10 campos; los `id` ([a-z0-9-]) se limpian y se hacen
+únicos (las secciones entre sí y los campos dentro de su sección); `titulo` y `central` de la fila de títulos 60 caracteres,
+título de sección 60, nota 120, etiqueta 60 y defecto 500; un campo de tipo desconocido se descarta; el defecto de las
+canciones solo puede ser uno de los valores de la tabla.
+
+**Identidad de la instalación** (opción `pieb_can_escaleta`, sin autoload; `GET`/`POST /ajustes`, clave `escaleta`, en Ajustes y
+equipo → Escaleta). Es lo único de la escaleta que vale para todos los cultos: `logo` (arriba a la derecha) y `cabecera` (arriba a
+la izquierda), como `{ id, url } | null` (en `POST` basta `{ id }` o `null`; sin la clave se conserva la imagen, y `POST` sin
+`secciones`, `titulo` ni `central` conserva lo que hubiera). Deben ser el id de una imagen de la biblioteca de medios que no sea
+un archivo privado del cancionero (si no, `null`) y se devuelven con `wp_get_attachment_image_url` (`url` absoluta; `null` si la
+imagen ya no existe). El PDF toma siempre de aquí el logo y la cabecera; el título y el texto central, de la escaleta del culto.
 
 **Imágenes.** `POST /escaleta/imagen` (multipart, campo `archivo`; JPG o PNG, máx. 2 MB; comprueba el contenido real) sube el
 logo o la cabecera con `media_handle_sideload` a la biblioteca de medios **normal** (`uploads/AAAA/MM`), no a la carpeta
 privada del cancionero: son el logo de la iglesia, no partituras, y pueden ser públicas (el filtro `upload_dir` de
 `archivos.php` solo está activo dentro de `pieb_can_adjuntar`, que esta ruta no usa). Responde `{ id, url }`; la interfaz
-guarda el `id` en la plantilla con «Guardar ajustes».
-
-**Copia por culto** (meta `_pieb_escaleta`). Cada culto guarda una **copia** de la plantilla con sus valores, para que
-cambiar la plantilla no altere los cultos ya preparados. `GET /cultos/{id}` la devuelve en `escaleta` (objeto o `null`; no va
-en el listado de cultos, para no engordarlo) y `POST /cultos/{id}` la acepta solo si llega (`null` la borra):
-
-```
-escaleta: { secciones: [ {
-  id, titulo, nota,
-  oculta,                // no se imprime en este culto
-  extra,                 // sección añadida solo para este culto
-  campos: [ { id, tipo, etiqueta, pequeno, defecto, valor } ]
-} ] }
-```
-
-`valor`: `texto`/`textoLargo` → texto (500 y 2000 caracteres como máximo); `cancion` → `{ cancion: id de canción | 0, nombre }`
-(0 + nombre = escrita a mano); `canciones` → lista de lo mismo (100 como máximo; las entradas vacías se descartan);
-`null` en cualquier tipo = «aún sin tocar»: la interfaz aplica el `defecto` al mostrar y al imprimir. El id de canción debe
-ser el de una canción que exista (si no, pasa a 0 y se queda el nombre); el `nombre` se guarda también para las canciones del
-culto, por si luego se quitan del setlist (sin nombre se usa el título).
+guarda el `id` con «Guardar ajustes».
 
 **Copias de seguridad.** La plantilla va en `ajustes.escaleta` solo si la instalación tiene una propia (la genérica no se
 exporta: en otra web quedaría fija en el idioma de quien exportó) y **sin las imágenes** (`logo` y `cabecera` a `null`: sus ids

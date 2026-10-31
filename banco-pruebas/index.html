@@ -71,8 +71,12 @@
   // POST cultos y cultos/ID: guarda los campos que llegan; la escaleta se conserva si no llega (y solo cambia si llega, también null).
   function guardarCultoMock(c, cuerpo) {
     ['titulo', 'fecha', 'tipo', 'notas', 'items'].forEach(function (k) { if (cuerpo[k] !== undefined) { c[k] = cuerpo[k]; } });
-    if (cuerpo.escaleta !== undefined) { c.escaleta = cuerpo.escaleta; }
+    if (cuerpo.escaleta !== undefined) {
+      c.escaleta = cuerpo.escaleta;
+      if (cuerpo.escaleta) { ultimaEscaleta = c.id; }   // como el servidor: la base de un culto nuevo es la última escaleta guardada
+    }
   }
+  var ultimaEscaleta = 900;
   function detalleCulto(c) {
     return Object.assign({}, c, { escaleta: c.escaleta || null, items: c.items.map(function (it) {
       var s = canciones.filter(function (x) { return x.id === it.cancion; })[0];
@@ -81,7 +85,7 @@
   }
   // Ajustes y equipo: la lista guardada vive aquí para que guardar y enviar la bienvenida se noten al volver a abrir.
   var ahoraS = function () { return Math.floor(Date.now() / 1000); };
-  // Escaleta del culto: plantilla genérica (la misma que da el servidor mientras nadie guarde otra), sin logo ni cabecera.
+  // Escaleta del culto: plantilla genérica (la misma que da el servidor mientras nadie guarde una escaleta en un culto).
   function escaletaGenerica() {
     function c(id, tipo, etiqueta, defecto, pequeno) {
       return { id: id, tipo: tipo, etiqueta: etiqueta || '', defecto: defecto === undefined ? (tipo === 'cancion' || tipo === 'canciones' ? 'ninguna' : '') : defecto, pequeno: !!pequeno };
@@ -104,10 +108,12 @@
       ]
     };
   }
-  // Escaleta de ejemplo del primer culto (valores inventados): copia de la plantilla con valores; lo que queda en null sigue al defecto.
-  // El segundo culto no tiene (escaleta: null) y parte de la plantilla.
+  // Escaleta de ejemplo del primer culto (valores inventados): su fila de títulos, sus secciones y los valores; lo que queda en null
+  // sigue al defecto. Los demás cultos no tienen (escaleta: null) y parten de la última escaleta guardada (GET escaleta).
   (function () {
     var e = escaletaGenerica();
+    e.central = 'LECTURAS EN RVR1960';
+    delete e.logo; delete e.cabecera;
     e.secciones.forEach(function (s) { s.oculta = false; s.extra = false; s.campos.forEach(function (c) { c.valor = null; }); });
     function pon(sec, campo, valor) {
       e.secciones.filter(function (s) { return s.id === sec; })[0].campos.filter(function (c) { return c.id === campo; })[0].valor = valor;
@@ -124,14 +130,36 @@
     pon('predicacion', 'predicacion', 'Pastor invitado');
     pon('despedida', 'despedida', '*Recordar la reunión del jueves');
     pon('doxologia', 'doxologia', 'Romanos 11:36');
-    e.secciones.splice(8, 0, { id: 'extra-cena', titulo: 'Santa Cena', nota: '(Al terminar la predicación)', oculta: false, extra: true,
+    e.secciones.splice(8, 0, { id: 'santa-cena', titulo: 'Santa Cena', nota: '(Al terminar la predicación)', oculta: false, extra: false,
       campos: [{ id: 'texto', tipo: 'textoLargo', etiqueta: '', defecto: '', pequeno: false, valor: 'Se sirve en los bancos' }] });
     cultos[0].escaleta = e;
     cultos[1].escaleta = null;
   })();
   var iconoMock = '../docs/imagenes/logo/icono.png';
+  // GET escaleta: la base de un culto nuevo, como el servidor: la estructura (sin valores) y la fila de títulos de la última escaleta
+  // guardada en un culto, con el logo y la cabecera de la instalación y `desde` (el culto de origen); si no hay ninguna, la genérica.
+  function baseEscaleta() {
+    var base = escaletaGenerica();
+    base.desde = null;
+    base.logo = ajustesMock.escaleta.logo;
+    base.cabecera = ajustesMock.escaleta.cabecera;
+    var origen = cultos.filter(function (c) { return c.id === ultimaEscaleta && c.escaleta; })[0] || cultos.filter(function (c) { return c.escaleta; })[0];
+    if (origen) {
+      var e = origen.escaleta;
+      base.titulo = e.titulo || base.titulo;
+      base.central = e.central || '';
+      base.secciones = e.secciones.map(function (s) {
+        return { id: s.id, titulo: s.titulo, nota: s.nota, campos: s.campos.map(function (c) {
+          return { id: c.id, tipo: c.tipo, etiqueta: c.etiqueta, defecto: c.defecto, pequeno: c.pequeno };
+        }) };
+      });
+      base.desde = { id: origen.id, titulo: origen.titulo };
+    }
+    return base;
+  }
   var ajustesMock = {
-    escaleta: escaletaGenerica(),
+    // En Ajustes la escaleta solo tiene la identidad de la iglesia: el logo y la imagen de cabecera ({id, url} o null).
+    escaleta: { logo: null, cabecera: null },
     nombre: 'Cancionero', subtitulo: 'Tu iglesia', version: '1.5.5', administradores: ['ana@example.com'], papeleraDias: 30, temaDefecto: 'claro',
     googleClientId: '', dominio: '', origen: location.origin, bienvenidaAuto: true, bienvenidaTexto: 'Encontrarás el cancionero en el menú «Música» de nuestra web.', pagina: '',
     avisoBorrado: true, correoAdmin: 'webmaster@example.com',
@@ -155,12 +183,11 @@
   function guardarAjustesMock(cuerpo) {
     ['nombre', 'subtitulo', 'papeleraDias', 'temaDefecto', 'googleClientId', 'dominio', 'bienvenidaAuto', 'bienvenidaTexto', 'avisoBorrado', 'pagina']
       .forEach(function (k) { if (cuerpo[k] !== undefined) { ajustesMock[k] = cuerpo[k]; } });
-    // Escaleta: null vuelve a la genérica; si no, se guarda lo que llega y a las imágenes (que llegan solo con su id) se les pone dirección.
-    if (cuerpo.escaleta === null) { ajustesMock.escaleta = escaletaGenerica(); }
-    else if (cuerpo.escaleta !== undefined) {
-      var esc = JSON.parse(JSON.stringify(cuerpo.escaleta));
-      ['logo', 'cabecera'].forEach(function (k) { esc[k] = esc[k] && esc[k].id ? { id: esc[k].id, url: iconoMock } : null; });
-      ajustesMock.escaleta = esc;
+    // Escaleta: solo el logo y la cabecera ({id} o null; a las imágenes se les pone dirección). El resto no se toca (el servidor lo conserva).
+    if (cuerpo.escaleta && typeof cuerpo.escaleta === 'object') {
+      ['logo', 'cabecera'].forEach(function (k) {
+        if (k in cuerpo.escaleta) { ajustesMock.escaleta[k] = cuerpo.escaleta[k] && cuerpo.escaleta[k].id ? { id: cuerpo.escaleta[k].id, url: iconoMock } : null; }
+      });
     }
     var pendientes = [];
     if (cuerpo.emails !== undefined || cuerpo.administradores !== undefined) {
@@ -275,7 +302,7 @@
       if (opts && opts.method === 'POST') { guardarCultoMock(culto, cuerpo); }
       datos = detalleCulto(culto);
     }
-    else if (ruta === 'escaleta' && (!opts || !opts.method || opts.method === 'GET')) { datos = ajustesMock.escaleta; }
+    else if (ruta === 'escaleta' && (!opts || !opts.method || opts.method === 'GET')) { datos = baseEscaleta(); }
     else if (ruta === 'preferencias' && opts && opts.body) {
       // Recuerda idioma y notación en esta pestaña para que la recarga los aplique, como en WordPress.
       var p = JSON.parse(opts.body), guardadas = {};

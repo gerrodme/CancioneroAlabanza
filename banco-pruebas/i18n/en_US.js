@@ -2162,9 +2162,6 @@ window.PIEB_I18N = {
   "Escaleta": [
    "Order of service"
   ],
-  "Cabecera y secciones de la hoja impresa del culto": [
-   "Header and sections of the printed order of service"
-  ],
   "Texto largo": [
    "Long text"
   ],
@@ -2200,12 +2197,6 @@ window.PIEB_I18N = {
   ],
   "Las que no estén en otras secciones": [
    "Those not in other sections"
-  ],
-  "Culto de ejemplo": [
-   "Sample service"
-  ],
-  "Canción de ejemplo %d": [
-   "Sample song %d"
   ],
   "%1$s: ahora en la posición %2$d de %3$d": [
    "%1$s: now in position %2$d of %3$d"
@@ -2291,14 +2282,8 @@ window.PIEB_I18N = {
   "Canciones propuestas": [
    "Suggested songs"
   ],
-  "Aparece ya elegida en cada culto; se puede cambiar.": [
-   "Already selected in each service; it can be changed."
-  ],
   "Texto inicial (opcional)": [
    "Initial text (optional)"
-  ],
-  "Aparece ya escrito en cada culto; se puede cambiar.": [
-   "Already filled in for each service; it can be changed."
   ],
   "p. ej. Presidencia": [
    "e.g. Leading"
@@ -2357,39 +2342,6 @@ window.PIEB_I18N = {
   "Campos de la sección": [
    "Section fields"
   ],
-  "Cada campo es una línea que se rellena en cada culto: un texto, o una o varias canciones del culto.": [
-   "Each field is a line that is filled in for each service: a text, or one or several of the service’s songs."
-  ],
-  "El PDF de ejemplo no está disponible en este momento.": [
-   "The sample PDF is not available right now."
-  ],
-  "Preparando el PDF…": [
-   "Preparing the PDF…"
-  ],
-  "No se pudo preparar el PDF.": [
-   "Could not prepare the PDF."
-  ],
-  "Ver un ejemplo en PDF": [
-   "View a sample PDF"
-  ],
-  "Volver a la plantilla de ejemplo": [
-   "Restore the sample template"
-  ],
-  "Se perderán la cabecera, los títulos y las secciones que has cambiado, y se pondrá la plantilla de ejemplo.": [
-   "The header, titles and sections you changed will be lost, and the sample template will be restored."
-  ],
-  "Plantilla de ejemplo puesta. Pulsa «Guardar ajustes» para conservarla.": [
-   "Sample template restored. Press “Save settings” to keep it."
-  ],
-  "Sí, volver al ejemplo": [
-   "Yes, restore the sample"
-  ],
-  "La sección %d no tiene título: escríbelo para poder guardar.": [
-   "Section %d has no title: enter one in order to save."
-  ],
-  "La escaleta es la hoja impresa con el orden del culto. Aquí decides cómo es: la cabecera, los títulos y las secciones. En cada culto se rellena con sus datos y se puede imprimir en PDF.": [
-   "The order of service is the printed sheet with the running order of the service. Here you decide what it looks like: the header, the titles and the sections. It is filled in with each service’s details and can be printed as a PDF."
-  ],
   "Cabecera de la hoja impresa": [
    "Header of the printed sheet"
   ],
@@ -2407,21 +2359,6 @@ window.PIEB_I18N = {
   ],
   "Por ejemplo, la versión de la Biblia de las lecturas.": [
    "For example, the Bible version used for the readings."
-  ],
-  "Secciones de la escaleta": [
-   "Order of service sections"
-  ],
-  "Cada sección es una fila de la hoja: su título a la izquierda y lo que se rellena en cada culto a la derecha. Pulsa «Editar» para cambiarla. Para cambiar el orden, arrastra el asa de la izquierda o usa «Subir» y «Bajar».": [
-   "Each section is a row of the sheet: its title on the left and what is filled in for each service on the right. Press “Edit” to change it. To change the order, drag the handle on the left or use “Move up” and “Move down”."
-  ],
-  "Ejemplo y plantilla de partida": [
-   "Sample and starting template"
-  ],
-  "Crea un PDF con un culto inventado y la escaleta tal como está ahora en pantalla, aunque aún no la hayas guardado.": [
-   "Creates a PDF with a made-up service and the order of service as it currently looks on screen, even if you haven’t saved it yet."
-  ],
-  "Sustituye la cabecera, los títulos y las secciones por los de la plantilla de ejemplo. No se guarda hasta que pulses «Guardar ajustes».": [
-   "Replaces the header, titles and sections with those of the sample template. Nothing is saved until you press “Save settings”."
   ],
   "Espera a que termine de subirse la imagen para guardar.": [
    "Wait for the image to finish uploading before saving."
@@ -2474,9 +2411,6 @@ window.PIEB_I18N = {
   "mover una sección de la escaleta hacia abajo\u0004Bajar": [
    "Move down"
   ],
-  "Quitar la sección %s": [
-   "Remove section %s"
-  ],
   "No incluir en este culto": [
    "Don’t include in this service"
   ],
@@ -2488,9 +2422,6 @@ window.PIEB_I18N = {
   ],
   "No se pudo leer la plantilla de tu grupo: se usa la estándar.": [
    "Could not read your group’s template: the standard one is used."
-  ],
-  "Añadir sección a este culto": [
-   "Add section to this service"
   ],
   "Preparando la escaleta…": [
    "Preparing the order of service…"
@@ -2563,6 +2494,51 @@ window.PIEB_I18N = {
   ],
   "sección de la escaleta del culto (en mayúsculas)\u0004POSTLUDIO": [
    "POSTLUDE"
+  ],
+  "Logo e imagen de cabecera de la hoja impresa del culto": [
+   "Logo and header image of the printed order of service"
+  ],
+  "Aquí solo se eligen las dos imágenes de la cabecera de la hoja impresa. Las secciones, los títulos y el resto de la escaleta se preparan en cada culto, en su pestaña Escaleta.": [
+   "Here you only choose the two header images of the printed sheet. The sections, the titles and the rest of the order of service are prepared in each service, in its Order of service tab."
+  ],
+  "Aparece ya elegida al rellenar la escaleta; se puede cambiar.": [
+   "It appears already selected when filling in the order of service; it can be changed."
+  ],
+  "Aparece ya escrito al rellenar la escaleta; se puede cambiar.": [
+   "It appears already written when filling in the order of service; it can be changed."
+  ],
+  "Cada campo es una línea que se rellena al preparar la escaleta: un texto, o una o varias canciones del culto.": [
+   "Each field is a line that is filled in when preparing the order of service: a text, or one or more songs from the service."
+  ],
+  "La sección %d no tiene título: escríbelo para continuar.": [
+   "Section %d has no title: type one to continue."
+  ],
+  "Cada sección es una fila de la hoja: su título a la izquierda y lo que se rellena a la derecha. Pulsa «Editar» para cambiarla. Para cambiar el orden, arrastra el asa de la izquierda o usa «Subir» y «Bajar».": [
+   "Each section is a row of the sheet: its title on the left and what is filled in on the right. Press “Edit” to change it. To change the order, drag the handle on the left or use “Move up” and “Move down”."
+  ],
+  "Qué quieres hacer con la escaleta": [
+   "What you want to do with the order of service"
+  ],
+  "Rellenar": [
+   "Fill in"
+  ],
+  "Editar secciones": [
+   "Edit sections"
+  ],
+  "Cambia las secciones y sus campos solo para este culto. Al volver a «Rellenar» se conserva lo que ya habías escrito en los campos que sigan existiendo.": [
+   "Change the sections and their fields for this service only. When you go back to “Fill in”, what you had typed is kept in the fields that still exist."
+  ],
+  "Escribe lo que corresponde a cada sección. Con «Editar secciones» cambias la estructura de la hoja, solo en este culto.": [
+   "Type what goes in each section. With “Edit sections” you change the layout of the sheet, for this service only."
+  ],
+  "Parte de la escaleta de «%s». Lo que cambies aquí solo afecta a este culto.": [
+   "Based on the order of service of “%s”. What you change here only affects this service."
+  ],
+  "Parte de la escaleta estándar. Lo que cambies aquí solo afecta a este culto.": [
+   "Based on the standard order of service. What you change here only affects this service."
+  ],
+  "Esta escaleta no tiene secciones. Pulsa «Editar secciones» para añadirlas.": [
+   "This order of service has no sections. Press “Edit sections” to add them."
   ]
  }
 };

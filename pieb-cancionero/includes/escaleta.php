@@ -5,13 +5,13 @@
  * (assets/cultos.js); aquí solo se guardan, sanean y sirven los datos.
  *
  * Hay dos piezas:
- *  - La PLANTILLA de la instalación (opción «pieb_can_escaleta», sin autoload): título, texto central, logo y cabecera
- *    (ids de adjuntos de la biblioteca de medios normal) y la lista de secciones con sus campos. Si nunca se ha guardado se
- *    ofrece la plantilla genérica del plugin (pieb_can_escaleta_generica, con textos traducibles). La edita quien administra
- *    el cancionero con GET/POST /ajustes (clave «escaleta») y la leen todos con GET /escaleta (el equipo la necesita para
- *    preparar la escaleta de un culto aunque no pueda ver los ajustes).
- *  - La COPIA de cada culto (meta «_pieb_escaleta»): la plantilla con los valores de ese culto, para que cambiar la
- *    plantilla después no altere los cultos ya preparados. Viaja con el culto en GET/POST /cultos/{id}.
+ *  - La escaleta de CADA CULTO (meta «_pieb_escaleta»): su fila de títulos, sus secciones con sus campos (y sus textos
+ *    por defecto) y los valores de ese culto. La estructura se edita en el propio culto y solo le afecta a él. Viaja con
+ *    el culto en GET/POST /cultos/{id}.
+ *  - La BASE para un culto nuevo (GET /escaleta, para todo el equipo): la estructura de la última escaleta guardada, con
+ *    los valores vacíos; si aún no hay ninguna, la plantilla de la instalación (opción «pieb_can_escaleta», sin autoload)
+ *    o la genérica del plugin (pieb_can_escaleta_generica, con textos traducibles). El logo y la imagen de cabecera son de
+ *    la instalación: se guardan en esa opción desde Ajustes (POST /ajustes, clave «escaleta») y valen para todos.
  *
  * Los campos son de cuatro tipos: «texto» (una línea), «textoLargo» (varias líneas), «cancion» (una canción del culto o un
  * nombre escrito a mano) y «canciones» (varias). Un valor null significa «aún sin tocar»: la interfaz aplica entonces el
@@ -119,13 +119,20 @@ function pieb_can_escaleta_generica() {
 
 // ---------------------------------------------------------------- plantilla guardada
 
-/** Plantilla guardada, en la forma en que se guarda (logo y cabecera son ids), o null si la instalación aún no tiene una propia. */
+/**
+ * Plantilla guardada, en la forma en que se guarda (logo y cabecera son ids; «secciones» null = las de la genérica), o
+ * null si la instalación no tiene nada guardado.
+ */
 function pieb_can_escaleta_guardada() {
-    $guardada = get_option('pieb_can_escaleta', array());
-    if (!is_array($guardada) || !isset($guardada['secciones']) || !is_array($guardada['secciones'])) {
+    $guardada = get_option('pieb_can_escaleta', null);
+    if (!is_array($guardada)) {
         return null;
     }
-    return wp_parse_args($guardada, array('titulo' => '', 'central' => '', 'logo' => 0, 'cabecera' => 0));
+    $guardada = wp_parse_args($guardada, array('titulo' => '', 'central' => '', 'logo' => 0, 'cabecera' => 0, 'secciones' => null));
+    if (!is_array($guardada['secciones'])) {
+        $guardada['secciones'] = null;
+    }
+    return $guardada;
 }
 
 /** Guarda la plantilla ya saneada; null borra la propia y la instalación vuelve a la genérica. No se carga en cada petición (autoload falso). */
@@ -149,21 +156,76 @@ function pieb_can_escaleta_imagen($id) {
 
 /** La plantilla tal como se entrega a la interfaz: la guardada o, si no hay, la genérica, con logo y cabecera como {id, url} o null. */
 function pieb_can_escaleta_plantilla() {
+    $generica = pieb_can_escaleta_generica();
     $plantilla = pieb_can_escaleta_guardada();
     if ($plantilla === null) {
-        $plantilla = pieb_can_escaleta_generica();
+        $plantilla = $generica;
     }
     return array(
-        'titulo'    => (string) $plantilla['titulo'],
+        'titulo'    => (string) ($plantilla['titulo'] !== '' ? $plantilla['titulo'] : $generica['titulo']),
         'central'   => (string) $plantilla['central'],
         'logo'      => pieb_can_escaleta_imagen($plantilla['logo']),
         'cabecera'  => pieb_can_escaleta_imagen($plantilla['cabecera']),
-        'secciones' => array_values($plantilla['secciones']),
+        'secciones' => array_values(is_array($plantilla['secciones']) ? $plantilla['secciones'] : $generica['secciones']),
     );
 }
 
+/** Última escaleta guardada en un culto (el culto modificado más recientemente que tiene una), o null. */
+function pieb_can_escaleta_ultima() {
+    $ids = get_posts(array(
+        'post_type'      => PIEB_CAN_CULTO,
+        'post_status'    => 'publish',
+        'posts_per_page' => 1,
+        'orderby'        => 'modified',
+        'order'          => 'DESC',
+        'meta_key'       => '_pieb_escaleta',
+        'fields'         => 'ids',
+        'no_found_rows'  => true,
+    ));
+    if (!$ids) {
+        return null;
+    }
+    $escaleta = pieb_can_culto_escaleta($ids[0]);
+    return $escaleta ? array('culto' => (int) $ids[0], 'escaleta' => $escaleta) : null;
+}
+
+/**
+ * Base para la escaleta de un culto nuevo: la estructura de la última escaleta guardada (secciones, campos y textos por
+ * defecto, incluidas las secciones que se añadieron allí, sin «oculta» y sin valores) con su fila de títulos; si aún no
+ * hay ninguna, la plantilla. El logo y la cabecera son siempre los de la instalación. «desde» dice de qué culto sale.
+ */
 function pieb_can_rest_escaleta_ver() {
-    return rest_ensure_response(pieb_can_escaleta_plantilla());
+    $plantilla = pieb_can_escaleta_plantilla();
+    $plantilla['desde'] = null;
+    $ultima = pieb_can_escaleta_ultima();
+    if ($ultima) {
+        $e = $ultima['escaleta'];
+        $secciones = array();
+        foreach ($e['secciones'] as $seccion) {
+            $campos = array();
+            foreach ((array) $seccion['campos'] as $campo) {
+                $campos[] = array(
+                    'id'       => $campo['id'],
+                    'tipo'     => $campo['tipo'],
+                    'etiqueta' => isset($campo['etiqueta']) ? $campo['etiqueta'] : '',
+                    'defecto'  => isset($campo['defecto']) ? $campo['defecto'] : '',
+                    'pequeno'  => !empty($campo['pequeno']),
+                );
+            }
+            $secciones[] = array('id' => $seccion['id'], 'titulo' => $seccion['titulo'], 'nota' => isset($seccion['nota']) ? $seccion['nota'] : '', 'campos' => $campos);
+        }
+        if ($secciones) {
+            $plantilla['secciones'] = $secciones;
+        }
+        if (isset($e['titulo']) && $e['titulo'] !== '') {
+            $plantilla['titulo'] = $e['titulo'];
+        }
+        if (isset($e['central'])) {
+            $plantilla['central'] = $e['central'];
+        }
+        $plantilla['desde'] = array('id' => $ultima['culto'], 'titulo' => get_the_title($ultima['culto']));
+    }
+    return rest_ensure_response($plantilla);
 }
 
 // ---------------------------------------------------------------- saneado
@@ -338,7 +400,8 @@ function pieb_can_escaleta_limpiar_plantilla($datos, $actual = null) {
     if ($datos === null) {
         return null;
     }
-    if (!is_array($datos) || !isset($datos['secciones']) || !is_array($datos['secciones'])) {
+    // Desde Ajustes solo llegan el logo y la cabecera: sin «secciones» se conservan las guardadas (o la genérica).
+    if (!is_array($datos) || (isset($datos['secciones']) && !is_array($datos['secciones']))) {
         return pieb_can_escaleta_error();
     }
     $imagen = function ($clave) use ($datos, $actual) {
@@ -348,15 +411,15 @@ function pieb_can_escaleta_limpiar_plantilla($datos, $actual = null) {
         return $actual && !empty($actual[$clave]) ? (int) $actual[$clave] : 0;
     };
     return array(
-        'titulo'    => pieb_can_escaleta_texto(isset($datos['titulo']) ? $datos['titulo'] : '', 60),
-        'central'   => pieb_can_escaleta_texto(isset($datos['central']) ? $datos['central'] : '', 60),
+        'titulo'    => array_key_exists('titulo', $datos) ? pieb_can_escaleta_texto($datos['titulo'], 60) : ($actual ? (string) $actual['titulo'] : ''),
+        'central'   => array_key_exists('central', $datos) ? pieb_can_escaleta_texto($datos['central'], 60) : ($actual ? (string) $actual['central'] : ''),
         'logo'      => $imagen('logo'),
         'cabecera'  => $imagen('cabecera'),
-        'secciones' => pieb_can_escaleta_limpiar_secciones($datos['secciones'], false),
+        'secciones' => isset($datos['secciones']) ? pieb_can_escaleta_limpiar_secciones($datos['secciones'], false) : ($actual ? $actual['secciones'] : null),
     );
 }
 
-/** Sanea la escaleta de un culto: {secciones: […]} (null = sin escaleta; WP_Error si no tiene la estructura esperada). */
+/** Sanea la escaleta de un culto: {titulo, central, secciones: […]} (null = sin escaleta; WP_Error si no tiene la estructura esperada). */
 function pieb_can_escaleta_limpiar_culto($datos) {
     if ($datos === null) {
         return null;
@@ -364,7 +427,11 @@ function pieb_can_escaleta_limpiar_culto($datos) {
     if (!is_array($datos) || !isset($datos['secciones']) || !is_array($datos['secciones'])) {
         return pieb_can_escaleta_error();
     }
-    return array('secciones' => pieb_can_escaleta_limpiar_secciones($datos['secciones'], true));
+    return array(
+        'titulo'    => pieb_can_escaleta_texto(isset($datos['titulo']) ? $datos['titulo'] : '', 60),
+        'central'   => pieb_can_escaleta_texto(isset($datos['central']) ? $datos['central'] : '', 60),
+        'secciones' => pieb_can_escaleta_limpiar_secciones($datos['secciones'], true),
+    );
 }
 
 // ---------------------------------------------------------------- escaleta de cada culto
@@ -430,7 +497,7 @@ function pieb_can_escaleta_para_copia() {
         'central'   => (string) $plantilla['central'],
         'logo'      => null,
         'cabecera'  => null,
-        'secciones' => array_values($plantilla['secciones']),
+        'secciones' => is_array($plantilla['secciones']) ? array_values($plantilla['secciones']) : null,
     );
 }
 

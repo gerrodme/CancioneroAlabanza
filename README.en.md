@@ -34,8 +34,9 @@ can be translated into other languages. In English, an installation without a na
 - **Services and setlists:** the order of songs for each service, with key, note and chosen score per song, a countdown to
   the next service and a PDF of the setlist.
 - **Order of service:** the printed sheet with the order of the service (a header with the church logo and a table
-  with the sections). The template is set up in Settings and team → Order of service; each service fills it in with
-  its songs in its Order of service tab, and it is exported as a PDF.
+  with the sections). Each service has its own, in its Order of service tab: it is filled in with the service's songs, the
+  sections and titles can be changed (only for that service) and it is exported as a PDF. A new service starts from the
+  last order of service prepared; in Settings and team → Order of service only the logo and the header image are chosen.
 - **Viewer / play mode:** a screen designed for tablets, with a large score and quick switching between songs.
 - **Access:** the "Worship team" role, sign-in with Google (Google Identity Services) or with an email link.
 - **Welcome:** anyone added to the team list receives an email with the logo and a button that signs them

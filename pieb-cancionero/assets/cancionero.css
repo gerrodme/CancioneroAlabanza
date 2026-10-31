@@ -1082,7 +1082,7 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
 .pcan-ayuda summary { cursor: pointer; font-weight: 600; color: var(--pc-accent); }
 [data-pcan-theme] .pcan-ayuda ol { list-style: decimal; padding-left: 20px; margin-top: 8px; display: grid; gap: 6px; }
 
-/* ---- escaleta: plantilla en Ajustes */
+/* ---- escaleta: imágenes de la cabecera (Ajustes) y editor de secciones (se reutiliza en la pestaña Escaleta del culto) */
 .pcan-esc { container: esc / inline-size; display: flex; flex-direction: column; gap: 18px; }
 /* Imagen de cabecera y logo: vista previa sobre blanco (como el papel), botones y barra de subida */
 .pcan-esc-cabeceras { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
@@ -2165,11 +2165,19 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 }
 
 /* ---- escaleta: culto
- * Pestañas «Canciones» y «Escaleta» del editor del culto, y las tarjetas de sección de la escaleta (prefijo pcan-ec-).
+ * Pestañas «Canciones» y «Escaleta» del editor del culto, la fila de títulos, el selector «Rellenar» / «Editar secciones»
+ * y las tarjetas de sección de la escaleta (prefijo pcan-ec-). El editor de secciones usa los estilos pcan-esc- de arriba.
  */
 .pcan-ec-tabs { align-self: flex-start; margin: 0; }
 .pcan-ec-panel { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
-.pcan-ec { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.pcan-ec { container: ec / inline-size; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.pcan-ec-titulos { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px 16px; }
+.pcan-ec-modo { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.pcan-ec-modo .pcan-segment { max-width: 100%; margin: 0; }
+.pcan-ec-modo .pcan-seg { min-height: 40px; padding: 6px 16px; font-size: 14px; }
+.pcan-ec-modo .pcan-help { margin: 0; }
+/* Nota de dónde parte la escaleta de un culto nuevo */
+[data-pcan-theme] .pcan-ec-origen { margin: 0; padding: 10px 14px; border-left: 3px solid var(--pc-accent); border-radius: var(--pc-radius-sm); background: var(--pc-accent-soft); color: var(--pc-text); font-size: 14px; }
 .pcan-ec-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 .pcan-ec-barra .pcan-help { flex: 1 1 220px; margin: 0; }
 [data-pcan-theme] .pcan-ec-lista { display: flex; flex-direction: column; gap: 10px; }
@@ -2205,6 +2213,11 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 [data-pcan-theme] .pcan-ec-escrita .pcan-input { flex: 1 1 auto; width: auto; min-width: 0; }
 .pcan-ec-anadir { align-self: flex-start; margin-top: 4px; }
 .pcan-ec-pie { display: flex; }
+@container ec (max-width: 520px) {
+  .pcan-ec-titulos { grid-template-columns: minmax(0, 1fr); }
+  .pcan-ec-modo .pcan-segment { align-self: stretch; }
+  .pcan-ec-modo .pcan-seg { flex: 1 1 0; }
+}
 @media (max-width: 520px) {
   .pcan-ec-tools { margin-left: 0; width: 100%; }
   .pcan-ec-sec { padding: 10px 12px; }
