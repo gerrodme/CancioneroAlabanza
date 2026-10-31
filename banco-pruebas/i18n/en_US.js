@@ -2539,6 +2539,15 @@ window.PIEB_I18N = {
   ],
   "Esta escaleta no tiene secciones. Pulsa «Editar secciones» para añadirlas.": [
    "This order of service has no sections. Press “Edit sections” to add them."
+  ],
+  "Vista previa": [
+   "Preview"
+  ],
+  "Vista aproximada: el PDF puede ocupar más de una hoja.": [
+   "Approximate preview: the PDF may take up more than one page."
+  ],
+  "Ver escaleta": [
+   "View order of service"
   ]
  }
 };

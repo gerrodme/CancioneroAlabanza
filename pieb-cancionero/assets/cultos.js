@@ -1241,7 +1241,19 @@
     var pintado = false;
     var res = null;
     var widgets = [];   // los campos de canciones, que se repintan cuando cambia el setlist o lo asignado en otras secciones
-    var cont = h('div', { class: 'pcan-ec' });
+    var main = h('div', { class: 'pcan-ec-main' });   // lo que se vacía y repinta; la vista previa vive aparte
+    var vistaHoja = h('div', { class: 'pcan-ec-hoja-sitio' });
+    var vista = h('aside', { class: 'pcan-ec-vista', 'aria-label': __('Vista previa') },
+      h('h3', { class: 'pcan-ec-vista-t', text: __('Vista previa') }),
+      h('p', { class: 'pcan-help', text: __('Vista aproximada: el PDF puede ocupar más de una hoja.') }),
+      vistaHoja);
+    var cont = h('div', { class: 'pcan-ec' }, main, vista);
+    var raiz = h('div', { class: 'pcan-ec-ext' }, cont);   // sin contención: los elementos flotantes no pueden ir dentro de `cont`
+    var capa = null, capaHoja = null, bCerrar = null;
+    var bVer = h('button', { type: 'button', class: 'pcan-btn pcan-ec-ver', hidden: true, 'aria-expanded': 'false', 'aria-controls': 'pcan-ec-capa', onclick: function () { abrirVista(); } },
+      icono('partitura'), __('Ver escaleta'));
+    append(raiz, bVer);
+    var planVista = null, versionVista = 0;
 
     function plantilla() { return plantillaP || (plantillaP = cargarPlantilla()); }
     function canciones() { return cancionesDeCulto(opc.culto()); }
@@ -1250,7 +1262,114 @@
     function marcarCambio() { cont.dispatchEvent(new Event('change', { bubbles: true })); }
     function repintarCanciones(origen) { widgets.forEach(function (w) { if (w !== origen) { w.pintar(); } }); }
     // Un campo de canciones cambió: los demás se ajustan (él ya está como lo dejó quien lo tocó).
-    function cambio(origen) { recalcular(); repintarCanciones(origen); }
+    function cambio(origen) { recalcular(); repintarCanciones(origen); programarVista(); }
+
+    // ---- vista previa en vivo de la hoja impresa (imita a dibujarEscaletaPdf)
+
+    function programarVista() {
+      clearTimeout(planVista);
+      planVista = setTimeout(pintarVista, 150);
+    }
+
+    function nodoHoja(pl, filas, e, culto) {
+      var titulo = (e.titulo || '').trim() || pl.titulo || _x('ORDEN DE CULTO', 'título de la escaleta impresa del culto (se imprime en mayúsculas)');
+      var central = e.central !== null && e.central !== undefined ? e.central : (pl.central || '');
+      var fecha = culto.fecha ? fechaNumerica(culto.fecha) : '';
+      var cab;
+      if (pl.cabecera && pl.cabecera.url) {
+        cab = h('img', { class: 'pcan-ec-hoja-cab-img', src: pl.cabecera.url, alt: '' });
+      } else {
+        cab = h('div', { class: 'pcan-ec-hoja-marca' },
+          h('span', { class: 'pcan-ec-hoja-nombre', text: tituloMay(P.cfg.nombre || 'Cancionero') }),
+          P.cfg.sitio ? h('span', { class: 'pcan-ec-hoja-sitio-t', text: tituloMay(P.cfg.sitio) }) : null);
+      }
+      var logo = pl.logo && pl.logo.url ? pl.logo.url : (BASE_ASSETS ? BASE_ASSETS + 'icono.png' : '');
+      var tabla = h('div', { class: 'pcan-ec-hoja-tabla' },
+        h('div', { class: 'pcan-ec-hoja-tits' },
+          h('div', { text: titulo }), h('div', { class: 'is-central', text: central }), h('div', { text: fecha })));
+      filas.forEach(function (fila) {
+        var izq = h('div', { class: 'pcan-ec-hoja-izq' }, h('div', { class: 'pcan-ec-hoja-st', text: fila.titulo }));
+        String(fila.nota || '').split(/\r?\n/).forEach(function (n) { if (n.trim()) { append(izq, h('div', { class: 'pcan-ec-hoja-nota', text: n })); } });
+        var der = h('div', { class: 'pcan-ec-hoja-der' });
+        fila.lineas.forEach(function (l) {
+          var ln = h('div', { class: 'pcan-ec-hoja-ln' + (l.size === TAM_PEQUENO ? ' is-peq' : '') });
+          if (!l.runs.length) { ln.textContent = '\u00a0'; }
+          l.runs.forEach(function (r) { append(ln, h(r.f === 'i' ? 'i' : r.f === 'b' ? 'b' : 'span', { text: r.t })); });
+          append(der, ln);
+        });
+        append(tabla, h('div', { class: 'pcan-ec-hoja-fila' }, izq, der));
+      });
+      return h('div', { class: 'pcan-ec-hoja' },
+        h('div', { class: 'pcan-ec-pliego' },
+          h('div', { class: 'pcan-ec-hoja-cab' }, cab, logo ? h('img', { class: 'pcan-ec-hoja-logo', src: logo, alt: '' }) : null),
+          tabla,
+          BASE_ASSETS ? h('div', { class: 'pcan-ec-hoja-firma', 'aria-hidden': 'true' }, h('span', { text: 'Powered by' }), h('img', { src: BASE_ASSETS + 'logo-cancionero.png', alt: '' })) : null));
+    }
+
+    function pintarVista() {
+      var destinos = [vistaHoja];
+      if (capa && capaHoja) { destinos.push(capaHoja); }
+      var version = ++versionVista;
+      bVer.hidden = !esc;
+      if (!esc) {
+        destinos.forEach(function (d) { d.innerHTML = ''; append(d, h('p', { class: 'pcan-muted', text: __('Cargando la escaleta…') })); });
+        return;
+      }
+      plantilla().then(function (pl) {
+        if (version !== versionVista) { return; }
+        var datos;
+        try {
+          var e = actual();
+          datos = { e: e, filas: filasImpresion(e, canciones()), culto: opc.culto() };
+        } catch (err) { return; }   // p. ej. una sección a medias en el editor: se deja la vista como estaba
+        destinos.forEach(function (d) { d.innerHTML = ''; append(d, nodoHoja(pl, datos.filas, datos.e, datos.culto)); });
+      });
+    }
+
+    function cerrarSinFoco() { cerrarVista(false); }
+
+    function tecla(e) { if (e.key === 'Escape') { e.stopPropagation(); cerrarVista(true); } }
+
+    // En pantallas estrechas la hoja se abre superpuesta. Va colgada del elemento raíz con tema, fuera de los paneles con contención,
+    // para que «fixed» se refiera a la ventana.
+    function abrirVista() {
+      if (capa) { return; }
+      capaHoja = h('div', { class: 'pcan-ec-hoja-sitio' });
+      bCerrar = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () { cerrarVista(true); } }, icono('cerrar'), __('Cerrar'));
+      capa = h('div', { class: 'pcan-ec-capa', id: 'pcan-ec-capa' },
+        h('div', { class: 'pcan-ec-capa-fondo', onclick: function () { cerrarVista(true); } }),
+        h('div', { class: 'pcan-ec-capa-hoja', role: 'dialog', 'aria-modal': 'true', 'aria-label': __('Vista previa') },
+          h('div', { class: 'pcan-ec-capa-cab' }, h('h3', { class: 'pcan-ec-vista-t', text: __('Vista previa') }), bCerrar),
+          h('p', { class: 'pcan-help', text: __('Vista aproximada: el PDF puede ocupar más de una hoja.') }),
+          capaHoja));
+      (raiz.closest('[data-pcan-theme]') || document.body).appendChild(capa);
+      document.addEventListener('keydown', tecla, true);
+      window.addEventListener('hashchange', cerrarSinFoco);   // al salir del editor no se queda la capa colgada
+      bVer.setAttribute('aria-expanded', 'true');
+      pintarVista();
+      bCerrar.focus();
+    }
+
+    function cerrarVista(devolverFoco) {
+      if (!capa) { return; }
+      document.removeEventListener('keydown', tecla, true);
+      window.removeEventListener('hashchange', cerrarSinFoco);
+      capa.remove();
+      capa = capaHoja = bCerrar = null;
+      bVer.setAttribute('aria-expanded', 'false');
+      if (devolverFoco) { bVer.focus(); }
+    }
+
+    // Dos columnas (editor y vista previa) cuando el contenedor es ancho; si no, botón flotante.
+    function medir() {
+      var ancho = raiz.clientWidth >= 860;
+      raiz.classList.toggle('is-ancho', ancho);
+      if (ancho) { cerrarVista(false); }
+    }
+    if (window.ResizeObserver) { new ResizeObserver(medir).observe(raiz); }
+
+    raiz.addEventListener('input', programarVista);
+    raiz.addEventListener('change', programarVista);
 
     // Intro dentro de un campo de texto no guarda el culto: se pulsa «Guardar».
     cont.addEventListener('keydown', function (e) {
@@ -1540,6 +1659,12 @@
 
     // foco: { i, accion } deja el foco en el botón «Subir» o «Bajar» de la sección que acaba de moverse.
     function pintarTodo(foco) {
+      pintarMain(foco);
+      programarVista();
+    }
+
+    function pintarMain(foco) {
+      var cont = main;
       cont.innerHTML = '';
       widgets = [];
       if (!esc) { append(cont, h('p', { class: 'pcan-muted', role: 'status', text: __('Cargando la escaleta…') })); return; }
@@ -1564,10 +1689,11 @@
     }
 
     return {
-      el: cont,
+      el: raiz,
       // Al abrir la pestaña por primera vez; si el culto no tenía escaleta, se parte de la base (la última escaleta guardada).
       mostrar: function () {
-        if (pintado) { return; }
+        medir();
+        if (pintado) { programarVista(); return; }
         pintado = true;
         pintarTodo();
         if (!esc) {
@@ -1580,7 +1706,7 @@
           });
         }
       },
-      setlistCambio: function () { if (pintado && esc && modo === 'rellenar') { recalcular(); repintarCanciones(null); } },
+      setlistCambio: function () { if (pintado && esc && modo === 'rellenar') { recalcular(); repintarCanciones(null); } programarVista(); },
       validar: function () { return modo === 'editar' && editor ? editor.validar() : null; },
       valor: function () { return esc ? explicitar(actual(), canciones()) : undefined; }
     };

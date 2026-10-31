@@ -2213,6 +2213,75 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 [data-pcan-theme] .pcan-ec-escrita .pcan-input { flex: 1 1 auto; width: auto; min-width: 0; }
 .pcan-ec-anadir { align-self: flex-start; margin-top: 4px; }
 .pcan-ec-pie { display: flex; }
+.pcan-ec-main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+/* Vista previa en vivo de la hoja impresa. Ancha: dos columnas, con la hoja pegada arriba. Estrecha: botón flotante y hoja superpuesta. */
+.pcan-ec-ext { position: relative; min-width: 0; }
+.pcan-ec-vista { display: none; min-width: 0; flex-direction: column; gap: 8px; }
+.pcan-ec-vista .pcan-help, .pcan-ec-capa-hoja .pcan-help { margin: 0; }
+[data-pcan-theme] .pcan-ec-vista-t { margin: 0; color: var(--pc-text); font: 800 15px/1.3 var(--pc-font); letter-spacing: .04em; }
+.pcan-ec-ext.is-ancho > .pcan-ec { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 420px); gap: 24px; align-items: start; }
+.pcan-ec-ext.is-ancho .pcan-ec-vista {
+  display: flex; position: sticky; top: 72px; max-height: calc(100dvh - 88px); overflow-y: auto; overscroll-behavior: contain; padding: 2px;
+}
+.pcan-vista.is-pagina .pcan-ec-ext.is-ancho .pcan-ec-vista { top: calc(var(--pc-top-h, 0px) + 72px); max-height: calc(100dvh - var(--pc-top-h, 0px) - 88px); }
+.admin-bar .pcan-ec-ext.is-ancho .pcan-ec-vista { top: calc(72px + var(--wp-admin--admin-bar--height, 0px)); max-height: calc(100dvh - 88px - var(--wp-admin--admin-bar--height, 0px)); }
+.pcan-ec-ext.is-ancho .pcan-ec-ver { display: none; }
+/* El botón va pegado abajo a la derecha, por encima de la barra «Guardar cambios / Cancelar» (también pegajosa). */
+[data-pcan-theme] .pcan-ec-ver {
+  position: sticky; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); z-index: 6; display: flex; margin: 12px 0 0 auto; width: fit-content;
+  border-color: var(--pc-accent); background: var(--pc-surface); color: var(--pc-text); box-shadow: var(--pc-shadow-lg);
+}
+[data-pcan-theme] .pcan-ec-ver[hidden] { display: none; }
+
+.pcan-ec-capa { position: fixed; inset: 0; z-index: 99996; display: flex; align-items: flex-end; justify-content: center; }
+.admin-bar .pcan-ec-capa { top: var(--wp-admin--admin-bar--height, 32px); }
+.pcan-ec-capa-fondo { position: absolute; inset: 0; background: rgba(8, 12, 20, .55); animation: pcan-fade .2s ease; }
+[data-pcan-theme] .pcan-ec-capa-hoja {
+  position: relative; display: flex; flex-direction: column; gap: 8px; width: min(560px, 100%); max-height: 94%; padding: 12px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto; overscroll-behavior: contain; border-radius: 20px 20px 0 0; background: var(--pc-surface); color: var(--pc-text); box-shadow: var(--pc-shadow-lg);
+  animation: pcan-slide-arriba .22s ease;
+}
+.pcan-ec-capa-cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+@keyframes pcan-slide-arriba { from { transform: translateY(24px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .pcan-ec-capa-fondo, .pcan-ec-capa-hoja { animation: none !important; } }
+
+/* La hoja es papel: blanca con tinta negra en todos los temas. Las medidas salen del A4 del PDF (595,28 pt de ancho = 100cqi). */
+.pcan-ec-hoja-sitio { min-width: 0; }
+.pcan-ec-hoja { container-type: inline-size; width: 100%; }
+[data-pcan-theme] .pcan-ec-pliego {
+  position: relative; box-sizing: border-box; aspect-ratio: 595.28 / 841.89; padding: 4.7cqi 5.04cqi 7cqi; background: #fff; color: #000;
+  border: 1px solid rgba(0, 0, 0, .18); box-shadow: 0 2px 10px rgba(0, 0, 0, .18); font-family: Helvetica, Arial, sans-serif; line-height: 1.3;
+}
+[data-pcan-theme] .pcan-ec-pliego * { color: inherit; letter-spacing: normal; text-transform: none; }
+.pcan-ec-hoja-cab { display: flex; align-items: flex-start; justify-content: space-between; height: 11.09cqi; margin-bottom: 2.35cqi; }
+.pcan-ec-hoja-cab-img { display: block; max-width: 30.24cqi; max-height: 9.24cqi; object-fit: contain; object-position: left top; }
+.pcan-ec-hoja-logo { display: block; max-width: 17.6cqi; max-height: 10.9cqi; margin-left: auto; object-fit: contain; object-position: right top; }
+.pcan-ec-hoja-marca { box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5cqi; width: 30.24cqi; height: 9.24cqi; padding: 0 1.5cqi; border: .126cqi solid #4d4d4d; overflow: hidden; }
+.pcan-ec-hoja-marca span { max-width: 100%; color: #4d4d4d !important; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pcan-ec-hoja-nombre { font-size: 2.52cqi; letter-spacing: .336cqi !important; }
+.pcan-ec-hoja-sitio-t { font-size: 1.26cqi; letter-spacing: .235cqi !important; }
+.pcan-ec-hoja-tabla { border: .3cqi solid #000; }
+.pcan-ec-hoja-tits { display: grid; grid-template-columns: 36fr 34fr 30fr; }
+.pcan-ec-hoja-tits > div {
+  display: flex; align-items: center; justify-content: center; box-sizing: border-box; min-height: 4.37cqi; padding: 0 1.344cqi; background: #d4d4d4;
+  border-right: .126cqi solid #000; border-bottom: .126cqi solid #000; font-size: 2.352cqi; font-weight: 700; text-align: center; overflow-wrap: anywhere;
+}
+.pcan-ec-hoja-tits > div:last-child { border-right: 0; }
+.pcan-ec-hoja-tits > .is-central { font-size: 1.848cqi; }
+.pcan-ec-hoja-fila { display: grid; grid-template-columns: 28fr 72fr; min-height: 5.04cqi; border-bottom: .126cqi solid #000; }
+.pcan-ec-hoja-fila:last-child { border-bottom: 0; }
+.pcan-ec-hoja-izq, .pcan-ec-hoja-der { box-sizing: border-box; min-width: 0; padding: 1.176cqi 1.344cqi; overflow-wrap: anywhere; }
+.pcan-ec-hoja-izq { border-right: .126cqi solid #000; }
+.pcan-ec-hoja-st { font-size: 1.848cqi; font-weight: 700; }
+[data-pcan-theme] .pcan-ec-pliego .pcan-ec-hoja-nota { font-size: 1.512cqi; color: #cc0000; white-space: pre-line; }
+.pcan-ec-hoja-der { text-align: center; }
+.pcan-ec-hoja-ln { font-size: 2.016cqi; white-space: pre-wrap; }
+.pcan-ec-hoja-ln.is-peq { font-size: 1.344cqi; }
+.pcan-ec-hoja-ln b { font-weight: 700; }
+.pcan-ec-hoja-firma { position: absolute; right: 5.04cqi; bottom: 2cqi; display: flex; flex-direction: column; align-items: flex-end; gap: .3cqi; opacity: .55; }
+.pcan-ec-hoja-firma span { font-size: .92cqi; color: #999 !important; }
+.pcan-ec-hoja-firma img { display: block; width: 10.4cqi; height: auto; }
 @container ec (max-width: 520px) {
   .pcan-ec-titulos { grid-template-columns: minmax(0, 1fr); }
   .pcan-ec-modo .pcan-segment { align-self: stretch; }
