@@ -837,7 +837,7 @@
 
   // Las fuentes estándar del PDF solo admiten Latin-1: se sustituyen los caracteres que no caben.
   function latin1(t) {
-    return String(t || '').replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/[–—]/g, '-').replace(/…/g, '...').replace(/[^\x20-\x7E\xA0-\xFF]/g, '');
+    return String(t || '').replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/[–—]/g, '-').replace(/…/g, '...').replace(/[^\x20-\x7E\xA0-\xFF•]/g, '');
   }
 
   // Las partituras del PDF del setlist van sin el margen en blanco que traen muchas (el mismo recorte que al tocar):
@@ -979,6 +979,208 @@
   var TAM_TEXTO = 12;
   var TAM_PEQUENO = 8;
   var contadorEsc = 0;
+
+  // ---- Texto con formato de los campos «textoLargo» (inicio del bloque puro: sin DOM salvo serializarEditor)
+  //
+  // Se guarda como texto en un marcado ligero: **negrita**, *cursiva*, __subrayado__ (combinables), una línea por elemento;
+  // «- » abre una viñeta y «1. » un elemento numerado. Los * _ \ literales se escapan con \. Un marcador sin pareja, o pegado
+  // a un espacio por dentro, es texto literal (así los textos planos antiguos se ven igual que antes).
+
+  /** Los trozos de una línea con su formato: [{t, b, i, u}]. */
+  function trozosDeFormato(s) {
+    var tk = [], i = 0, n;
+    while (i < s.length) {
+      var c = s.charAt(i);
+      if (c === '\\' && i + 1 < s.length && '*_\\'.indexOf(s.charAt(i + 1)) >= 0) { tk.push({ c: s.charAt(i + 1) }); i += 2; }
+      else if (c === '*') {
+        n = 0;
+        while (s.charAt(i) === '*') { n++; i++; }
+        for (; n >= 2; n -= 2) { tk.push({ k: 'b', lit: '**' }); }
+        if (n) { tk.push({ k: 'i', lit: '*' }); }
+      } else if (c === '_') {
+        n = 0;
+        while (s.charAt(i) === '_') { n++; i++; }
+        if (n % 2) { tk.push({ c: '_' }); }
+        for (n = n >> 1; n > 0; n--) { tk.push({ k: 'u', lit: '__' }); }
+      } else { tk.push({ c: c }); i++; }
+    }
+    // A cada marcador, el carácter de texto que queda a su izquierda y a su derecha (saltando los demás marcadores contiguos).
+    var izq = null, j, x, fin;
+    for (j = 0; j < tk.length; j++) {
+      if (tk[j].k) {
+        fin = j;
+        while (fin < tk.length && tk[fin].k) { fin++; }
+        for (x = j; x < fin; x++) { tk[x].izq = izq; tk[x].der = fin < tk.length ? tk[fin].c : null; }
+        j = fin - 1;
+      } else { izq = tk[j].c; }
+    }
+    function pegado(ch) { return ch !== null && ch !== undefined && !/\s/.test(ch); }
+    var abierto = { b: -1, i: -1, u: -1 };
+    tk.forEach(function (t, idx) {
+      if (!t.k) { return; }
+      if (abierto[t.k] < 0) { if (pegado(t.der)) { abierto[t.k] = idx; } }
+      else if (pegado(t.izq)) { tk[abierto[t.k]].par = true; t.par = true; abierto[t.k] = -1; }
+    });
+    var st = { b: false, i: false, u: false }, runs = [];
+    function anadir(ch) {
+      var l = runs[runs.length - 1];
+      if (l && l.b === st.b && l.i === st.i && l.u === st.u) { l.t += ch; } else { runs.push({ t: ch, b: st.b, i: st.i, u: st.u }); }
+    }
+    tk.forEach(function (t) {
+      if (!t.k) { anadir(t.c); }
+      else if (t.par) { st[t.k] = !st[t.k]; }
+      else { t.lit.split('').forEach(anadir); }
+    });
+    return runs;
+  }
+
+  /** Interpreta el texto con formato: una entrada por línea, { tipo: 'p'|'vineta'|'numero', n?, runs: [{t, b, i, u}] }. */
+  function parsearFormato(texto) {
+    return String(texto === null || texto === undefined ? '' : texto).replace(/\r/g, '').split('\n').map(function (l) {
+      var tipo = 'p', n, m, resto = l;
+      if (/^\\(?=-\s|\d+\.\s)/.test(l)) { resto = l.slice(1); }
+      else if ((m = /^- (.*)$/.exec(l))) { tipo = 'vineta'; resto = m[1].replace(/^\s+/, ''); }
+      else if ((m = /^(\d+)\. (.*)$/.exec(l))) { tipo = 'numero'; n = parseInt(m[1], 10); resto = m[2].replace(/^\s+/, ''); }
+      var e = { tipo: tipo, runs: resto.trim() ? trozosDeFormato(resto) : [] };
+      if (n !== undefined) { e.n = n; }
+      return e;
+    });
+  }
+
+  function escaparHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+  /** El HTML con el que se carga el editor (solo div, ul, ol, li, b, i, u). */
+  function formatoAHtml(texto) {
+    var html = '', lista = '';
+    function cerrar() { if (lista) { html += '</' + lista + '>'; lista = ''; } }
+    function trozos(runs) {
+      return runs.map(function (r) {
+        var s = escaparHtml(r.t);
+        if (r.u) { s = '<u>' + s + '</u>'; }
+        if (r.i) { s = '<i>' + s + '</i>'; }
+        if (r.b) { s = '<b>' + s + '</b>'; }
+        return s;
+      }).join('') || '<br>';
+    }
+    parsearFormato(texto).forEach(function (e) {
+      if (e.tipo === 'p') { cerrar(); html += '<div>' + trozos(e.runs) + '</div>'; return; }
+      var tag = e.tipo === 'vineta' ? 'ul' : 'ol';
+      if (lista !== tag) { cerrar(); html += '<' + tag + (tag === 'ol' && e.n > 1 ? ' start="' + e.n + '"' : '') + '>'; lista = tag; }
+      html += '<li>' + trozos(e.runs) + '</li>';
+    });
+    cerrar();
+    return html;
+  }
+
+  /** Caracteres con formato [{ch, b, i, u}] → una línea de marcado (los espacios de los bordes quedan fuera de los marcadores). */
+  function marcarCaracteres(cs) {
+    ['b', 'i', 'u'].forEach(function (k) {
+      var a = 0;
+      while (a < cs.length) {
+        if (!cs[a][k]) { a++; continue; }
+        var z = a;
+        while (z < cs.length && cs[z][k]) { z++; }
+        var s = a, e = z;
+        while (s < e && /\s/.test(cs[s].ch)) { cs[s][k] = false; s++; }
+        while (e > s && /\s/.test(cs[e - 1].ch)) { cs[e - 1][k] = false; e--; }
+        a = z;
+      }
+    });
+    var M = { b: '**', i: '*', u: '__' }, st = { b: false, i: false, u: false }, out = '';
+    function cambia(b, i, u) {
+      var nuevo = { b: b, i: i, u: u };
+      ['u', 'i', 'b'].forEach(function (k) { if (st[k] && !nuevo[k]) { out += M[k]; st[k] = false; } });
+      ['b', 'i', 'u'].forEach(function (k) { if (!st[k] && nuevo[k]) { out += M[k]; st[k] = true; } });
+    }
+    cs.forEach(function (c) {
+      cambia(!!c.b, !!c.i, !!c.u);
+      out += c.ch === '*' || c.ch === '_' || c.ch === '\\' ? '\\' + c.ch : c.ch;
+    });
+    cambia(false, false, false);
+    return out;
+  }
+
+  /** El contenido del editor (DOM) → texto con formato. Normaliza lo que producen los navegadores (b/strong, i/em, u, span con
+   *  estilo, div/p/br, ul/ol/li). */
+  function serializarEditor(raiz) {
+    var lineas = [], cur = null, enLi = 0;
+    function nueva(tipo, n) { cur = { tipo: tipo || 'p', n: n, cs: [] }; lineas.push(cur); return cur; }
+    function formato(el, f) {
+      var tag = el.tagName.toLowerCase(), est = el.style || {};
+      var r = { b: f.b, i: f.i, u: f.u };
+      if (tag === 'b' || tag === 'strong') { r.b = true; }
+      if (tag === 'i' || tag === 'em') { r.i = true; }
+      if (tag === 'u') { r.u = true; }
+      if (est.fontWeight) { r.b = est.fontWeight === 'bold' || est.fontWeight === 'bolder' || parseInt(est.fontWeight, 10) >= 600; }
+      if (est.fontStyle) { r.i = est.fontStyle === 'italic' || est.fontStyle === 'oblique'; }
+      var deco = (est.textDecoration || '') + ' ' + (est.textDecorationLine || '');
+      if (/underline/.test(deco)) { r.u = true; }
+      return r;
+    }
+    function recorre(nodo, f) {
+      Array.prototype.forEach.call(nodo.childNodes, function (h) {
+        if (h.nodeType === 3) {
+          var t = h.nodeValue.replace(/[ ]/g, ' ').replace(/[​\r]/g, '').replace(/\n/g, ' ');
+          if (!t) { return; }
+          var l = cur || nueva('p');
+          t.split('').forEach(function (ch) { l.cs.push({ ch: ch, b: f.b, i: f.i, u: f.u }); });
+          return;
+        }
+        if (h.nodeType !== 1) { return; }
+        var tag = h.tagName.toLowerCase();
+        if (tag === 'script' || tag === 'style') { return; }
+        if (tag === 'br') {
+          if (h.nextSibling) { if (!cur) { nueva('p'); } cur = null; }
+          return;
+        }
+        var g = formato(h, f);
+        if (tag === 'ul' || tag === 'ol') {
+          var n = parseInt(h.getAttribute('start'), 10) || 1;
+          Array.prototype.forEach.call(h.childNodes, function (li) {
+            if (li.nodeType !== 1) { return; }
+            if (li.tagName.toLowerCase() === 'li') {
+              nueva(tag === 'ul' ? 'vineta' : 'numero', n++);
+              enLi++; recorre(li, formato(li, g)); enLi--;
+              cur = null;
+            } else { cur = null; recorre({ childNodes: [li] }, g); }
+          });
+          cur = null;
+        } else if (/^(div|p|h[1-6]|blockquote|pre|section|article)$/.test(tag) && !enLi) {
+          var antes = lineas.length;
+          cur = null;
+          recorre(h, g);
+          if (lineas.length === antes) { nueva('p'); }
+          cur = null;
+        } else { recorre(h, g); }
+      });
+    }
+    recorre(raiz, { b: false, i: false, u: false });
+    var texto = lineas.map(function (l) {
+      var cs = l.cs;
+      while (cs.length && /\s/.test(cs[cs.length - 1].ch)) { cs.pop(); }
+      if (l.tipo !== 'p') {
+        var a = 0;
+        while (a < cs.length && /\s/.test(cs[a].ch)) { a++; }
+        cs = cs.slice(a);
+        if (!cs.length) { return null; }   // un elemento de lista vacío no se guarda
+      }
+      var s = marcarCaracteres(cs);
+      if (l.tipo === 'vineta') { return '- ' + s; }
+      if (l.tipo === 'numero') { return l.n + '. ' + s; }
+      return /^(-\s|\d+\.\s)/.test(s) ? '\\' + s : s;
+    }).filter(function (s) { return s !== null; });
+    while (texto.length && !texto[texto.length - 1].trim()) { texto.pop(); }
+    while (texto.length && !texto[0].trim()) { texto.shift(); }
+    return texto.join('\n');
+  }
+
+  /** El mismo texto sin marcado, en una sola línea (al pasar un campo de «texto largo» a «texto»). */
+  function quitarFormato(texto) {
+    return parsearFormato(texto).map(function (e) {
+      return e.runs.map(function (r) { return r.t; }).join('').trim();
+    }).filter(Boolean).join(' ');
+  }
+  // ---- fin del bloque puro de formato
 
   // Carpeta assets/ del plugin, a partir de la dirección de este mismo script (la config no la trae).
   var BASE_ASSETS = (function () {
@@ -1189,7 +1391,8 @@
 
   /**
    * Lo que se imprime: una entrada por sección no oculta, { titulo, nota, lineas }, donde cada línea es
-   * { runs: [{t, f}], size } (f: 'n' normal, 'b' negrita, 'i' cursiva; una línea sin runs es una línea en blanco).
+   * { runs: [{t, f, u?}], size } (f: 'n' normal, 'b' negrita, 'i' cursiva, 'bi' ambas; u: true si va subrayado; una línea sin
+   * runs es una línea en blanco).
    */
   function filasImpresion(esc, canciones) {
     var res = resolverEscaleta(esc, canciones);
@@ -1204,10 +1407,16 @@
         if (c.tipo === 'texto') {
           if (v.trim()) { linea(prefijo.concat([{ t: v.trim(), f: 'n' }])); }
         } else if (c.tipo === 'textoLargo') {
-          var ls = v.replace(/\r/g, '').split('\n').map(function (l) { return l.replace(/\s+$/, ''); });
-          while (ls.length && !ls[0].trim()) { ls.shift(); }
-          while (ls.length && !ls[ls.length - 1].trim()) { ls.pop(); }
-          ls.forEach(function (l, k) { linea(!l.trim() ? [] : (k === 0 ? prefijo : []).concat([{ t: l, f: 'n' }])); });
+          var ls = parsearFormato(v).map(function (e) {
+            var runs = e.runs.map(function (r) { return { t: r.t, f: r.b && r.i ? 'bi' : r.b ? 'b' : r.i ? 'i' : 'n', u: r.u }; });
+            if (runs.length) { runs[runs.length - 1].t = runs[runs.length - 1].t.replace(/\s+$/, ''); }
+            runs = runs.filter(function (r) { return r.t; }).map(function (r) { return r.u ? r : { t: r.t, f: r.f }; });
+            if (runs.length && e.tipo !== 'p') { runs.unshift({ t: e.tipo === 'vineta' ? '• ' : e.n + '. ', f: 'n' }); }
+            return runs;
+          });
+          while (ls.length && !ls[0].length) { ls.shift(); }
+          while (ls.length && !ls[ls.length - 1].length) { ls.pop(); }
+          ls.forEach(function (runs, k) { linea(!runs.length ? [] : (k === 0 ? prefijo : []).concat(runs)); });
         } else if (c.tipo === 'cancion') {
           if (v.nombre.trim()) { linea(prefijo.concat([{ t: v.nombre.trim(), f: 'i' }])); }
         } else {
@@ -1273,6 +1482,16 @@
       planVista = setTimeout(pintarVista, 150);
     }
 
+    // Un trozo de la hoja con su formato (negrita, cursiva, ambas y subrayado).
+    function nodoRun(r) {
+      var n = document.createTextNode(r.t);
+      if (r.u) { n = h('u', null, n); }
+      if (r.f === 'bi') { return h('b', null, h('i', null, n)); }
+      if (r.f === 'b') { return h('b', null, n); }
+      if (r.f === 'i') { return h('i', null, n); }
+      return r.u ? n : h('span', null, n);
+    }
+
     function nodoHoja(pl, filas, e, culto) {
       var titulo = (e.titulo || '').trim() || pl.titulo || _x('ORDEN DE CULTO', 'título de la escaleta impresa del culto (se imprime en mayúsculas)');
       var central = e.central !== null && e.central !== undefined ? e.central : (pl.central || '');
@@ -1296,7 +1515,7 @@
         fila.lineas.forEach(function (l) {
           var ln = h('div', { class: 'pcan-ec-hoja-ln' + (l.size === TAM_PEQUENO ? ' is-peq' : '') });
           if (!l.runs.length) { ln.textContent = '\u00a0'; }
-          l.runs.forEach(function (r) { append(ln, h(r.f === 'i' ? 'i' : r.f === 'b' ? 'b' : 'span', { text: r.t })); });
+          l.runs.forEach(function (r) { append(ln, nodoRun(r)); });
           append(der, ln);
         });
         append(tabla, h('div', { class: 'pcan-ec-hoja-fila' }, izq, der));
@@ -1399,9 +1618,147 @@
 
     function ayuda(texto) { return h('p', { class: 'pcan-help', text: texto }); }
 
+    /** Icono de lista (viñetas o números) de la barra del editor con formato. */
+    function iconoLista(numerada) {
+      var ns = 'http://www.w3.org/2000/svg';
+      var svg = document.createElementNS(ns, 'svg');
+      svg.setAttribute('viewBox', '0 0 24 24');
+      svg.setAttribute('aria-hidden', 'true');
+      svg.setAttribute('class', 'pcan-ico');
+      [6, 12, 18].forEach(function (y, k) {
+        var linea = document.createElementNS(ns, 'rect');
+        linea.setAttribute('x', '9'); linea.setAttribute('y', String(y - 1)); linea.setAttribute('width', '12'); linea.setAttribute('height', '2');
+        svg.appendChild(linea);
+        if (numerada) {
+          var t = document.createElementNS(ns, 'text');
+          t.setAttribute('x', '2'); t.setAttribute('y', String(y + 2.5)); t.setAttribute('font-size', '7'); t.setAttribute('font-weight', '700');
+          t.textContent = String(k + 1);
+          svg.appendChild(t);
+        } else {
+          var p = document.createElementNS(ns, 'circle');
+          p.setAttribute('cx', '4.5'); p.setAttribute('cy', String(y)); p.setAttribute('r', '1.7');
+          svg.appendChild(p);
+        }
+      });
+      return svg;
+    }
+
+    /**
+     * Editor básico con formato de un campo de texto largo: negrita, cursiva, subrayado y listas (contenteditable). Al pegar entra
+     * solo texto plano. El valor del campo es el texto con marcado de serializarEditor().
+     */
+    function campoTextoRico(sec, c) {
+      var id = 'pcan-ec-r' + (++contadorEsc);
+      var inicial = c.valor === null || c.valor === undefined ? String(c.defecto || '') : String(c.valor);
+      var mod = /Mac|iPhone|iPad/.test(navigator.platform || '') ? 'Cmd' : 'Ctrl';
+      var etiqueta = c.etiqueta ? h('span', { class: 'pcan-label', id: id + '-et', text: c.etiqueta, onclick: function () { editor.focus(); } }) : null;
+      var editor = h('div', {
+        class: 'pcan-ec-rico' + (c.pequeno ? ' is-pequeno' : ''), contenteditable: 'true', role: 'textbox', 'aria-multiline': 'true', spellcheck: 'true',
+        'aria-labelledby': etiqueta ? id + '-et' : null, 'aria-label': etiqueta ? null : nombreSeccion(sec)
+      });
+      editor.innerHTML = formatoAHtml(inicial);
+      try { document.execCommand('defaultParagraphSeparator', false, 'div'); } catch (e) { /* sin soporte: se usa el del navegador */ }
+
+      var botones = [];
+      function sincronizar() {
+        c.valor = serializarEditor(editor);
+        editor.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      function estado() {
+        var sel = window.getSelection();
+        var dentro = sel && sel.rangeCount && editor.contains(sel.anchorNode);
+        botones.forEach(function (b) {
+          var on = false;
+          if (dentro) { try { on = document.queryCommandState(b.cmd); } catch (e) { on = false; } }
+          b.el.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+      }
+      // Al convertir en lista, algunos navegadores dejan el cursor al principio: se recuerda su posición (en caracteres) y se restituye.
+      function posiciones() {
+        var sel = window.getSelection();
+        if (!sel.rangeCount || !editor.contains(sel.anchorNode)) { return null; }
+        var r = sel.getRangeAt(0);
+        function desde(nodo, off) { var m = document.createRange(); m.setStart(editor, 0); m.setEnd(nodo, off); return m.toString().length; }
+        return [desde(r.startContainer, r.startOffset), desde(r.endContainer, r.endOffset)];
+      }
+      function punto(n) {
+        var it = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT), t, resto = n;
+        while ((t = it.nextNode())) {
+          if (resto <= t.nodeValue.length) { return [t, resto]; }
+          resto -= t.nodeValue.length;
+        }
+        return null;
+      }
+      function restituir(pos) {
+        var a = punto(pos[0]), z = punto(pos[1]);
+        if (!a || !z) { return; }
+        var r = document.createRange();
+        r.setStart(a[0], a[1]); r.setEnd(z[0], z[1]);
+        var sel = window.getSelection();
+        sel.removeAllRanges(); sel.addRange(r);
+      }
+      function ordenar(cmd) {
+        editor.focus();
+        var pos = /List$/.test(cmd) ? posiciones() : null;
+        document.execCommand(cmd, false, null);
+        if (pos) { restituir(pos); }
+        sincronizar();
+        estado();
+      }
+      function boton(cmd, nombre, contenido, atajo) {
+        var el = h('button', {
+          type: 'button', class: 'pcan-btn pcan-btn-sm pcan-ec-fmt pcan-ec-fmt-' + cmd, 'aria-label': nombre,
+          title: nombre + (atajo ? ' (' + mod + '+' + atajo + ')' : ''), 'aria-pressed': 'false',
+          onmousedown: function (ev) { ev.preventDefault(); },   // el foco y la selección se quedan en el editor
+          onclick: function () { ordenar(cmd); }
+        }, contenido);
+        botones.push({ cmd: cmd, el: el });
+        return el;
+      }
+      var barra = h('div', { class: 'pcan-ec-rico-barra', role: 'toolbar', 'aria-label': __('Formato del texto') },
+        boton('bold', __('Negrita'), h('span', { class: 'pcan-ec-fmt-b', 'aria-hidden': 'true', text: 'B' }), 'B'),
+        boton('italic', __('Cursiva'), h('span', { class: 'pcan-ec-fmt-i', 'aria-hidden': 'true', text: 'I' }), 'I'),
+        boton('underline', __('Subrayado'), h('span', { class: 'pcan-ec-fmt-u', 'aria-hidden': 'true', text: 'U' }), 'U'),
+        boton('insertUnorderedList', __('Lista con viñetas'), [iconoLista(false), h('span', { 'aria-hidden': 'true', text: _x('Viñetas', 'botón del editor de texto: lista con viñetas') })]),
+        boton('insertOrderedList', __('Lista numerada'), [iconoLista(true), h('span', { 'aria-hidden': 'true', text: _x('Numerada', 'botón del editor de texto: lista numerada') })]));
+
+      editor.addEventListener('input', function () { c.valor = serializarEditor(editor); });
+      editor.addEventListener('keydown', function (ev) {
+        if (!(ev.ctrlKey || ev.metaKey) || ev.altKey || ev.shiftKey) { return; }
+        var cmd = { b: 'bold', i: 'italic', u: 'underline' }[ev.key.toLowerCase()];
+        if (cmd) { ev.preventDefault(); ordenar(cmd); }
+      });
+      // Solo texto plano: lo pegado o soltado desde otra parte pierde su formato.
+      editor.addEventListener('paste', function (ev) {
+        ev.preventDefault();
+        var t = ev.clipboardData ? ev.clipboardData.getData('text/plain') : '';
+        if (t) { document.execCommand('insertText', false, t.replace(/\r\n?/g, '\n')); sincronizar(); }
+      });
+      editor.addEventListener('drop', function (ev) {
+        ev.preventDefault();
+        var t = ev.dataTransfer ? ev.dataTransfer.getData('text/plain') : '';
+        editor.focus();
+        if (t) { document.execCommand('insertText', false, t.replace(/\r\n?/g, '\n')); sincronizar(); }
+      });
+      editor.addEventListener('keyup', estado);
+      editor.addEventListener('mouseup', estado);
+      editor.addEventListener('focus', estado);
+      // Los botones reflejan el formato de donde está el cursor; la escucha se retira cuando el editor ya no está en la página.
+      function alCambiarSeleccion() {
+        if (!editor.isConnected) { document.removeEventListener('selectionchange', alCambiarSeleccion); return; }
+        estado();
+      }
+      document.addEventListener('selectionchange', alCambiarSeleccion);
+
+      return h('div', { class: 'pcan-field' },
+        etiqueta,
+        h('div', { class: 'pcan-ec-rico-caja' }, barra, editor),
+        c.pequeno ? h('span', { class: 'pcan-help', text: __('Se imprime en letra pequeña') }) : null);
+    }
+
     function campoTexto(sec, c) {
-      var largo = c.tipo === 'textoLargo';
-      var el = largo ? h('textarea', { class: 'pcan-input pcan-textarea', rows: '3' }) : h('input', { type: 'text', class: 'pcan-input', maxlength: '300' });
+      if (c.tipo === 'textoLargo') { return campoTextoRico(sec, c); }
+      var el = h('input', { type: 'text', class: 'pcan-input', maxlength: '300' });
       el.value = c.valor === null || c.valor === undefined ? String(c.defecto || '') : String(c.valor);
       if (c.pequeno) { el.classList.add('is-pequeno'); }
       if (!c.etiqueta) { el.setAttribute('aria-label', nombreSeccion(sec)); }
@@ -1582,7 +1939,7 @@
               var v = viejos[c.id], valor = null;
               if (v && v.valor !== null && v.valor !== undefined) {
                 if (v.tipo === c.tipo) { valor = v.valor; }
-                else if (esTexto(v) && esTexto(c)) { valor = c.tipo === 'texto' ? String(v.valor).replace(/\s*\n\s*/g, ' ') : v.valor; }
+                else if (esTexto(v) && esTexto(c)) { valor = c.tipo === 'texto' ? quitarFormato(v.valor) : v.valor; }
               }
               return { id: c.id, tipo: c.tipo, etiqueta: c.etiqueta, pequeno: !!c.pequeno, defecto: c.defecto, valor: valor };
             })
@@ -1771,7 +2128,8 @@
 
   /**
    * Parte unos trozos de texto con distinta letra en líneas de como mucho `ancho` puntos, midiendo con las fuentes del PDF.
-   * runs: [{t, f}] (f: 'n', 'b' o 'i', que son claves de `fuentes`). Devuelve [{segs: [{t, f, w, esp}], w}]; una línea vacía por runs vacíos.
+   * runs: [{t, f, u?}] (f: 'n', 'b', 'i' o 'bi', que son claves de `fuentes`; u: subrayado). Devuelve [{segs: [{t, f, u, w, esp}], w}];
+   * una línea vacía por runs vacíos.
    */
   function envolverTexto(runs, ancho, size, fuentes) {
     var palabras = [];
@@ -1779,7 +2137,7 @@
       latin1(r.t).split(/(\s+)/).forEach(function (p) {
         if (p === '') { return; }
         var esp = /^\s+$/.test(p);
-        palabras.push({ t: esp ? ' ' : p, f: r.f, esp: esp });
+        palabras.push({ t: esp ? ' ' : p, f: r.f, esp: esp, u: !!r.u });
       });
     });
     function medir(t, f) { return fuentes[f].widthOfTextAtSize(t, size); }
@@ -1801,7 +2159,7 @@
           var n = resto.length;
           while (n > 1 && medir(resto.slice(0, n), p.f) > ancho) { n--; }
           var trozo = resto.slice(0, n);
-          seg.push({ t: trozo, f: p.f, w: medir(trozo, p.f) });
+          seg.push({ t: trozo, f: p.f, u: p.u, w: medir(trozo, p.f) });
           w += seg[seg.length - 1].w;
           resto = resto.slice(n);
           if (resto) { cerrar(); }
@@ -1923,10 +2281,20 @@
       var yy = y - PY;
       lineas.forEach(function (l) {
         var xx = x0 + (ancho - l.w) / 2;
-        l.segs.forEach(function (s) {
-          if (!s.esp) { pag.drawText(s.t, { x: xx, y: yy - (l.h - l.size * 0.925) / 2 - l.size * 0.718, size: l.size, font: fuentes[s.f], color: l.color || negro }); }
+        var yBase = yy - (l.h - l.size * 0.925) / 2 - l.size * 0.718;
+        var subIni = null;   // x donde empieza el subrayado en curso
+        function cerrarSub(xFin) {
+          if (subIni !== null && xFin > subIni) { pag.drawLine({ start: { x: subIni, y: yBase - l.size * 0.12 }, end: { x: xFin, y: yBase - l.size * 0.12 }, thickness: 0.5, color: l.color || negro }); }
+          subIni = null;
+        }
+        l.segs.forEach(function (s, k) {
+          if (!s.esp) { pag.drawText(s.t, { x: xx, y: yBase, size: l.size, font: fuentes[s.f], color: l.color || negro }); }
+          // También se subraya el espacio entre dos palabras subrayadas.
+          var sub = s.u || (s.esp && k > 0 && k < l.segs.length - 1 && l.segs[k - 1].u && l.segs[k + 1].u);
+          if (sub) { if (subIni === null) { subIni = xx; } } else { cerrarSub(xx); }
           xx += s.w;
         });
+        cerrarSub(xx);
         yy -= l.h;
       });
     }
@@ -1990,16 +2358,17 @@
       return L.PDFDocument.create().then(function (doc) {
         return Promise.all([
           doc.embedFont(L.StandardFonts.Helvetica), doc.embedFont(L.StandardFonts.HelveticaBold), doc.embedFont(L.StandardFonts.HelveticaOblique),
+          doc.embedFont(L.StandardFonts.HelveticaBoldOblique),
           imagenParaPdf(doc, plantilla.cabecera && plantilla.cabecera.url),
           imagenParaPdf(doc, plantilla.logo && plantilla.logo.url)
         ]).then(function (r) {
-          sinImagenes = !!((plantilla.cabecera && plantilla.cabecera.url && !r[3]) || (plantilla.logo && plantilla.logo.url && !r[4]));
+          sinImagenes = !!((plantilla.cabecera && plantilla.cabecera.url && !r[4]) || (plantilla.logo && plantilla.logo.url && !r[5]));
           // Sin logo de la iglesia (o si no se pudo cargar), va el icono del Cancionero.
           return Promise.all([
-            r[4] ? Promise.resolve(r[4]) : imagenParaPdf(doc, BASE_ASSETS ? BASE_ASSETS + 'icono.png' : ''),
+            r[5] ? Promise.resolve(r[5]) : imagenParaPdf(doc, BASE_ASSETS ? BASE_ASSETS + 'icono.png' : ''),
             imagenParaPdf(doc, BASE_ASSETS ? BASE_ASSETS + 'logo-cancionero.png' : '')
           ]).then(function (im) {
-            dibujarEscaletaPdf(L, doc, { n: r[0], b: r[1], i: r[2] }, { cabecera: r[3], logo: im[0], firma: im[1] }, culto, plantilla, filas);
+            dibujarEscaletaPdf(L, doc, { n: r[0], b: r[1], i: r[2], bi: r[3] }, { cabecera: r[4], logo: im[0], firma: im[1] }, culto, plantilla, filas);
             return doc.save();
           });
         });

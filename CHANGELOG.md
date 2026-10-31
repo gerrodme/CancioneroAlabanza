@@ -2,6 +2,11 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.17.0 · 2026-10-31
+
+Los campos de texto largo de la escaleta tienen un editor con formato: negrita, cursiva, subrayado, lista con viñetas y
+lista numerada (también Ctrl+B, I, U); se ve en la vista previa y en el PDF. Al pegar entra solo el texto
+
 ## 1.16.1 · 2026-10-31
 
 Al editar o crear un culto en pantalla ancha, la lista de cultos se contrae a las fechas y vuelve a la normalidad al

@@ -2548,6 +2548,30 @@ window.PIEB_I18N = {
   ],
   "Ver escaleta": [
    "View order of service"
+  ],
+  "Formato del texto": [
+   "Text formatting"
+  ],
+  "Negrita": [
+   "Bold"
+  ],
+  "Cursiva": [
+   "Italic"
+  ],
+  "Subrayado": [
+   "Underline"
+  ],
+  "Lista con viñetas": [
+   "Bulleted list"
+  ],
+  "botón del editor de texto: lista con viñetas\u0004Viñetas": [
+   "Bullets"
+  ],
+  "Lista numerada": [
+   "Numbered list"
+  ],
+  "botón del editor de texto: lista numerada\u0004Numerada": [
+   "Numbered"
   ]
  }
 };

@@ -2212,6 +2212,25 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 .pcan-ec-oculta input, .pcan-ec-op input[type=radio], .pcan-ec-op input[type=checkbox] { width: 18px; height: 18px; margin: 0; flex: 0 0 auto; accent-color: var(--pc-accent); }
 .pcan-ec-campos { display: flex; flex-direction: column; gap: 14px; }
 [data-pcan-theme] .pcan-ec-campos .pcan-input.is-pequeno { font-size: 14px; min-height: 38px; }
+/* Editor con formato de los campos de texto largo: la caja hace de .pcan-input (borde, radio y foco) y lleva la barra y el texto. */
+[data-pcan-theme] .pcan-ec-rico-caja { border: 1px solid var(--pc-line); border-radius: var(--pc-radius-sm); background: var(--pc-surface); overflow: hidden; }
+[data-pcan-theme] .pcan-ec-rico-caja:focus-within { border-color: var(--pc-accent); box-shadow: 0 0 0 3px var(--pc-focus); }
+:is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-ec-rico-caja { border-color: #d0d0d0; border-radius: 6px; }
+:is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-ec-rico-caja:focus-within { border-color: var(--pc-ink); box-shadow: 0 0 0 1px var(--pc-ink); }
+.pcan-ec-rico-barra { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-bottom: 1px solid var(--pc-line); background: var(--pc-surface-2); }
+[data-pcan-theme] .pcan-ec-fmt { min-width: 38px; min-height: 36px; padding: 0 8px; justify-content: center; font-size: 15px; line-height: 1; }
+[data-pcan-theme] .pcan-ec-fmt[aria-pressed="true"] { background: var(--pc-accent-soft); border-color: var(--pc-accent); color: var(--pc-text); }
+.pcan-ec-fmt-b { font-weight: 800; }
+.pcan-ec-fmt-i { font-style: italic; font-family: Georgia, serif; font-weight: 600; }
+.pcan-ec-fmt-u { text-decoration: underline; font-weight: 600; }
+.pcan-ec-fmt .pcan-ico { width: 20px; height: 20px; } .pcan-ec-fmt:is(.pcan-ec-fmt-insertUnorderedList, .pcan-ec-fmt-insertOrderedList) { gap: 6px; font-size: 13px; }
+[data-pcan-theme] .pcan-ec-rico { box-sizing: border-box; min-height: 5.6em; padding: 9px 13px; color: var(--pc-text); font-size: 16px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; outline: 0; }
+[data-pcan-theme] .pcan-ec-rico.is-pequeno { font-size: 14px; }
+[data-pcan-theme] .pcan-ec-rico b { font-weight: 700; }
+[data-pcan-theme] .pcan-ec-rico ul, [data-pcan-theme] .pcan-ec-rico ol { margin: 0; padding: 0 0 0 1.5em; }
+[data-pcan-theme] .pcan-ec-rico ul { list-style: disc; }
+[data-pcan-theme] .pcan-ec-rico ol { list-style: decimal; }
+[data-pcan-theme] .pcan-ec-rico li { margin: 0; padding: 0; list-style: inherit; }
 .pcan-ec-campo { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .pcan-ec-campo > .pcan-help { margin: 0; }
 .pcan-ec-ops { display: flex; flex-direction: column; gap: 2px; }
@@ -2294,6 +2313,8 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 .pcan-ec-hoja-ln { font-size: 2.016cqi; white-space: pre-wrap; }
 .pcan-ec-hoja-ln.is-peq { font-size: 1.344cqi; }
 .pcan-ec-hoja-ln b { font-weight: 700; }
+.pcan-ec-hoja-ln i { font-style: italic; }
+.pcan-ec-hoja-ln u { text-decoration: underline; }
 .pcan-ec-hoja-firma { position: absolute; right: 5.04cqi; bottom: 2cqi; display: flex; flex-direction: column; align-items: flex-end; gap: .3cqi; opacity: .55; }
 .pcan-ec-hoja-firma span { font-size: .92cqi; color: #999 !important; }
 .pcan-ec-hoja-firma img { display: block; width: 10.4cqi; height: auto; }
