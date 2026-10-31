@@ -2,6 +2,13 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.18.0 · 2026-10-31
+
+La ofrenda de la escaleta admite varias canciones (campo de canciones con la nueva opción «la siguiente a la última
+asignada»; al cambiar de tipo entre una y varias canciones se conserva lo elegido). La vista previa ocupa media pantalla,
+alineada con el campo Título. «Exportar escaleta» abre el PDF en una pestaña nueva con el botón «Descargar PDF». Nueva
+pantalla «Acerca del Cancionero» en el menú de la cuenta, para todos: versión, autoría, licencias y componentes de terceros
+
 ## 1.17.0 · 2026-10-31
 
 Los campos de texto largo de la escaleta tienen un editor con formato: negrita, cursiva, subrayado, lista con viñetas y

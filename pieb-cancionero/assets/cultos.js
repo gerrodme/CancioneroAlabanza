@@ -1203,7 +1203,7 @@
         sec('bienvenida', _x('BIENVENIDA', 'sección de la escaleta del culto (en mayúsculas)'), [campo('bienvenida', 'texto', '', __('Bienvenida a todos y a quienes nos visitan'))]),
         sec('comunidad', _x('VIDA DE COMUNIDAD', 'sección de la escaleta del culto (en mayúsculas)'), [campo('comunidad', 'textoLargo')]),
         sec('alabanza', _x('CANTOS DE ALABANZA', 'sección de la escaleta del culto (en mayúsculas)'), [campo('canciones', 'canciones', '', 'ninguna')]),
-        sec('ofrenda', _x('OFRENDA', 'sección de la escaleta del culto (en mayúsculas)'), [campo('musica', 'cancion', _x('Música instrumental', 'etiqueta de un campo de la escaleta del culto'), 'siguiente'), campo('responsables', 'texto', _x('Responsables', 'etiqueta de un campo de la escaleta del culto')), campo('nota', 'texto', '', '', true)]),
+        sec('ofrenda', _x('OFRENDA', 'sección de la escaleta del culto (en mayúsculas)'), [campo('musica', 'canciones',_x('Música instrumental', 'etiqueta de un campo de la escaleta del culto'), 'siguiente'), campo('responsables', 'texto', _x('Responsables', 'etiqueta de un campo de la escaleta del culto')), campo('nota', 'texto', '', '', true)]),
         sec('ninos', _x('NIÑOS', 'sección de la escaleta del culto (en mayúsculas)'), [campo('ninos', 'texto', '', __('Los niños pasan a sus clases'))]),
         sec('predicacion', _x('PREDICACIÓN', 'sección de la escaleta del culto (en mayúsculas)'), [campo('lectura-biblica', 'texto', _x('Lectura', 'etiqueta de un campo de la escaleta del culto')), campo('titulo', 'texto', _x('Título', 'etiqueta de un campo de la escaleta del culto')), campo('predicacion', 'texto', _x('Predicación', 'etiqueta de un campo de la escaleta del culto'))]),
         sec('despedida', _x('DESPEDIDA', 'sección de la escaleta del culto (en mayúsculas)'), [campo('despedida', 'textoLargo')]),
@@ -1341,7 +1341,12 @@
           valores.set(c, r);
         } else if (c.tipo === 'canciones') {
           if (sinTocar && c.defecto === 'restantes') { diferidos.push(c); valores.set(c, []); return; }
-          var lista = sinTocar ? [] : listaCanciones(v, porId, orden);
+          var lista;
+          if (sinTocar && c.defecto === 'siguiente') {
+            lista = ultima + 1 < orden.length ? [{ cancion: orden[ultima + 1], nombre: porId[orden[ultima + 1]].titulo }] : [];
+          } else {
+            lista = sinTocar ? [] : listaCanciones(v, porId, orden);
+          }
           lista.forEach(function (x) { if (x.cancion) { ultima = Math.max(ultima, orden.indexOf(x.cancion)); } });
           valores.set(c, lista);
         }
@@ -1940,6 +1945,12 @@
               if (v && v.valor !== null && v.valor !== undefined) {
                 if (v.tipo === c.tipo) { valor = v.valor; }
                 else if (esTexto(v) && esTexto(c)) { valor = c.tipo === 'texto' ? quitarFormato(v.valor) : v.valor; }
+                else if (v.tipo === 'cancion' && c.tipo === 'canciones') {
+                  // Una canción → varias: la elegida (si tenía canción o nombre) pasa a ser la única de la lista.
+                  valor = v.valor && (v.valor.cancion || String(v.valor.nombre || '').trim() !== '') ? [v.valor] : [];
+                } else if (v.tipo === 'canciones' && c.tipo === 'cancion') {
+                  valor = Array.isArray(v.valor) && v.valor.length ? v.valor[0] : { cancion: 0, nombre: '' };
+                }
               }
               return { id: c.id, tipo: c.tipo, etiqueta: c.etiqueta, pequeno: !!c.pequeno, defecto: c.defecto, valor: valor };
             })
@@ -2013,7 +2024,8 @@
 
     function exportar(boton) {
       boton.disabled = true;
-      return plantilla().then(function (pl) { return P.escaletaPdf(opc.culto(), actual(), pl); }).then(function () { boton.disabled = false; });
+      var ventana = abrirVentanaPdf();   // en el clic, antes de pedir nada, para que no la bloquee el navegador
+      return plantilla().then(function (pl) { return P.escaletaPdf(opc.culto(), actual(), pl, ventana); }).then(function () { boton.disabled = false; });
     }
 
     // foco: { i, accion } deja el foco en el botón «Subir» o «Bajar» de la sección que acaba de moverse.
@@ -2074,7 +2086,8 @@
   /** Botón «Exportar escaleta» de la ficha del culto: la plantilla se pide aparte (imágenes, título y texto central). */
   function exportarEscaleta(c, boton) {
     if (boton) { boton.disabled = true; }
-    return cargarPlantilla().then(function (pl) { return P.escaletaPdf(c, c.escaleta || null, pl); }).then(function () { if (boton) { boton.disabled = false; } });
+    var ventana = abrirVentanaPdf();   // en el clic, antes de pedir nada, para que no la bloquee el navegador
+    return cargarPlantilla().then(function (pl) { return P.escaletaPdf(c, c.escaleta || null, pl, ventana); }).then(function () { if (boton) { boton.disabled = false; } });
   }
 
   // ---------------------------------------------------------------- escaleta: PDF
@@ -2087,6 +2100,62 @@
     a.click();
     a.remove();
     setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+  }
+
+  /**
+   * Abre al instante (hay que llamarla de forma síncrona en el clic, o el navegador bloquea la ventana) una pestaña nueva con
+   * «Preparando la escaleta…». Devuelve la ventana, o null si el navegador no la deja abrir. El estilo va en línea: la página
+   * no depende del CSS del plugin.
+   */
+  function abrirVentanaPdf() {
+    var w = null;
+    try { w = window.open('', '_blank'); } catch (e) { w = null; }
+    if (!w) { return null; }
+    try {
+      var d = w.document;
+      d.open();
+      d.write('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title></title>' +
+        '<style>html,body{height:100%;margin:0}body{display:flex;flex-direction:column;font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#f4f4f5;color:#18181b}' +
+        '.barra{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 16px;background:#fff;border-bottom:1px solid #d4d4d8}' +
+        '.nombre{flex:1;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+        '.boton{display:inline-block;padding:8px 16px;border-radius:8px;background:#18181b;color:#fff;text-decoration:none;font-weight:600}' +
+        '.boton:hover,.boton:focus{background:#3f3f46}iframe{flex:1;width:100%;border:0;background:#52525b}' +
+        '.msj{margin:auto;padding:24px;text-align:center;max-width:32em}.error{color:#b91c1c}' +
+        '@media (prefers-color-scheme:dark){body{background:#18181b;color:#f4f4f5}.barra{background:#27272a;border-color:#3f3f46}.boton{background:#f4f4f5;color:#18181b}.boton:hover,.boton:focus{background:#d4d4d8}.error{color:#fca5a5}}' +
+        '</style></head><body><p class="msj" role="status"></p></body></html>');
+      d.close();
+      d.documentElement.lang = LOCALE;
+      d.title = __('Preparando la escaleta…');
+      d.querySelector('.msj').textContent = __('Preparando la escaleta…');
+    } catch (e) { return null; }
+    return w;
+  }
+
+  /** Muestra en la pestaña el PDF (visor del navegador) con una barra con su nombre y el botón «Descargar PDF». */
+  function mostrarPdfEnVentana(w, bytes, nombre) {
+    var url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+    var d = w.document;
+    d.title = nombre;
+    var barra = d.createElement('div'), n = d.createElement('span'), a = d.createElement('a'), f = d.createElement('iframe');
+    barra.className = 'barra';
+    n.className = 'nombre'; n.textContent = nombre;
+    a.className = 'boton'; a.href = url; a.setAttribute('download', nombre); a.textContent = __('Descargar PDF');
+    f.src = url; f.title = nombre;
+    barra.appendChild(n); barra.appendChild(a);
+    d.body.innerHTML = '';
+    d.body.appendChild(barra); d.body.appendChild(f);
+    // El PDF debe seguir disponible mientras la pestaña esté abierta: se libera cuando se cierra.
+    var vigila = setInterval(function () { if (w.closed) { clearInterval(vigila); URL.revokeObjectURL(url); } }, 5000);
+  }
+
+  function errorEnVentana(w, mensaje) {
+    try {
+      var p = w.document.querySelector('.msj');
+      if (!p) { w.document.body.innerHTML = '<p class="msj"></p>'; p = w.document.querySelector('.msj'); }
+      p.className = 'msj error';
+      p.setAttribute('role', 'alert');
+      p.textContent = mensaje;
+    } catch (e) { /* la pestaña ya no está */ }
   }
 
   /** Fecha corta numérica en el orden del idioma del usuario, con guiones: 18-10-26 (es), 10-18-26 (en-US). */
@@ -2338,12 +2407,15 @@
   }
 
   /**
-   * Genera y descarga `escaleta-AAAA-MM-DD.pdf`. culto: el de GET cultos/{id} (o algo con fecha e items); escaleta: la del culto,
+   * Genera `escaleta-AAAA-MM-DD.pdf` y lo abre en una pestaña nueva (con botón «Descargar PDF»). `ventana`: la pestaña ya abierta
+   * con `abrirVentanaPdf()` en el clic (null = el navegador no la dejó: se descarga); si se omite se intenta abrir aquí, lo que solo
+   * funciona si se llama de forma síncrona desde el clic. culto: el de GET cultos/{id} (o algo con fecha e items); escaleta: la del culto,
    * o null para sacarla de la base con sus defectos; plantilla: la base de GET escaleta (logo y cabecera de la instalación y, si la
    * escaleta no trae los suyos, el título y el texto central).
    * Avisa del progreso y de los errores por sí misma; la promesa nunca rechaza y devuelve true si se descargó.
    */
-  P.escaletaPdf = function (culto, escaleta, plantilla) {
+  P.escaletaPdf = function (culto, escaleta, plantilla, ventana) {
+    if (ventana === undefined) { ventana = abrirVentanaPdf(); }
     aviso(__('Preparando la escaleta…'));
     plantilla = plantilla || plantillaGenerica();
     var esc = escaleta ? sanearEscaleta(escaleta) : nuevaEscaleta(plantilla);
@@ -2374,12 +2446,22 @@
         });
       });
     }).then(function (bytes) {
-      guardarPdf(bytes, 'escaleta-' + (culto.fecha || hoyISO()) + '.pdf');
-      if (sinImagenes) { aviso(__('Escaleta descargada, pero no se pudieron cargar las imágenes de la cabecera.'), 'error', 5000); }
+      var nombre = 'escaleta-' + (culto.fecha || hoyISO()) + '.pdf';
+      var abierta = false;
+      if (ventana && !ventana.closed) {
+        try { mostrarPdfEnVentana(ventana, bytes, nombre); abierta = true; } catch (e) { abierta = false; }
+      }
+      if (!abierta) { guardarPdf(bytes, nombre); }
+      if (abierta) {
+        if (sinImagenes) { aviso(__('Escaleta abierta en una pestaña nueva, pero no se pudieron cargar las imágenes de la cabecera.'), 'error', 5000); }
+        else { aviso(__('Escaleta abierta en una pestaña nueva')); }
+      } else if (sinImagenes) { aviso(__('Escaleta descargada, pero no se pudieron cargar las imágenes de la cabecera.'), 'error', 5000); }
       else { aviso(__('Escaleta descargada')); }
       return true;
     }).catch(function (e) {
-      aviso(e && e.message ? e.message : __('No se pudo generar la escaleta'), 'error');
+      var msj = e && e.message ? e.message : __('No se pudo generar la escaleta');
+      if (ventana) { errorEnVentana(ventana, msj); }
+      aviso(msj, 'error');
       return false;
     });
   };

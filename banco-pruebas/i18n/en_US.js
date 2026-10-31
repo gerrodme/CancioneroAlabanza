@@ -2572,6 +2572,60 @@ window.PIEB_I18N = {
   ],
   "botón del editor de texto: lista numerada\u0004Numerada": [
    "Numbered"
+  ],
+  "Acerca del Cancionero": [
+   "About Cancionero"
+  ],
+  "componente de terceros: la tipografía en que se basa el logo\u0004Unbounded (tipografía del logo)": [
+   "Unbounded (logo typeface)"
+  ],
+  "Versión %s": [
+   "Version %s"
+  ],
+  "Este cancionero: %s": [
+   "This songbook: %s"
+  ],
+  "Herramienta libre para que cualquier grupo gestione sus partituras, setlists y cultos.": [
+   "A free tool for any group to manage its sheet music, setlists and services."
+  ],
+  "Creado por Gerson Rodrigo Menéndez.": [
+   "Created by Gerson Rodrigo Menéndez."
+  ],
+  "Desarrollado con la ayuda de Claude, de Anthropic.": [
+   "Developed with the help of Claude, by Anthropic."
+  ],
+  "Licencia": [
+   "License"
+  ],
+  "Software libre. El código se distribuye con licencia %1$s; la documentación, con %2$s.": [
+   "Free software. The code is distributed under the %1$s license; the documentation, under %2$s."
+  ],
+  "GPL-2.0 o posterior": [
+   "GPL-2.0 or later"
+  ],
+  "Se ofrece con la esperanza de que sea útil, pero sin ninguna garantía, ni siquiera la implícita de comerciabilidad o de idoneidad para un fin concreto.": [
+   "It is distributed in the hope that it will be useful, but without any warranty; without even the implied warranty of merchantability or fitness for a particular purpose."
+  ],
+  "Código fuente y novedades": [
+   "Source code and release notes"
+  ],
+  "Código fuente": [
+   "Source code"
+  ],
+  "Novedades de cada versión": [
+   "Release notes"
+  ],
+  "Componentes de terceros": [
+   "Third-party components"
+  ],
+  "Descargar PDF": [
+   "Download PDF"
+  ],
+  "Escaleta abierta en una pestaña nueva, pero no se pudieron cargar las imágenes de la cabecera.": [
+   "Order of service opened in a new tab, but the header images could not be loaded."
+  ],
+  "Escaleta abierta en una pestaña nueva": [
+   "Order of service opened in a new tab"
   ]
  }
 };

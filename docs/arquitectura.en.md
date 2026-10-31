@@ -22,7 +22,7 @@ A technical summary of the **Cancionero** plugin for anyone new to the code.
 | `includes/accesos.php` | Access log: sign-ins (date, method and device type), days of use and `GET /accesos` with the raw data for the statistics in "Settings and team". |
 | `includes/escaleta.php` | Order of service (the printed sheet with the order of the service): generic and saved template, sanitising of the template and of each service's copy, upload of the header images and `GET /escaleta`, `POST /escaleta/imagen`. |
 | `includes/migracion.php` | Converts the PDFs of the previous plugin (`adoracion_culto_*`) into songs. Idempotent. |
-| `assets/cancionero.js` | The main interface (no dependencies or build step): list, song page, form, bulk upload, statistics, settings. |
+| `assets/cancionero.js` | The main interface (no dependencies or build step): list, song page, form, bulk upload, statistics, settings. It includes "About Cancionero" (route `#/acerca`, an entry in the account menu for every user): version, credits, license, source code and third-party components; if an external library is added, it must be listed there. |
 | `assets/cultos.js` | Service screens and the setlist editor. |
 | `assets/visor.js` | Viewer / play mode for tablets. |
 | `assets/login.js` | Sign-in screen. |
@@ -264,7 +264,7 @@ if they are missing.
 | `texto` | One line. | Initial text. |
 | `textoLargo` | Several lines (each is printed on its own line). | Initial text. |
 | `cancion` | One song of the service or a hand-written name. | `primera` (first), `siguiente` (the one right after the last one assigned in the previous sections) or `ninguna` (none). |
-| `canciones` | Several songs of the service and/or hand-written names. | `ninguna` or `restantes` (the ones not in any other section). |
+| `canciones` | Several songs of the service and/or hand-written names. | `ninguna` (none), `siguiente` (a single one: the one right after the last one assigned in the previous sections) or `restantes` (the ones not in any other section). |
 
 With `etiqueta` it prints "Label: value"; `pequeno` prints the value in small type. `valor`: `texto`/`textoLargo` → text (500 and
 2000 characters at most); `cancion` → `{ cancion: song id | 0, nombre }` (0 + name = hand-written); `canciones` → a list of the

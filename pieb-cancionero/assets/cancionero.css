@@ -2254,7 +2254,8 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 .pcan-ec-vista { display: none; min-width: 0; flex-direction: column; gap: 8px; }
 .pcan-ec-vista .pcan-help, .pcan-ec-capa-hoja .pcan-help { margin: 0; }
 [data-pcan-theme] .pcan-ec-vista-t { margin: 0; color: var(--pc-text); font: 800 15px/1.3 var(--pc-font); letter-spacing: .04em; }
-.pcan-ec-ext.is-ancho > .pcan-ec { display: grid; grid-template-columns: minmax(0, 1fr) clamp(340px, 42%, 620px); gap: 24px; align-items: start; }
+/* La vista previa empieza donde el campo «Título» de los datos del culto (rejilla 150px | 1fr | 1.5fr con 12px de hueco). */
+.pcan-ec-ext.is-ancho > .pcan-ec { display: grid; grid-template-columns: calc(162px + (100% - 174px) * .4) minmax(0, 1fr); gap: 12px; align-items: start; }
 .pcan-ec-ext.is-ancho .pcan-ec-vista {
   display: flex; position: sticky; top: 72px; max-height: calc(100dvh - 88px); overflow-y: auto; overscroll-behavior: contain; padding: 2px;
 }
@@ -2327,3 +2328,18 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
   .pcan-ec-tools { margin-left: 0; width: 100%; }
   .pcan-ec-sec { padding: 10px 12px; }
 }
+
+/* ================================================================== Acerca del Cancionero */
+.pcan-acerca { display: grid; gap: 10px; justify-items: center; text-align: center; max-width: 520px; margin: 0 auto; }
+.pcan-acerca p, .pcan-acerca h3, .pcan-acerca ul { margin: 0; }
+.pcan-acerca-logo { padding: 14px 22px; border-radius: 16px; background: #fff; border: 1px solid var(--pc-line); }
+.pcan-acerca-logo img { display: block; width: min(300px, 100%); height: auto; }
+.pcan-acerca-version { color: var(--pc-muted); font-weight: 700; }
+.pcan-acerca-este { font-weight: 700; }
+.pcan-acerca-desc { margin-top: 4px; }
+.pcan-acerca a { color: var(--pc-accent, inherit); text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.pcan-acerca-bloque { display: grid; gap: 6px; justify-items: center; width: 100%; margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--pc-line); }
+.pcan-acerca-bloque h3 { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--pc-muted); }
+.pcan-acerca-aparte { color: var(--pc-muted); font-size: 13px; }
+.pcan-acerca-enlaces { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; }
+.pcan-acerca-lista { display: grid; gap: 4px; padding: 0; list-style: none; }

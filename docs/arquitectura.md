@@ -22,7 +22,7 @@ Resumen técnico del plugin **Cancionero** para quien llegue nuevo al código.
 | `includes/accesos.php` | Registro de accesos: inicios de sesión (fecha, método y tipo de dispositivo), días de uso y `GET /accesos` con los datos en bruto para las estadísticas de «Ajustes y equipo». |
 | `includes/escaleta.php` | Escaleta del culto (la hoja impresa con el orden del culto): plantilla genérica y guardada, saneado de la plantilla y de la copia de cada culto, subida de las imágenes de la cabecera y `GET /escaleta`, `POST /escaleta/imagen`. |
 | `includes/migracion.php` | Convierte los PDF del plugin anterior (`adoracion_culto_*`) en canciones. Idempotente. |
-| `assets/cancionero.js` | Interfaz principal (sin dependencias ni compilación): lista, ficha, formulario, subida múltiple, estadísticas, ajustes. |
+| `assets/cancionero.js` | Interfaz principal (sin dependencias ni compilación): lista, ficha, formulario, subida múltiple, estadísticas, ajustes. Incluye «Acerca del Cancionero» (ruta `#/acerca`, entrada del menú de la cuenta para todos los usuarios): versión, autoría, licencia, código fuente y componentes de terceros; si se añade una librería externa, hay que listarla ahí. |
 | `assets/cultos.js` | Pantallas de cultos y editor de setlist. |
 | `assets/visor.js` | Visor / modo culto para tableta. |
 | `assets/login.js` | Pantalla de acceso. |
@@ -261,7 +261,7 @@ títulos no traen `titulo` ni `central`: la interfaz toma los de la base al abri
 | `texto` | Una línea. | Texto inicial. |
 | `textoLargo` | Varias líneas (cada una se imprime en la suya). | Texto inicial. |
 | `cancion` | Una canción del culto o un nombre escrito a mano. | `primera`, `siguiente` (la que va justo después de la última asignada en las secciones anteriores) o `ninguna`. |
-| `canciones` | Varias canciones del culto y/o nombres a mano. | `ninguna` o `restantes` (las que no están en ninguna otra sección). |
+| `canciones` | Varias canciones del culto y/o nombres a mano. | `ninguna`, `siguiente` (una sola: la que va justo después de la última asignada en las secciones anteriores) o `restantes` (las que no están en ninguna otra sección). |
 
 Con `etiqueta` se imprime «Etiqueta: valor»; `pequeno` imprime el valor en letra pequeña. `valor`: `texto`/`textoLargo` → texto
 (500 y 2000 caracteres como máximo); `cancion` → `{ cancion: id de canción | 0, nombre }` (0 + nombre = escrita a mano);

@@ -6,6 +6,12 @@
   var root = document.getElementById('pieb-cancionero');
   if (!root || !CFG.api) { return; }
 
+  // Carpeta assets/ del plugin, a partir de la dirección de este mismo script (la config no la trae).
+  var BASE_ASSETS = (function () {
+    var s = document.currentScript || document.querySelector('script[src*="cancionero.js"]');
+    return s && s.src ? s.src.replace(/[^\/?#]*([?#].*)?$/, '') : '';
+  })();
+
   // ---------------------------------------------------------------- traducciones (wp.i18n)
 
   // Atajos con el dominio de texto ya fijado; si wp.i18n no estuviera cargado devuelven el texto tal cual.
@@ -184,6 +190,7 @@
     grafica: 'M4 20h16v-2H4v2zm1-4h3V9H5v7zm5 0h3V4h-3v12zm5 0h3v-5h-3v5z',
     editable: 'M6 2h8l6 6v5h-2V9h-5V4H6v16h6v2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm12.6 12 2.4 2.4-5.6 5.6H13v-2.4l5.6-5.6z',
     equipo: 'M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm-8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 2c-2.3 0-7 1.2-7 3.5V19h14v-2.5c0-2.3-4.7-3.5-7-3.5zm8 0c-.3 0-.6 0-1 .1 1.2.8 2 2 2 3.4V19h6v-2.5c0-2.3-4.7-3.5-7-3.5z',
+    info: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1 5h2v2h-2V7zm0 4h2v6h-2v-6z',
     acceso: 'M12.7 10A6 6 0 1 0 7 18a6 6 0 0 0 5.7-4H17v4h4v-4h2v-4H12.7zM7 14a2 2 0 1 1 0-4 2 2 0 0 1 0 4z'
   };
 
@@ -656,6 +663,7 @@
           h('p', { class: 'pcan-menu-label', text: __('Administración') }),
           enlaceMenu('#/ajustes', 'ajustes', __('Ajustes y equipo'))) : null),
       h('div', { class: 'pcan-menu-pie' },
+        enlaceMenu('#/acerca', 'info', __('Acerca del Cancionero')),
         enlaceMenu(CFG.homeUrl, 'salir-web', __('Volver a la web')),
         enlaceMenu(CFG.logoutUrl, 'salir', __('Cerrar sesión')),
         CFG.version ? h('p', { class: 'pcan-menu-version', text: 'Cancionero ' + CFG.version }) : null));
@@ -2256,6 +2264,56 @@
     }).catch(function (e) { aviso(e.message, 'error'); cerrarPanel(); });
   }
 
+  // ---------------------------------------------------------------- acerca del Cancionero
+
+  /** Diálogo para todos los usuarios: versión, autoría, licencia, código fuente y componentes de terceros. */
+  function abrirAcerca() {
+    function enlace(href, texto) { return h('a', { href: href, target: '_blank', rel: 'noopener', text: texto }); }
+    /** Frase con marcadores %1$s, %2$s… que se sustituyen por nodos (enlaces). */
+    function conEnlaces(frase, nodos) {
+      var trozos = String(frase).split(/(%\d\$s)/), res = [];
+      trozos.forEach(function (t) {
+        var m = t.match(/^%(\d)\$s$/);
+        res.push(m && nodos[+m[1] - 1] ? nodos[+m[1] - 1] : t);
+      });
+      return res;
+    }
+    var URL_CODIGO = 'https://github.com/gerrodme/CancioneroAlabanza';
+    var terceros = [
+      ['pdf-lib', 'MIT', 'https://pdf-lib.js.org/'],
+      ['PDF.js (Mozilla)', 'Apache-2.0', 'https://mozilla.github.io/pdf.js/'],
+      ['JSZip', 'MIT', 'https://stuk.github.io/jszip/'],
+      [_x('Unbounded (tipografía del logo)', 'componente de terceros: la tipografía en que se basa el logo'), 'SIL Open Font License', 'https://fonts.google.com/specimen/Unbounded']
+    ];
+    var nombre = CFG.nombre && CFG.nombre !== 'Cancionero' ? CFG.nombre : '';
+    var cuerpo = h('div', { class: 'pcan-panel-body pcan-acerca' },
+      BASE_ASSETS ? h('div', { class: 'pcan-acerca-logo' }, h('img', { src: BASE_ASSETS + 'logo-cancionero.png', alt: 'Cancionero' })) : h('p', { class: 'pcan-acerca-nombre', text: 'Cancionero' }),
+      CFG.version ? h('p', { class: 'pcan-acerca-version', text: sprintf(/* translators: %s: número de versión, p. ej. 1.17.0 */ __('Versión %s'), CFG.version) }) : null,
+      nombre ? h('p', { class: 'pcan-acerca-este', text: sprintf(/* translators: %s: nombre que esta web da a su cancionero */ __('Este cancionero: %s'), nombre) }) : null,
+      h('p', { class: 'pcan-acerca-desc', text: __('Herramienta libre para que cualquier grupo gestione sus partituras, setlists y cultos.') }),
+      h('p', { text: __('Creado por Gerson Rodrigo Menéndez.') }),
+      h('p', { text: __('Desarrollado con la ayuda de Claude, de Anthropic.') }),
+      h('section', { class: 'pcan-acerca-bloque' },
+        h('h3', { text: __('Licencia') }),
+        h('p', null, conEnlaces(
+          /* translators: %1$s y %2$s son enlaces: «GPL-2.0 o posterior» y «CC BY-SA 4.0» */
+          __('Software libre. El código se distribuye con licencia %1$s; la documentación, con %2$s.'),
+          [enlace('https://www.gnu.org/licenses/gpl-2.0.html', __('GPL-2.0 o posterior')), enlace('https://creativecommons.org/licenses/by-sa/4.0/deed.es', 'CC BY-SA 4.0')])),
+        h('p', { class: 'pcan-acerca-aparte', text: __('Se ofrece con la esperanza de que sea útil, pero sin ninguna garantía, ni siquiera la implícita de comerciabilidad o de idoneidad para un fin concreto.') }),
+        h('p', { class: 'pcan-acerca-aparte', text: '© Gerson Rodrigo Menéndez' })),
+      h('section', { class: 'pcan-acerca-bloque' },
+        h('h3', { text: __('Código fuente y novedades') }),
+        h('p', { class: 'pcan-acerca-enlaces' },
+          enlace(URL_CODIGO, __('Código fuente')),
+          enlace(URL_CODIGO + '/releases', __('Novedades de cada versión')))),
+      h('section', { class: 'pcan-acerca-bloque' },
+        h('h3', { text: __('Componentes de terceros') }),
+        h('ul', { class: 'pcan-acerca-lista' }, terceros.map(function (t) {
+          return h('li', null, enlace(t[2], t[0]), h('span', { text: ' · ' + t[1] }));
+        }))));
+    abrirPanel([cabeceraPanel(h('h2', { text: __('Acerca del Cancionero') })), cuerpo], __('Acerca del Cancionero'), { modal: true });
+  }
+
   // ---------------------------------------------------------------- bienvenida al equipo
 
   /** Dirección de esta página: el correo de bienvenida lleva el botón que la abre. Va con la consulta porque con los
@@ -2338,7 +2396,7 @@
   function escOpcionesDefecto(tipo) {
     return tipo === 'cancion'
       ? [['primera', __('La primera del culto')], ['siguiente', __('La siguiente a la última asignada antes')], ['ninguna', __('Ninguna')]]
-      : tipo === 'canciones' ? [['ninguna', __('Ninguna')], ['restantes', __('Las que no estén en otras secciones')]] : null;
+      : tipo === 'canciones' ? [['ninguna', __('Ninguna')], ['siguiente', __('La siguiente a la última asignada antes')], ['restantes', __('Las que no estén en otras secciones')]] : null;
   }
 
   function escDefectoDeTipo(tipo) { return escEsCancion(tipo) ? 'ninguna' : ''; }
@@ -2700,7 +2758,10 @@
         var viejo = c.tipo;
         if (nuevo === viejo) { return; }
         c.tipo = nuevo;
-        if (escEsCancion(viejo) || escEsCancion(nuevo)) {
+        if (escEsCancion(viejo) && escEsCancion(nuevo)) {
+          // Entre «una canción» y «varias»: se conserva el id (y con él lo elegido en cada culto); el defecto, si sigue siendo válido.
+          if (!escOpcionesDefecto(nuevo).some(function (x) { return x[0] === c.defecto; })) { c.defecto = 'ninguna'; }
+        } else if (escEsCancion(viejo) || escEsCancion(nuevo)) {
           c.defecto = escDefectoDeTipo(nuevo);
           if (c.id) { c._evitar.push(c.id); c.id = ''; }
         }
@@ -4626,6 +4687,7 @@
     else if (hash === 'nueva') { pintarFormulario(null); }
     else if ((m = hash.match(/^editar\/(\d+)$/))) { abrirFormulario(m[1]); }
     else if ((m = hash.match(/^ajustes(?:\/([a-z]*))?$/))) { abrirAjustes(m[1] || 'general'); }
+    else if (hash === 'acerca') { abrirAcerca(); }
     else if (hash === 'copias') { abrirCopias(); }
     else if (hash === 'papelera') { abrirPapelera(); }
     else if (hash === 'subir') { abrirSubidaMultiple(); }

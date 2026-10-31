@@ -92,7 +92,7 @@ function pieb_can_escaleta_generica() {
                 pieb_can_escaleta_campo('canciones', 'canciones', '', 'ninguna'),
             )),
             pieb_can_escaleta_seccion('ofrenda', _x('OFRENDA', 'sección de la escaleta del culto (en mayúsculas)', 'pieb-cancionero'), array(
-                pieb_can_escaleta_campo('musica', 'cancion', _x('Música instrumental', 'etiqueta de un campo de la escaleta del culto', 'pieb-cancionero'), 'siguiente'),
+                pieb_can_escaleta_campo('musica', 'canciones', _x('Música instrumental', 'etiqueta de un campo de la escaleta del culto', 'pieb-cancionero'), 'siguiente'),
                 pieb_can_escaleta_campo('responsables', 'texto', _x('Responsables', 'etiqueta de un campo de la escaleta del culto', 'pieb-cancionero')),
                 pieb_can_escaleta_campo('nota', 'texto', '', '', true),
             )),
@@ -272,13 +272,13 @@ function pieb_can_escaleta_id_imagen($valor) {
     return $id;
 }
 
-/** Valores que puede tomar el defecto de un campo de canciones: 'cancion' → primera|siguiente|ninguna; 'canciones' → ninguna|restantes. */
+/** Valores que puede tomar el defecto de un campo de canciones: 'cancion' → primera|siguiente|ninguna; 'canciones' → ninguna|siguiente|restantes. */
 function pieb_can_escaleta_limpiar_defecto($tipo, $defecto) {
     if ($tipo === 'cancion') {
         return in_array($defecto, array('primera', 'siguiente', 'ninguna'), true) ? $defecto : 'ninguna';
     }
     if ($tipo === 'canciones') {
-        return in_array($defecto, array('ninguna', 'restantes'), true) ? $defecto : 'ninguna';
+        return in_array($defecto, array('ninguna', 'siguiente', 'restantes'), true) ? $defecto : 'ninguna';
     }
     return pieb_can_escaleta_texto($defecto, 500, $tipo === 'textoLargo');
 }
