@@ -2,6 +2,11 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.16.1 · 2026-10-31
+
+Al editar o crear un culto en pantalla ancha, la lista de cultos se contrae a las fechas y vuelve a la normalidad al
+terminar; la vista previa de la escaleta es más grande en PC
+
 ## 1.16.0 · 2026-10-31
 
 Vista previa en vivo de la escaleta en el editor del culto: en pantallas anchas va al lado del editor y acompaña al

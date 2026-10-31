@@ -693,7 +693,8 @@
         ui.lista,
         ui.barraMarcado = h('div', { class: 'pcan-barra-marcado', role: 'toolbar', 'aria-label': __('Canciones seleccionadas'), hidden: true })),
       ui.detalle.canciones));
-    append(ui.vistaCultos, h('div', { class: 'pcan-split' }, ui.listaCultos, ui.detalle.cultos));
+    ui.splitCultos = h('div', { class: 'pcan-split' }, ui.listaCultos, ui.detalle.cultos);
+    append(ui.vistaCultos, ui.splitCultos);
     Object.keys(ui.detalle).forEach(vaciarDetalle);
 
     append(root, h('div', { class: 'pcan-shell' },
@@ -1323,13 +1324,16 @@
   function desplazador() { return root.classList.contains('is-app') ? root : document.scrollingElement; }
 
   /**
-   * opciones: { vista: 'canciones'|'cultos', id: n, modal: bool }
+   * opciones: { vista: 'canciones'|'cultos', id: n, modal: bool, compacta: bool }
    * En pantallas anchas la ficha aparece junto a la lista; en móvil, como una página encima.
+   * compacta: en vista dividida contrae la lista (solo el bloque de fecha de cada culto) para dar sitio al editor;
+   * cualquier otra apertura, o cerrar el panel, devuelve la lista a su ancho normal.
    */
   function abrirPanel(contenido, etiqueta, opciones) {
     opciones = opciones && typeof opciones === 'object' ? opciones : {};
     if (!panelModo || panelModo === 'split') { ultimoFoco = document.activeElement; }
     limpiarPanel();
+    compactarLista(false);
 
     var pagina = !opciones.modal && opciones.vista === 'canciones';
     var dividida = !pagina && !opciones.modal && opciones.vista && VISTAS_DIVIDIDAS[opciones.vista] && esAncho();
@@ -1365,6 +1369,7 @@
       panelVista = opciones.vista;
       ui.panel.hidden = true;
       document.documentElement.classList.remove('pcan-lock');
+      if (opciones.compacta && opciones.vista === 'cultos') { compactarLista(true); }
     } else {
       if ((panelModo === 'split' || panelModo === 'pagina') && panelVista) { vaciarDetalle(panelVista); }
       ui.panel.className = 'pcan-panel-wrap' + (opciones.modal ? ' is-modal' : '') + (opciones.ancho ? ' is-ancho' : '');
@@ -1381,10 +1386,15 @@
     panel.focus({ preventScroll: true });
   }
 
+  function compactarLista(si) {
+    if (ui.splitCultos) { ui.splitCultos.classList.toggle('is-compacta', !!si); }
+  }
+
   function limpiarPanel() {
     alCerrarPanel.forEach(function (fn) { fn(); });
     alCerrarPanel = [];
     ui.panel.innerHTML = '';
+    compactarLista(false);
   }
 
   function baseVista() {

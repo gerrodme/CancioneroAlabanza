@@ -166,7 +166,9 @@
   function tarjeta(c) {
     var titulos = titulosDe(c);
     var faltan = diasEntre(hoyISO(), c.fecha);
-    return h('a', { class: 'pcan-culto', href: '#/culto/' + c.id, 'data-id': String(c.id) },
+    // title: con la lista compacta (editando un culto) solo se ve la fecha; al pasar el ratón se sabe cuál es.
+    var nombre = sprintf(/* translators: 1: título del culto, 2: fecha completa («Domingo, 26 de octubre de 2026») */ __('%1$s — %2$s'), c.titulo, fechaLarga(c.fecha));
+    return h('a', { class: 'pcan-culto', href: '#/culto/' + c.id, 'data-id': String(c.id), title: nombre },
       bloqueFecha(c.fecha),
       h('span', { class: 'pcan-culto-main' },
         h('span', { class: 'pcan-culto-titulo' },
@@ -724,7 +726,7 @@
     P.abrirPanel([
       P.cabeceraPanel(h('h2', { text: editando ? __('Editar culto') : __('Nuevo culto') })),
       h('div', { class: 'pcan-panel-body' }, form)
-    ], editando ? __('Editar culto') : __('Nuevo culto'), { vista: 'cultos', id: editando ? c.id : 0 });
+    ], editando ? __('Editar culto') : __('Nuevo culto'), { vista: 'cultos', id: editando ? c.id : 0, compacta: true });
     buscador.focus();
   }
 

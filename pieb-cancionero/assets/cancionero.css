@@ -361,6 +361,21 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
   .pcan-split { grid-template-columns: 420px minmax(0, 1fr); }
 }
 
+/* Lista de cultos compacta mientras se edita un culto (solo en vista dividida): solo el bloque de fecha de cada culto. */
+.pcan-split.is-compacta { grid-template-columns: 96px minmax(0, 1fr); transition: grid-template-columns .2s ease; }
+.pcan-split.is-compacta > .pcan-split-list { padding: 12px 8px 40px; overflow: hidden; }
+.pcan-split.is-compacta .pcan-list-head, .pcan-split.is-compacta .pcan-list-label, .pcan-split.is-compacta .pcan-section-empty { display: none !important; }
+/* El título y las canciones se ocultan solo a la vista: los lectores de pantalla siguen leyendo la tarjeta entera. */
+.pcan-split.is-compacta .pcan-culto-main, .pcan-split.is-compacta .pcan-culto-count {
+  position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+.pcan-split.is-compacta .pcan-cultos { gap: 6px; margin-bottom: 14px; }
+.pcan-split.is-compacta .pcan-culto { justify-content: center; min-height: 0; padding: 6px 0; gap: 0; }
+.pcan-split.is-compacta .pcan-culto.is-selected { box-shadow: none; }
+[data-pcan-theme="papel"] .pcan-split.is-compacta .pcan-cultos { gap: 0; }
+[data-pcan-theme="papel"] .pcan-split.is-compacta .pcan-culto { padding: 8px 0; }
+@media (prefers-reduced-motion: reduce) { .pcan-split.is-compacta { transition: none; } }
+
 /* ================================================================== botones */
 
 [data-pcan-theme] .pcan-btn {
@@ -2220,7 +2235,7 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 .pcan-ec-vista { display: none; min-width: 0; flex-direction: column; gap: 8px; }
 .pcan-ec-vista .pcan-help, .pcan-ec-capa-hoja .pcan-help { margin: 0; }
 [data-pcan-theme] .pcan-ec-vista-t { margin: 0; color: var(--pc-text); font: 800 15px/1.3 var(--pc-font); letter-spacing: .04em; }
-.pcan-ec-ext.is-ancho > .pcan-ec { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 420px); gap: 24px; align-items: start; }
+.pcan-ec-ext.is-ancho > .pcan-ec { display: grid; grid-template-columns: minmax(0, 1fr) clamp(340px, 42%, 620px); gap: 24px; align-items: start; }
 .pcan-ec-ext.is-ancho .pcan-ec-vista {
   display: flex; position: sticky; top: 72px; max-height: calc(100dvh - 88px); overflow-y: auto; overscroll-behavior: contain; padding: 2px;
 }
