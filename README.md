@@ -16,6 +16,8 @@ para tocar desde la tableta; estadísticas; copias de seguridad; y acceso del eq
 Es software libre pensado para que cualquier iglesia o grupo musical gestione sus propias partituras. El plugin es solo
 la herramienta: **no incluye ninguna canción ni partitura**; cada instalación aporta las suyas. La interfaz está en español e inglés, y se puede traducir a otros idiomas.
 
+**Web, descarga y manual:** [cancionero.gersonrodrigo.com](https://cancionero.gersonrodrigo.com) · [Descargar e instalar](https://cancionero.gersonrodrigo.com/descargar/) · [Manual de uso](https://cancionero.gersonrodrigo.com/manual/)
+
 ![Lista de canciones de Cancionero, con filtros por etiqueta, tonalidad y recursos](docs/imagenes/lista-canciones.png)
 
 ## Qué hace
@@ -74,7 +76,10 @@ WordPress 6.0 o superior y PHP 7.4 o superior. No necesita plugins adicionales.
 
 ## Descargar
 
-Si solo quieres **usar el plugin** y no el código, ve a la pestaña **Releases** de este repositorio y descarga el archivo
+Lo más sencillo es la página [Descargar e instalar](https://cancionero.gersonrodrigo.com/descargar/): un botón descarga la última versión y
+debajo están los pasos para instalarla y actualizarla en WordPress.
+
+Desde GitHub: si solo quieres **usar el plugin** y no el código, ve a la pestaña **Releases** de este repositorio y descarga el archivo
 `pieb-cancionero-<versión>.zip` de la última versión. Ese es el que se sube a WordPress. **No** descargues «Source code» ni
 «Download ZIP» de la página principal: contienen todo el proyecto (banco de pruebas, tutorial, herramientas…) y no sirven
 para instalar el plugin tal cual.

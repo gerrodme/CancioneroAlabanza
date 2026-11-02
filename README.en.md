@@ -17,6 +17,8 @@ It is free software, meant to let any church or music group manage its own score
 **includes no songs or scores**; each installation brings its own. The interface is available in Spanish and English and
 can be translated into other languages. In English, an installation without a name of its own calls itself "Songbook".
 
+**Website, download and manual:** [cancionero.gersonrodrigo.com](https://cancionero.gersonrodrigo.com/en/) · [Download and install](https://cancionero.gersonrodrigo.com/en/descargar/) · [User manual](https://cancionero.gersonrodrigo.com/en/manual/)
+
 ![Cancionero song list, with filters by tag, key and resources](docs/imagenes/lista-canciones.png)
 
 ## What it does
@@ -77,7 +79,10 @@ WordPress 6.0 or later and PHP 7.4 or later. No additional plugins needed.
 
 ## Download
 
-If you only want to **use the plugin** and not the code, go to the **Releases** tab of this repository and download the
+The easiest way is the [Download and install](https://cancionero.gersonrodrigo.com/en/descargar/) page: one button downloads the latest version
+and below it are the steps to install and update it in WordPress.
+
+From GitHub: if you only want to **use the plugin** and not the code, go to the **Releases** tab of this repository and download the
 `pieb-cancionero-<version>.zip` file of the latest version. That is the one you upload to WordPress. Do **not** download
 "Source code" or "Download ZIP" from the main page: they contain the whole project (test bench, tutorial, tools…) and
 cannot be installed as a plugin as they are.
