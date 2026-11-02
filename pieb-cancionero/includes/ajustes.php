@@ -776,6 +776,19 @@ function pieb_can_rest_copia_exportar() {
         ));
     }
 
+    // Posición de cada partitura dentro de las de su canción (solo las que tienen archivo, como en la copia), para
+    // recordar cuál se eligió en cada culto: los ids de los archivos no valen en otra web, la posición sí.
+    $posiciones = array();
+    foreach ($posts as $post) {
+        $n = 0;
+        foreach (pieb_can_get_partituras($post->ID) as $p) {
+            $ruta = get_attached_file((int) $p['id']);
+            if ($ruta && file_exists($ruta)) {
+                $posiciones[(int) $p['id']] = $n++;
+            }
+        }
+    }
+
     $cultos = array();
     $posts = get_posts(array('post_type' => PIEB_CAN_CULTO, 'post_status' => 'publish', 'posts_per_page' => -1, 'meta_key' => '_pieb_fecha', 'orderby' => 'meta_value', 'order' => 'DESC'));
     foreach ($posts as $post) {
@@ -785,12 +798,14 @@ function pieb_can_rest_copia_exportar() {
             if (!isset($uids[$id])) {
                 continue;
             }
+            $elegida = isset($item['partitura']) ? (int) $item['partitura'] : 0;
             $items[] = array(
                 'cancion'   => $uids[$id],
                 'titulo'    => html_entity_decode(get_the_title($id), ENT_QUOTES, 'UTF-8'),
                 'numero'    => (string) get_post_meta($id, '_pieb_numero', true),
                 'tonalidad' => isset($item['tonalidad']) ? (string) $item['tonalidad'] : '',
                 'nota'      => isset($item['nota']) ? (string) $item['nota'] : '',
+                'partituraPos' => isset($posiciones[$elegida]) ? $posiciones[$elegida] : -1,
             );
         }
         $culto = array(
@@ -819,7 +834,18 @@ function pieb_can_rest_copia_exportar() {
         'bienvenidaAuto'  => (bool) $ajustes['bienvenida_auto'],
         'bienvenidaTexto' => (string) $ajustes['bienvenida_texto'],
         'avisoBorrado'    => (bool) $ajustes['aviso_borrado'],
+        'papeleraDias'    => (int) $ajustes['papelera_dias'],
+        'responsablesEscaleta' => $ajustes['responsablesEscaleta'],
     );
+    // Nombre y subtítulo solo si la instalación les puso uno propio (lo guardado, no el valor por defecto).
+    $guardados = get_option('pieb_can_ajustes', array());
+    $guardados = is_array($guardados) ? $guardados : array();
+    if (isset($guardados['nombre']) && trim((string) $guardados['nombre']) !== '' && $guardados['nombre'] !== 'Cancionero') {
+        $ajustes_copia['nombre'] = (string) $guardados['nombre'];
+    }
+    if (isset($guardados['subtitulo']) && $guardados['subtitulo'] !== null) {
+        $ajustes_copia['subtitulo'] = (string) $guardados['subtitulo'];
+    }
     // Plantilla de la escaleta, solo si la instalación tiene una propia y sin las imágenes (sus ids no valen en otra web).
     $escaleta = pieb_can_escaleta_para_copia();
     if ($escaleta !== null) {
@@ -1017,10 +1043,20 @@ function pieb_can_rest_copia_culto(WP_REST_Request $request) {
             $faltan++;
             continue;
         }
+        // Partitura elegida para este culto: se recupera por su posición entre las de la canción (0 = la primera).
+        $partitura = 0;
+        $pos = isset($item['partituraPos']) ? (int) $item['partituraPos'] : -1;
+        if ($pos >= 0) {
+            $partituras = array_values(pieb_can_get_partituras($cancion));
+            if (isset($partituras[$pos]['id'])) {
+                $partitura = (int) $partituras[$pos]['id'];
+            }
+        }
         $items[] = array(
             'cancion'   => $cancion,
             'tonalidad' => sanitize_text_field(isset($item['tonalidad']) ? (string) $item['tonalidad'] : ''),
             'nota'      => sanitize_text_field(isset($item['nota']) ? (string) $item['nota'] : ''),
+            'partitura' => $partitura,
         );
     }
 
@@ -1090,9 +1126,28 @@ function pieb_can_rest_copia_ajustes(WP_REST_Request $request) {
     if (isset($a['avisoBorrado'])) {
         $ajustes['aviso_borrado'] = rest_sanitize_boolean($a['avisoBorrado']);
     }
+    // Nombre, subtítulo y días de papelera: solo si la copia los trae (las anteriores no los incluyen).
+    if (!empty($a['nombre'])) {
+        $ajustes['nombre'] = sanitize_text_field((string) $a['nombre']);
+    }
+    if (isset($a['subtitulo'])) {
+        $ajustes['subtitulo'] = sanitize_text_field((string) $a['subtitulo']);
+    }
+    if (isset($a['papeleraDias'])) {
+        $ajustes['papelera_dias'] = max(0, min(3650, (int) $a['papeleraDias']));
+    }
     $emails = isset($a['emails']) ? (array) $a['emails'] : array();
-    $ajustes['emails'] = pieb_can_normalizar_emails(implode(' ', array_merge($ajustes['emails'], $emails)));
+    // Los responsables de escaleta se unen a los actuales, como la lista del equipo, y también tienen acceso.
+    $responsables = isset($a['responsablesEscaleta']) ? (array) $a['responsablesEscaleta'] : array();
+    $ajustes['responsablesEscaleta'] = pieb_can_normalizar_emails(implode(' ', array_merge($ajustes['responsablesEscaleta'], $responsables)));
+    $ajustes['emails'] = pieb_can_normalizar_emails(implode(' ', array_merge($ajustes['emails'], $emails, $ajustes['responsablesEscaleta'])));
     pieb_can_guardar_ajustes($ajustes);
+    foreach ($ajustes['responsablesEscaleta'] as $email) {
+        $u = get_user_by('email', $email);
+        if ($u) {
+            pieb_can_sincronizar_administrador($u, $ajustes);
+        }
+    }
     // La plantilla de la escaleta se restaura solo si la copia la trae. La copia no lleva las imágenes (sus ids no valen
     // en otra web): se quitan las que pudieran venir y se conservan el logo y la cabecera que ya tenga esta web.
     if (isset($a['escaleta']) && is_array($a['escaleta'])) {

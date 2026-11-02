@@ -2,6 +2,12 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.19.2 · 2026-11-02
+
+La copia de seguridad guarda también la partitura elegida en cada culto (se recupera por su posición entre las de la
+canción), los responsables de escaleta, el nombre y el subtítulo propios y los días de la papelera. Las copias
+anteriores se siguen pudiendo restaurar
+
 ## 1.19.1 · 2026-11-02
 
 Los accesos directos a la página del cancionero (PC, Android, iPhone/iPad) llevan el icono del Cancionero y abren
