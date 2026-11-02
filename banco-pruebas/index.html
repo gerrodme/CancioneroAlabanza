@@ -322,6 +322,20 @@
       try { sessionStorage.setItem('banco-prefs', JSON.stringify(guardadas)); } catch (e) {}
       datos = p;
     }
+    else if (ruta === 'canciones/etiquetar') {
+      var quitarEt = (cuerpo.quitar || []).map(function (e) { return e.toLowerCase(); });
+      datos = { canciones: (cuerpo.ids || []).map(function (id) {
+        var c = canciones.filter(function (x) { return x.id === id; })[0];
+        if (!c) { return null; }
+        var fin = [];
+        c.etiquetas.concat(cuerpo.anadir || []).forEach(function (e) {
+          if (quitarEt.indexOf(e.toLowerCase()) < 0 && fin.map(function (f) { return f.toLowerCase(); }).indexOf(e.toLowerCase()) < 0) { fin.push(e); }
+        });
+        c.etiquetas = fin;
+        return { id: id, etiquetas: fin };
+      }).filter(Boolean) };
+      espera = 300;
+    }
     else if (ruta === 'etiquetas') { datos = {}; }
     else if (ruta === 'copia/cancion') { datos = { ok: true, estado: 'creada' }; }
     else if (ruta === 'copia/culto') { datos = { ok: true, estado: 'creado' }; }

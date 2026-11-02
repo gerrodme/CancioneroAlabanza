@@ -43,6 +43,13 @@ function pieb_can_rest_rutas() {
         'permission_callback' => $acceso,
     ));
 
+    // Etiquetar o desetiquetar varias canciones de golpe (la interfaz lo llama por tandas).
+    register_rest_route($ns, '/canciones/etiquetar', array(
+        'methods'             => WP_REST_Server::CREATABLE,
+        'callback'            => 'pieb_can_rest_etiquetar',
+        'permission_callback' => $acceso,
+    ));
+
     register_rest_route($ns, '/subidas', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'pieb_can_rest_trozo',
@@ -387,6 +394,51 @@ function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
     wp_set_object_terms($post_id, array_values(array_unique($etiquetas)), PIEB_CAN_TAX);
 
     return true;
+}
+
+/**
+ * Añade y/o quita etiquetas a varias canciones. Solo toca las etiquetas: el resto de la ficha no se envía ni se
+ * reescribe. Devuelve las etiquetas finales de cada canción para que la interfaz las pinte sin recargar.
+ */
+function pieb_can_rest_etiquetar(WP_REST_Request $request) {
+    $limpiar = function ($lista) {
+        $salida = array();
+        foreach ((array) $lista as $e) {
+            $e = sanitize_text_field(trim((string) $e));
+            if ($e !== '' && !in_array(mb_strtolower($e), array_map('mb_strtolower', $salida), true)) {
+                $salida[] = $e;
+            }
+        }
+        return $salida;
+    };
+    $anadir = $limpiar($request->get_param('anadir'));
+    $quitar = $limpiar($request->get_param('quitar'));
+    $ids = array_slice(array_unique(array_map('intval', (array) $request->get_param('ids'))), 0, 200);
+    if (!$ids || (!$anadir && !$quitar)) {
+        return new WP_Error('pieb_etiquetar', __('Elige canciones y al menos una etiqueta.', 'pieb-cancionero'), array('status' => 400));
+    }
+
+    $resultado = array();
+    foreach ($ids as $id) {
+        $post = get_post($id);
+        if (!$post || $post->post_type !== PIEB_CAN_CPT || $post->post_status !== 'publish') {
+            continue;
+        }
+        $actuales = pieb_can_etiquetas($id);
+        $minusculas_quitar = array_map('mb_strtolower', $quitar);
+        $finales = array();
+        foreach (array_merge($actuales, $anadir) as $e) {
+            if (in_array(mb_strtolower($e), $minusculas_quitar, true) || in_array(mb_strtolower($e), array_map('mb_strtolower', $finales), true)) {
+                continue;
+            }
+            $finales[] = $e;
+        }
+        if ($finales !== $actuales) {
+            wp_set_object_terms($id, $finales, PIEB_CAN_TAX);
+        }
+        $resultado[] = array('id' => $id, 'etiquetas' => pieb_can_etiquetas($id));
+    }
+    return rest_ensure_response(array('canciones' => $resultado));
 }
 
 /** Manifiesto web (application/manifest+json) para crear un acceso directo o instalar la página del cancionero. */

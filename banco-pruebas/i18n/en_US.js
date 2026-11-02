@@ -293,9 +293,6 @@ window.PIEB_I18N = {
    "%d selected",
    "%d selected"
   ],
-  "Toca las canciones que quieras borrar": [
-   "Tap the songs you want to delete"
-  ],
   "Quitar la selección": [
    "Clear selection"
   ],
@@ -1769,6 +1766,9 @@ window.PIEB_I18N = {
   "Editar canción": [
    "Edit song"
   ],
+  "Etiqueta": [
+   "Tag"
+  ],
   "Etiquetas": [
    "Tags"
   ],
@@ -2647,6 +2647,44 @@ window.PIEB_I18N = {
   ],
   "Solo el responsable de escaleta o un administrador puede preparar la escaleta.": [
    "Only the order of service manager or an administrator can prepare the order of service."
+  ],
+  "Elegir canciones para ponerles o quitarles etiquetas": [
+   "Pick songs to add or remove tags"
+  ],
+  "Etiquetar": [
+   "Tag"
+  ],
+  "Toca las canciones que quieras borrar (con Mayús, un rango)": [
+   "Tap the songs you want to delete (Shift for a range)"
+  ],
+  "Etiqueta nueva o existente": [
+   "New or existing tag"
+  ],
+  "Escribe o elige una etiqueta.": [
+   "Type or pick a tag."
+  ],
+  "Toca las canciones que quieras etiquetar (con Mayús, un rango)": [
+   "Tap the songs you want to tag (Shift for a range)"
+  ],
+  "Quitar etiqueta": [
+   "Remove tag"
+  ],
+  "Terminar": [
+   "Done"
+  ],
+  "Etiquetando %1$d de %2$d…": [
+   "Tagging %1$d of %2$d…"
+  ],
+  "Se detuvo tras %1$d canciones: %2$s": [
+   "Stopped after %1$d songs: %2$s"
+  ],
+  "Etiqueta «%2$s» añadida a %1$d canción": [
+   "Tag “%2$s” added to %1$d song",
+   "Tag “%2$s” added to %1$d songs"
+  ],
+  "Etiqueta «%2$s» quitada de %1$d canción": [
+   "Tag “%2$s” removed from %1$d song",
+   "Tag “%2$s” removed from %1$d songs"
   ]
  }
 };

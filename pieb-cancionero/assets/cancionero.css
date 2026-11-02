@@ -1417,6 +1417,15 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 .pcan-barra-n { flex: 1 1 160px; font-weight: 700; }
 .pcan-barra-confirmar { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--pc-radius-sm); background: color-mix(in srgb, var(--pc-danger) 10%, var(--pc-surface)); font-size: 14px; }
 .pcan-barra-confirmar span { flex: 1 1 240px; }
+/* Modo etiquetar: botón y filas marcadas con el color de acento (el rojo queda para borrar) */
+[data-pcan-theme] .pcan-lote-btn.is-active:not(.pcan-lote-btn-borrar), [data-pcan-theme] .pcan-lote-btn.is-active:not(.pcan-lote-btn-borrar) .pcan-ico { border-color: var(--pc-accent); background: var(--pc-accent); color: #fff; }
+[data-pcan-theme] .is-modo-etiquetar .pcan-row.is-marcada { background: color-mix(in srgb, var(--pc-accent) 11%, var(--pc-surface)); }
+[data-pcan-theme] .is-modo-etiquetar .pcan-row.is-marcada .pcan-num.pcan-casilla { border-color: var(--pc-accent); background: var(--pc-accent); }
+.pcan-barra-etiquetar { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 8px; }
+.pcan-barra-etiquetar .pcan-barra-etiqueta { flex: 1 1 200px; min-width: 0; height: 36px; }
+.pcan-barra-estado { flex: 1 1 100%; font-size: 13px; color: var(--pc-muted); }
+.pcan-barra-estado:empty { display: none; }
+.pcan-barra-marcado .pcan-progress { flex: 1 1 100%; height: 10px; }
 @container pcan (max-width: 999px) { [data-pcan-theme] .pcan-barra-marcado { bottom: calc(88px + env(safe-area-inset-bottom, 0px)); } }
 
 /* ================================================================== biblioteca de canciones (tabla) y página de canción */
@@ -1986,7 +1995,7 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 /* Una franja suave del color de la sección arriba de cada vista */
 [data-pcan-theme][data-pcan-estilo="colores"] .pcan-body { background: linear-gradient(180deg, color-mix(in srgb, var(--pc-accent) 10%, #fff), #fff 340px); }
 [data-pcan-theme][data-pcan-estilo="colores"] .pcan-top { background: color-mix(in srgb, color-mix(in srgb, var(--pc-accent) 9%, #fff) 90%, transparent); }
-[data-pcan-theme][data-pcan-estilo="colores"] :is(.pcan-split-list, .pcan-split-detail, .pcan-toolbar, .pcan-thead) { background: transparent; }
+[data-pcan-theme][data-pcan-estilo="colores"] :is(.pcan-split-list, .pcan-split-detail) { background: transparent; }
 [data-pcan-theme][data-pcan-estilo="colores"] :is(.pcan-kpi, .pcan-stat-card) { background: #fff; box-shadow: 0 0 0 1px color-mix(in srgb, var(--pc-accent) 14%, #fff) inset; }
 [data-pcan-theme][data-pcan-estilo="colores"] :is(.pcan-row, .pcan-culto).is-selected { background: color-mix(in srgb, var(--pc-accent) 12%, #fff); }
 [data-pcan-theme][data-pcan-estilo="colores"] .pcan-chip:hover { background: color-mix(in srgb, var(--pc-accent) 14%, #fff); }
@@ -2102,7 +2111,7 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 [data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-fieldset legend { color: #7f5714; font-family: Georgia, "Times New Roman", serif; font-size: 15px; font-weight: 600; }
 
 /* Superficies de papel en vez de blancos y grises fijos de «Como la web» */
-[data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-split-list, .pcan-split-detail, .pcan-toolbar, .pcan-thead) { background: transparent; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-split-list, .pcan-split-detail) { background: transparent; }
 [data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-kpi, .pcan-stat-card, .pcan-resumen-item, .pcan-uso) { background: #fff; box-shadow: 0 0 0 1px #eadfca inset; }
 [data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-row, .pcan-culto):hover { background: var(--pc-surface-2); }
 [data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-row, .pcan-culto).is-selected { background: #efe2c4; }

@@ -2,6 +2,12 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.20.0 · 2026-11-02
+
+Nuevo botón «Etiquetar» en la lista de canciones: se eligen varias canciones (con Mayús se marca un rango) y se les
+añade o quita una etiqueta nueva o existente, con barra de progreso. La cabecera de la tabla y la barra de búsqueda
+ya no dejan ver las canciones por debajo al hacer scroll en los estilos «Colores» y «Pentagrama»
+
 ## 1.19.2 · 2026-11-02
 
 La copia de seguridad guarda también la partitura elegida en cada culto (se recupera por su posición entre las de la

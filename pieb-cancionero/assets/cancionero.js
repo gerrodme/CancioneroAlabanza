@@ -183,6 +183,7 @@
     ajustes: 'M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3h-4l-.4 2.7a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1L11 21h4l.4-2.7c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5-2.2-1.8zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z',
     salir: 'M10 3h9v18h-9v-2h7V5h-7V3zm-.6 4.6L11 6l6 6-6 6-1.6-1.6 3.4-3.4H3v-2h9.8L9.4 7.6z',
     casa: 'M12 3 2 11h3v10h6v-6h2v6h6V11h3L12 3z',
+    etiqueta: 'M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v10c0 1.1.9 1.99 2 1.99L16 19c.67 0 1.27-.33 1.63-.84L22 12l-4.37-6.16z',
     check: 'M9.5 16.2 5.3 12l-1.4 1.4 5.6 5.6L20.1 8.4 18.7 7z',
     filtro: 'M3 5h18v2l-7 7v5l-4 2v-7L3 7V5z',
     puntos: 'M5 10.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm7 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm7 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z',
@@ -695,7 +696,8 @@
           h('label', { class: 'pcan-search' }, icono('filtro'), ui.buscador, ui.contador),
           ui.orden,
           h('a', { class: 'pcan-btn pcan-btn-sec pcan-lote-btn', href: '#/subir', title: __('Subir varias canciones de golpe'), 'aria-label': __('Subida múltiple') }, icono('subir'), h('span', { class: 'pcan-lote-btn-txt', text: __('Subida múltiple') })),
-          CFG.gestionar ? (ui.btnMarcar = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sec pcan-lote-btn pcan-lote-btn-borrar', title: __('Elegir canciones para borrarlas'), 'aria-label': __('Borrar'), 'aria-pressed': 'false', onclick: function () { alternarMarcado(); } }, icono('borrar'), h('span', { class: 'pcan-lote-btn-txt', text: __('Borrar') }))) : null),
+          (ui.btnEtiquetar = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sec pcan-lote-btn', title: __('Elegir canciones para ponerles o quitarles etiquetas'), 'aria-label': __('Etiquetar'), 'aria-pressed': 'false', onclick: function () { alternarMarcado(undefined, 'etiquetar'); } }, icono('etiqueta'), h('span', { class: 'pcan-lote-btn-txt', text: __('Etiquetar') }))),
+          CFG.gestionar ? (ui.btnMarcar = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sec pcan-lote-btn pcan-lote-btn-borrar', title: __('Elegir canciones para borrarlas'), 'aria-label': __('Borrar'), 'aria-pressed': 'false', onclick: function () { alternarMarcado(undefined, 'borrar'); } }, icono('borrar'), h('span', { class: 'pcan-lote-btn-txt', text: __('Borrar') }))) : null),
         ui.chips,
         ui.thead,
         ui.lista,
@@ -1175,18 +1177,29 @@
       icono(nombre), n > 1 ? h('small', { text: String(n) }) : null);
   }
 
-  // ---------------------------------------------------------------- borrado masivo (administradores)
+  // ---------------------------------------------------------------- selección múltiple: borrar (administradores) y etiquetar
 
   // null: lista normal. Objeto { id: true }: modo selección, cada fila es una casilla.
   var marcadas = null;
+  var modoMarcado = 'borrar';   // 'borrar' | 'etiquetar'
+  var ultimaMarcada = null;     // última canción pulsada, origen del rango con Mayús
+  var textoEtiqueta = '';       // lo escrito en la barra de etiquetar (la barra se repinta con cada clic)
 
-  function alternarMarcado(activar) {
-    marcadas = (activar === undefined ? !marcadas : activar) ? {} : null;
-    if (ui.btnMarcar) {
-      ui.btnMarcar.setAttribute('aria-pressed', marcadas ? 'true' : 'false');
-      ui.btnMarcar.classList.toggle('is-active', !!marcadas);
-    }
-    // Mientras se eligen canciones para borrar, el botón flotante «+» sobra y en el móvil taparía la barra.
+  function alternarMarcado(activar, modo) {
+    modo = modo || modoMarcado;
+    var encender = activar === undefined ? (!marcadas || modoMarcado !== modo) : activar;
+    marcadas = encender ? (marcadas || {}) : null;
+    modoMarcado = modo;
+    ultimaMarcada = null;
+    if (!encender) { textoEtiqueta = ''; }
+    [[ui.btnMarcar, 'borrar'], [ui.btnEtiquetar, 'etiquetar']].forEach(function (par) {
+      if (!par[0]) { return; }
+      var activo = !!marcadas && modoMarcado === par[1];
+      par[0].setAttribute('aria-pressed', activo ? 'true' : 'false');
+      par[0].classList.toggle('is-active', activo);
+    });
+    ui.lista.classList.toggle('is-modo-etiquetar', !!marcadas && modoMarcado === 'etiquetar');
+    // Mientras se eligen canciones, el botón flotante «+» sobra y en el móvil taparía la barra.
     if (ui.fab) { ui.fab.hidden = !!marcadas; }
     pintarLista();
   }
@@ -1203,9 +1216,10 @@
     if (!marcadas) { return; }
     var ids = idsMarcados();
     var todas = visibles.length && visibles.every(function (id) { return marcadas[id]; });
+    if (modoMarcado === 'etiquetar') { pintarBarraEtiquetar(barra, ids, visibles, todas); return; }
     var confirmar = h('div', { class: 'pcan-barra-confirmar', role: 'alert', hidden: true });
     append(barra, [
-      h('span', { class: 'pcan-barra-n', text: ids.length ? sprintf(_n('%d seleccionada', '%d seleccionadas', ids.length), ids.length) : __('Toca las canciones que quieras borrar') }),
+      h('span', { class: 'pcan-barra-n', text: ids.length ? sprintf(_n('%d seleccionada', '%d seleccionadas', ids.length), ids.length) : __('Toca las canciones que quieras borrar (con Mayús, un rango)') }),
       // Dos botones fijos: marcar todas las de la lista (con el filtro aplicado) y desmarcar todas.
       visibles.length ? h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', disabled: todas, onclick: function () {
         visibles.forEach(function (id) { marcadas[id] = true; });
@@ -1222,6 +1236,79 @@
       h('span', { text: sprintf(_n('Se moverá %d canción a la papelera: deja de verse en el cancionero y en los setlists aparecerá como eliminada. Un administrador puede recuperarla desde «Papelera».', 'Se moverán %d canciones a la papelera: dejan de verse en el cancionero y en los setlists aparecerán como eliminadas. Un administrador puede recuperarlas desde «Papelera».', ids.length), ids.length) }),
       h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-primary', onclick: function (e) { e.currentTarget.disabled = true; borrarMarcadas(ids, confirmar); } }, __('Sí, borrar')),
       h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () { confirmar.hidden = true; } }, __('No'))]);
+  }
+
+  /** Barra del modo etiquetar: elegir una etiqueta (nueva o existente) y añadirla o quitarla a las canciones marcadas. */
+  function pintarBarraEtiquetar(barra, ids, visibles, todas) {
+    var listaDatos = h('datalist', { id: 'pcan-etiquetas-lote' }, etiquetasTodas().map(function (e) { return h('option', { value: e.nombre }); }));
+    var campo = h('input', {
+      type: 'text', class: 'pcan-input pcan-barra-etiqueta', list: 'pcan-etiquetas-lote', value: textoEtiqueta, autocomplete: 'off',
+      placeholder: __('Etiqueta nueva o existente'), 'aria-label': __('Etiqueta'),
+      oninput: function () { textoEtiqueta = campo.value; }
+    });
+    var etiquetas = function () { return campo.value.split(',').map(function (e) { return e.trim(); }).filter(Boolean); };
+    var avance = h('div', { class: 'pcan-progress', hidden: true }, h('span'));
+    var estado = h('span', { class: 'pcan-barra-estado', role: 'status' });
+    var botones = [];
+    var aplicar = function (anadir) {
+      var lista = etiquetas();
+      if (!lista.length) { campo.focus(); estado.textContent = __('Escribe o elige una etiqueta.'); return; }
+      botones.forEach(function (b) { b.disabled = true; });
+      campo.disabled = true;
+      etiquetarMarcadas(ids, anadir ? lista : [], anadir ? [] : lista, estado, avance);
+    };
+    var btn = function (clase, texto, ico, fn, desactivado) {
+      var b = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm ' + clase, disabled: !!desactivado, onclick: fn }, ico ? icono(ico) : null, texto);
+      botones.push(b);
+      return b;
+    };
+    append(barra, [
+      h('span', { class: 'pcan-barra-n', text: ids.length ? sprintf(_n('%d seleccionada', '%d seleccionadas', ids.length), ids.length) : __('Toca las canciones que quieras etiquetar (con Mayús, un rango)') }),
+      visibles.length ? btn('', sprintf(_n('Seleccionar la canción de la lista', 'Seleccionar las %d de la lista', visibles.length), visibles.length), 'check', function () {
+        visibles.forEach(function (id) { marcadas[id] = true; });
+        pintarLista();
+      }, todas) : null,
+      btn('', __('Quitar la selección'), null, function () { marcadas = {}; pintarLista(); }, !ids.length),
+      h('div', { class: 'pcan-barra-etiquetar' },
+        campo, listaDatos,
+        btn('pcan-btn-primary', __('Añadir etiqueta'), 'etiqueta', function () { aplicar(true); }, !ids.length),
+        btn('', __('Quitar etiqueta'), null, function () { aplicar(false); }, !ids.length)),
+      btn('', __('Terminar'), null, function () { alternarMarcado(false); }),
+      estado, avance]);
+  }
+
+  function etiquetarMarcadas(ids, anadir, quitar, estado, avance) {
+    var TANDA = 40, hechas = 0, fallo = '';
+    var relleno = avance.firstChild;
+    avance.hidden = false;
+    relleno.style.width = '0%';
+    var lotes = [];
+    for (var i = 0; i < ids.length; i += TANDA) { lotes.push(ids.slice(i, i + TANDA)); }
+    lotes.reduce(function (cadena, lote) {
+      return cadena.then(function () {
+        if (fallo) { return; }
+        estado.textContent = sprintf(/* translators: 1: canciones ya etiquetadas, 2: total */ __('Etiquetando %1$d de %2$d…'), hechas, ids.length);
+        return api('canciones/etiquetar', { json: { ids: lote, anadir: anadir, quitar: quitar } }).then(function (r) {
+          (r.canciones || []).forEach(function (n) {
+            var c = state.canciones.filter(function (x) { return x.id === n.id; })[0];
+            if (c) { c.etiquetas = n.etiquetas; }
+          });
+          hechas += lote.length;
+          relleno.style.width = Math.round(hechas / ids.length * 100) + '%';
+        }, function (err) { fallo = err.message; });
+      });
+    }, Promise.resolve()).then(function () {
+      var etiqueta = (anadir.length ? anadir : quitar).join(', ');
+      aviso(fallo
+        ? sprintf(/* translators: 1: canciones procesadas, 2: motivo del error */ __('Se detuvo tras %1$d canciones: %2$s'), hechas, fallo)
+        : sprintf(anadir.length
+          ? /* translators: 1: número de canciones, 2: etiqueta */ _n('Etiqueta «%2$s» añadida a %1$d canción', 'Etiqueta «%2$s» añadida a %1$d canciones', hechas)
+          : /* translators: 1: número de canciones, 2: etiqueta */ _n('Etiqueta «%2$s» quitada de %1$d canción', 'Etiqueta «%2$s» quitada de %1$d canciones', hechas), hechas, etiqueta),
+      fallo ? 'error' : undefined);
+      textoEtiqueta = '';
+      pintarChips();
+      pintarLista();
+    });
   }
 
   function borrarMarcadas(ids, caja) {
@@ -1279,12 +1366,23 @@
       var marcar = function (e) {
         if (e.type === 'keydown' && e.key !== ' ' && e.key !== 'Enter') { return; }
         e.preventDefault();
-        marcadas[c.id] = !marcadas[c.id];
-        var fila = e.currentTarget, casilla = fila.querySelector('.pcan-casilla');
-        fila.classList.toggle('is-marcada', marcadas[c.id]);
-        fila.setAttribute('aria-checked', String(marcadas[c.id]));
-        casilla.innerHTML = '';
-        if (marcadas[c.id]) { append(casilla, icono('check')); }
+        var nuevo = !marcadas[c.id];
+        // Con Mayús se marca (o desmarca) todo el rango desde la última pulsada; Ctrl o Cmd marcan solo esa.
+        var desde = e.shiftKey && ultimaMarcada !== null ? visibles.indexOf(ultimaMarcada) : -1;
+        if (desde >= 0) {
+          var hasta = visibles.indexOf(c.id);
+          for (var k = Math.min(desde, hasta); k <= Math.max(desde, hasta); k++) { marcadas[visibles[k]] = nuevo; }
+        } else {
+          marcadas[c.id] = nuevo;
+        }
+        ultimaMarcada = c.id;
+        Array.prototype.forEach.call(ui.lista.querySelectorAll('.pcan-row.is-marcando'), function (fila) {
+          var on = !!marcadas[fila.getAttribute('data-id')], casilla = fila.querySelector('.pcan-casilla');
+          fila.classList.toggle('is-marcada', on);
+          fila.setAttribute('aria-checked', String(on));
+          casilla.innerHTML = '';
+          if (on) { append(casilla, icono('check')); }
+        });
         pintarBarraMarcado(visibles);
       };
       append(frag, h('a', {
