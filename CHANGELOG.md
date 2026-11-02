@@ -2,6 +2,11 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.18.1 · 2026-11-02
+
+Modo culto con un setlist largo: la partitura ya no sale desplazada ni con media página de la siguiente, y las
+canciones de abajo se pueden desplazar para llegar a la última
+
 ## 1.18.0 · 2026-10-31
 
 La ofrenda de la escaleta admite varias canciones (campo de canciones con la nueva opción «la siguiente a la última

@@ -800,6 +800,9 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
 
 .pcan-lector {
   position: fixed; inset: 0; z-index: 100000; display: grid; grid-template-rows: auto 1fr auto;
+  /* Una sola columna del ancho de la pantalla: sin minmax(0, …), un setlist largo en el pie la ensancha, el escenario se hace
+     más ancho que la pantalla (partitura desplazada o dos páginas en vertical) y las canciones del pie no se pueden desplazar. */
+  grid-template-columns: minmax(0, 1fr);
   background: var(--pc-stage); color: var(--pc-stage-ink); outline: 0;
 }
 .pcan-lector-barra, .pcan-lector-pie { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: color-mix(in srgb, var(--pc-stage) 70%, #000); }
