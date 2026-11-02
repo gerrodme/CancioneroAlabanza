@@ -2,6 +2,11 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.19.0 · 2026-11-02
+
+Nuevo rol «Responsable de escaleta» (Ajustes y equipo → Equipo → Opciones): prepara la escaleta de los cultos. El resto
+del equipo puede ver la escaleta y exportarla, pero no crearla ni cambiarla; los administradores pueden todo
+
 ## 1.18.1 · 2026-11-02
 
 Modo culto con un setlist largo: la partitura ya no sale desplazada ni con media página de la siguiente, y las

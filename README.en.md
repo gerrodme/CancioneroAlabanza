@@ -46,6 +46,8 @@ can be translated into other languages. In English, an installation without a na
   12 months, no IP addresses.
 - **Songbook administrators:** besides WordPress administrators, others can be named under **Settings and team**. They can
   change the settings, manage the team and delete songs (to the WordPress trash).
+- **Order-of-service managers:** the team can view and export the order of service of a service, but only managers (named under
+  **Settings and team → Team**) and administrators can create and change it.
 - **Your own name:** the name of the songbook ("Our church songbook", etc.) is changed under **Settings and team →
   General**.
 - **Visual themes:** Colors (default), Staff, Like the site, Pulse, Studio, Stage and Score.

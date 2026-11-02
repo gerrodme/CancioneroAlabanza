@@ -908,7 +908,7 @@
       { titulo: __('Estadísticas'), sub: __('Qué tocamos y qué no'), icono: 'grafica', href: '#/estadisticas' }
     ].concat(CFG.gestionar ? [
       { titulo: __('Ajustes y equipo'), sub: __('Nombre, tema por defecto, plazo de la papelera'), icono: 'ajustes', href: '#/ajustes' },
-      { titulo: __('Equipo'), sub: __('Correos con acceso, administradores y dominio'), icono: 'equipo', href: '#/ajustes/equipo' },
+      { titulo: __('Equipo'), sub: __('Correos con acceso, administradores, responsables de escaleta y dominio'), icono: 'equipo', href: '#/ajustes/equipo' },
       { titulo: __('Accesos'), sub: __('Quién entra y cuánto se usa'), icono: 'grafica', href: '#/ajustes/accesos' },
       { titulo: __('Escaleta'), sub: __('Logo e imagen de cabecera de la hoja impresa del culto'), icono: 'lista', href: '#/ajustes/escaleta' },
       { titulo: __('Acceso con Google'), sub: __('Client ID de Google'), icono: 'acceso', href: '#/ajustes/google' },
@@ -2996,9 +2996,10 @@
     }
 
     // ---- Equipo. La lista se gestiona aquí y se guarda al momento, sin pasar por «Guardar ajustes»: a.emails,
-    // a.administradores y a.miembros se mantienen al día con cada respuesta del servidor.
+    // a.administradores, a.responsablesEscaleta y a.miembros se mantienen al día con cada respuesta del servidor.
     var CORREO_VALIDO = /^[a-z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/;
     var miCorreo = String(CFG.userEmail || '').toLowerCase();
+    a.responsablesEscaleta = a.responsablesEscaleta || [];
     function claveDe(m) { return String(m.email).toLowerCase(); }
     function nombreDe(m) { return m.nombre || m.email; }
     function conCorreo(lista, clave) { return lista.indexOf(clave) === -1 ? lista.concat(clave) : lista; }
@@ -3087,10 +3088,20 @@
           cambiarEquipo(conCorreo(a.emails, clave), conCorreo(a.administradores, clave), sprintf(/* translators: %s: nombre o correo de la persona */ __('%s es administrador del cancionero'), nombre), clave);
         } });
       }
+      // Quien prepara la escaleta de los cultos. Los administradores ya pueden, así que a ellos no se les ofrece.
+      if (!m.esAdmin && !m.esGestor && a.responsablesEscaleta.indexOf(clave) !== -1) {
+        items.push({ texto: __('Quitar de responsable de escaleta'), fn: function () {
+          cambiarEquipo(a.emails, a.administradores, sprintf(/* translators: %s: nombre o correo de la persona */ __('%s ya no es responsable de escaleta'), nombre), clave, sinCorreo(a.responsablesEscaleta, clave));
+        } });
+      } else if (!m.esAdmin && !m.esGestor) {
+        items.push({ texto: __('Hacer responsable de escaleta'), fn: function () {
+          cambiarEquipo(conCorreo(a.emails, clave), a.administradores, sprintf(/* translators: %s: nombre o correo de la persona */ __('%s es responsable de escaleta'), nombre), clave, conCorreo(a.responsablesEscaleta, clave));
+        } });
+      }
       if (m.enLista) {
         items.push({ texto: __('Quitar del equipo'), peligro: true, bloqueada: propia, razon: razon, fn: function () {
           if (!window.confirm(sprintf(/* translators: %s: nombre o correo de la persona */ __('¿Quitar a %s del equipo? Perderá el acceso al cancionero.'), nombre))) { return; }
-          cambiarEquipo(sinCorreo(a.emails, clave), sinCorreo(a.administradores, clave), sprintf(/* translators: %s: nombre o correo de la persona */ __('%s ya no está en el equipo'), nombre), clave);
+          cambiarEquipo(sinCorreo(a.emails, clave), sinCorreo(a.administradores, clave), sprintf(/* translators: %s: nombre o correo de la persona */ __('%s ya no está en el equipo'), nombre), clave, sinCorreo(a.responsablesEscaleta, clave));
         } });
       } else {
         items.push({ texto: __('Añadir a la lista'), fn: function () {
@@ -3148,6 +3159,7 @@
         // En el móvil el estado y las opciones bajan bajo el nombre; en pantallas anchas van en la misma línea.
         h('span', { class: 'pcan-miembro-pie' },
           m.esGestor && !m.esAdmin ? h('span', { class: 'pcan-estado is-ok', title: __('Puede cambiar los ajustes, gestionar el equipo y borrar canciones'), text: __('Administrador') }) : null,
+          m.esEscaleta && !m.esGestor && !m.esAdmin ? h('span', { class: 'pcan-estado is-ok', title: __('Puede preparar la escaleta de los cultos'), text: __('Responsable de escaleta') }) : null,
           m.esAdmin
             ? h('span', { class: 'pcan-estado is-warn', title: __('Las cuentas de administración no reciben enlaces por correo'), text: __('Administración · entra con contraseña') })
             : h('span', { class: 'pcan-estado' + (m.haEntrado ? ' is-ok' : ''), text: m.haEntrado ? __('Ha entrado') : m.enLista ? __('Pendiente') : __('Fuera de la lista') }),
@@ -3250,13 +3262,15 @@
 
     /** Guarda al momento las listas del equipo (solo ellas; el resto de ajustes sigue en «Guardar ajustes»). La respuesta
      *  trae los miembros ya recalculados. Devuelve la respuesta, o null si falló (ya avisado). */
-    function guardarEquipo(emails, administradores, enError) {
+    function guardarEquipo(emails, administradores, enError, responsables) {
       if (enCurso) { return Promise.resolve(null); }
       enCurso = true;
       bloquear();
-      return api('ajustes', { json: { emails: emails, administradores: administradores, pagina: paginaActual() } }).then(function (r) {
+      responsables = responsables || a.responsablesEscaleta;
+      return api('ajustes', { json: { emails: emails, administradores: administradores, responsablesEscaleta: responsables, pagina: paginaActual() } }).then(function (r) {
         a.emails = r.emails || emails;
         a.administradores = r.administradores || administradores;
+        a.responsablesEscaleta = r.responsablesEscaleta || responsables;
         a.miembros = r.miembros || a.miembros;
         return r;
       }).catch(function (err) {
@@ -3291,9 +3305,9 @@
       });
     }
 
-    function cambiarEquipo(emails, administradores, texto, foco) {
+    function cambiarEquipo(emails, administradores, texto, foco, responsables) {
       mostrarResultado('');
-      return guardarEquipo(emails, administradores).then(function (r) { return terminarCambio(r, texto, foco); });
+      return guardarEquipo(emails, administradores, undefined, responsables).then(function (r) { return terminarCambio(r, texto, foco); });
     }
 
     // Añadir personas: formulario en línea.
@@ -3532,7 +3546,7 @@
       equipo: [
         h('fieldset', { class: 'pcan-fieldset' },
           h('legend', { text: __('Equipo') }),
-          h('p', { class: 'pcan-help', text: __('Cada persona entra con un enlace que recibe en su correo (o con Google, si lo configuras) y quien sale de la lista pierde el acceso. Los administradores pueden cambiar los ajustes, gestionar el equipo y borrar canciones.') }),
+          h('p', { class: 'pcan-help', text: __('Cada persona entra con un enlace que recibe en su correo (o con Google, si lo configuras) y quien sale de la lista pierde el acceso. Los administradores pueden cambiar los ajustes, gestionar el equipo y borrar canciones; los responsables de escaleta, además de lo del equipo, preparan la escaleta de los cultos.') }),
           bloqueMiembros,
           avisoAdmin,
           h('div', { class: 'pcan-actions' },
@@ -4097,6 +4111,7 @@
           p.esAdmin
             ? h('span', { class: 'pcan-estado is-warn', title: __('Las cuentas de administración no reciben enlaces por correo'), text: __('Administración · entra con contraseña') })
             : p.esGestor ? h('span', { class: 'pcan-estado is-ok', title: __('Puede cambiar los ajustes, gestionar el equipo y borrar canciones'), text: __('Administrador') })
+              : p.esEscaleta ? h('span', { class: 'pcan-estado is-ok', title: __('Puede preparar la escaleta de los cultos'), text: __('Responsable de escaleta') })
               : !p.enLista ? h('span', { class: 'pcan-estado', text: __('Fuera de la lista') }) : null,
           h('span', { class: 'pcan-acc-cifras' }, h('span', { text: nInicios(r.inicios) }), h('span', { text: nDiasDeUso(r.dias) })),
           icono('siguiente'));

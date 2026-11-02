@@ -40,6 +40,12 @@ The interface is a single-page application inside the WordPress page; it navigat
   require `pieb_cancionero_gestionar`. The "team" and "administrators" email lists are in the settings: when someone
   signs in (Google or link) or when the settings are saved, the administrator role is granted or removed according to
   that list (`pieb_can_sincronizar_administrador`).
+- Role `responsable_escaleta` ("Order-of-service manager": access + `pieb_can_escaleta`): like the team, and it also prepares
+  the order of service of the services. Whoever lacks `pieb_can_escaleta` (the regular team) can **view and export** the order
+  of service but not create or change it. Songbook administrators and WordPress administrators and editors also have
+  `pieb_can_escaleta`. The `responsablesEscaleta` list in the settings is synchronised with that role just like
+  `administradores` (the same function `pieb_can_sincronizar_administrador` grants or removes both roles) and its emails are
+  also added to `emails`. The interface receives `escaleta` (boolean) in `PIEB_CANCIONERO`.
 - **Internal prefix `pieb`:** the internal keys (types `pieb_cancion`, metadata `_pieb_*`, REST route `pieb/v1`,
   functions `pieb_can_*`) keep the historical prefix so as not to break the data of existing installations. It is only a
   technical identifier; the visible product name is "Cancionero".
@@ -63,7 +69,7 @@ The interface is a single-page application inside the WordPress page; it navigat
   the one used by play mode and the PDF), `_pieb_escaleta` (optional: that service's order of service, with its row of titles,
   its sections and its values; see [Order of service](#order-of-service)).
 - WordPress options: `pieb_can_ajustes` (settings: `nombre`, `tema_defecto`, `google_client_id`, `emails`,
-  `administradores`, `dominio`, `bienvenida_auto`, `bienvenida_texto`, `pagina`, `aviso_borrado`), `pieb_can_escaleta`
+  `administradores`, `responsablesEscaleta`, `dominio`, `bienvenida_auto`, `bienvenida_texto`, `pagina`, `aviso_borrado`), `pieb_can_escaleta`
   (the installation's order-of-service identity: logo and header; not autoloaded; if missing, the generic one is used), `pieb_can_bienvenidas`
   (log of the welcome emails sent: email → timestamp; not autoloaded), `pieb_can_avisos_borrado` (queue of deleted songs
   waiting to be reported; not autoloaded; see [Deleted-song alert](#deleted-song-alert)), `pieb_can_accesos_desde`
@@ -81,7 +87,7 @@ interface receives it in `PIEB_CANCIONERO.nonce`; the API base is in `PIEB_CANCI
 | `/canciones` | GET, POST | GET returns a **summary** of all songs (`id, titulo, numero, autor, tonalidad, tempo, etiquetas, letra, miniatura, creada, modificada` and the **counts** `partituras`, `youtube` and `audios`). POST creates. |
 | `/canciones/{id}` | GET, POST, DELETE | GET returns the full record (scores with `archivo`/`url`, audio, `youtube` with `videoId`, notes…). POST **updates by replacing everything** (see below). DELETE sends it to the trash. |
 | `/subidas` | POST | **Chunked** file upload (a 10 MB audio fits even if PHP limits requests to 2 MB). |
-| `/cultos`, `/cultos/{id}` | GET, POST, DELETE | Services and setlists. `GET /cultos/{id}` also returns `escaleta` (an object or `null`; it is not in the list) and `POST` accepts it only if present (`null` deletes it). See [Order of service](#order-of-service). |
+| `/cultos`, `/cultos/{id}` | GET, POST, DELETE | Services and setlists. `GET /cultos/{id}` also returns `escaleta` (an object or `null`; it is not in the list) and `POST` accepts it only if present (`null` deletes it) **and only from someone with `pieb_can_escaleta`**: from anyone else it is ignored, without an error (the rest of the service is saved and any existing order of service is kept). See [Order of service](#order-of-service). |
 | `/escaleta` | GET | The **base for a new service's order of service**: the structure (without values) and the row of titles of the last order of service saved in any service, with the installation's logo and header and `desde: {id, titulo}` (the source service; `null` if it comes from the generic template). The whole team reads it, because preparing a service's order of service needs it. |
 | `/escaleta/imagen` | POST | Uploads the logo or header image of the order of service (JPG or PNG, max. 2 MB) to the normal media library; replies `{ id, url }` (requires `pieb_cancionero_gestionar`). |
 | `/etiquetas`, `/preferencias`, `/huerfanos` | various | Tags with color, user preferences (`tema`, `idioma` and `notacion`, all optional; empty = automatic), unused files. |
@@ -255,7 +261,9 @@ escaleta (of a service): {
 ```
 
 `GET /cultos/{id}` returns it in `escaleta` (an object or `null`; it is not in the list of services, to keep it light) and
-`POST /cultos/{id}` accepts it only if present (`null` deletes it). Orders of service saved before each service carried its
+`POST /cultos/{id}` accepts it only if present (`null` deletes it) and only from someone with the `pieb_can_escaleta` capability
+(order-of-service managers and administrators; from anyone else it is ignored without an error). In the interface, the rest of
+the team sees the Order of service tab read-only (a preview of the sheet and "Export order of service"). Orders of service saved before each service carried its
 own row of titles have no `titulo` or `central`: the interface takes the base's when opening them and the PDF uses the base's
 if they are missing.
 

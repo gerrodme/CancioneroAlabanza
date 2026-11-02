@@ -35,6 +35,8 @@ function pieb_can_ajustes() {
         'google_client_id' => '',
         'emails'           => array(),
         'administradores'  => array(),
+        // Responsables de escaleta: además de lo del equipo, preparan la escaleta de los cultos (rol PIEB_CAN_ROLE_ESCALETA).
+        'responsablesEscaleta' => array(),
         'dominio'          => '',
         // Correo de bienvenida a quien se añade a la lista (ver includes/bienvenida.php): envío automático, texto extra
         // del administrador y dirección de la página del cancionero (la que envía la interfaz; '' = aún no se conoce).
@@ -430,9 +432,10 @@ function pieb_can_miembros($ajustes) {
             // Las cuentas de administración no reciben enlaces por correo: entran con contraseña.
             'esAdmin'   => $u && user_can($u, 'manage_options'),
             'esGestor'  => in_array($email, $ajustes['administradores'], true) || ($u && in_array(PIEB_CAN_ROLE_ADMIN, (array) $u->roles, true)),
+            'esEscaleta' => in_array($email, $ajustes['responsablesEscaleta'], true) || ($u && in_array(PIEB_CAN_ROLE_ESCALETA, (array) $u->roles, true)),
         );
     }
-    foreach (array_merge(get_users(array('role' => PIEB_CAN_ROLE)), get_users(array('role' => PIEB_CAN_ROLE_ADMIN))) as $u) {
+    foreach (array_merge(get_users(array('role' => PIEB_CAN_ROLE)), get_users(array('role' => PIEB_CAN_ROLE_ADMIN)), get_users(array('role' => PIEB_CAN_ROLE_ESCALETA))) as $u) {
         $email = strtolower($u->user_email);
         $miembros[$email] = array(
             'email'     => $email,
@@ -441,6 +444,7 @@ function pieb_can_miembros($ajustes) {
             'enLista'   => isset($miembros[$email]),
             'esAdmin'   => user_can($u, 'manage_options'),
             'esGestor'  => in_array($email, $ajustes['administradores'], true) || in_array(PIEB_CAN_ROLE_ADMIN, (array) $u->roles, true),
+            'esEscaleta' => in_array($email, $ajustes['responsablesEscaleta'], true) || in_array(PIEB_CAN_ROLE_ESCALETA, (array) $u->roles, true),
         );
     }
     // Bienvenida: cuándo se le envió por última vez (0 = nunca) y si se le puede enviar (las cuentas de administración
@@ -463,6 +467,7 @@ function pieb_can_ajustes_datos() {
         'papeleraDias'   => (int) $ajustes['papelera_dias'],
         'version'        => PIEB_CAN_VERSION,
         'administradores' => $ajustes['administradores'],
+        'responsablesEscaleta' => $ajustes['responsablesEscaleta'],
         'temaDefecto'    => $ajustes['tema_defecto'],
         'googleClientId' => $ajustes['google_client_id'],
         'dominio'        => $ajustes['dominio'],
@@ -548,13 +553,20 @@ function pieb_can_rest_ajustes_guardar(WP_REST_Request $request) {
         $ajustes['emails'] = array_values(array_unique(array_merge($ajustes['emails'], $ajustes['administradores'])));
     }
 
+    if ($request->has_param('responsablesEscaleta')) {
+        $ajustes['responsablesEscaleta'] = pieb_can_normalizar_emails(implode(' ', (array) $request->get_param('responsablesEscaleta')));
+        // Un responsable de escaleta siempre tiene acceso: se añade también a la lista del equipo.
+        $ajustes['emails'] = array_values(array_unique(array_merge($ajustes['emails'], $ajustes['responsablesEscaleta'])));
+    }
+
     pieb_can_guardar_ajustes($ajustes);
     if ($con_escaleta) {
         pieb_can_escaleta_guardar($escaleta);
     }
 
-    // Aplica ya los cambios de administradores a las cuentas existentes.
-    foreach (array_unique(array_merge($anterior['administradores'], $ajustes['administradores'])) as $email) {
+    // Aplica ya los cambios de administradores y de responsables de escaleta a las cuentas existentes.
+    $afectados = array_unique(array_merge($anterior['administradores'], $ajustes['administradores'], $anterior['responsablesEscaleta'], $ajustes['responsablesEscaleta']));
+    foreach ($afectados as $email) {
         $u = get_user_by('email', $email);
         if ($u) {
             pieb_can_sincronizar_administrador($u, $ajustes);

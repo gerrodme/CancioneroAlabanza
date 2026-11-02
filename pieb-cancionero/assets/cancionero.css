@@ -2265,6 +2265,10 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 .pcan-vista.is-pagina .pcan-ec-ext.is-ancho .pcan-ec-vista { top: calc(var(--pc-top-h, 0px) + 72px); max-height: calc(100dvh - var(--pc-top-h, 0px) - 88px); }
 .admin-bar .pcan-ec-ext.is-ancho .pcan-ec-vista { top: calc(72px + var(--wp-admin--admin-bar--height, 0px)); max-height: calc(100dvh - 88px - var(--wp-admin--admin-bar--height, 0px)); }
 .pcan-ec-ext.is-ancho .pcan-ec-ver { display: none; }
+/* Sin permiso para preparar la escaleta: solo se ve la hoja, en una columna y a la altura que le toque, sin botón flotante. */
+.pcan-ec-ext.is-lectura > .pcan-ec { display: flex; flex-direction: column; gap: 14px; }
+.pcan-ec-ext.is-lectura .pcan-ec-vista { display: flex; position: static; max-height: none; max-width: 720px; overflow: visible; padding: 2px; }
+.pcan-ec-ext.is-lectura .pcan-ec-ver { display: none; }
 /* El botón va pegado abajo a la derecha, por encima de la barra «Guardar cambios / Cancelar» (también pegajosa). */
 [data-pcan-theme] .pcan-ec-ver {
   position: sticky; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); z-index: 6; display: flex; margin: 12px 0 0 auto; width: fit-content;

@@ -27,9 +27,14 @@
     document.write('<script src="i18n/' + idiomaElegido + '.js"><\/script>');
   }
   document.getElementById('pieb-cancionero').setAttribute('data-pcan-theme', tema);
+  // ?rol=equipo simula a un usuario normal (ni gestiona ni prepara la escaleta); ?rol=escaleta, a un responsable de escaleta
+  // (sin gestionar); sin parámetro, a un administrador del cancionero (todo).
+  var rol = params.get('rol') || '';
+  var puedeGestionar = rol !== 'equipo' && rol !== 'escaleta';
+  var puedeEscaleta = rol !== 'equipo';
   window.PIEB_CANCIONERO = {
-    api: '/api/', nonce: 'x', userId: 1, userName: 'Ana Pérez', userEmail: 'ana@example.com', gestionar: true,
-    logoutUrl: '#', homeUrl: '#', sitio: 'Tu iglesia', nombre: 'Cancionero', maxUpload: 33554432, maxPartitura: 4194304, maxAudio: 10485760, maxEditable: 10485760, trozo: 1048576, admin: true, version: "1.3.0", tema: tema,
+    api: '/api/', nonce: 'x', userId: 1, userName: 'Ana Pérez', userEmail: 'ana@example.com', gestionar: puedeGestionar, escaleta: puedeEscaleta,
+    logoutUrl: '#', homeUrl: '#', sitio: 'Tu iglesia', nombre: 'Cancionero', maxUpload: 33554432, maxPartitura: 4194304, maxAudio: 10485760, maxEditable: 10485760, trozo: 1048576, admin: puedeGestionar, version: "1.3.0", tema: tema,
     idioma: locale.replace('_', '-'), idiomas: { es_ES: 'Español', en_US: 'English' }, idiomaElegido: idiomaElegido,
     notacion: notacionElegida || 'latina', notacionElegida: notacionElegida,
     temas: idiomaElegido === 'en_US'
@@ -71,7 +76,8 @@
   // POST cultos y cultos/ID: guarda los campos que llegan; la escaleta se conserva si no llega (y solo cambia si llega, también null).
   function guardarCultoMock(c, cuerpo) {
     ['titulo', 'fecha', 'tipo', 'notas', 'items'].forEach(function (k) { if (cuerpo[k] !== undefined) { c[k] = cuerpo[k]; } });
-    if (cuerpo.escaleta !== undefined) {
+    // Como el servidor: la escaleta de quien no puede prepararla se ignora (se conserva la que hubiera).
+    if (cuerpo.escaleta !== undefined && puedeEscaleta) {
       c.escaleta = cuerpo.escaleta;
       if (cuerpo.escaleta) { ultimaEscaleta = c.id; }   // como el servidor: la base de un culto nuevo es la última escaleta guardada
     }
@@ -160,19 +166,19 @@
   var ajustesMock = {
     // En Ajustes la escaleta solo tiene la identidad de la iglesia: el logo y la imagen de cabecera ({id, url} o null).
     escaleta: { logo: null, cabecera: null },
-    nombre: 'Cancionero', subtitulo: 'Tu iglesia', version: '1.5.5', administradores: ['ana@example.com'], papeleraDias: 30, temaDefecto: 'claro',
+    nombre: 'Cancionero', subtitulo: 'Tu iglesia', version: '1.5.5', administradores: ['ana@example.com'], responsablesEscaleta: ['sara@example.com'], papeleraDias: 30, temaDefecto: 'claro',
     googleClientId: '', dominio: '', origen: location.origin, bienvenidaAuto: true, bienvenidaTexto: 'Encontrarás el cancionero en el menú «Música» de nuestra web.', pagina: '',
     avisoBorrado: true, correoAdmin: 'webmaster@example.com',
     emails: ['ana@example.com', 'luis@example.com', 'marta@example.com', 'pablo@example.com', 'sara@example.com', 'falla@example.com', 'admin@example.com'],
     miembros: [
       { email: 'ana@example.com', nombre: 'Ana Pérez', haEntrado: true, enLista: true, esGestor: true, esAdmin: false, puedeBienvenida: true, bienvenida: ahoraS() - 40 * 86400 },
-      { email: 'luis@example.com', nombre: 'Luis Gómez', haEntrado: true, enLista: true, esGestor: false, esAdmin: false, puedeBienvenida: true, bienvenida: 0 },
-      { email: 'marta@example.com', nombre: 'Marta Ruiz', haEntrado: false, enLista: true, esGestor: false, esAdmin: false, puedeBienvenida: true, bienvenida: ahoraS() - 5 * 86400 },
-      { email: 'pablo@example.com', nombre: '', haEntrado: false, enLista: true, esGestor: false, esAdmin: false, puedeBienvenida: true, bienvenida: 0 },
-      { email: 'sara@example.com', nombre: 'Sara Díaz', haEntrado: false, enLista: true, esGestor: false, esAdmin: false, puedeBienvenida: true, bienvenida: 0 },
-      { email: 'falla@example.com', nombre: '', haEntrado: false, enLista: true, esGestor: false, esAdmin: false, puedeBienvenida: true, bienvenida: 0 },
+      { email: 'luis@example.com', nombre: 'Luis Gómez', haEntrado: true, enLista: true, esGestor: false, esEscaleta: false, esAdmin: false, puedeBienvenida: true, bienvenida: 0 },
+      { email: 'marta@example.com', nombre: 'Marta Ruiz', haEntrado: false, enLista: true, esGestor: false, esEscaleta: false, esAdmin: false, puedeBienvenida: true, bienvenida: ahoraS() - 5 * 86400 },
+      { email: 'pablo@example.com', nombre: '', haEntrado: false, enLista: true, esGestor: false, esEscaleta: false, esAdmin: false, puedeBienvenida: true, bienvenida: 0 },
+      { email: 'sara@example.com', nombre: 'Sara Díaz', haEntrado: false, enLista: true, esGestor: false, esEscaleta: true, esAdmin: false, puedeBienvenida: true, bienvenida: 0 },
+      { email: 'falla@example.com', nombre: '', haEntrado: false, enLista: true, esGestor: false, esEscaleta: false, esAdmin: false, puedeBienvenida: true, bienvenida: 0 },
       { email: 'admin@example.com', nombre: 'Administración', haEntrado: true, enLista: true, esGestor: true, esAdmin: true, puedeBienvenida: false, bienvenida: 0 },
-      { email: 'antiguo@example.com', nombre: 'Voluntario antiguo', haEntrado: true, enLista: false, esGestor: false, esAdmin: false, puedeBienvenida: false, bienvenida: 0 }
+      { email: 'antiguo@example.com', nombre: 'Voluntario antiguo', haEntrado: true, enLista: false, esGestor: false, esEscaleta: false, esAdmin: false, puedeBienvenida: false, bienvenida: 0 }
     ]
   };
   function minusculas(emails) { return (emails || []).map(function (e) { return String(e).toLowerCase(); }); }
@@ -190,12 +196,13 @@
       });
     }
     var pendientes = [];
-    if (cuerpo.emails !== undefined || cuerpo.administradores !== undefined) {
+    if (cuerpo.emails !== undefined || cuerpo.administradores !== undefined || cuerpo.responsablesEscaleta !== undefined) {
       var antes = minusculas(ajustesMock.emails);
       var admins = cuerpo.administradores !== undefined ? minusculas(cuerpo.administradores) : minusculas(ajustesMock.administradores);
+      var resp = cuerpo.responsablesEscaleta !== undefined ? minusculas(cuerpo.responsablesEscaleta) : minusculas(ajustesMock.responsablesEscaleta);
       var emails = cuerpo.emails !== undefined ? minusculas(cuerpo.emails) : antes.slice();
       // Un administrador siempre tiene acceso: se añade también a la lista.
-      admins.forEach(function (e) { if (emails.indexOf(e) === -1) { emails.push(e); } });
+      admins.concat(resp).forEach(function (e) { if (emails.indexOf(e) === -1) { emails.push(e); } });
       // Como el servidor: no se envía a quien ya la recibió, ya ha entrado alguna vez o es una cuenta de administración.
       pendientes = emails.filter(function (e) {
         var mb = ajustesMock.miembros.filter(function (x) { return x.email === e; })[0];
@@ -203,12 +210,13 @@
       });
       emails.forEach(function (e) {
         if (!ajustesMock.miembros.some(function (mb) { return mb.email === e; })) {
-          ajustesMock.miembros.push({ email: e, nombre: '', haEntrado: false, enLista: true, esGestor: false, esAdmin: false, puedeBienvenida: true, bienvenida: 0 });
+          ajustesMock.miembros.push({ email: e, nombre: '', haEntrado: false, enLista: true, esGestor: false, esEscaleta: false, esAdmin: false, puedeBienvenida: true, bienvenida: 0 });
         }
       });
       ajustesMock.miembros.forEach(function (mb) {
         mb.enLista = emails.indexOf(mb.email) !== -1;
         mb.esGestor = admins.indexOf(mb.email) !== -1 || mb.esAdmin;
+        mb.esEscaleta = resp.indexOf(mb.email) !== -1;
         mb.puedeBienvenida = !mb.esAdmin && mb.enLista;
       });
       ajustesMock.miembros = ajustesMock.miembros
@@ -216,6 +224,7 @@
         .sort(function (x, y) { return x.email < y.email ? -1 : 1; });
       ajustesMock.emails = emails;
       ajustesMock.administradores = admins;
+      ajustesMock.responsablesEscaleta = resp;
     }
     return Object.assign({}, ajustesMock, { bienvenidaPendiente: ajustesMock.bienvenidaAuto ? pendientes : [] });
   }
@@ -288,6 +297,8 @@
     var mc;
     var cuerpo = {};
     try { cuerpo = opts && opts.body ? JSON.parse(opts.body) : {}; } catch (e) { cuerpo = {}; }
+    // Registro de las peticiones de escritura, para comprobar en las pruebas qué se envía.
+    if (opts && opts.method && opts.method !== 'GET') { (window.__peticiones = window.__peticiones || []).push({ ruta: ruta, cuerpo: cuerpo }); }
     if (ruta === 'canciones') { datos = canciones; }
     else if ((mc = ruta.match(/^canciones\/(\d+)$/))) { datos = detalleCancion(canciones.filter(function (c) { return c.id === +mc[1]; })[0]); }
     else if (ruta === 'cultos' && (!opts || !opts.method || opts.method === 'GET')) { datos = cultos.map(function (c) { var l = Object.assign({}, c); delete l.escaleta; return l; }); }

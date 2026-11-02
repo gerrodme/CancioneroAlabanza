@@ -44,6 +44,8 @@ la herramienta: **no incluye ninguna canción ni partitura**; cada instalación 
   de uso, cómo entran, desde qué dispositivo y qué días, con el detalle de cada persona. Se guardan 12 meses, sin IP.
 - **Administradores del cancionero:** además de los administradores de WordPress, se pueden nombrar otros desde
   **Ajustes y equipo**. Pueden cambiar los ajustes, gestionar el equipo y borrar canciones (a la papelera de WordPress).
+- **Responsables de escaleta:** el equipo puede ver y exportar la escaleta de un culto, pero solo los responsables de
+  escaleta (se nombran en **Ajustes y equipo → Equipo**) y los administradores pueden crearla y modificarla.
 - **Nombre propio:** el nombre del cancionero («Cancionero de la iglesia», etc.) se cambia en **Ajustes y equipo → General**.
 - **Temas visuales:** Colores (por defecto), Pentagrama, Como la web, Pulso, Estudio, Escenario y Partitura.
 - **Idiomas:** español e inglés. Cada persona elige su idioma y la notación de las tonalidades (Do-Re-Mi o C-D-E) en el

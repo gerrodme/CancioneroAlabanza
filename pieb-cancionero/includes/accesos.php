@@ -202,6 +202,7 @@ function pieb_can_rest_accesos() {
             'enLista'  => (bool) $miembro['enLista'],
             'esAdmin'  => (bool) $miembro['esAdmin'],
             'esGestor' => (bool) $miembro['esGestor'],
+            'esEscaleta' => (bool) $miembro['esEscaleta'],
         );
         $usuarios[$email] = get_user_by('email', $email);
     }
@@ -245,6 +246,7 @@ function pieb_can_rest_accesos() {
             'esAdmin'  => user_can($u, 'manage_options'),
             // Igual que en pieb_can_miembros().
             'esGestor' => in_array($email, $ajustes['administradores'], true) || in_array(PIEB_CAN_ROLE_ADMIN, (array) $u->roles, true),
+            'esEscaleta' => in_array($email, $ajustes['responsablesEscaleta'], true) || in_array(PIEB_CAN_ROLE_ESCALETA, (array) $u->roles, true),
         );
         $usuarios[$email] = $u;
     }

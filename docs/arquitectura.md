@@ -40,6 +40,12 @@ La interfaz es una aplicación de una sola página dentro de la página de WordP
   copias de seguridad, la restauración y los ajustes requieren `pieb_cancionero_gestionar`. Las listas de correos «equipo» y
   «administradores» están en los ajustes: al entrar (Google o enlace) o al guardar los ajustes, el rol de administrador
   se concede o se retira según esa lista (`pieb_can_sincronizar_administrador`).
+- Rol `responsable_escaleta` («Responsable de escaleta»: acceso + `pieb_can_escaleta`): como el equipo, y además prepara la
+  escaleta de los cultos. Quien no tiene `pieb_can_escaleta` (el equipo normal) puede **ver y exportar** la escaleta, pero no
+  crearla ni modificarla. Los administradores del cancionero, los administradores y los editores de WordPress también tienen
+  `pieb_can_escaleta`. La lista `responsablesEscaleta` de los ajustes se sincroniza con ese rol igual que `administradores`
+  (la misma función `pieb_can_sincronizar_administrador` da o quita los dos roles) y sus correos entran también en `emails`.
+  La interfaz recibe `escaleta` (booleano) en `PIEB_CANCIONERO`.
 - **Prefijo interno `pieb`:** las claves internas (tipos `pieb_cancion`, metadatos `_pieb_*`, ruta REST `pieb/v1`,
   funciones `pieb_can_*`) conservan el prefijo histórico para no romper los datos de instalaciones existentes. Es solo un
   identificador técnico; el nombre visible del producto es «Cancionero».
@@ -63,7 +69,7 @@ La interfaz es una aplicación de una sola página dentro de la página de WordP
   `_pieb_escaleta` (opcional: la escaleta de ese culto, con su fila de títulos, sus secciones y sus valores; ver
   [Escaleta del culto](#escaleta-del-culto)).
 - Opciones de WordPress: `pieb_can_ajustes` (ajustes: `nombre`, `tema_defecto`, `google_client_id`, `emails`,
-  `administradores`, `dominio`, `bienvenida_auto`, `bienvenida_texto`, `pagina`, `aviso_borrado`), `pieb_can_escaleta`
+  `administradores`, `responsablesEscaleta`, `dominio`, `bienvenida_auto`, `bienvenida_texto`, `pagina`, `aviso_borrado`), `pieb_can_escaleta`
   (identidad de la escaleta de la instalación: logo y cabecera; sin autoload; si no existe se usa la genérica), `pieb_can_bienvenidas`
   (registro de los correos de bienvenida enviados: correo → marca de tiempo; sin autoload), `pieb_can_avisos_borrado`
   (cola de canciones borradas pendientes de avisar; sin autoload; ver [Aviso de canciones borradas](#aviso-de-canciones-borradas)),
@@ -81,7 +87,7 @@ Todas las rutas exigen sesión iniciada con la capacidad `pieb_cancionero_acceso
 | `/canciones` | GET, POST | GET devuelve un **resumen** de todas (`id, titulo, numero, autor, tonalidad, tempo, etiquetas, letra, miniatura, creada, modificada` y los **conteos** `partituras`, `youtube` y `audios`). POST crea. |
 | `/canciones/{id}` | GET, POST, DELETE | GET devuelve la ficha completa (partituras con `archivo`/`url`, audios, `youtube` con `videoId`, notas…). POST **actualiza reemplazando todo** (ver abajo). DELETE manda a la papelera. |
 | `/subidas` | POST | Subida de archivos **por trozos** (un audio de 10 MB cabe aunque PHP limite a 2 MB por petición). |
-| `/cultos`, `/cultos/{id}` | GET, POST, DELETE | Cultos y setlists. `GET /cultos/{id}` devuelve además `escaleta` (objeto o `null`; no va en el listado) y `POST` la acepta solo si llega (`null` la borra). Ver [Escaleta del culto](#escaleta-del-culto). |
+| `/cultos`, `/cultos/{id}` | GET, POST, DELETE | Cultos y setlists. `GET /cultos/{id}` devuelve además `escaleta` (objeto o `null`; no va en el listado) y `POST` la acepta solo si llega (`null` la borra) **y solo de quien tiene `pieb_can_escaleta`**: de cualquier otro se ignora, sin error (el resto del culto sí se guarda y la escaleta que hubiera se conserva). Ver [Escaleta del culto](#escaleta-del-culto). |
 | `/escaleta` | GET | **Base de la escaleta de un culto nuevo**: la estructura (sin valores) y la fila de títulos de la última escaleta guardada en cualquier culto, con el logo y la cabecera de la instalación y `desde: {id, titulo}` (el culto de origen; `null` si sale de la plantilla genérica). La lee todo el equipo, porque preparar la escaleta de un culto la necesita. |
 | `/escaleta/imagen` | POST | Sube el logo o la imagen de cabecera de la escaleta (JPG o PNG, máx. 2 MB) a la biblioteca de medios normal; responde `{ id, url }` (exige `pieb_cancionero_gestionar`). |
 | `/etiquetas`, `/preferencias`, `/huerfanos` | varios | Etiquetas con color, preferencias del usuario (`tema`, `idioma` y `notacion`, todos opcionales; vacío = automático), archivos sin usar. |
@@ -253,7 +259,9 @@ escaleta (de un culto): {
 ```
 
 `GET /cultos/{id}` la devuelve en `escaleta` (objeto o `null`; no va en el listado de cultos, para no engordarlo) y `POST
-/cultos/{id}` la acepta solo si llega (`null` la borra). Las escaletas guardadas antes de que cada culto llevara su fila de
+/cultos/{id}` la acepta solo si llega (`null` la borra) y solo de quien tiene la capacidad `pieb_can_escaleta` (responsables de
+escaleta y administradores; de los demás se ignora sin error). En la interfaz, el resto del equipo ve la pestaña Escaleta en
+solo lectura (vista previa de la hoja y «Exportar escaleta»). Las escaletas guardadas antes de que cada culto llevara su fila de
 títulos no traen `titulo` ni `central`: la interfaz toma los de la base al abrirlas y el PDF los de la base si faltan.
 
 | `tipo` del campo | Qué es | `defecto` |

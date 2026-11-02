@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Cancionero
  * Description: Cancionero para equipos de música y alabanza: canciones con partitura, letra, audios y YouTube, setlists de cultos, visor para tableta, temas propios y acceso con Google. Shortcode [cancionero].
- * Version: 1.18.1
+ * Version: 1.19.0
  * Author: Gerson Rodrigo Menéndez
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PIEB_CAN_VERSION', '1.18.1');
+define('PIEB_CAN_VERSION', '1.19.0');
 define('PIEB_CAN_FILE', __FILE__);
 define('PIEB_CAN_DIR', plugin_dir_path(__FILE__));
 define('PIEB_CAN_URL', plugin_dir_url(__FILE__));
@@ -27,10 +27,13 @@ const PIEB_CAN_CULTO = 'pieb_culto';
 const PIEB_CAN_TAX  = 'pieb_etiqueta';
 const PIEB_CAN_ROLE = 'equipo_adoracion';
 const PIEB_CAN_ROLE_ADMIN = 'administrador_cancionero';
+const PIEB_CAN_ROLE_ESCALETA = 'responsable_escaleta';
 
 // Capacidades: acceder (ver, subir, editar canciones) y gestionar (borrar cualquiera, administrar).
 const PIEB_CAN_CAP_ACCESO     = 'pieb_cancionero_acceso';
 const PIEB_CAN_CAP_GESTIONAR  = 'pieb_cancionero_gestionar';
+// Preparar la escaleta de un culto (la hoja impresa del orden del culto); verla y exportarla basta con el acceso.
+const PIEB_CAN_CAP_ESCALETA   = 'pieb_can_escaleta';
 
 // Traducciones del plugin (el idioma de cada usuario se decide en el filtro plugin_locale, ver includes/ajustes.php).
 // Prioridad 1 y registrado antes de incluir el resto de archivos: así se carga antes que cualquier otro gancho de «init»
@@ -138,6 +141,7 @@ function pieb_can_nombres_roles() {
     return array(
         PIEB_CAN_ROLE       => _x('Equipo de adoración', 'User role', 'pieb-cancionero'),
         PIEB_CAN_ROLE_ADMIN => _x('Administrador del cancionero', 'User role', 'pieb-cancionero'),
+        PIEB_CAN_ROLE_ESCALETA => _x('Responsable de escaleta', 'User role', 'pieb-cancionero'),
     );
 }
 
@@ -148,13 +152,24 @@ function pieb_can_instalar_roles() {
     );
 
     // Administradores del cancionero: gestionan ajustes, equipo y borrado sin ser administradores de WordPress.
-    $caps_admin = $caps_equipo + array(PIEB_CAN_CAP_GESTIONAR => true);
+    $caps_admin = $caps_equipo + array(PIEB_CAN_CAP_GESTIONAR => true, PIEB_CAN_CAP_ESCALETA => true);
     $rol_admin = get_role(PIEB_CAN_ROLE_ADMIN);
     if (!$rol_admin) {
         add_role(PIEB_CAN_ROLE_ADMIN, 'Administrador del cancionero', $caps_admin);
     } else {
         foreach ($caps_admin as $cap => $grant) {
             $rol_admin->add_cap($cap, $grant);
+        }
+    }
+
+    // Responsables de escaleta: como el equipo, y además preparan la escaleta de los cultos.
+    $caps_escaleta = $caps_equipo + array(PIEB_CAN_CAP_ESCALETA => true);
+    $rol_escaleta = get_role(PIEB_CAN_ROLE_ESCALETA);
+    if (!$rol_escaleta) {
+        add_role(PIEB_CAN_ROLE_ESCALETA, 'Responsable de escaleta', $caps_escaleta);
+    } else {
+        foreach ($caps_escaleta as $cap => $grant) {
+            $rol_escaleta->add_cap($cap, $grant);
         }
     }
 
@@ -172,6 +187,7 @@ function pieb_can_instalar_roles() {
         if ($r) {
             $r->add_cap(PIEB_CAN_CAP_ACCESO);
             $r->add_cap(PIEB_CAN_CAP_GESTIONAR);
+            $r->add_cap(PIEB_CAN_CAP_ESCALETA);
         }
     }
 }
@@ -186,7 +202,7 @@ add_filter('show_admin_bar', function ($show) {
 
 function pieb_can_es_solo_equipo() {
     $user = wp_get_current_user();
-    return $user && (in_array(PIEB_CAN_ROLE, (array) $user->roles, true) || in_array(PIEB_CAN_ROLE_ADMIN, (array) $user->roles, true)) && !current_user_can('edit_posts');
+    return $user && (in_array(PIEB_CAN_ROLE, (array) $user->roles, true) || in_array(PIEB_CAN_ROLE_ADMIN, (array) $user->roles, true) || in_array(PIEB_CAN_ROLE_ESCALETA, (array) $user->roles, true)) && !current_user_can('edit_posts');
 }
 
 // Shortcode con la aplicación.
@@ -256,6 +272,7 @@ function pieb_can_shortcode() {
         'userName'   => $user->display_name,
         'userEmail'  => strtolower($user->user_email),
         'gestionar'  => current_user_can(PIEB_CAN_CAP_GESTIONAR),
+        'escaleta'   => current_user_can(PIEB_CAN_CAP_ESCALETA),
         'admin'      => current_user_can('manage_options'),
         'logoutUrl'  => wp_logout_url(get_permalink()),
         'homeUrl'    => home_url('/'),

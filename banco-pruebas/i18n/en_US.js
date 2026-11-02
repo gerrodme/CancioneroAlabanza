@@ -1781,9 +1781,6 @@ window.PIEB_I18N = {
   "Nombre, tema por defecto, plazo de la papelera": [
    "Name, default theme, trash retention"
   ],
-  "Correos con acceso, administradores y dominio": [
-   "Emails with access, administrators and domain"
-  ],
   "Acceso con Google": [
    "Google sign-in"
   ],
@@ -2149,9 +2146,6 @@ window.PIEB_I18N = {
   "%d persona añadida": [
    "%d person added",
    "%d people added"
-  ],
-  "Cada persona entra con un enlace que recibe en su correo (o con Google, si lo configuras) y quien sale de la lista pierde el acceso. Los administradores pueden cambiar los ajustes, gestionar el equipo y borrar canciones.": [
-   "Everyone signs in with a link they receive by email (or with Google, if you set it up), and whoever leaves the list loses access. Administrators can change the settings, manage the team and delete songs."
   ],
   "Acceso por dominio": [
    "Access by domain"
@@ -2626,6 +2620,33 @@ window.PIEB_I18N = {
   ],
   "Escaleta abierta en una pestaña nueva": [
    "Order of service opened in a new tab"
+  ],
+  "Correos con acceso, administradores, responsables de escaleta y dominio": [
+   "Emails with access, administrators, order of service managers and domain"
+  ],
+  "Quitar de responsable de escaleta": [
+   "Remove as order of service manager"
+  ],
+  "%s ya no es responsable de escaleta": [
+   "%s is no longer an order of service manager"
+  ],
+  "Hacer responsable de escaleta": [
+   "Make order of service manager"
+  ],
+  "%s es responsable de escaleta": [
+   "%s is an order of service manager"
+  ],
+  "Puede preparar la escaleta de los cultos": [
+   "Can prepare the order of service for services"
+  ],
+  "Responsable de escaleta": [
+   "Order of service manager"
+  ],
+  "Cada persona entra con un enlace que recibe en su correo (o con Google, si lo configuras) y quien sale de la lista pierde el acceso. Los administradores pueden cambiar los ajustes, gestionar el equipo y borrar canciones; los responsables de escaleta, además de lo del equipo, preparan la escaleta de los cultos.": [
+   "Each person signs in with a link sent to their email (or with Google, if you set it up), and anyone removed from the list loses access. Administrators can change settings, manage the team and delete songs; order of service managers, on top of what the team can do, prepare the order of service for services."
+  ],
+  "Solo el responsable de escaleta o un administrador puede preparar la escaleta.": [
+   "Only the order of service manager or an administrator can prepare the order of service."
   ]
  }
 };

@@ -43,7 +43,7 @@ function pieb_can_google_verificar($credential, $client_id) {
 }
 
 function pieb_can_email_permitido($email, $ajustes) {
-    if (in_array($email, $ajustes['emails'], true) || in_array($email, $ajustes['administradores'], true)) {
+    if (in_array($email, $ajustes['emails'], true) || in_array($email, $ajustes['administradores'], true) || in_array($email, $ajustes['responsablesEscaleta'], true)) {
         return true;
     }
     if ($ajustes['dominio'] && substr($email, -strlen('@' . $ajustes['dominio'])) === '@' . $ajustes['dominio']) {
@@ -322,24 +322,33 @@ function pieb_can_usuario_para_email($email) {
 }
 
 /**
- * Da o quita el rol de administrador del cancionero según la lista de Ajustes.
- * No toca a los administradores de WordPress, que ya gestionan todo.
+ * Da o quita el rol de administrador del cancionero y el de responsable de escaleta según las listas de Ajustes.
+ * No toca a los administradores de WordPress, que ya lo pueden todo.
  */
 function pieb_can_sincronizar_administrador($user, $ajustes = null) {
     if (!$user || user_can($user, 'manage_options')) {
         return;
     }
     $ajustes = $ajustes ? $ajustes : pieb_can_ajustes();
-    $es = in_array(strtolower($user->user_email), $ajustes['administradores'], true);
-    $tiene = in_array(PIEB_CAN_ROLE_ADMIN, (array) $user->roles, true);
-    if ($es && !$tiene) {
-        $user->add_role(PIEB_CAN_ROLE_ADMIN);
-    } elseif (!$es && $tiene) {
-        $user->remove_role(PIEB_CAN_ROLE_ADMIN);
-        // Deja de ser administrador, pero conserva el acceso si sigue en la lista del equipo.
-        if (!user_can($user, PIEB_CAN_CAP_ACCESO) && pieb_can_email_permitido(strtolower($user->user_email), $ajustes)) {
-            $user->add_role(PIEB_CAN_ROLE);
+    $email = strtolower($user->user_email);
+    $cambio = false;
+    $listas = array(
+        PIEB_CAN_ROLE_ADMIN    => $ajustes['administradores'],
+        PIEB_CAN_ROLE_ESCALETA => $ajustes['responsablesEscaleta'],
+    );
+    foreach ($listas as $rol => $lista) {
+        $es = in_array($email, $lista, true);
+        $tiene = in_array($rol, (array) $user->roles, true);
+        if ($es && !$tiene) {
+            $user->add_role($rol);
+        } elseif (!$es && $tiene) {
+            $user->remove_role($rol);
+            $cambio = true;
         }
+    }
+    // Deja de tener el rol, pero conserva el acceso si sigue en la lista del equipo.
+    if ($cambio && !user_can($user, PIEB_CAN_CAP_ACCESO) && pieb_can_email_permitido($email, $ajustes)) {
+        $user->add_role(PIEB_CAN_ROLE);
     }
 }
 

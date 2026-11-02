@@ -1448,6 +1448,9 @@
    */
   function crearEscaletaEditor(opc) {
     var esc = opc.inicial ? sanearEscaleta(opc.inicial) : null;
+    // Sin permiso para preparar la escaleta (solo responsables de escaleta y administradores) la pestaña es de solo lectura:
+    // se ve la hoja y se exporta, y valor() no devuelve nada para que no se envíe (el servidor también la ignoraría).
+    var lectura = !(P.cfg && P.cfg.escaleta);
     var plantillaP = null;
     var generica = false;
     var desde = null;       // {id, titulo} del culto de cuya escaleta parte esta, si salió de la base
@@ -1464,7 +1467,7 @@
       h('p', { class: 'pcan-help', text: __('Vista aproximada: el PDF puede ocupar más de una hoja.') }),
       vistaHoja);
     var cont = h('div', { class: 'pcan-ec' }, main, vista);
-    var raiz = h('div', { class: 'pcan-ec-ext' }, cont);   // sin contención: los elementos flotantes no pueden ir dentro de `cont`
+    var raiz = h('div', { class: 'pcan-ec-ext' + (lectura ? ' is-lectura' : '') }, cont);   // sin contención: los elementos flotantes no pueden ir dentro de `cont`
     var capa = null, capaHoja = null, bCerrar = null;
     var bVer = h('button', { type: 'button', class: 'pcan-btn pcan-ec-ver', hidden: true, 'aria-expanded': 'false', 'aria-controls': 'pcan-ec-capa', onclick: function () { abrirVista(); } },
       icono('partitura'), __('Ver escaleta'));
@@ -1536,7 +1539,7 @@
       var destinos = [vistaHoja];
       if (capa && capaHoja) { destinos.push(capaHoja); }
       var version = ++versionVista;
-      bVer.hidden = !esc;
+      bVer.hidden = !esc || lectura;
       if (!esc) {
         destinos.forEach(function (d) { d.innerHTML = ''; append(d, h('p', { class: 'pcan-muted', text: __('Cargando la escaleta…') })); });
         return;
@@ -2040,6 +2043,11 @@
       widgets = [];
       if (!esc) { append(cont, h('p', { class: 'pcan-muted', role: 'status', text: __('Cargando la escaleta…') })); return; }
       var bExportar = h('button', { type: 'button', class: 'pcan-btn', onclick: function () { exportar(bExportar); } }, icono('descargar'), __('Exportar escaleta'));
+      if (lectura) {
+        append(cont, h('div', { class: 'pcan-ec-barra' }, bExportar,
+          h('p', { class: 'pcan-help', text: __('Solo el responsable de escaleta o un administrador puede preparar la escaleta.') })));
+        return;
+      }
       append(cont, [
         h('div', { class: 'pcan-ec-barra' }, bExportar, h('p', { class: 'pcan-help', text: __('Se rellena con las canciones del culto; cambia lo que quieras. Se guarda junto con el culto.') })),
         generica ? ayuda(__('No se pudo leer la plantilla de tu grupo: se usa la estándar.')) : null,
@@ -2079,7 +2087,7 @@
       },
       setlistCambio: function () { if (pintado && esc && modo === 'rellenar') { recalcular(); repintarCanciones(null); } programarVista(); },
       validar: function () { return modo === 'editar' && editor ? editor.validar() : null; },
-      valor: function () { return esc ? explicitar(actual(), canciones()) : undefined; }
+      valor: function () { return !lectura && esc ? explicitar(actual(), canciones()) : undefined; }
     };
   }
 
