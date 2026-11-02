@@ -14,6 +14,16 @@ function pieb_can_rest_rutas() {
     $ns = 'pieb/v1';
     $acceso = 'pieb_can_rest_acceso';
 
+    // Manifiesto web para el acceso directo de la página. Es una ruta REST (y no un parámetro de la propia página)
+    // porque la página con sesión no se cachea y así el manifiesto sí puede cachearse; solo contiene el nombre del
+    // cancionero y direcciones públicas, nada privado.
+    register_rest_route($ns, '/manifest', array(
+        'methods'             => WP_REST_Server::READABLE,
+        'callback'            => 'pieb_can_rest_manifest',
+        'permission_callback' => '__return_true',
+        'args'                => array('pagina' => array('sanitize_callback' => 'absint')),
+    ));
+
     register_rest_route($ns, '/canciones', array(
         array(
             'methods'             => WP_REST_Server::READABLE,
@@ -377,4 +387,38 @@ function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
     wp_set_object_terms($post_id, array_values(array_unique($etiquetas)), PIEB_CAN_TAX);
 
     return true;
+}
+
+/** Manifiesto web (application/manifest+json) para crear un acceso directo o instalar la página del cancionero. */
+function pieb_can_rest_manifest($request) {
+    // La página de inicio es la del cancionero que pasa el <link>; si no existe o no lleva el shortcode, la portada.
+    $inicio = home_url('/');
+    $id = (int) $request->get_param('pagina');
+    if ($id && 'publish' === get_post_status($id) && has_shortcode((string) get_post_field('post_content', $id), 'cancionero')) {
+        $inicio = get_permalink($id);
+    }
+    $nombre = pieb_can_nombre();
+    $corto = function_exists('mb_substr') ? mb_substr($nombre, 0, 12) : substr($nombre, 0, 12);
+    $icono = function ($archivo, $tam, $uso) {
+        return array('src' => PIEB_CAN_URL . 'assets/' . $archivo . '?v=' . PIEB_CAN_VERSION, 'sizes' => $tam, 'type' => 'image/png', 'purpose' => $uso);
+    };
+    $datos = array(
+        'name'             => $nombre,
+        'short_name'       => $corto,
+        'start_url'        => $inicio,
+        'scope'            => $inicio,
+        'display'          => 'standalone',
+        'background_color' => '#8b5cf6',
+        'theme_color'      => '#8b5cf6',
+        'lang'             => str_replace('_', '-', get_locale()),
+        'icons'            => array(
+            $icono('icono-192.png', '192x192', 'any'),
+            $icono('icono-512.png', '512x512', 'any'),
+            $icono('icono-maskable-512.png', '512x512', 'maskable'),
+        ),
+    );
+    $respuesta = new WP_REST_Response($datos);
+    $respuesta->header('Content-Type', 'application/manifest+json; charset=' . get_option('blog_charset'));
+    $respuesta->header('Cache-Control', 'public, max-age=3600');
+    return $respuesta;
 }

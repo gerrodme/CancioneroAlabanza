@@ -8,7 +8,7 @@ A technical summary of the **Cancionero** plugin for anyone new to the code.
 
 | File | Responsibility |
 |---|---|
-| `pieb-cancionero.php` | Plugin header, constants, roles and capabilities, the `[cancionero]` shortcode, loading of scripts and of the `PIEB_CANCIONERO` object that the interface reads. |
+| `pieb-cancionero.php` | Plugin header, constants, roles and capabilities, the `[cancionero]` shortcode, loading of scripts and of the `PIEB_CANCIONERO` object that the interface reads; on the songbook page, the shortcut icons and manifest (`wp_head`). |
 | `includes/canciones.php` | The song content type, reading/writing metadata, file uploads, size limits. |
 | `includes/rest.php` | The `pieb/v1` REST API: list, view, create, update and delete songs; chunked file uploads. |
 | `includes/archivos.php` | The songbook's private files: the `cancionero-privado` folder, delivery with a session (`?pcan_archivo=ID`), protection and unused files. |
@@ -86,6 +86,7 @@ interface receives it in `PIEB_CANCIONERO.nonce`; the API base is in `PIEB_CANCI
 |---|---|---|
 | `/canciones` | GET, POST | GET returns a **summary** of all songs (`id, titulo, numero, autor, tonalidad, tempo, etiquetas, letra, miniatura, creada, modificada` and the **counts** `partituras`, `youtube` and `audios`). POST creates. |
 | `/canciones/{id}` | GET, POST, DELETE | GET returns the full record (scores with `archivo`/`url`, audio, `youtube` with `videoId`, notes…). POST **updates by replacing everything** (see below). DELETE sends it to the trash. |
+| `/manifest?pagina=ID` | GET | **Public** (no session or nonce). Web manifest (`application/manifest+json`) for the shortcut to the songbook page: the installation's name, that page's `start_url`/`scope` (`pagina` must hold the shortcode; otherwise the home page), `display: standalone` and icons (192, 512 and maskable). Exposes nothing private. |
 | `/subidas` | POST | **Chunked** file upload (a 10 MB audio fits even if PHP limits requests to 2 MB). |
 | `/cultos`, `/cultos/{id}` | GET, POST, DELETE | Services and setlists. `GET /cultos/{id}` also returns `escaleta` (an object or `null`; it is not in the list) and `POST` accepts it only if present (`null` deletes it) **and only from someone with `pieb_can_escaleta`**: from anyone else it is ignored, without an error (the rest of the service is saved and any existing order of service is kept). See [Order of service](#order-of-service). |
 | `/escaleta` | GET | The **base for a new service's order of service**: the structure (without values) and the row of titles of the last order of service saved in any service, with the installation's logo and header and `desde: {id, titulo}` (the source service; `null` if it comes from the generic template). The whole team reads it, because preparing a service's order of service needs it. |

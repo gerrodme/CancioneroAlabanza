@@ -2,6 +2,11 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.19.1 · 2026-11-02
+
+Los accesos directos a la página del cancionero (PC, Android, iPhone/iPad) llevan el icono del Cancionero y abren
+como una app: iconos en todos los tamaños y manifiesto web con el nombre de cada instalación
+
 ## 1.19.0 · 2026-11-02
 
 Nuevo rol «Responsable de escaleta» (Ajustes y equipo → Equipo → Opciones): prepara la escaleta de los cultos. El resto

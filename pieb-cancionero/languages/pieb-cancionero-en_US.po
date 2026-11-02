@@ -2736,7 +2736,7 @@ msgid "No se pudo subir «%1$s» (error %2$d)."
 msgstr "Could not upload “%1$s” (error %2$d)."
 
 #. 1: nombre del archivo, 2: tamaño del archivo, 3: tamaño máximo permitido
-#: includes/canciones.php:315 includes/escaleta.php:585 includes/rest.php:83
+#: includes/canciones.php:315 includes/escaleta.php:585 includes/rest.php:93
 #, php-format
 msgid "«%1$s» pesa %2$s; el máximo es %3$s."
 msgstr "“%1$s” is %2$s; the maximum is %3$s."
@@ -2771,7 +2771,7 @@ msgstr "No services"
 msgid "El culto no existe."
 msgstr "The service does not exist."
 
-#: includes/cultos.php:181 includes/rest.php:156 includes/rest.php:194
+#: includes/cultos.php:181 includes/rest.php:166 includes/rest.php:204
 msgid "El título es obligatorio."
 msgstr "The title is required."
 
@@ -2855,35 +2855,35 @@ msgstr "The server could not send the email: a mail sending service (SMTP) needs
 msgid "Esa canción no está en la papelera."
 msgstr "That song is not in the trash."
 
-#: includes/rest.php:78
+#: includes/rest.php:88
 msgid "Petición de subida no válida."
 msgstr "Invalid upload request."
 
-#: includes/rest.php:96
+#: includes/rest.php:106
 msgid "No llegó el trozo del archivo."
 msgstr "The file chunk did not arrive."
 
-#: includes/rest.php:107
+#: includes/rest.php:117
 msgid "La subida se interrumpió; vuelve a intentarlo."
 msgstr "The upload was interrupted; try again."
 
-#: includes/rest.php:111
+#: includes/rest.php:121
 msgid "El trozo recibido no cuadra con el tamaño del archivo."
 msgstr "The chunk received does not match the file size."
 
-#: includes/rest.php:114
+#: includes/rest.php:124
 msgid "El servidor no pudo guardar el archivo."
 msgstr "The server could not save the file."
 
-#: includes/rest.php:126
+#: includes/rest.php:136
 msgid "La canción no existe."
 msgstr "The song does not exist."
 
-#: includes/rest.php:162 includes/rest.php:263
+#: includes/rest.php:172 includes/rest.php:273
 msgid "Toda canción necesita al menos una partitura."
 msgstr "Every song needs at least one score."
 
-#: includes/rest.php:213
+#: includes/rest.php:223
 msgid "Solo quien subió la canción o un administrador puede borrarla."
 msgstr "Only the person who uploaded the song or an administrator can delete it."
 
@@ -2933,76 +2933,76 @@ msgctxt "User role"
 msgid "Administrador del cancionero"
 msgstr "Songbook administrator"
 
-#: pieb-cancionero.php:252
+#: pieb-cancionero.php:285
 msgid "Sin acceso al cancionero"
 msgstr "No access to the songbook"
 
-#: pieb-cancionero.php:253
+#: pieb-cancionero.php:286
 msgid "Tu cuenta no está en la lista del equipo de adoración. Pide a un responsable que añada tu correo."
 msgstr "Your account is not on the worship team list. Ask a team lead to add your email."
 
-#: pieb-cancionero.php:254
+#: pieb-cancionero.php:287
 msgid "Salir y entrar con otra cuenta"
 msgstr "Sign out and sign in with another account"
 
-#: pieb-cancionero.php:301
+#: pieb-cancionero.php:334
 msgid "Cargando cancionero…"
 msgstr "Loading songbook…"
 
-#: pieb-cancionero.php:321
+#: pieb-cancionero.php:354
 msgid "Pulsa el botón para entrar."
 msgstr "Press the button to sign in."
 
-#: includes/bienvenida.php:179 includes/google.php:246 pieb-cancionero.php:325
+#: includes/bienvenida.php:179 includes/google.php:246 pieb-cancionero.php:358
 msgid "Entrar al cancionero"
 msgstr "Enter the songbook"
 
-#: pieb-cancionero.php:349
+#: pieb-cancionero.php:382
 msgid "Ese enlace ya se ha usado o ha caducado. Pide uno nuevo."
 msgstr "That link has already been used or has expired. Request a new one."
 
-#: pieb-cancionero.php:351
+#: pieb-cancionero.php:384
 msgid "No se ha podido iniciar la sesión. Inténtalo de nuevo o avisa a un responsable."
 msgstr "Could not sign in. Try again or let a team lead know."
 
-#: pieb-cancionero.php:354
+#: pieb-cancionero.php:387
 msgid "Escribe tu correo y te enviaremos un enlace para entrar. Sin contraseñas."
 msgstr "Enter your email and we will send you a sign-in link. No passwords."
 
-#: pieb-cancionero.php:356
+#: pieb-cancionero.php:389
 msgid "Tu correo"
 msgstr "Your email"
 
-#: pieb-cancionero.php:357
+#: pieb-cancionero.php:390
 msgid "tu@correo.com"
 msgstr "you@email.com"
 
-#: pieb-cancionero.php:358
+#: pieb-cancionero.php:391
 msgid "Enviarme el enlace"
 msgstr "Send me the link"
 
-#: pieb-cancionero.php:364
+#: pieb-cancionero.php:397
 msgctxt "separador entre el acceso por correo y el acceso con Google"
 msgid "o"
 msgstr "or"
 
-#: pieb-cancionero.php:370
+#: pieb-cancionero.php:403
 msgid "Usuario o correo"
 msgstr "Username or email"
 
-#: pieb-cancionero.php:371
+#: pieb-cancionero.php:404
 msgid "Contraseña"
 msgstr "Password"
 
-#: pieb-cancionero.php:372
+#: pieb-cancionero.php:405
 msgid "Recordarme en este dispositivo"
 msgstr "Remember me on this device"
 
-#: pieb-cancionero.php:373
+#: pieb-cancionero.php:406
 msgid "Entrar"
 msgstr "Sign in"
 
-#: pieb-cancionero.php:375
+#: pieb-cancionero.php:408
 msgid "Entrar con usuario y contraseña"
 msgstr "Sign in with username and password"
 

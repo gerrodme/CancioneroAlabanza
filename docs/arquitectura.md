@@ -8,7 +8,7 @@ Resumen técnico del plugin **Cancionero** para quien llegue nuevo al código.
 
 | Archivo | Responsabilidad |
 |---|---|
-| `pieb-cancionero.php` | Cabecera del plugin, constantes, roles y capacidades, shortcode `[cancionero]`, carga de scripts y del objeto `PIEB_CANCIONERO` que la interfaz lee. |
+| `pieb-cancionero.php` | Cabecera del plugin, constantes, roles y capacidades, shortcode `[cancionero]`, carga de scripts y del objeto `PIEB_CANCIONERO` que la interfaz lee; en la página del cancionero, iconos y manifiesto del acceso directo (`wp_head`). |
 | `includes/canciones.php` | Tipo de contenido de canción, lectura/escritura de metadatos, subida de archivos, límites de tamaño. |
 | `includes/rest.php` | API REST `pieb/v1`: listar, ver, crear, actualizar y borrar canciones; subida de archivos por trozos. |
 | `includes/archivos.php` | Archivos privados del cancionero: carpeta `cancionero-privado`, entrega con sesión (`?pcan_archivo=ID`), protección y archivos sin usar. |
@@ -86,6 +86,7 @@ Todas las rutas exigen sesión iniciada con la capacidad `pieb_cancionero_acceso
 |---|---|---|
 | `/canciones` | GET, POST | GET devuelve un **resumen** de todas (`id, titulo, numero, autor, tonalidad, tempo, etiquetas, letra, miniatura, creada, modificada` y los **conteos** `partituras`, `youtube` y `audios`). POST crea. |
 | `/canciones/{id}` | GET, POST, DELETE | GET devuelve la ficha completa (partituras con `archivo`/`url`, audios, `youtube` con `videoId`, notas…). POST **actualiza reemplazando todo** (ver abajo). DELETE manda a la papelera. |
+| `/manifest?pagina=ID` | GET | **Pública** (sin sesión ni nonce). Manifiesto web (`application/manifest+json`) para el acceso directo de la página del cancionero: nombre de la instalación, `start_url`/`scope` de esa página (`pagina` debe tener el shortcode; si no, la portada), `display: standalone` e iconos (192, 512 y maskable). No expone nada privado. |
 | `/subidas` | POST | Subida de archivos **por trozos** (un audio de 10 MB cabe aunque PHP limite a 2 MB por petición). |
 | `/cultos`, `/cultos/{id}` | GET, POST, DELETE | Cultos y setlists. `GET /cultos/{id}` devuelve además `escaleta` (objeto o `null`; no va en el listado) y `POST` la acepta solo si llega (`null` la borra) **y solo de quien tiene `pieb_can_escaleta`**: de cualquier otro se ignora, sin error (el resto del culto sí se guarda y la escaleta que hubiera se conserva). Ver [Escaleta del culto](#escaleta-del-culto). |
 | `/escaleta` | GET | **Base de la escaleta de un culto nuevo**: la estructura (sin valores) y la fila de títulos de la última escaleta guardada en cualquier culto, con el logo y la cabecera de la instalación y `desde: {id, titulo}` (el culto de origen; `null` si sale de la plantilla genérica). La lee todo el equipo, porque preparar la escaleta de un culto la necesita. |

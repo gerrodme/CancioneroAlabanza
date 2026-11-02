@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Cancionero
  * Description: Cancionero para equipos de música y alabanza: canciones con partitura, letra, audios y YouTube, setlists de cultos, visor para tableta, temas propios y acceso con Google. Shortcode [cancionero].
- * Version: 1.19.0
+ * Version: 1.19.1
  * Author: Gerson Rodrigo Menéndez
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PIEB_CAN_VERSION', '1.19.0');
+define('PIEB_CAN_VERSION', '1.19.1');
 define('PIEB_CAN_FILE', __FILE__);
 define('PIEB_CAN_DIR', plugin_dir_path(__FILE__));
 define('PIEB_CAN_URL', plugin_dir_url(__FILE__));
@@ -208,9 +208,42 @@ function pieb_can_es_solo_equipo() {
 // Shortcode con la aplicación.
 add_shortcode('cancionero', 'pieb_can_shortcode');
 
+/** ¿La petición actual es la página del cancionero (una página con el shortcode [cancionero])? */
+function pieb_can_es_pagina_cancionero() {
+    return is_singular() && has_shortcode((string) get_post_field('post_content', get_queried_object_id()), 'cancionero');
+}
+
+// Acceso directo / «Añadir a pantalla de inicio»: solo en la página del cancionero se sustituye el icono del sitio por
+// el del Cancionero y se enlaza un manifiesto web (ver pieb_can_rest_manifest en includes/rest.php).
+add_action('wp', function () {
+    if (pieb_can_es_pagina_cancionero()) {
+        remove_action('wp_head', 'wp_site_icon', 99);
+    }
+});
+
+add_action('wp_head', function () {
+    if (!pieb_can_es_pagina_cancionero()) {
+        return;
+    }
+    $img = function ($archivo) {
+        return esc_url(PIEB_CAN_URL . 'assets/' . $archivo . '?v=' . PIEB_CAN_VERSION);
+    };
+    $manifiesto = add_query_arg('pagina', (int) get_queried_object_id(), rest_url('pieb/v1/manifest'));
+    $etiquetas = array(
+        '<link rel="icon" type="image/png" sizes="32x32" href="' . $img('favicon-32.png') . '">',
+        '<link rel="icon" type="image/png" sizes="192x192" href="' . $img('icono-192.png') . '">',
+        '<link rel="apple-touch-icon" sizes="180x180" href="' . $img('icono-apple-180.png') . '">',
+        '<link rel="manifest" href="' . esc_url($manifiesto) . '">',
+        '<meta name="theme-color" content="#8b5cf6">',
+        '<meta name="apple-mobile-web-app-title" content="' . esc_attr(pieb_can_nombre()) . '">',
+        '<meta name="mobile-web-app-capable" content="yes">',
+    );
+    echo "\n" . implode("\n", $etiquetas) . "\n";
+}, 5);
+
 // La página del cancionero oculta el título del tema: la aplicación ya tiene su propia cabecera.
 add_filter('body_class', function ($classes) {
-    if (is_singular() && has_shortcode((string) get_post_field('post_content', get_queried_object_id()), 'cancionero')) {
+    if (pieb_can_es_pagina_cancionero()) {
         $classes[] = 'pcan-page-full';
     }
     return $classes;
@@ -220,7 +253,7 @@ add_filter('body_class', function ($classes) {
 // guardarse en caché, o tras cambiar una preferencia se seguiría sirviendo la copia anterior. Se avisa a WordPress
 // (DONOTCACHEPAGE, que respetan los plugins de caché), al navegador y a la CDN (nocache_headers) y a LiteSpeed.
 add_action('template_redirect', function () {
-    if (!is_user_logged_in() || !is_singular() || !has_shortcode((string) get_post_field('post_content', get_queried_object_id()), 'cancionero')) {
+    if (!is_user_logged_in() || !pieb_can_es_pagina_cancionero()) {
         return;
     }
     if (!defined('DONOTCACHEPAGE')) {
