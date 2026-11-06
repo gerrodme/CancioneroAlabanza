@@ -2,6 +2,11 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.21.1 · 2026-11-06
+
+Los administradores del sitio pueden siempre preparar la escaleta y gestionar el cancionero, aunque su rol no tenga
+guardados los permisos (p. ej. en una copia restaurada de la web o antes de entrar al escritorio tras actualizar)
+
 ## 1.21.0 · 2026-11-06
 
 Escaleta: cada canción puede llevar una nota opcional, que se imprime debajo en letra pequeña; el Preludio pregunta si

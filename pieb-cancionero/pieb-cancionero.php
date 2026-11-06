@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Cancionero
  * Description: Cancionero para equipos de música y alabanza: canciones con partitura, letra, audios y YouTube, setlists de cultos, visor para tableta, temas propios y acceso con Google. Shortcode [cancionero].
- * Version: 1.21.0
+ * Version: 1.21.1
  * Author: Gerson Rodrigo Menéndez
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PIEB_CAN_VERSION', '1.21.0');
+define('PIEB_CAN_VERSION', '1.21.1');
 define('PIEB_CAN_FILE', __FILE__);
 define('PIEB_CAN_DIR', plugin_dir_path(__FILE__));
 define('PIEB_CAN_URL', plugin_dir_url(__FILE__));
@@ -191,6 +191,18 @@ function pieb_can_instalar_roles() {
         }
     }
 }
+
+// Quien administra el sitio (manage_options) tiene siempre todas las capacidades del cancionero, aunque su rol no las tenga
+// guardadas: p. ej. en una copia restaurada de la web, o si tras actualizar el plugin aún no se ha entrado al escritorio
+// (pieb_can_instalar_roles solo se ejecuta al activar o en admin_init).
+add_filter('user_has_cap', function ($allcaps) {
+    if (!empty($allcaps['manage_options'])) {
+        $allcaps[PIEB_CAN_CAP_ACCESO]    = true;
+        $allcaps[PIEB_CAN_CAP_GESTIONAR] = true;
+        $allcaps[PIEB_CAN_CAP_ESCALETA]  = true;
+    }
+    return $allcaps;
+});
 
 // Los miembros del equipo no necesitan el escritorio de WordPress ni la barra de administración.
 add_filter('show_admin_bar', function ($show) {
