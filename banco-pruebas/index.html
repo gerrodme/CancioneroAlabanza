@@ -93,14 +93,14 @@
   var ahoraS = function () { return Math.floor(Date.now() / 1000); };
   // Escaleta del culto: plantilla genérica (la misma que da el servidor mientras nadie guarde una escaleta en un culto).
   function escaletaGenerica() {
-    function c(id, tipo, etiqueta, defecto, pequeno) {
-      return { id: id, tipo: tipo, etiqueta: etiqueta || '', defecto: defecto === undefined ? (tipo === 'cancion' || tipo === 'canciones' ? 'ninguna' : '') : defecto, pequeno: !!pequeno };
+    function c(id, tipo, etiqueta, defecto, pequeno, modo) {
+      return { id: id, tipo: tipo, etiqueta: etiqueta || '', defecto: defecto === undefined ? (tipo === 'cancion' || tipo === 'canciones' ? 'ninguna' : '') : defecto, pequeno: !!pequeno, modo: !!modo };
     }
-    function s(id, titulo, campos) { return { id: id, titulo: titulo, nota: '', campos: campos }; }
+    function s(id, titulo, campos, opcional) { return { id: id, titulo: titulo, nota: '', opcional: !!opcional, campos: campos }; }
     return {
-      titulo: 'ORDEN DE CULTO', central: '', logo: null, cabecera: null,
+      titulo: 'ORDEN DE CULTO', central: '', logo: null, cabecera: null, version: 2,
       secciones: [
-        s('preludio', 'PRELUDIO', [c('cancion', 'cancion', '', 'primera')]),
+        s('preludio', 'PRELUDIO', [c('cancion', 'cancion', '', 'primera', false, true)]),
         s('lectura-oracion', 'LECTURA Y ORACIÓN', [c('presidencia', 'texto', 'Presidencia'), c('lectura', 'texto', 'Lectura')]),
         s('bienvenida', 'BIENVENIDA', [c('bienvenida', 'texto', '', 'Bienvenida a todos y a quienes nos visitan')]),
         s('comunidad', 'VIDA DE COMUNIDAD', [c('comunidad', 'textoLargo')]),
@@ -108,6 +108,8 @@
         s('ofrenda', 'OFRENDA', [c('musica', 'canciones','Música instrumental', 'siguiente'), c('responsables', 'texto', 'Responsables'), c('nota', 'texto', '', '', true)]),
         s('ninos', 'NIÑOS', [c('ninos', 'texto', '', 'Los niños pasan a sus clases')]),
         s('predicacion', 'PREDICACIÓN', [c('lectura-biblica', 'texto', 'Lectura'), c('titulo', 'texto', 'Título'), c('predicacion', 'texto', 'Predicación')]),
+        s('respuesta', 'RESPUESTA', [c('cancion', 'cancion', '', 'ninguna', false, true), c('respuesta', 'textoLargo')], true),
+        s('santa-cena', 'SANTA CENA', [c('responsables', 'texto', 'Responsables'), c('musica', 'canciones', 'Música', 'ninguna', false, true)], true),
         s('despedida', 'DESPEDIDA', [c('despedida', 'textoLargo')]),
         s('doxologia', 'DOXOLOGÍA', [c('doxologia', 'texto')]),
         s('postludio', 'POSTLUDIO', [c('postludio', 'canciones', '', 'restantes')])
@@ -120,7 +122,11 @@
     var e = escaletaGenerica();
     e.central = 'LECTURAS EN RVR1960';
     delete e.logo; delete e.cabecera;
-    e.secciones.forEach(function (s) { s.oculta = false; s.extra = false; s.campos.forEach(function (c) { c.valor = null; }); });
+    // Simula una escaleta guardada ANTES de la versión 2: sin «version», sin «opcional» ni «modo» y sin las secciones Respuesta y Santa Cena
+    // de la genérica (la interfaz las añade al abrirla; su «Santa Cena» propia de abajo, con el mismo id, se respeta).
+    delete e.version;
+    e.secciones = e.secciones.filter(function (s) { return s.id !== 'respuesta' && s.id !== 'santa-cena'; });
+    e.secciones.forEach(function (s) { delete s.opcional; s.oculta = false; s.extra = false; s.campos.forEach(function (c) { delete c.modo; c.valor = null; }); });
     function pon(sec, campo, valor) {
       e.secciones.filter(function (s) { return s.id === sec; })[0].campos.filter(function (c) { return c.id === campo; })[0].valor = valor;
     }
@@ -155,10 +161,11 @@
       base.titulo = e.titulo || base.titulo;
       base.central = e.central || '';
       base.secciones = e.secciones.map(function (s) {
-        return { id: s.id, titulo: s.titulo, nota: s.nota, campos: s.campos.map(function (c) {
-          return { id: c.id, tipo: c.tipo, etiqueta: c.etiqueta, defecto: c.defecto, pequeno: c.pequeno };
+        return { id: s.id, titulo: s.titulo, nota: s.nota, opcional: !!s.opcional, campos: s.campos.map(function (c) {
+          return { id: c.id, tipo: c.tipo, etiqueta: c.etiqueta, defecto: c.defecto, pequeno: c.pequeno, modo: !!c.modo };
         }) };
       });
+      base.version = e.version || 0;
       base.desde = { id: origen.id, titulo: origen.titulo };
     }
     return base;

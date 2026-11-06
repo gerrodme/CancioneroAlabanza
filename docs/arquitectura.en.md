@@ -246,20 +246,32 @@ its structure without values and without `oculta`, with its `titulo` and `centra
 `cabecera` and `desde: { id, titulo }` (the source service, which the interface names in a note; `null` if there is none and it
 comes from the template). If no order of service has been saved yet, the plugin's **generic** one is used
 (`pieb_can_escaleta_generica`: prelude, reading and prayer, welcome, community life, songs of praise, offering, children,
-preaching, farewell, doxology and postlude; texts with `__()`, built when the function is called). The base is copied into the
-service when its Order of service tab is opened and it is saved with the service.
+preaching, the optional response and Lord's Supper sections, farewell, doxology and postlude; texts with `__()`, built when the
+function is called). The base is copied into the service when its Order of service tab is opened and it is saved with the
+service; there, sections with `opcional` start with `oculta: true` ("Do not include in this service"). `GET /escaleta` copies
+each section's `opcional` and each field's `modo`, and returns `version` (that of the order of service it comes from).
 
 ```
 escaleta (of a service): {
   titulo, central,                 // left cell and centre cell of the row of titles (empty = "ORDER OF SERVICE" and an empty cell)
+  version,                         // integer: 2 since the optional sections and per-song notes (the generic one is 2; missing = 0)
   secciones: [ {
     id, titulo, nota,
+    opcional,                      // in the structure: starts hidden (oculta: true) in every new service
     oculta,                        // not printed in this service
     extra,                         // unused: every section can be edited; the interface leaves it false
-    campos: [ { id, tipo, etiqueta, pequeno, defecto, valor } ]
+    campos: [ { id, tipo, etiqueta, pequeno, modo, defecto, valor } ]   // modo: only in cancion/canciones
   } ]
 }
 ```
+
+**Version of the order of service.** `version` is an integer stored with a service's order of service, with the template and in
+the base returned by `GET /escaleta` (copied from the last order of service; older ones do not carry it and count as 0). The
+interface (`cultos.js`, `actualizarEscaleta`, applied when sanitising both a service's order of service and the base) brings
+those with a version below 2 up to date: it sets `modo: true` on the first `cancion` field of the `preludio` section, inserts
+the `respuesta` and `santa-cena` sections (if no sections with those ids exist) right after `predicacion` (if missing, before
+`despedida`; if that is missing too, at the end) with `opcional: true` and, in a service's order of service, `oculta: true` and
+`null` values, and sets `version = 2`. Because the version is saved, anything someone deletes later does not come back.
 
 `GET /cultos/{id}` returns it in `escaleta` (an object or `null`; it is not in the list of services, to keep it light) and
 `POST /cultos/{id}` accepts it only if present (`null` deletes it) and only from someone with the `pieb_can_escaleta` capability
@@ -275,8 +287,12 @@ if they are missing.
 | `cancion` | One song of the service or a hand-written name. | `primera` (first), `siguiente` (the one right after the last one assigned in the previous sections) or `ninguna` (none). |
 | `canciones` | Several songs of the service and/or hand-written names. | `ninguna` (none), `siguiente` (a single one: the one right after the last one assigned in the previous sections) or `restantes` (the ones not in any other section). |
 
-With `etiqueta` it prints "Label: value"; `pequeno` prints the value in small type. `valor`: `texto`/`textoLargo` → text (500 and
-2000 characters at most); `cancion` → `{ cancion: song id | 0, nombre }` (0 + name = hand-written); `canciones` → a list of the
+With `etiqueta` it prints "Label: value"; `pequeno` prints the value in small type. `modo` (boolean, only in `cancion` and
+`canciones`; `false` is stored for other types): the field asks whether each song is sung or instrumental, and when printing
+" (cantado)" or " (instrumental)" follows the name (not italic). `valor`: `texto`/`textoLargo` → text (500 and
+2000 characters at most); `cancion` → `{ cancion: song id | 0, nombre, nota, instrumental }` (0 + name = hand-written; `nota`
+is a one-line text, 200 characters at most, printed under the song in small type; `instrumental` false = sung, and only used
+if the field has `modo`); `canciones` → a list of the
 same (100 at most; empty entries are dropped); `null` for any type = "not touched yet": the interface applies the `defecto`
 when displaying and printing. The song id must be that of an existing song (otherwise it becomes 0 and the name stays); the
 `nombre` is also stored for the service's songs, in case they are later removed from the setlist (without a name the song's
@@ -284,7 +300,8 @@ title is used).
 
 **Sanitising** (`pieb_can_escaleta_limpiar_*`): at most 30 sections of 10 fields; the `id`s ([a-z0-9-]) are cleaned and made
 unique (sections among themselves and fields within their section); `titulo` and `central` of the row of titles 60 characters,
-section title 60, note 120, label 60 and default 500; a field of unknown type is dropped; the default of the song types can
+section title 60, note 120, label 60 and default 500 (`opcional`, `modo`, `instrumental` booleans with `rest_sanitize_boolean`,
+`version` with `absint`); a field of unknown type is dropped; the default of the song types can
 only be one of the values in the table.
 
 **The installation's identity** (option `pieb_can_escaleta`, not autoloaded; `GET`/`POST /ajustes`, key `escaleta`, in Settings
@@ -305,7 +322,7 @@ active inside `pieb_can_adjuntar`, which this route does not use). It replies `{
 another site it would stay fixed in the language of whoever exported) and **without the images** (`logo` and `cabecera` set
 to `null`: their ids are not valid on another site). When restoring it is only applied if the backup has it, and the logo and
 header this site already has are kept. Each service's order of service goes in `cultos[].escaleta` (only if the service has
-one), with its songs identified by `uid` (plus `titulo` and `numero`) instead of by id, like the `items`; when restoring they are
+one), with its songs identified by `uid` (plus `titulo` and `numero`) instead of by id, like the `items`, and keeping each song's `nota` and `instrumental`; when restoring they are
 looked up on this site the same way as the setlist's songs, and any that are missing keep just the hand-written name.
 
 ## Trash

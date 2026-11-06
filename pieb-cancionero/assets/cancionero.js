@@ -2508,14 +2508,14 @@
     var defecto = c.defecto === undefined || c.defecto === null ? '' : String(c.defecto);
     if (opciones && !opciones.some(function (x) { return x[0] === defecto; })) { defecto = 'ninguna'; }
     // _evitar: identificadores que este campo ya tuvo (al cambiar de tipo no debe volver a recibirlos).
-    return { id: String(c.id || ''), tipo: tipo, etiqueta: String(c.etiqueta || ''), defecto: defecto, pequeno: !!c.pequeno, _evitar: [] };
+    return { id: String(c.id || ''), tipo: tipo, etiqueta: String(c.etiqueta || ''), defecto: defecto, pequeno: !!c.pequeno, modo: escEsCancion(tipo) && !!c.modo, _evitar: [] };
   }
 
   /** Copia de trabajo de una lista de secciones: se edita ésta, nunca el objeto que llegó de fuera. */
   function escCopiarSecciones(lista) {
     return (Array.isArray(lista) ? lista : []).map(function (s) {
       s = s && typeof s === 'object' ? s : {};
-      return { id: String(s.id || ''), titulo: String(s.titulo || ''), nota: String(s.nota || ''), campos: (Array.isArray(s.campos) ? s.campos : []).map(escCopiarCampo), _abierta: false };
+      return { id: String(s.id || ''), titulo: String(s.titulo || ''), nota: String(s.nota || ''), opcional: !!s.opcional, campos: (Array.isArray(s.campos) ? s.campos : []).map(escCopiarCampo), _abierta: false };
     });
   }
 
@@ -2549,10 +2549,11 @@
         id: s.id || escIdUnico(escIdLimpio(s.titulo, 'seccion'), usadasSec),
         titulo: s.titulo.trim(),
         nota: s.nota.trim(),
+        opcional: !!s.opcional,
         campos: s.campos.map(function (c) {
           return {
             id: c.id || escIdUnico(escIdLimpio(c.etiqueta, c.tipo === 'textoLargo' ? 'texto-largo' : c.tipo), usadas),
-            tipo: c.tipo, etiqueta: c.etiqueta.trim(), defecto: c.defecto, pequeno: !!c.pequeno
+            tipo: c.tipo, etiqueta: c.etiqueta.trim(), defecto: c.defecto, pequeno: !!c.pequeno, modo: escEsCancion(c.tipo) && !!c.modo
           };
         })
       };
@@ -2782,7 +2783,7 @@
     var lista = h('ol', { class: 'pcan-esc-lista' });
     var vacia = h('p', { class: 'pcan-set-placeholder', text: __('No hay ninguna sección. Pulsa «Añadir sección» para crear la primera.') });
     var bAnadirSeccion = h('button', { type: 'button', class: 'pcan-btn pcan-btn-primary', onclick: function () {
-      pl.secciones.push({ id: '', titulo: '', nota: '', campos: [escCopiarCampo({ tipo: 'texto' })], _abierta: true });
+      pl.secciones.push({ id: '', titulo: '', nota: '', opcional: false, campos: [escCopiarCampo({ tipo: 'texto' })], _abierta: true });
       pintarSecciones({ i: pl.secciones.length - 1, accion: 'titulo' });
       cambio();
     } }, icono('mas'), __('Añadir sección'));
@@ -2830,6 +2831,7 @@
 
       // Cuerpo: lo que se edita al desplegar la sección.
       var fTit = h('input', { type: 'text', class: 'pcan-input', 'data-accion': 'titulo', maxlength: '60', placeholder: __('p. ej. Anuncios'), oninput: function (e) { s.titulo = e.target.value; errorTitulo.hidden = true; cabecera(); } });
+      var chkOpcional = h('input', { type: 'checkbox', checked: !!s.opcional, onchange: function (e) { s.opcional = e.target.checked; cambio(); } });
       var errorTitulo = h('p', { class: 'pcan-form-error', role: 'alert', 'data-accion': 'error-titulo', hidden: true });
       var fNota = h('input', { type: 'text', class: 'pcan-input', maxlength: '120', placeholder: __('p. ej. (Indicación breve para este momento)'), oninput: function (e) { s.nota = e.target.value; } });
       fTit.value = s.titulo;
@@ -2856,6 +2858,7 @@
         var viejo = c.tipo;
         if (nuevo === viejo) { return; }
         c.tipo = nuevo;
+        if (!escEsCancion(nuevo)) { c.modo = false; }
         if (escEsCancion(viejo) && escEsCancion(nuevo)) {
           // Entre «una canción» y «varias»: se conserva el id (y con él lo elegido en cada culto); el defecto, si sigue siendo válido.
           if (!escOpcionesDefecto(nuevo).some(function (x) { return x[0] === c.defecto; })) { c.defecto = 'ninguna'; }
@@ -2893,6 +2896,7 @@
         var fEtiqueta = h('input', { type: 'text', class: 'pcan-input', maxlength: '40', placeholder: __('p. ej. Presidencia'), oninput: function (e) { c.etiqueta = e.target.value; cabecera(); rotular(); } });
         fEtiqueta.value = c.etiqueta;
         var chk = h('input', { type: 'checkbox', checked: !!c.pequeno, onchange: function (e) { c.pequeno = e.target.checked; } });
+        var chkModo = h('input', { type: 'checkbox', checked: !!c.modo, onchange: function (e) { c.modo = e.target.checked; cambio(); } });
         var bSubirC = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-sec', 'data-accion': 'subir', disabled: k === 0,
           'aria-label': sprintf(/* translators: %s: nombre del campo */ __('Subir el campo «%s»'), nombreC), onclick: function () { moverCampo(k, k - 1); } }, icono('arriba'), _x('Subir', 'mover una sección o un campo de la escaleta hacia arriba'));
         var bBajarC = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-sec', 'data-accion': 'bajar', disabled: k === n - 1,
@@ -2920,6 +2924,8 @@
               campo(__('Tipo de campo'), selTipo, escAyudaTipo(c.tipo)),
               campo(__('Etiqueta (opcional)'), fEtiqueta, __('Si la pones, sale impresa delante del valor, como «Presidencia: …».'))),
             controlDefecto(c),
+            escEsCancion(c.tipo) ? h('label', { class: 'pcan-copia-opcion' }, chkModo,
+              h('span', null, h('strong', { text: __('Preguntar si es cantado o instrumental') }), h('small', { text: __('Cada canción lleva una casilla «Instrumental» y se imprime «(cantado)» o «(instrumental)» tras su nombre.') }))) : null,
             h('div', { class: 'pcan-esc-campo-pie' },
               h('label', { class: 'pcan-copia-opcion' }, chk,
                 h('span', null, h('strong', { text: __('Letra pequeña') }), h('small', { text: __('Imprime este campo con letra más pequeña, por ejemplo para una nota.') }))),
@@ -2963,6 +2969,8 @@
         campo(__('Título de la sección'), fTit, __('Se imprime siempre en MAYÚSCULAS.')),
         errorTitulo,
         campo(__('Nota bajo el título (opcional)'), fNota, __('Sale debajo del título, en rojo y con letra más pequeña.')),
+        h('label', { class: 'pcan-copia-opcion' }, chkOpcional,
+          h('span', null, h('strong', { text: __('Sección opcional: empieza sin incluir en los cultos nuevos') }), h('small', { text: __('En cada culto nuevo aparece marcada como «No incluir en este culto»; se puede incluir cuando haga falta.') }))),
         h('div', { class: 'pcan-esc-campos-bloque' },
           h('h3', { class: 'pcan-esc-subtitulo', text: __('Campos de la sección') }),
           h('p', { class: 'pcan-help', text: __('Cada campo es una línea que se rellena al preparar la escaleta: un texto, o una o varias canciones del culto.') }),

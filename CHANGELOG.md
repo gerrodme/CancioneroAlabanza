@@ -2,6 +2,14 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.21.0 · 2026-11-06
+
+Escaleta: cada canción puede llevar una nota opcional, que se imprime debajo en letra pequeña; el Preludio pregunta si
+es cantado o instrumental y lo imprime junto a la canción. Dos secciones nuevas, «Respuesta» (después de la
+predicación) y «Santa Cena», que empiezan sin incluir en cada culto; las escaletas existentes las reciben solas. Con
+«Editar secciones» se puede marcar cualquier sección como opcional y cualquier campo de canciones para que pregunte si
+son cantadas o instrumentales
+
 ## 1.20.0 · 2026-11-02
 
 Nuevo botón «Etiquetar» en la lista de canciones: se eligen varias canciones (con Mayús se marca un rango) y se les

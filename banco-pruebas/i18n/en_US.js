@@ -2685,6 +2685,42 @@ window.PIEB_I18N = {
   "Etiqueta «%2$s» quitada de %1$d canción": [
    "Tag “%2$s” removed from %1$d song",
    "Tag “%2$s” removed from %1$d songs"
+  ],
+  "Preguntar si es cantado o instrumental": [
+   "Ask whether it is sung or instrumental"
+  ],
+  "Cada canción lleva una casilla «Instrumental» y se imprime «(cantado)» o «(instrumental)» tras su nombre.": [
+   "Each song gets an “Instrumental” checkbox, and “(sung)” or “(instrumental)” is printed after its name."
+  ],
+  "Sección opcional: empieza sin incluir en los cultos nuevos": [
+   "Optional section: left out of new services by default"
+  ],
+  "En cada culto nuevo aparece marcada como «No incluir en este culto»; se puede incluir cuando haga falta.": [
+   "In every new service it starts marked “Don’t include in this service”; include it whenever you need it."
+  ],
+  "marca tras el nombre de una canción de la escaleta impresa\u0004(instrumental)": [
+   "(instrumental)"
+  ],
+  "marca tras el nombre de una canción de la escaleta impresa\u0004(cantado)": [
+   "(sung)"
+  ],
+  "Nota": [
+   "Note"
+  ],
+  "Añadir nota": [
+   "Add note"
+  ],
+  "casilla de una canción de la escaleta: sin marcar es cantada\u0004Instrumental": [
+   "Instrumental"
+  ],
+  "sección de la escaleta del culto (en mayúsculas)\u0004RESPUESTA": [
+   "RESPONSE"
+  ],
+  "sección de la escaleta del culto (en mayúsculas)\u0004SANTA CENA": [
+   "LORD'S SUPPER"
+  ],
+  "etiqueta de un campo de la escaleta del culto\u0004Música": [
+   "Music"
   ]
  }
 };

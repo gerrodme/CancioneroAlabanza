@@ -245,20 +245,32 @@ cualquier culto** (`pieb_can_escaleta_ultima`: el culto con `_pieb_escaleta` mod
 valores y sin `oculta`, con su `titulo` y `central`, más el `logo` y la `cabecera` de la instalación y
 `desde: { id, titulo }` (el culto de origen, que la interfaz nombra en una nota; `null` si no hay ninguna y sale de la plantilla).
 Si no hay ninguna escaleta guardada, se usa la **genérica** del plugin (`pieb_can_escaleta_generica`: preludio, lectura y
-oración, bienvenida, vida de comunidad, cantos, ofrenda, niños, predicación, despedida, doxología y postludio; textos con
-`__()`, se arma al llamarla). La base se copia al culto al abrir su pestaña Escaleta y se guarda con el culto.
+oración, bienvenida, vida de comunidad, cantos, ofrenda, niños, predicación, las secciones opcionales respuesta y santa cena,
+despedida, doxología y postludio; textos con `__()`, se arma al llamarla). La base se copia al culto al abrir su pestaña
+Escaleta y se guarda con el culto; ahí las secciones con `opcional` empiezan con `oculta: true` («No incluir en este culto»).
+`GET /escaleta` copia de cada sección su `opcional` y de cada campo su `modo`, y devuelve `version` (la de la escaleta de la que sale).
 
 ```
 escaleta (de un culto): {
   titulo, central,                 // celda izquierda y celda central de la fila de títulos (vacío = «ORDEN DE CULTO» y celda vacía)
+  version,                         // entero: 2 desde las secciones opcionales y las notas por canción (la genérica es 2; ausente = 0)
   secciones: [ {
     id, titulo, nota,
+    opcional,                      // en la estructura: empieza oculta (oculta: true) en cada culto nuevo
     oculta,                        // no se imprime en este culto
     extra,                         // sin uso: todas las secciones se pueden editar; la interfaz lo deja en false
-    campos: [ { id, tipo, etiqueta, pequeno, defecto, valor } ]
+    campos: [ { id, tipo, etiqueta, pequeno, modo, defecto, valor } ]   // modo: solo en cancion/canciones
   } ]
 }
 ```
+
+**Versión de la escaleta.** `version` es un entero que se guarda con la escaleta del culto, con la plantilla y en la base que
+devuelve `GET /escaleta` (copiada de la última escaleta; las anteriores no la traen y cuentan como 0). La interfaz (`cultos.js`,
+`actualizarEscaleta`, al sanear tanto la escaleta de un culto como la base) pone al día las de versión menor que 2: marca
+`modo: true` en el primer campo `cancion` de la sección `preludio`, inserta las secciones `respuesta` y `santa-cena` (si no hay ya
+secciones con esos ids) justo tras `predicacion` (si no existe, antes de `despedida`; si tampoco, al final) con `opcional: true` y,
+en la escaleta de un culto, `oculta: true` y valores `null`, y pone `version = 2`. Como la versión se guarda, lo que alguien borre
+luego no vuelve a aparecer.
 
 `GET /cultos/{id}` la devuelve en `escaleta` (objeto o `null`; no va en el listado de cultos, para no engordarlo) y `POST
 /cultos/{id}` la acepta solo si llega (`null` la borra) y solo de quien tiene la capacidad `pieb_can_escaleta` (responsables de
@@ -273,8 +285,12 @@ títulos no traen `titulo` ni `central`: la interfaz toma los de la base al abri
 | `cancion` | Una canción del culto o un nombre escrito a mano. | `primera`, `siguiente` (la que va justo después de la última asignada en las secciones anteriores) o `ninguna`. |
 | `canciones` | Varias canciones del culto y/o nombres a mano. | `ninguna`, `siguiente` (una sola: la que va justo después de la última asignada en las secciones anteriores) o `restantes` (las que no están en ninguna otra sección). |
 
-Con `etiqueta` se imprime «Etiqueta: valor»; `pequeno` imprime el valor en letra pequeña. `valor`: `texto`/`textoLargo` → texto
-(500 y 2000 caracteres como máximo); `cancion` → `{ cancion: id de canción | 0, nombre }` (0 + nombre = escrita a mano);
+Con `etiqueta` se imprime «Etiqueta: valor»; `pequeno` imprime el valor en letra pequeña. `modo` (booleano, solo en `cancion` y
+`canciones`; en otros tipos se guarda `false`): el campo pregunta si cada canción es cantada o instrumental, y al imprimir va tras
+el nombre « (cantado)» o « (instrumental)» (sin cursiva). `valor`: `texto`/`textoLargo` → texto
+(500 y 2000 caracteres como máximo); `cancion` → `{ cancion: id de canción | 0, nombre, nota, instrumental }` (0 + nombre = escrita
+a mano; `nota` es un texto de una línea, 200 como máximo, que se imprime debajo de la canción en letra pequeña; `instrumental`
+false = cantada y solo se usa si el campo tiene `modo`);
 `canciones` → lista de lo mismo (100 como máximo; las entradas vacías se descartan); `null` en cualquier tipo = «aún sin
 tocar»: la interfaz aplica el `defecto` al mostrar y al imprimir. El id de canción debe ser el de una canción que exista (si no,
 pasa a 0 y se queda el nombre); el `nombre` se guarda también para las canciones del culto, por si luego se quitan del setlist
@@ -282,7 +298,8 @@ pasa a 0 y se queda el nombre); el `nombre` se guarda también para las cancione
 
 **Saneado** (`pieb_can_escaleta_limpiar_*`): como mucho 30 secciones de 10 campos; los `id` ([a-z0-9-]) se limpian y se hacen
 únicos (las secciones entre sí y los campos dentro de su sección); `titulo` y `central` de la fila de títulos 60 caracteres,
-título de sección 60, nota 120, etiqueta 60 y defecto 500; un campo de tipo desconocido se descarta; el defecto de las
+título de sección 60, nota 120, etiqueta 60 y defecto 500 (`opcional`, `modo`, `instrumental` booleanos con `rest_sanitize_boolean`,
+`version` con `absint`); un campo de tipo desconocido se descarta; el defecto de las
 canciones solo puede ser uno de los valores de la tabla.
 
 **Identidad de la instalación** (opción `pieb_can_escaleta`, sin autoload; `GET`/`POST /ajustes`, clave `escaleta`, en Ajustes y
@@ -302,8 +319,8 @@ guarda el `id` con «Guardar ajustes».
 exporta: en otra web quedaría fija en el idioma de quien exportó) y **sin las imágenes** (`logo` y `cabecera` a `null`: sus ids
 no valen en otra web). Al restaurar solo se aplica si la copia la trae y se conservan el logo y la cabecera que ya tuviera esta
 web. La escaleta de cada culto va en `cultos[].escaleta` (solo si el culto tiene) con sus canciones identificadas por `uid`
-(más `titulo` y `numero`) en lugar de por id, como los `items`; al restaurar se buscan en esta web igual que las del setlist y
-las que no estén se quedan con el nombre escrito a mano.
+(más `titulo` y `numero`) en lugar de por id, como los `items`, y conservan su `nota` e `instrumental`; al restaurar se buscan en
+esta web igual que las del setlist y las que no estén se quedan con el nombre escrito a mano.
 
 ## Papelera
 

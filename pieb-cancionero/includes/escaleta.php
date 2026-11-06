@@ -13,6 +13,9 @@
  *    o la genérica del plugin (pieb_can_escaleta_generica, con textos traducibles). El logo y la imagen de cabecera son de
  *    la instalación: se guardan en esa opción desde Ajustes (POST /ajustes, clave «escaleta») y valen para todos.
  *
+ * Cada escaleta lleva un número de versión («version»): la 2 trajo las secciones opcionales «Respuesta» y «Santa Cena», la
+ * pregunta «¿cantado o instrumental?» del Preludio y las notas por canción. La interfaz pone al día las anteriores al abrirlas.
+ *
  * Los campos son de cuatro tipos: «texto» (una línea), «textoLargo» (varias líneas), «cancion» (una canción del culto o un
  * nombre escrito a mano) y «canciones» (varias). Un valor null significa «aún sin tocar»: la interfaz aplica entonces el
  * defecto del campo al mostrar y al imprimir.
@@ -30,6 +33,7 @@ const PIEB_CAN_ESCALETA_MAX_SECCIONES = 30;
 const PIEB_CAN_ESCALETA_MAX_CAMPOS    = 10;
 const PIEB_CAN_ESCALETA_MAX_CANCIONES = 100;
 const PIEB_CAN_ESCALETA_MAX_IMAGEN    = 2 * 1048576;
+const PIEB_CAN_ESCALETA_VERSION       = 2;
 const PIEB_CAN_ESCALETA_TIPOS_IMAGEN  = array(
     'jpg|jpeg' => 'image/jpeg',
     'png'      => 'image/png',
@@ -51,17 +55,20 @@ add_action('rest_api_init', function () {
 
 // ---------------------------------------------------------------- plantilla genérica
 
-/** Un campo de la plantilla genérica. Sin defecto indicado: '' en los textos y 'ninguna' en las canciones. */
-function pieb_can_escaleta_campo($id, $tipo, $etiqueta = '', $defecto = null, $pequeno = false) {
+/**
+ * Un campo de la plantilla genérica. Sin defecto indicado: '' en los textos y 'ninguna' en las canciones. $modo: el campo
+ * de canciones pregunta si cada una es cantada o instrumental.
+ */
+function pieb_can_escaleta_campo($id, $tipo, $etiqueta = '', $defecto = null, $pequeno = false, $modo = false) {
     if ($defecto === null) {
         $defecto = in_array($tipo, array('cancion', 'canciones'), true) ? 'ninguna' : '';
     }
-    return array('id' => $id, 'tipo' => $tipo, 'etiqueta' => $etiqueta, 'defecto' => $defecto, 'pequeno' => $pequeno);
+    return array('id' => $id, 'tipo' => $tipo, 'etiqueta' => $etiqueta, 'defecto' => $defecto, 'pequeno' => $pequeno, 'modo' => $modo);
 }
 
-/** Una sección de la plantilla genérica (sin nota). */
-function pieb_can_escaleta_seccion($id, $titulo, $campos) {
-    return array('id' => $id, 'titulo' => $titulo, 'nota' => '', 'campos' => $campos);
+/** Una sección de la plantilla genérica (sin nota). $opcional: empieza sin incluir en los cultos nuevos. */
+function pieb_can_escaleta_seccion($id, $titulo, $campos, $opcional = false) {
+    return array('id' => $id, 'titulo' => $titulo, 'nota' => '', 'opcional' => $opcional, 'campos' => $campos);
 }
 
 /**
@@ -74,9 +81,10 @@ function pieb_can_escaleta_generica() {
         'central'   => '',
         'logo'      => 0,
         'cabecera'  => 0,
+        'version'   => PIEB_CAN_ESCALETA_VERSION,
         'secciones' => array(
             pieb_can_escaleta_seccion('preludio', _x('PRELUDIO', 'sección de la escaleta del culto (en mayúsculas)', 'pieb-cancionero'), array(
-                pieb_can_escaleta_campo('cancion', 'cancion', '', 'primera'),
+                pieb_can_escaleta_campo('cancion', 'cancion', '', 'primera', false, true),
             )),
             pieb_can_escaleta_seccion('lectura-oracion', _x('LECTURA Y ORACIÓN', 'sección de la escaleta del culto (en mayúsculas)', 'pieb-cancionero'), array(
                 pieb_can_escaleta_campo('presidencia', 'texto', _x('Presidencia', 'etiqueta de un campo de la escaleta del culto', 'pieb-cancionero')),
@@ -104,6 +112,14 @@ function pieb_can_escaleta_generica() {
                 pieb_can_escaleta_campo('titulo', 'texto', _x('Título', 'etiqueta de un campo de la escaleta del culto', 'pieb-cancionero')),
                 pieb_can_escaleta_campo('predicacion', 'texto', _x('Predicación', 'etiqueta de un campo de la escaleta del culto', 'pieb-cancionero')),
             )),
+            pieb_can_escaleta_seccion('respuesta', _x('RESPUESTA', 'sección de la escaleta del culto (en mayúsculas)', 'pieb-cancionero'), array(
+                pieb_can_escaleta_campo('cancion', 'cancion', '', 'ninguna', false, true),
+                pieb_can_escaleta_campo('respuesta', 'textoLargo'),
+            ), true),
+            pieb_can_escaleta_seccion('santa-cena', _x('SANTA CENA', 'sección de la escaleta del culto (en mayúsculas)', 'pieb-cancionero'), array(
+                pieb_can_escaleta_campo('responsables', 'texto', _x('Responsables', 'etiqueta de un campo de la escaleta del culto', 'pieb-cancionero')),
+                pieb_can_escaleta_campo('musica', 'canciones', _x('Música', 'etiqueta de un campo de la escaleta del culto', 'pieb-cancionero'), 'ninguna', false, true),
+            ), true),
             pieb_can_escaleta_seccion('despedida', _x('DESPEDIDA', 'sección de la escaleta del culto (en mayúsculas)', 'pieb-cancionero'), array(
                 pieb_can_escaleta_campo('despedida', 'textoLargo'),
             )),
@@ -166,6 +182,8 @@ function pieb_can_escaleta_plantilla() {
         'central'   => (string) $plantilla['central'],
         'logo'      => pieb_can_escaleta_imagen($plantilla['logo']),
         'cabecera'  => pieb_can_escaleta_imagen($plantilla['cabecera']),
+        // Una plantilla guardada antes de la versión 2 no la lleva (0): la interfaz la pone al día.
+        'version'   => is_array($plantilla['secciones']) ? (isset($plantilla['version']) ? absint($plantilla['version']) : 0) : $generica['version'],
         'secciones' => array_values(is_array($plantilla['secciones']) ? $plantilla['secciones'] : $generica['secciones']),
     );
 }
@@ -191,7 +209,7 @@ function pieb_can_escaleta_ultima() {
 
 /**
  * Base para la escaleta de un culto nuevo: la estructura de la última escaleta guardada (secciones, campos y textos por
- * defecto, incluidas las secciones que se añadieron allí, sin «oculta» y sin valores) con su fila de títulos; si aún no
+ * defecto, «opcional» y «modo», incluidas las secciones que se añadieron allí, sin «oculta» y sin valores) con su fila de títulos; si aún no
  * hay ninguna, la plantilla. El logo y la cabecera son siempre los de la instalación. «desde» dice de qué culto sale.
  */
 function pieb_can_rest_escaleta_ver() {
@@ -210,12 +228,21 @@ function pieb_can_rest_escaleta_ver() {
                     'etiqueta' => isset($campo['etiqueta']) ? $campo['etiqueta'] : '',
                     'defecto'  => isset($campo['defecto']) ? $campo['defecto'] : '',
                     'pequeno'  => !empty($campo['pequeno']),
+                    'modo'     => !empty($campo['modo']),
                 );
             }
-            $secciones[] = array('id' => $seccion['id'], 'titulo' => $seccion['titulo'], 'nota' => isset($seccion['nota']) ? $seccion['nota'] : '', 'campos' => $campos);
+            $secciones[] = array(
+                'id'       => $seccion['id'],
+                'titulo'   => $seccion['titulo'],
+                'nota'     => isset($seccion['nota']) ? $seccion['nota'] : '',
+                'opcional' => !empty($seccion['opcional']),
+                'campos'   => $campos,
+            );
         }
         if ($secciones) {
             $plantilla['secciones'] = $secciones;
+            // La versión es la de la escaleta de la que sale la estructura (sin ella, la interfaz la pone al día).
+            $plantilla['version'] = isset($e['version']) ? absint($e['version']) : 0;
         }
         if (isset($e['titulo']) && $e['titulo'] !== '') {
             $plantilla['titulo'] = $e['titulo'];
@@ -283,7 +310,10 @@ function pieb_can_escaleta_limpiar_defecto($tipo, $defecto) {
     return pieb_can_escaleta_texto($defecto, 500, $tipo === 'textoLargo');
 }
 
-/** Una canción del valor de un campo: {cancion: id de canción existente o 0, nombre}. Sin nombre se usa el título de la canción. */
+/**
+ * Una canción del valor de un campo: {cancion: id de canción existente o 0, nombre, nota, instrumental}. Sin nombre se usa el
+ * título de la canción. «nota» es un texto de una línea (máx. 200); «instrumental» false = cantada.
+ */
 function pieb_can_escaleta_limpiar_cancion($entrada) {
     $id = isset($entrada['cancion']) && is_numeric($entrada['cancion']) ? absint($entrada['cancion']) : 0;
     if ($id && get_post_type($id) !== PIEB_CAN_CPT) {
@@ -293,7 +323,12 @@ function pieb_can_escaleta_limpiar_cancion($entrada) {
     if ($id && $nombre === '') {
         $nombre = mb_substr(html_entity_decode(get_the_title($id), ENT_QUOTES, 'UTF-8'), 0, 200);
     }
-    return array('cancion' => $id, 'nombre' => $nombre);
+    return array(
+        'cancion'      => $id,
+        'nombre'       => $nombre,
+        'nota'         => pieb_can_escaleta_texto(isset($entrada['nota']) ? $entrada['nota'] : '', 200),
+        'instrumental' => rest_sanitize_boolean(isset($entrada['instrumental']) ? $entrada['instrumental'] : false),
+    );
 }
 
 /** Valor de un campo según su tipo (ver arriba); null = aún sin tocar. */
@@ -339,6 +374,8 @@ function pieb_can_escaleta_limpiar_campo($campo, $n, &$ids, $de_culto) {
         'etiqueta' => pieb_can_escaleta_texto(isset($campo['etiqueta']) ? $campo['etiqueta'] : '', 60),
         'pequeno'  => rest_sanitize_boolean(isset($campo['pequeno']) ? $campo['pequeno'] : false),
         'defecto'  => pieb_can_escaleta_limpiar_defecto($tipo, isset($campo['defecto']) ? $campo['defecto'] : null),
+        // Solo los campos de canciones preguntan si cada una es cantada o instrumental.
+        'modo'     => in_array($tipo, array('cancion', 'canciones'), true) && rest_sanitize_boolean(isset($campo['modo']) ? $campo['modo'] : false),
     );
     if ($de_culto) {
         $limpio['valor'] = pieb_can_escaleta_limpiar_valor($tipo, isset($campo['valor']) ? $campo['valor'] : null);
@@ -348,7 +385,7 @@ function pieb_can_escaleta_limpiar_campo($campo, $n, &$ids, $de_culto) {
 
 /**
  * Lista de secciones saneada: como mucho 30 secciones de 10 campos, ids únicos (de las secciones en la lista y de los campos
- * dentro de su sección), textos recortados (título 60, nota 120). Con $de_culto cada sección añade «oculta» y «extra».
+ * dentro de su sección), textos recortados (título 60, nota 120). Cada sección lleva «opcional»; con $de_culto añade además «oculta» y «extra».
  */
 function pieb_can_escaleta_limpiar_secciones($secciones, $de_culto) {
     $limpias = array();
@@ -364,6 +401,7 @@ function pieb_can_escaleta_limpiar_secciones($secciones, $de_culto) {
             'id'     => pieb_can_escaleta_id(isset($seccion['id']) ? $seccion['id'] : '', 'seccion', count($limpias) + 1, $ids),
             'titulo' => pieb_can_escaleta_texto(isset($seccion['titulo']) ? $seccion['titulo'] : '', 60),
             'nota'   => pieb_can_escaleta_texto(isset($seccion['nota']) ? $seccion['nota'] : '', 120),
+            'opcional' => rest_sanitize_boolean(isset($seccion['opcional']) ? $seccion['opcional'] : false),
         );
         if ($de_culto) {
             $limpia['oculta'] = rest_sanitize_boolean(isset($seccion['oculta']) ? $seccion['oculta'] : false);
@@ -415,11 +453,12 @@ function pieb_can_escaleta_limpiar_plantilla($datos, $actual = null) {
         'central'   => array_key_exists('central', $datos) ? pieb_can_escaleta_texto($datos['central'], 60) : ($actual ? (string) $actual['central'] : ''),
         'logo'      => $imagen('logo'),
         'cabecera'  => $imagen('cabecera'),
+        'version'   => array_key_exists('version', $datos) ? (is_scalar($datos['version']) ? absint($datos['version']) : 0) : ($actual && isset($actual['version']) ? absint($actual['version']) : 0),
         'secciones' => isset($datos['secciones']) ? pieb_can_escaleta_limpiar_secciones($datos['secciones'], false) : ($actual ? $actual['secciones'] : null),
     );
 }
 
-/** Sanea la escaleta de un culto: {titulo, central, secciones: […]} (null = sin escaleta; WP_Error si no tiene la estructura esperada). */
+/** Sanea la escaleta de un culto: {titulo, central, version, secciones: […]} (null = sin escaleta; WP_Error si no tiene la estructura esperada). */
 function pieb_can_escaleta_limpiar_culto($datos) {
     if ($datos === null) {
         return null;
@@ -430,6 +469,7 @@ function pieb_can_escaleta_limpiar_culto($datos) {
     return array(
         'titulo'    => pieb_can_escaleta_texto(isset($datos['titulo']) ? $datos['titulo'] : '', 60),
         'central'   => pieb_can_escaleta_texto(isset($datos['central']) ? $datos['central'] : '', 60),
+        'version'   => isset($datos['version']) && is_scalar($datos['version']) ? absint($datos['version']) : 0,
         'secciones' => pieb_can_escaleta_limpiar_secciones($datos['secciones'], true),
     );
 }
@@ -454,7 +494,7 @@ function pieb_can_escaleta_guardar_culto($post_id, $escaleta) {
 // ---------------------------------------------------------------- copias de seguridad
 
 /**
- * Aplica $funcion a cada canción ({cancion, nombre, …}) de los valores de una escaleta de culto y devuelve la escaleta
+ * Aplica $funcion a cada canción ({cancion, nombre, nota, instrumental, …}) de los valores de una escaleta de culto y devuelve la escaleta
  * resultante. Tolera estructuras incompletas: se usa también con datos de una copia de seguridad.
  */
 function pieb_can_escaleta_mapear_canciones($escaleta, $funcion) {
@@ -497,6 +537,7 @@ function pieb_can_escaleta_para_copia() {
         'central'   => (string) $plantilla['central'],
         'logo'      => null,
         'cabecera'  => null,
+        'version'   => isset($plantilla['version']) ? absint($plantilla['version']) : 0,
         'secciones' => is_array($plantilla['secciones']) ? array_values($plantilla['secciones']) : null,
     );
 }
@@ -514,15 +555,19 @@ function pieb_can_escaleta_exportar_culto($post_id, $uids) {
     return pieb_can_escaleta_mapear_canciones($escaleta, function ($entrada) use ($uids) {
         $id = isset($entrada['cancion']) ? (int) $entrada['cancion'] : 0;
         $nombre = isset($entrada['nombre']) ? (string) $entrada['nombre'] : '';
+        $nota = isset($entrada['nota']) && is_scalar($entrada['nota']) ? (string) $entrada['nota'] : '';
+        $instrumental = !empty($entrada['instrumental']);
         if ($id && isset($uids[$id])) {
             return array(
-                'cancion' => $uids[$id],
-                'nombre'  => $nombre,
-                'titulo'  => html_entity_decode(get_the_title($id), ENT_QUOTES, 'UTF-8'),
-                'numero'  => (string) get_post_meta($id, '_pieb_numero', true),
+                'cancion'      => $uids[$id],
+                'nombre'       => $nombre,
+                'titulo'       => html_entity_decode(get_the_title($id), ENT_QUOTES, 'UTF-8'),
+                'numero'       => (string) get_post_meta($id, '_pieb_numero', true),
+                'nota'         => $nota,
+                'instrumental' => $instrumental,
             );
         }
-        return array('cancion' => '', 'nombre' => $nombre);
+        return array('cancion' => '', 'nombre' => $nombre, 'nota' => $nota, 'instrumental' => $instrumental);
     });
 }
 
@@ -544,7 +589,12 @@ function pieb_can_escaleta_importar_culto($escaleta) {
                 'numero' => $texto('numero'),
             ));
         }
-        return array('cancion' => $id, 'nombre' => $texto('nombre'));
+        return array(
+            'cancion'      => $id,
+            'nombre'       => $texto('nombre'),
+            'nota'         => $texto('nota'),
+            'instrumental' => !empty($entrada['instrumental']),
+        );
     });
 }
 

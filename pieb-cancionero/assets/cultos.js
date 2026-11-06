@@ -1188,24 +1188,45 @@
     return s && s.src ? s.src.replace(/[^\/?#]*([?#].*)?$/, '') : '';
   })();
 
+  var VERSION_ESCALETA = 2;
+
+  function campoEsc(id, tipo, etiqueta, defecto, pequeno, modo) {
+    return { id: id, tipo: tipo, etiqueta: etiqueta || '', defecto: defecto === undefined ? '' : defecto, pequeno: !!pequeno, modo: !!modo };
+  }
+  function secEsc(id, titulo, campos, opcional) { return { id: id, titulo: titulo, nota: '', opcional: !!opcional, campos: campos }; }
+
+  /** Las dos secciones opcionales que trajo la versión 2 de la escaleta (mismos textos y contextos que en includes/escaleta.php). */
+  function seccionesOpcionales() {
+    return [
+      secEsc('respuesta', _x('RESPUESTA', 'sección de la escaleta del culto (en mayúsculas)'), [
+        campoEsc('cancion', 'cancion', '', 'ninguna', false, true),
+        campoEsc('respuesta', 'textoLargo')
+      ], true),
+      secEsc('santa-cena', _x('SANTA CENA', 'sección de la escaleta del culto (en mayúsculas)'), [
+        campoEsc('responsables', 'texto', _x('Responsables', 'etiqueta de un campo de la escaleta del culto')),
+        campoEsc('musica', 'canciones', _x('Música', 'etiqueta de un campo de la escaleta del culto'), 'ninguna', false, true)
+      ], true)
+    ];
+  }
+
   /** Plantilla estándar, sin textos de ninguna iglesia: la misma que da el servidor mientras nadie guarde la suya. */
   function plantillaGenerica() {
-    function campo(id, tipo, etiqueta, defecto, pequeno) {
-      return { id: id, tipo: tipo, etiqueta: etiqueta || '', defecto: defecto === undefined ? '' : defecto, pequeno: !!pequeno };
-    }
-    function sec(id, titulo, campos) { return { id: id, titulo: titulo, nota: '', campos: campos }; }
+    var campo = campoEsc, sec = secEsc;
     // Mismos textos y contextos que la plantilla del servidor (includes/escaleta.php), para que compartan traducción.
+    var opcionales = seccionesOpcionales();
     return {
-      titulo: _x('ORDEN DE CULTO', 'título de la escaleta impresa del culto (se imprime en mayúsculas)'), central: '', logo: null, cabecera: null,
+      titulo: _x('ORDEN DE CULTO', 'título de la escaleta impresa del culto (se imprime en mayúsculas)'), central: '', logo: null, cabecera: null, version: VERSION_ESCALETA,
       secciones: [
-        sec('preludio', _x('PRELUDIO', 'sección de la escaleta del culto (en mayúsculas)'), [campo('cancion', 'cancion', '', 'primera')]),
+        sec('preludio', _x('PRELUDIO', 'sección de la escaleta del culto (en mayúsculas)'), [campo('cancion', 'cancion', '', 'primera', false, true)]),
         sec('lectura-oracion', _x('LECTURA Y ORACIÓN', 'sección de la escaleta del culto (en mayúsculas)'), [campo('presidencia', 'texto', _x('Presidencia', 'etiqueta de un campo de la escaleta del culto')), campo('lectura', 'texto', _x('Lectura', 'etiqueta de un campo de la escaleta del culto'))]),
         sec('bienvenida', _x('BIENVENIDA', 'sección de la escaleta del culto (en mayúsculas)'), [campo('bienvenida', 'texto', '', __('Bienvenida a todos y a quienes nos visitan'))]),
         sec('comunidad', _x('VIDA DE COMUNIDAD', 'sección de la escaleta del culto (en mayúsculas)'), [campo('comunidad', 'textoLargo')]),
         sec('alabanza', _x('CANTOS DE ALABANZA', 'sección de la escaleta del culto (en mayúsculas)'), [campo('canciones', 'canciones', '', 'ninguna')]),
-        sec('ofrenda', _x('OFRENDA', 'sección de la escaleta del culto (en mayúsculas)'), [campo('musica', 'canciones',_x('Música instrumental', 'etiqueta de un campo de la escaleta del culto'), 'siguiente'), campo('responsables', 'texto', _x('Responsables', 'etiqueta de un campo de la escaleta del culto')), campo('nota', 'texto', '', '', true)]),
+        sec('ofrenda', _x('OFRENDA', 'sección de la escaleta del culto (en mayúsculas)'), [campo('musica', 'canciones', _x('Música instrumental', 'etiqueta de un campo de la escaleta del culto'), 'siguiente'), campo('responsables', 'texto', _x('Responsables', 'etiqueta de un campo de la escaleta del culto')), campo('nota', 'texto', '', '', true)]),
         sec('ninos', _x('NIÑOS', 'sección de la escaleta del culto (en mayúsculas)'), [campo('ninos', 'texto', '', __('Los niños pasan a sus clases'))]),
         sec('predicacion', _x('PREDICACIÓN', 'sección de la escaleta del culto (en mayúsculas)'), [campo('lectura-biblica', 'texto', _x('Lectura', 'etiqueta de un campo de la escaleta del culto')), campo('titulo', 'texto', _x('Título', 'etiqueta de un campo de la escaleta del culto')), campo('predicacion', 'texto', _x('Predicación', 'etiqueta de un campo de la escaleta del culto'))]),
+        opcionales[0],
+        opcionales[1],
         sec('despedida', _x('DESPEDIDA', 'sección de la escaleta del culto (en mayúsculas)'), [campo('despedida', 'textoLargo')]),
         sec('doxologia', _x('DOXOLOGÍA', 'sección de la escaleta del culto (en mayúsculas)'), [campo('doxologia', 'texto')]),
         sec('postludio', _x('POSTLUDIO', 'sección de la escaleta del culto (en mayúsculas)'), [campo('postludio', 'canciones', '', 'restantes')])
@@ -1214,26 +1235,53 @@
   }
 
   /**
+   * Pone al día una escaleta saneada guardada antes de la versión 2 (o la base que llega de ella): el primer campo de canción del
+   * Preludio pregunta si es cantado o instrumental y se añaden las secciones opcionales Respuesta y Santa Cena tras la predicación
+   * (si no, antes de la despedida; si no, al final). Con `version` guardada, lo que alguien borre luego no vuelve a aparecer.
+   */
+  function actualizarEscaleta(e) {
+    if (!e || !Array.isArray(e.secciones) || e.version >= VERSION_ESCALETA) { return e; }
+    var preludio = e.secciones.filter(function (s) { return s.id === 'preludio'; })[0];
+    var cancion = preludio ? preludio.campos.filter(function (c) { return c.tipo === 'cancion'; })[0] : null;
+    if (cancion) { cancion.modo = true; }
+    var nuevas = seccionesOpcionales().filter(function (n) { return !e.secciones.some(function (s) { return s.id === n.id; }); });
+    nuevas.forEach(function (n) {
+      n.oculta = true; n.extra = false;
+      n.campos.forEach(function (c) { c.valor = null; });
+    });
+    function pos(id) { for (var k = 0; k < e.secciones.length; k++) { if (e.secciones[k].id === id) { return k; } } return -1; }
+    var k = pos('predicacion');
+    k = k >= 0 ? k + 1 : pos('despedida') >= 0 ? pos('despedida') : e.secciones.length;
+    Array.prototype.splice.apply(e.secciones, [k, 0].concat(nuevas));
+    e.version = VERSION_ESCALETA;
+    return e;
+  }
+
+  /**
    * Copia limpia de una escaleta (o de una base): solo lo conocido y con el tipo correcto, por si el servidor trae algo raro.
    * `titulo` y `central` son null si la escaleta no los trae (las guardadas antes de que cada culto tuviera los suyos).
-   * Ninguna sección es «extra»: todas se pueden editar en el culto.
+   * Ninguna sección es «extra»: todas se pueden editar en el culto. Una escaleta de una versión anterior se pone al día
+   * (actualizarEscaleta).
    */
   function sanearEscaleta(e) {
-    return {
+    return actualizarEscaleta({
       titulo: e && typeof e.titulo === 'string' ? e.titulo : null,
       central: e && typeof e.central === 'string' ? e.central : null,
+      version: e && +e.version > 0 ? Math.floor(+e.version) : 0,
       secciones: (e && Array.isArray(e.secciones) ? e.secciones : []).map(function (s) {
         return {
-          id: String(s.id || ''), titulo: String(s.titulo || ''), nota: String(s.nota || ''), oculta: !!s.oculta, extra: false,
+          id: String(s.id || ''), titulo: String(s.titulo || ''), nota: String(s.nota || ''), opcional: !!s.opcional, oculta: !!s.oculta, extra: false,
           campos: (Array.isArray(s.campos) ? s.campos : []).map(function (c) {
+            var tipo = TIPOS_CAMPO.indexOf(c.tipo) !== -1 ? c.tipo : 'texto';
             return {
-              id: String(c.id || ''), tipo: TIPOS_CAMPO.indexOf(c.tipo) !== -1 ? c.tipo : 'texto', etiqueta: String(c.etiqueta || ''), pequeno: !!c.pequeno,
+              id: String(c.id || ''), tipo: tipo, etiqueta: String(c.etiqueta || ''), pequeno: !!c.pequeno,
+              modo: (tipo === 'cancion' || tipo === 'canciones') && !!c.modo,
               defecto: c.defecto === undefined || c.defecto === null ? '' : c.defecto, valor: c.valor === undefined ? null : c.valor
             };
           })
         };
       })
-    };
+    });
   }
 
   /** Escaleta de un culto sin valores propios: copia de la base (título, texto central y secciones) con todo «sin tocar». */
@@ -1242,7 +1290,7 @@
     e.titulo = String(plantilla.titulo || '');
     e.central = String(plantilla.central || '');
     e.secciones.forEach(function (s) {
-      s.oculta = false;
+      s.oculta = !!s.opcional;   // las secciones opcionales empiezan sin incluir
       s.extra = false;
       s.campos.forEach(function (c) { c.valor = null; });
     });
@@ -1264,7 +1312,8 @@
       logo: t.logo && t.logo.url ? t.logo : null,
       cabecera: t.cabecera && t.cabecera.url ? t.cabecera : null,
       desde: t.desde && t.desde.id ? { id: +t.desde.id, titulo: String(t.desde.titulo || '') } : null,
-      secciones: sanearEscaleta(t).secciones.map(function (s) { return { id: s.id, titulo: s.titulo, nota: s.nota, campos: s.campos }; })
+      version: sanearEscaleta(t).version,
+      secciones: sanearEscaleta(t).secciones.map(function (s) { return { id: s.id, titulo: s.titulo, nota: s.nota, opcional: s.opcional, campos: s.campos }; })
     };
   }
 
@@ -1290,12 +1339,12 @@
     return lista;
   }
 
-  /** Una canción guardada ({cancion, nombre}) con el título actual si sigue en el culto; si ya no está, queda escrita a mano con su nombre. */
+  /** Una canción guardada ({cancion, nombre, nota, instrumental}) con el título actual si sigue en el culto; si ya no está, queda escrita a mano con su nombre. */
   function valorCancion(v, porId) {
     if (!v || typeof v !== 'object') { return null; }
-    var id = +v.cancion || 0;
-    if (id && porId[id]) { return { cancion: id, nombre: porId[id].titulo }; }
-    return { cancion: 0, nombre: String(v.nombre || '') };
+    var id = +v.cancion || 0, nota = String(v.nota || ''), instrumental = !!v.instrumental;
+    if (id && porId[id]) { return { cancion: id, nombre: porId[id].titulo, nota: nota, instrumental: instrumental }; }
+    return { cancion: 0, nombre: String(v.nombre || ''), nota: nota, instrumental: instrumental };
   }
 
   /** Lista de canciones: las del culto primero, en el orden del culto; después las escritas a mano. */
@@ -1304,15 +1353,16 @@
     (Array.isArray(valor) ? valor : []).forEach(function (x) {
       var r = valorCancion(x, porId);
       if (!r) { return; }
-      if (r.cancion) { marcadas[r.cancion] = true; } else { escritas.push(r); }
+      if (r.cancion) { marcadas[r.cancion] = r; } else { escritas.push(r); }
     });
-    return orden.filter(function (id) { return marcadas[id]; }).map(function (id) { return { cancion: id, nombre: porId[id].titulo }; }).concat(escritas);
+    return orden.filter(function (id) { return marcadas[id]; }).map(function (id) { return marcadas[id]; }).concat(escritas);
   }
 
   /**
    * Valor de cada campo de la escaleta aplicando los defectos donde no se ha tocado nada.
    * Devuelve { valores: Map campo → valor, usadasFuera(campo) → {id: true} con lo asignado en los demás campos }.
-   * Texto: string. Una canción: {cancion, nombre} ({0, ''} = ninguna). Varias: [{cancion, nombre}] (las escritas a mano con cancion 0).
+   * Texto: string. Una canción: {cancion, nombre, nota, instrumental} ({0, ''} = ninguna). Varias: lista de lo mismo (las escritas
+   * a mano con cancion 0). Los defectos traen nota '' e instrumental false.
    * Las secciones ocultas no se resuelven ni cuentan como asignadas.
    */
   function resolverEscaleta(esc, canciones) {
@@ -1333,9 +1383,9 @@
           var r;
           if (sinTocar) {
             var k = c.defecto === 'primera' ? 0 : c.defecto === 'siguiente' ? ultima + 1 : -1;
-            r = k >= 0 && k < orden.length ? { cancion: orden[k], nombre: porId[orden[k]].titulo } : { cancion: 0, nombre: '' };
+            r = k >= 0 && k < orden.length ? { cancion: orden[k], nombre: porId[orden[k]].titulo, nota: '', instrumental: false } : { cancion: 0, nombre: '', nota: '', instrumental: false };
           } else {
-            r = valorCancion(v, porId) || { cancion: 0, nombre: '' };
+            r = valorCancion(v, porId) || { cancion: 0, nombre: '', nota: '', instrumental: false };
           }
           if (r.cancion) { ultima = orden.indexOf(r.cancion); }
           valores.set(c, r);
@@ -1343,7 +1393,7 @@
           if (sinTocar && c.defecto === 'restantes') { diferidos.push(c); valores.set(c, []); return; }
           var lista;
           if (sinTocar && c.defecto === 'siguiente') {
-            lista = ultima + 1 < orden.length ? [{ cancion: orden[ultima + 1], nombre: porId[orden[ultima + 1]].titulo }] : [];
+            lista = ultima + 1 < orden.length ? [{ cancion: orden[ultima + 1], nombre: porId[orden[ultima + 1]].titulo, nota: '', instrumental: false }] : [];
           } else {
             lista = sinTocar ? [] : listaCanciones(v, porId, orden);
           }
@@ -1360,7 +1410,7 @@
     });
     diferidos.forEach(function (c) {
       var resto = orden.filter(function (id) { return !usadas[id]; });
-      valores.set(c, resto.map(function (id) { return { cancion: id, nombre: porId[id].titulo }; }));
+      valores.set(c, resto.map(function (id) { return { cancion: id, nombre: porId[id].titulo, nota: '', instrumental: false }; }));
       resto.forEach(function (id) { usadas[id] = true; });
     });
 
@@ -1409,6 +1459,14 @@
         var et = c.etiqueta.trim();
         var prefijo = et ? [{ t: et + ': ', f: 'n' }] : [];
         function linea(runs) { lineas.push({ runs: runs, size: size }); }
+        // Una canción: su nombre en cursiva (y, si el campo lo pregunta, « (cantado)» o « (instrumental)» sin cursiva) y, si tiene
+        // nota, otra línea debajo en letra pequeña.
+        function cancionLineas(pre, x) {
+          var runs = pre.concat([{ t: x.nombre.trim(), f: 'i' }]);
+          if (c.modo) { runs.push({ t: ' ' + (x.instrumental ? _x('(instrumental)', 'marca tras el nombre de una canción de la escaleta impresa') : _x('(cantado)', 'marca tras el nombre de una canción de la escaleta impresa')), f: 'n' }); }
+          linea(runs);
+          if (String(x.nota || '').trim()) { lineas.push({ runs: [{ t: String(x.nota).trim(), f: 'n' }], size: TAM_PEQUENO }); }
+        }
         if (c.tipo === 'texto') {
           if (v.trim()) { linea(prefijo.concat([{ t: v.trim(), f: 'n' }])); }
         } else if (c.tipo === 'textoLargo') {
@@ -1423,11 +1481,11 @@
           while (ls.length && !ls[ls.length - 1].length) { ls.pop(); }
           ls.forEach(function (runs, k) { linea(!runs.length ? [] : (k === 0 ? prefijo : []).concat(runs)); });
         } else if (c.tipo === 'cancion') {
-          if (v.nombre.trim()) { linea(prefijo.concat([{ t: v.nombre.trim(), f: 'i' }])); }
+          if (v.nombre.trim()) { cancionLineas(prefijo, v); }
         } else {
-          var nombres = v.map(function (x) { return x.nombre.trim(); }).filter(Boolean);
-          if (nombres.length && et) { linea([{ t: et + ':', f: 'n' }]); }
-          nombres.forEach(function (n) { linea([{ t: n, f: 'i' }]); });
+          var cantadas = v.filter(function (x) { return x.nombre.trim(); });
+          if (cantadas.length && et) { linea([{ t: et + ':', f: 'n' }]); }
+          cantadas.forEach(function (x) { cancionLineas([], x); });
         }
       });
       return { titulo: tituloMay(sec.titulo), nota: sec.nota, lineas: lineas };
@@ -1777,6 +1835,36 @@
         c.pequeno ? h('span', { class: 'pcan-help', text: __('Se imprime en letra pequeña') }) : null);
     }
 
+    /**
+     * Lo que se añade bajo una canción elegida: el botón «Añadir nota» (que muestra el campo «Nota», o ya lo muestra si hay nota;
+     * vaciarlo la quita) y, si el campo pregunta si es cantado o instrumental, la casilla «Instrumental». `ex` es {nota,
+     * instrumental} y se modifica en el sitio; `alCambiar()` avisa de que hay que guardar el valor del campo.
+     */
+    function extrasCancion(ex, c, alCambiar) {
+      var nota = h('input', {
+        type: 'text', class: 'pcan-input pcan-input-sm pcan-ec-nota-txt', maxlength: '200',
+        placeholder: __('Nota'), 'aria-label': __('Nota'), hidden: !ex.nota
+      });
+      nota.value = ex.nota;
+      var bNota = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-ec-nota-btn', hidden: !!ex.nota, onclick: function () {
+        bNota.hidden = true; nota.hidden = false; nota.focus();
+      } }, icono('mas'), __('Añadir nota'));
+      nota.addEventListener('input', function () { ex.nota = nota.value; alCambiar(); });
+      nota.addEventListener('blur', function () {
+        if (nota.value.trim() !== '') { return; }
+        var habia = ex.nota !== '';
+        nota.value = ''; ex.nota = ''; nota.hidden = true; bNota.hidden = false;
+        if (habia) { alCambiar(); }
+      });
+      var chk = null;
+      if (c.modo) {
+        chk = h('input', { type: 'checkbox', checked: !!ex.instrumental, onchange: function (e) { ex.instrumental = e.target.checked; alCambiar(); } });
+      }
+      return h('div', { class: 'pcan-ec-extras' },
+        chk ? h('label', { class: 'pcan-ec-instr' }, chk, h('span', { text: _x('Instrumental', 'casilla de una canción de la escaleta: sin marcar es cantada') })) : null,
+        bNota, nota);
+    }
+
     /** Una canción del culto: botones de radio con las canciones, «Otra» con su nombre escrito y «Ninguna». */
     function campoCancion(sec, c) {
       var grupo = 'pcan-ec-' + (++contadorEsc);
@@ -1796,25 +1884,40 @@
         if (!v) { return; }   // sección oculta: no se resuelve
         modoOtra = v.cancion === 0 && (modoOtra || v.nombre.trim() !== '');
         var lista = canciones();
+        // La nota y la casilla «Instrumental» son de este hueco: se conservan al cambiar de canción.
+        var ex = { nota: v.nota || '', instrumental: !!v.instrumental };
+        function valorDe(id, nombre) { return { cancion: id, nombre: nombre, nota: ex.nota, instrumental: ex.instrumental }; }
+        var extras = null;
 
         var ops = h('div', { class: 'pcan-ec-ops' });
         append(ops, opcion(!v.cancion && !modoOtra, h('span', { class: 'pcan-ec-op-t pcan-muted', text: __('Ninguna') }),
-          function () { modoOtra = false; c.valor = { cancion: 0, nombre: '' }; cambio(w); }).el);
+          function () { modoOtra = false; c.valor = valorDe(0, ''); cambio(w); extras.hidden = true; }).el);
         lista.forEach(function (s, i) {
-          append(ops, opcion(v.cancion === s.id, textoCancion(s, i), function () { modoOtra = false; c.valor = { cancion: s.id, nombre: s.titulo }; cambio(w); }).el);
+          append(ops, opcion(v.cancion === s.id, textoCancion(s, i), function () { modoOtra = false; c.valor = valorDe(s.id, s.titulo); cambio(w); extras.hidden = false; }).el);
         });
         var txt = h('input', {
           type: 'text', class: 'pcan-input pcan-input-sm pcan-ec-otra-txt', maxlength: '120', value: modoOtra ? v.nombre : '',
           placeholder: __('Otra (escribe el nombre)'), 'aria-label': __('Otra (escribe el nombre)')
         });
-        var otra = opcion(modoOtra, txt, function () { modoOtra = true; c.valor = { cancion: 0, nombre: txt.value }; cambio(w); txt.focus(); }, 'is-otra');
-        txt.addEventListener('input', function () { modoOtra = true; otra.input.checked = true; c.valor = { cancion: 0, nombre: txt.value }; cambio(w); });
+        function otroNombre() { c.valor = valorDe(0, txt.value); cambio(w); extras.hidden = txt.value.trim() === ''; }
+        var otra = opcion(modoOtra, txt, function () { modoOtra = true; otroNombre(); txt.focus(); }, 'is-otra');
+        txt.addEventListener('input', function () { modoOtra = true; otra.input.checked = true; otroNombre(); });
         append(ops, otra.el);
+
+        // Bajo la canción elegida: nota y, si el campo lo pregunta, cantada o instrumental.
+        extras = extrasCancion(ex, c, function () {
+          // El valor sale de lo elegido ahora: lo que se veía por defecto pasa a ser explícito con la nota.
+          var actual = c.valor && typeof c.valor === 'object' ? c.valor : v;
+          c.valor = { cancion: actual.cancion, nombre: actual.nombre, nota: ex.nota, instrumental: ex.instrumental };
+          cambio(w);
+        });
+        extras.hidden = !v.cancion && v.nombre.trim() === '';
 
         append(caja, [
           h('span', { class: 'pcan-label', id: grupo + '-et', text: c.etiqueta || __('Canción') }),
           lista.length ? null : ayuda(__('Este culto aún no tiene canciones: añádelas en la pestaña Canciones o escribe el nombre.')),
-          ops
+          ops,
+          extras
         ]);
       }
 
@@ -1839,34 +1942,45 @@
         var fuera = c.defecto === 'restantes' ? res.usadasFuera(c) : {};
         var visibles = lista.filter(function (s) { return !fuera[s.id] || marcadas[s.id]; });
         var casillas = [];
-        var escritas = [];   // los campos de texto de los nombres escritos a mano
+        var escritas = [];   // las filas de los nombres escritos a mano: { txt, ex }
         var cajaEscritas = h('div', { class: 'pcan-ec-escritas' });
+        // Nota e «Instrumental» de cada canción del culto, por id: se conservan aunque se desmarque y se vuelva a marcar.
+        var extrasDe = {};
+        v.forEach(function (x) { if (x.cancion) { extrasDe[x.cancion] = { nota: x.nota || '', instrumental: !!x.instrumental }; } });
+        function extraDe(id) { return extrasDe[id] || (extrasDe[id] = { nota: '', instrumental: false }); }
 
         // El valor sale de lo que hay en pantalla: así lo primero que se toca ya fija lo que se veía por defecto.
         function guardar() {
           var elegidas = {};
           casillas.forEach(function (k) { if (k.input.checked) { elegidas[k.s.id] = true; } });
-          c.valor = lista.filter(function (s) { return elegidas[s.id]; }).map(function (s) { return { cancion: s.id, nombre: s.titulo }; })
-            .concat(escritas.map(function (t) { return { cancion: 0, nombre: t.value }; }));
+          c.valor = lista.filter(function (s) { return elegidas[s.id]; }).map(function (s) {
+            var ex = extraDe(s.id);
+            return { cancion: s.id, nombre: s.titulo, nota: ex.nota, instrumental: ex.instrumental };
+          }).concat(escritas.map(function (e) { return { cancion: 0, nombre: e.txt.value, nota: e.ex.nota, instrumental: e.ex.instrumental }; }));
           cambio(w);
         }
 
-        function filaEscrita(nombre, enfocar) {
-          var txt = h('input', { type: 'text', class: 'pcan-input pcan-input-sm', maxlength: '120', value: nombre, placeholder: __('Nombre escrito a mano'), 'aria-label': __('Nombre escrito a mano'), oninput: guardar });
-          var fila = h('div', { class: 'pcan-ec-escrita' }, txt,
-            h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', onclick: function () { fila.remove(); escritas.splice(escritas.indexOf(txt), 1); guardar(); } }, icono('cerrar'), __('Quitar')));
-          escritas.push(txt);
-          append(cajaEscritas, fila);
-          if (enfocar) { txt.focus(); }
+        function filaEscrita(x, enfocar) {
+          var fila = { txt: null, ex: { nota: x.nota || '', instrumental: !!x.instrumental } };
+          fila.txt = h('input', { type: 'text', class: 'pcan-input pcan-input-sm', maxlength: '120', value: x.nombre, placeholder: __('Nombre escrito a mano'), 'aria-label': __('Nombre escrito a mano'), oninput: guardar });
+          var bloque = h('div', { class: 'pcan-ec-escrita-bloque' },
+            h('div', { class: 'pcan-ec-escrita' }, fila.txt,
+              h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', onclick: function () { bloque.remove(); escritas.splice(escritas.indexOf(fila), 1); guardar(); } }, icono('cerrar'), __('Quitar'))),
+            extrasCancion(fila.ex, c, guardar));
+          escritas.push(fila);
+          append(cajaEscritas, bloque);
+          if (enfocar) { fila.txt.focus(); }
         }
 
         var ops = h('div', { class: 'pcan-ec-ops' });
         visibles.forEach(function (s) {
-          var input = h('input', { type: 'checkbox', checked: !!marcadas[s.id], onchange: guardar });
+          var extras = extrasCancion(extraDe(s.id), c, guardar);
+          var input = h('input', { type: 'checkbox', checked: !!marcadas[s.id], onchange: function () { extras.hidden = !input.checked; guardar(); } });
+          extras.hidden = !marcadas[s.id];
           casillas.push({ s: s, input: input });
-          append(ops, h('label', { class: 'pcan-ec-op' }, input, textoCancion(s, lista.indexOf(s))));
+          append(ops, h('div', { class: 'pcan-ec-cancion' }, h('label', { class: 'pcan-ec-op' }, input, textoCancion(s, lista.indexOf(s))), extras));
         });
-        v.filter(function (x) { return !x.cancion; }).forEach(function (x) { filaEscrita(x.nombre, false); });
+        v.filter(function (x) { return !x.cancion; }).forEach(function (x) { filaEscrita(x, false); });
 
         append(caja, [
           h('span', { class: 'pcan-label', id: grupo + '-et', text: c.etiqueta || __('Canciones') }),
@@ -1874,7 +1988,7 @@
             : !visibles.length ? ayuda(__('Todas las canciones del culto están ya en otras secciones.')) : null,
           ops,
           cajaEscritas,
-          h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-ec-anadir', onclick: function () { filaEscrita('', true); guardar(); } }, icono('mas'), __('Añadir otra (escribe el nombre)'))
+          h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-ec-anadir', onclick: function () { filaEscrita({ nombre: '' }, true); guardar(); } }, icono('mas'), __('Añadir otra (escribe el nombre)'))
         ]);
       }
 
@@ -1937,12 +2051,12 @@
       var antes = {};
       esc.secciones.forEach(function (s) { antes[s.id] = s; });
       return {
-        titulo: esc.titulo, central: esc.central,
+        titulo: esc.titulo, central: esc.central, version: esc.version,
         secciones: secciones.map(function (n) {
           var vieja = antes[n.id], viejos = {};
           if (vieja) { vieja.campos.forEach(function (c) { viejos[c.id] = c; }); }
           return {
-            id: n.id, titulo: n.titulo, nota: n.nota, oculta: vieja ? !!vieja.oculta : false, extra: false,
+            id: n.id, titulo: n.titulo, nota: n.nota, opcional: !!n.opcional, oculta: vieja ? !!vieja.oculta : false, extra: false,
             campos: n.campos.map(function (c) {
               var v = viejos[c.id], valor = null;
               if (v && v.valor !== null && v.valor !== undefined) {
@@ -1955,7 +2069,7 @@
                   valor = Array.isArray(v.valor) && v.valor.length ? v.valor[0] : { cancion: 0, nombre: '' };
                 }
               }
-              return { id: c.id, tipo: c.tipo, etiqueta: c.etiqueta, pequeno: !!c.pequeno, defecto: c.defecto, valor: valor };
+              return { id: c.id, tipo: c.tipo, etiqueta: c.etiqueta, pequeno: !!c.pequeno, modo: !!c.modo, defecto: c.defecto, valor: valor };
             })
           };
         })
@@ -1967,8 +2081,8 @@
 
     function irEditar() {
       var estructura = { secciones: esc.secciones.map(function (s) {
-        return { id: s.id, titulo: s.titulo, nota: s.nota, campos: s.campos.map(function (c) {
-          return { id: c.id, tipo: c.tipo, etiqueta: c.etiqueta, defecto: c.defecto, pequeno: c.pequeno };
+        return { id: s.id, titulo: s.titulo, nota: s.nota, opcional: s.opcional, campos: s.campos.map(function (c) {
+          return { id: c.id, tipo: c.tipo, etiqueta: c.etiqueta, defecto: c.defecto, pequeno: c.pequeno, modo: c.modo };
         }) };
       }) };
       editor = P.crearEditorEscaleta(estructura, { alCambiar: marcarCambio });
