@@ -2,6 +2,12 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.21.2 · 2026-11-06
+
+La sección opcional de después de la predicación se llama «Post-sermón». Arrastrar para reordenar (secciones de la
+escaleta, sus campos y el setlist) es más fluido: la fila sigue al puntero, las demás se apartan con una animación
+corta, la lista se desplaza sola cerca del borde y, al arrastrar una sección, todas se pliegan a su título
+
 ## 1.21.1 · 2026-11-06
 
 Los administradores del sitio pueden siempre preparar la escaleta y gestionar el cancionero, aunque su rol no tenga

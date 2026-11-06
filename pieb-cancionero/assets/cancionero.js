@@ -2681,6 +2681,142 @@
 
 
   /**
+   * Reordenar los hijos de `lista` arrastrando `asa` (ratón y pantalla táctil). La fila `li` sigue al puntero en vertical, las
+   * demás se apartan con una animación corta (FLIP), la zona con scroll se desplaza sola cerca del borde y, con `o.plegar`,
+   * todas las tarjetas se pliegan a su cabecera mientras dura el arrastre (clase is-compacta en la lista).
+   * o: { plegar: bool, alSoltar(orden, hubo) }: al soltar tras haber arrastrado, `orden` son los data-i de los hijos ya
+   * reordenados en el DOM y `hubo` indica si algo cambió de sitio. Un simple toque en el asa no hace nada; si el puntero se
+   * cancela se recupera el orden de partida y no se avisa.
+   */
+  function arrastrarOrden(asa, li, lista, o) {
+    o = o || {};
+    asa.style.touchAction = 'none';
+    var UMBRAL = 3, BORDE = 56, MAX_V = 24, MS = 150;
+
+    function ty(n) {
+      var t = window.getComputedStyle(n).transform;
+      var m = t && t !== 'none' ? t.match(/matrix\(([^)]+)\)/) : null;
+      return m ? (parseFloat(m[1].split(',')[5]) || 0) : 0;
+    }
+    /** Ancestro que de verdad desplaza en vertical (según el diseño, el panel, su contenedor o el área de Ajustes), o null si
+     *  el que se mueve es la ventana. */
+    function zonaDeScroll() {
+      for (var n = lista.parentElement; n && n !== document.body && n !== document.documentElement; n = n.parentElement) {
+        var oy = window.getComputedStyle(n).overflowY;
+        if ((oy === 'auto' || oy === 'scroll') && n.scrollHeight > n.clientHeight) { return n; }
+      }
+      return null;
+    }
+
+    asa.addEventListener('pointerdown', function (e) {
+      if (e.button !== 0) { return; }
+      e.preventDefault();
+      var puntero = e.pointerId, x0 = e.clientX, y0 = e.clientY, y = e.clientY;
+      var activo = false, raf = 0, T = 0, agarre = 0;
+      var inicial = Array.prototype.slice.call(lista.children);
+      var zona = zonaDeScroll();
+      var sinAnim = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+      function desplazarZona(d) {
+        if (zona) { zona.scrollTop += d; } else { window.scrollBy(0, d); }
+      }
+      /** La fila arrastrada se coloca bajo el puntero respecto a su hueco natural (sin contar su propio transform). */
+      function seguir() {
+        var natural = li.getBoundingClientRect().top - T;
+        T = (y - agarre) - natural;
+        li.style.transform = 'translateY(' + T + 'px)';
+      }
+      /** Cambia el hueco de la fila si su centro pasa del centro de una vecina; las vecinas se apartan con FLIP. */
+      function ordenar() {
+        var centro = li.offsetTop + T + li.offsetHeight / 2;
+        var otras = Array.prototype.slice.call(lista.children).filter(function (n) { return n !== li; });
+        var antes = null;
+        for (var k = 0; k < otras.length; k++) {
+          if (centro < otras[k].offsetTop + otras[k].offsetHeight / 2) { antes = otras[k]; break; }
+        }
+        if (antes ? li.nextSibling === antes : lista.lastChild === li) { return; }
+        var primeras = sinAnim ? null : otras.map(function (n) { return n.offsetTop + ty(n); });
+        if (antes) { lista.insertBefore(li, antes); } else { lista.appendChild(li); }
+        if (primeras) {
+          var movidas = [];
+          otras.forEach(function (n, k) {
+            var d = primeras[k] - n.offsetTop;
+            if (d) { n.style.transition = 'none'; n.style.transform = 'translateY(' + d + 'px)'; movidas.push(n); }
+          });
+          if (movidas.length) {
+            void lista.offsetHeight;
+            movidas.forEach(function (n) { n.style.transition = 'transform ' + MS + 'ms ease'; n.style.transform = ''; });
+          }
+        }
+        seguir();
+      }
+      function activar() {
+        activo = true;
+        var antes = li.getBoundingClientRect().top;
+        lista.classList.add('is-sorting');
+        li.classList.add('is-dragging');
+        if (o.plegar) {
+          lista.classList.add('is-compacta');
+          // Al plegar la lista cambia de altura: se corrige el scroll para que la tarjeta siga donde estaba.
+          var dif = li.getBoundingClientRect().top - antes;
+          if (dif) { desplazarZona(dif); }
+        }
+        var r = li.getBoundingClientRect();
+        agarre = Math.max(0, Math.min(y - r.top, r.height));
+        seguir();
+      }
+      /** Cerca del borde de la zona con scroll, ésta se mueve sola (más deprisa cuanto más cerca) para llegar a filas lejanas. */
+      function bucle() {
+        if (activo) {
+          var arriba = zona ? zona.getBoundingClientRect().top : 0;
+          var abajo = zona ? zona.getBoundingClientRect().bottom : window.innerHeight;
+          var v = 0;
+          if (y < arriba + BORDE) { v = -Math.ceil((arriba + BORDE - y) / 4); }
+          else if (y > abajo - BORDE) { v = Math.ceil((y - (abajo - BORDE)) / 4); }
+          v = Math.max(-MAX_V, Math.min(MAX_V, v));
+          if (v) { desplazarZona(v); }
+          seguir();
+          ordenar();
+        }
+        raf = requestAnimationFrame(bucle);
+      }
+      function mueve(ev) {
+        if (ev.pointerId !== puntero) { return; }
+        ev.preventDefault();
+        y = ev.clientY;
+        if (!activo) {
+          if (Math.sqrt(Math.pow(ev.clientX - x0, 2) + Math.pow(y - y0, 2)) < UMBRAL) { return; }
+          activar();
+        }
+        seguir();
+        ordenar();
+      }
+      function fin(ev) {
+        if (ev.pointerId !== puntero) { return; }
+        cancelAnimationFrame(raf);
+        window.removeEventListener('pointermove', mueve);
+        window.removeEventListener('pointerup', fin);
+        window.removeEventListener('pointercancel', fin);
+        Array.prototype.forEach.call(lista.children, function (n) { n.style.transform = ''; n.style.transition = ''; });
+        li.classList.remove('is-dragging');
+        lista.classList.remove('is-sorting', 'is-compacta');
+        if (!activo) { return; }
+        if (ev.type === 'pointercancel') {
+          inicial.forEach(function (n) { lista.appendChild(n); });
+          return;
+        }
+        var orden = Array.prototype.map.call(lista.children, function (n) { return +n.getAttribute('data-i'); });
+        if (o.alSoltar) { o.alSoltar(orden, orden.some(function (k, p) { return k !== p; })); }
+      }
+      // Se escucha en la ventana: al mover la fila en el DOM el navegador suelta la captura del puntero.
+      window.addEventListener('pointermove', mueve, { passive: false });
+      window.addEventListener('pointerup', fin);
+      window.addEventListener('pointercancel', fin);
+      raf = requestAnimationFrame(bucle);
+    });
+  }
+
+  /**
    * Editor de las secciones de una escaleta: títulos, notas, campos (tipo, etiqueta, texto o canción inicial, letra pequeña),
    * orden, añadir y quitar. Se usa en la pestaña Escaleta de cada culto (cultos.js, con P.crearEditorEscaleta).
    * plantilla: { secciones: [...] } (solo cuenta la estructura; los identificadores que ya existen se conservan);
@@ -2714,63 +2850,18 @@
       if (el && !el.disabled) { el.focus(); }
     }
 
-    /** Reordenar arrastrando el asa (ratón y dedo): la fila se mueve en el DOM y al soltar se reordena la lista de datos. */
-    function arrastrable(asa, li, ol, lista, terminar) {
-      asa.addEventListener('pointerdown', function (e) {
-        if (e.button !== 0) { return; }
-        e.preventDefault();
-        var puntero = e.pointerId, y = e.clientY, raf = 0;
-        var zona = ol.closest('.pcan-ajustes-scroll, .pcan-panel');
-        li.classList.add('is-dragging');
-        ol.classList.add('is-sorting');
-
-        function colocar() {
-          var otras = Array.prototype.slice.call(ol.children).filter(function (n) { return n !== li; });
-          var antes = null;
-          for (var k = 0; k < otras.length; k++) {
-            var r = otras[k].getBoundingClientRect();
-            if (y < r.top + r.height / 2) { antes = otras[k]; break; }
-          }
-          if (antes) { if (li.nextSibling !== antes) { ol.insertBefore(li, antes); } }
-          else if (ol.lastChild !== li) { ol.appendChild(li); }
-        }
-        // Cerca del borde de la zona con desplazamiento, ésta se mueve sola para poder llegar a las filas lejanas.
-        function desplazar() {
-          if (zona) {
-            var r = zona.getBoundingClientRect(), borde = 56, v = 0;
-            if (y < r.top + borde) { v = -Math.ceil((r.top + borde - y) / 4); }
-            else if (y > r.bottom - borde) { v = Math.ceil((y - (r.bottom - borde)) / 4); }
-            v = Math.max(-24, Math.min(24, v));
-            if (v) { zona.scrollTop += v; colocar(); }
-          }
-          raf = requestAnimationFrame(desplazar);
-        }
-        function mueve(ev) {
-          if (ev.pointerId !== puntero) { return; }
-          ev.preventDefault();
-          y = ev.clientY;
-          colocar();
-        }
-        function suelta(ev) {
-          if (ev.pointerId !== puntero) { return; }
-          cancelAnimationFrame(raf);
-          window.removeEventListener('pointermove', mueve);
-          window.removeEventListener('pointerup', suelta);
-          window.removeEventListener('pointercancel', suelta);
-          li.classList.remove('is-dragging');
-          ol.classList.remove('is-sorting');
-          var orden = Array.prototype.map.call(ol.children, function (n) { return +n.getAttribute('data-i'); });
+    /** Reordenar arrastrando el asa (ratón y dedo): la fila se mueve en el DOM y al soltar se reordena la lista de datos.
+     *  Con `plegar` las tarjetas de la lista se pliegan a su cabecera mientras se arrastra. */
+    function arrastrable(asa, li, ol, lista, terminar, plegar) {
+      arrastrarOrden(asa, li, ol, {
+        plegar: !!plegar,
+        alSoltar: function (orden, hubo) {
           var movido = lista[+li.getAttribute('data-i')];
-          var hubo = orden.some(function (k, p) { return k !== p; });
           var nuevos = orden.map(function (k) { return lista[k]; });
           lista.length = 0;
           Array.prototype.push.apply(lista, nuevos);
           terminar(hubo, lista.indexOf(movido));
         }
-        window.addEventListener('pointermove', mueve, { passive: false });
-        window.addEventListener('pointerup', suelta);
-        window.addEventListener('pointercancel', suelta);
-        raf = requestAnimationFrame(desplazar);
       });
     }
 
@@ -2993,7 +3084,7 @@
       arrastrable(asa, fila, lista, pl.secciones, function (hubo, nueva) {
         pintarSecciones();
         if (hubo) { cambio(); anunciar(posicion(nombreS(), nueva, pl.secciones.length)); }
-      });
+      }, true);
       pintarCampos();
       abrir(!!s._abierta);
       return fila;
@@ -4862,6 +4953,7 @@
     h: h,
     append: append,
     icono: icono,
+    arrastrarOrden: arrastrarOrden,
     api: api,
     aviso: aviso,
     copiar: copiar,

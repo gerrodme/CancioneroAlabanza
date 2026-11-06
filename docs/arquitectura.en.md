@@ -246,7 +246,7 @@ its structure without values and without `oculta`, with its `titulo` and `centra
 `cabecera` and `desde: { id, titulo }` (the source service, which the interface names in a note; `null` if there is none and it
 comes from the template). If no order of service has been saved yet, the plugin's **generic** one is used
 (`pieb_can_escaleta_generica`: prelude, reading and prayer, welcome, community life, songs of praise, offering, children,
-preaching, the optional response and Lord's Supper sections, farewell, doxology and postlude; texts with `__()`, built when the
+preaching, the optional post-sermon (id `respuesta`) and Lord's Supper sections, farewell, doxology and postlude; texts with `__()`, built when the
 function is called). The base is copied into the service when its Order of service tab is opened and it is saved with the
 service; there, sections with `opcional` start with `oculta: true` ("Do not include in this service"). `GET /escaleta` copies
 each section's `opcional` and each field's `modo`, and returns `version` (that of the order of service it comes from).

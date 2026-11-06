@@ -386,47 +386,7 @@
 
   // ---------------------------------------------------------------- editor
 
-  /**
-   * Arrastrar con puntero (ratón y pantalla táctil) para reordenar los hijos de `lista`: se mueve el elemento en el DOM
-   * y al soltar se avisa con el orden nuevo, como los data-i que llevaban los hijos antes de moverlos.
-   */
-  function arrastrarFila(asa, li, lista, alSoltar) {
-    asa.addEventListener('pointerdown', function (e) {
-      if (e.button !== 0) { return; }
-      e.preventDefault();
-      // Se escucha en la ventana: al mover la fila en el DOM el navegador suelta la captura del puntero.
-      var puntero = e.pointerId;
-      li.classList.add('is-dragging');
-      lista.classList.add('is-sorting');
-
-      function mueve(ev) {
-        if (ev.pointerId !== puntero) { return; }
-        ev.preventDefault();
-        var hermanos = Array.prototype.slice.call(lista.children).filter(function (n) { return n !== li; });
-        var antes = null;
-        for (var k = 0; k < hermanos.length; k++) {
-          var r = hermanos[k].getBoundingClientRect();
-          if (ev.clientY < r.top + r.height / 2) { antes = hermanos[k]; break; }
-        }
-        if (antes) { if (li.nextSibling !== antes) { lista.insertBefore(li, antes); } }
-        else if (lista.lastChild !== li) { lista.appendChild(li); }
-      }
-
-      function suelta(ev) {
-        if (ev.pointerId !== puntero) { return; }
-        window.removeEventListener('pointermove', mueve);
-        window.removeEventListener('pointerup', suelta);
-        window.removeEventListener('pointercancel', suelta);
-        li.classList.remove('is-dragging');
-        lista.classList.remove('is-sorting');
-        alSoltar(Array.prototype.map.call(lista.children, function (n) { return +n.getAttribute('data-i'); }));
-      }
-
-      window.addEventListener('pointermove', mueve, { passive: false });
-      window.addEventListener('pointerup', suelta);
-      window.addEventListener('pointercancel', suelta);
-    });
-  }
+  // El arrastre para reordenar (setlist y tarjetas de la escaleta) es P.arrastrarOrden, de cancionero.js.
 
   function abrirEditor(id, opciones) {
     opciones = opciones || {};
@@ -597,11 +557,13 @@
     }
 
     function arrastrable(asa, li) {
-      arrastrarFila(asa, li, lista, function (orden) {
-        var nuevos = orden.map(function (k) { return items[k]; });
-        items.length = 0;
-        Array.prototype.push.apply(items, nuevos);
-        pintarItems();
+      P.arrastrarOrden(asa, li, lista, {
+        alSoltar: function (orden) {
+          var nuevos = orden.map(function (k) { return items[k]; });
+          items.length = 0;
+          Array.prototype.push.apply(items, nuevos);
+          pintarItems();
+        }
       });
     }
 
@@ -1198,7 +1160,7 @@
   /** Las dos secciones opcionales que trajo la versión 2 de la escaleta (mismos textos y contextos que en includes/escaleta.php). */
   function seccionesOpcionales() {
     return [
-      secEsc('respuesta', _x('RESPUESTA', 'sección de la escaleta del culto (en mayúsculas)'), [
+      secEsc('respuesta', _x('POST-SERMÓN', 'sección de la escaleta del culto (en mayúsculas)'), [
         campoEsc('cancion', 'cancion', '', 'ninguna', false, true),
         campoEsc('respuesta', 'textoLargo')
       ], true),
@@ -2032,10 +1994,13 @@
         h('label', { class: 'pcan-ec-oculta' }, oculta, h('span', { text: __('No incluir en este culto') })),
         h('div', { class: 'pcan-ec-campos' }, sec.campos.map(function (c) { return campoDe(sec, c); }))
       ]);
-      arrastrarFila(asa, li, lista, function (orden) {
-        esc.secciones = orden.map(function (k) { return esc.secciones[k]; });
-        pintarTodo();
-        marcarCambio();
+      P.arrastrarOrden(asa, li, lista, {
+        plegar: true,
+        alSoltar: function (orden) {
+          esc.secciones = orden.map(function (k) { return esc.secciones[k]; });
+          pintarTodo();
+          marcarCambio();
+        }
       });
       return li;
     }

@@ -1229,6 +1229,11 @@ a.pcan-set-title:hover { color: var(--pc-accent) !important; }
 }
 [data-pcan-theme] .pcan-drag:hover { background: var(--pc-surface-2); color: var(--pc-accent); }
 .is-sorting, .is-sorting * { cursor: grabbing !important; user-select: none; }
+/* Arrastrar para reordenar (P.arrastrarOrden): la fila arrastrada va por encima y sin transición; la lista se pliega a cabeceras. */
+.is-sorting > .is-dragging { position: relative; z-index: 5; transition: none !important; box-shadow: var(--pc-shadow-lg); will-change: transform; }
+.is-sorting > .pcan-ec-sec.is-dragging, .is-sorting > .pcan-esc-sec.is-dragging { background: var(--pc-surface); }
+.is-compacta > .pcan-ec-sec > :not(.pcan-ec-cab) { display: none; }
+.is-compacta > .pcan-esc-sec > .pcan-esc-cuerpo { display: none; }
 .pcan-set-item.is-dragging { border-color: var(--pc-accent); box-shadow: var(--pc-shadow-lg); position: relative; z-index: 1; background: var(--pc-surface); }
 .pcan-picker-warn { display: inline-flex; align-items: center; gap: 5px; color: var(--pc-warn); font-size: 12px; font-weight: 600; }
 .pcan-picker-warn .pcan-ico { width: 14px; height: 14px; }

@@ -112,7 +112,7 @@ function pieb_can_escaleta_generica() {
                 pieb_can_escaleta_campo('titulo', 'texto', _x('Título', 'etiqueta de un campo de la escaleta del culto', 'pieb-cancionero')),
                 pieb_can_escaleta_campo('predicacion', 'texto', _x('Predicación', 'etiqueta de un campo de la escaleta del culto', 'pieb-cancionero')),
             )),
-            pieb_can_escaleta_seccion('respuesta', _x('RESPUESTA', 'sección de la escaleta del culto (en mayúsculas)', 'pieb-cancionero'), array(
+            pieb_can_escaleta_seccion('respuesta', _x('POST-SERMÓN', 'sección de la escaleta del culto (en mayúsculas)', 'pieb-cancionero'), array(
                 pieb_can_escaleta_campo('cancion', 'cancion', '', 'ninguna', false, true),
                 pieb_can_escaleta_campo('respuesta', 'textoLargo'),
             ), true),

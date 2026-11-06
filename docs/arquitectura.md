@@ -245,7 +245,7 @@ cualquier culto** (`pieb_can_escaleta_ultima`: el culto con `_pieb_escaleta` mod
 valores y sin `oculta`, con su `titulo` y `central`, más el `logo` y la `cabecera` de la instalación y
 `desde: { id, titulo }` (el culto de origen, que la interfaz nombra en una nota; `null` si no hay ninguna y sale de la plantilla).
 Si no hay ninguna escaleta guardada, se usa la **genérica** del plugin (`pieb_can_escaleta_generica`: preludio, lectura y
-oración, bienvenida, vida de comunidad, cantos, ofrenda, niños, predicación, las secciones opcionales respuesta y santa cena,
+oración, bienvenida, vida de comunidad, cantos, ofrenda, niños, predicación, las secciones opcionales post-sermón (id `respuesta`) y santa cena,
 despedida, doxología y postludio; textos con `__()`, se arma al llamarla). La base se copia al culto al abrir su pestaña
 Escaleta y se guarda con el culto; ahí las secciones con `opcional` empiezan con `oculta: true` («No incluir en este culto»).
 `GET /escaleta` copia de cada sección su `opcional` y de cada campo su `modo`, y devuelve `version` (la de la escaleta de la que sale).

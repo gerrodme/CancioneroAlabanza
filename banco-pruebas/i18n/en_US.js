@@ -2713,14 +2713,14 @@ window.PIEB_I18N = {
   "casilla de una canción de la escaleta: sin marcar es cantada\u0004Instrumental": [
    "Instrumental"
   ],
-  "sección de la escaleta del culto (en mayúsculas)\u0004RESPUESTA": [
-   "RESPONSE"
-  ],
   "sección de la escaleta del culto (en mayúsculas)\u0004SANTA CENA": [
    "LORD'S SUPPER"
   ],
   "etiqueta de un campo de la escaleta del culto\u0004Música": [
    "Music"
+  ],
+  "sección de la escaleta del culto (en mayúsculas)\u0004POST-SERMÓN": [
+   "POST-SERMON"
   ]
  }
 };
