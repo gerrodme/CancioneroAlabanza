@@ -240,6 +240,12 @@ campos, tipos, etiquetas, letra pequeña, textos o valores por defecto, orden, a
 de «Editar secciones» a «Rellenar» se conservan los valores de los campos que siguen existiendo (misma sección y mismo `id`
 de campo) con el mismo tipo; los nuevos empiezan «sin tocar».
 
+**Las canciones siguen al setlist mientras nadie las toque.** Al guardar, los textos por defecto pasan a ser valores
+explícitos, pero los campos de canciones sin tocar se guardan con `valor: null`: así la escaleta se puede preparar antes de
+elegir las canciones y se rellena sola (según el defecto de cada campo) cuando se añaden al setlist. Elegir una canción,
+escribirla, ponerle una nota o marcar «Instrumental» fija el valor del campo. El botón «Rellenar con el setlist» devuelve todos
+los campos de canciones a `null` (sirve para los cultos guardados antes de la 1.22.0, cuyos campos quedaron fijos).
+
 **Base para un culto nuevo** (`GET /escaleta`). Un culto sin escaleta propia parte de la **última escaleta guardada en
 cualquier culto** (`pieb_can_escaleta_ultima`: el culto con `_pieb_escaleta` modificado más recientemente): su estructura sin
 valores y sin `oculta`, con su `titulo` y `central`, más el `logo` y la `cabecera` de la instalación y

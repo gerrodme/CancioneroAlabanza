@@ -2,6 +2,13 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.22.0 · 2026-11-11
+
+La escaleta se puede preparar antes de elegir las canciones: los campos de canciones que no se tocan a mano siguen al
+setlist y se rellenan solos cuando se añaden canciones, también después de guardar. Nuevo botón «Rellenar con el
+setlist» para devolver a lo automático las canciones de los cultos guardados antes. El botón del culto se llama
+siempre «Editar», aunque aún no tenga canciones
+
 ## 1.21.2 · 2026-11-06
 
 La sección opcional de después de la predicación se llama «Post-sermón». Arrastrar para reordenar (secciones de la

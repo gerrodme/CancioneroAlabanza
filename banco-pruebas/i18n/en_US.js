@@ -2411,9 +2411,6 @@ window.PIEB_I18N = {
   "Cargando la escaleta…": [
    "Loading the order of service…"
   ],
-  "Se rellena con las canciones del culto; cambia lo que quieras. Se guarda junto con el culto.": [
-   "It is filled in with the service’s songs; change whatever you like. It is saved together with the service."
-  ],
   "No se pudo leer la plantilla de tu grupo: se usa la estándar.": [
    "Could not read your group’s template: the standard one is used."
   ],
@@ -2721,6 +2718,15 @@ window.PIEB_I18N = {
   ],
   "sección de la escaleta del culto (en mayúsculas)\u0004POST-SERMÓN": [
    "POST-SERMON"
+  ],
+  "¿Rellenar las canciones de la escaleta con las del setlist? Se pierden las canciones, notas y casillas «Instrumental» que hayas puesto a mano en la escaleta.": [
+   "Fill the songs in the order of service from the setlist? Any songs, notes and “Instrumental” checkboxes you set by hand in the order of service will be lost."
+  ],
+  "Rellenar con el setlist": [
+   "Fill from the setlist"
+  ],
+  "Puedes prepararla antes de elegir las canciones: las del setlist se colocan solas en cada sección mientras no las cambies a mano. Se guarda junto con el culto.": [
+   "You can prepare it before choosing the songs: the setlist songs go into each section by themselves as long as you don’t change them by hand. It is saved with the service."
   ]
  }
 };

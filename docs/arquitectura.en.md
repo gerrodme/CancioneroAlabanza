@@ -240,6 +240,12 @@ editor is `P.crearEditorEscaleta` in `cancionero.js`, reused in `cultos.js`). "F
 going back from "Edit sections" to "Fill in", the values of fields that still exist (same section and same field `id`) with the
 same type are kept; new ones start "untouched".
 
+**Songs follow the setlist while nobody touches them.** On saving, default texts become explicit values, but untouched song
+fields are saved with `valor: null`: so the order of service can be prepared before choosing the songs and fills itself in
+(according to each field's default) when they are added to the setlist. Choosing or typing a song, adding a note or ticking
+"Instrumental" fixes the field's value. The "Fill from the setlist" button sets every song field back to `null` (useful for
+services saved before 1.22.0, whose fields were fixed).
+
 **Base for a new service** (`GET /escaleta`). A service without its own order of service starts from the **last order of
 service saved in any service** (`pieb_can_escaleta_ultima`: the service whose `_pieb_escaleta` was modified most recently):
 its structure without values and without `oculta`, with its `titulo` and `central`, plus the installation's `logo` and

@@ -342,7 +342,7 @@
             h('p', { class: 'pcan-det-meta' }, c.tipo ? h('span', { text: c.tipo }) : null, h('span', { text: nCanciones(validos.length) }), c.creadoPor ? h('span', { class: 'pcan-muted', text: sprintf(/* translators: %s: nombre de quien preparó el culto */ __('Preparado por %s'), c.creadoPor) }) : null))),
         h('div', { class: 'pcan-det-actions' },
           validos.length ? h('a', { class: 'pcan-btn pcan-btn-primary pcan-btn-lg', href: '#/culto/' + c.id + '/tocar/1' }, icono('play'), __('Tocar el culto')) : null,
-          h('a', { class: 'pcan-btn', href: '#/culto/editar/' + c.id }, icono('editar'), h('span', { class: 'pcan-btn-label', text: validos.length ? __('Editar') : __('Añadir canciones') })),
+          h('a', { class: 'pcan-btn', href: '#/culto/editar/' + c.id }, icono('editar'), h('span', { class: 'pcan-btn-label', text: __('Editar') })),
           P.accionesSecundarias([
             { texto: __('Copiar como texto'), icono: 'copiar', fn: function () { P.copiar(textoSetlist(c), __('Setlist copiado (para WhatsApp)')); } },
             validos.length ? pdfItem : null,
@@ -658,7 +658,7 @@
       guardar.disabled = true;
       guardar.textContent = __('Guardando…');
 
-      // La escaleta solo viaja si el culto ya tenía una o si se abrió la pestaña (los valores por defecto pasan a explícitos).
+      // La escaleta solo viaja si el culto ya tenía una o si se abrió la pestaña (los textos por defecto pasan a explícitos; las canciones sin tocar siguen al setlist).
       var cuerpo = { titulo: fTitulo.value.trim(), fecha: fFecha.value, tipo: fTipo.value.trim(), notas: fNotas.value, items: items };
       var escaleta = escEd.valor();
       if (escaleta) { cuerpo.escaleta = escaleta; }
@@ -1390,13 +1390,18 @@
     };
   }
 
-  /** Copia de la escaleta con los defectos ya aplicados como valores explícitos (lo que se guarda con el culto). */
+  /**
+   * Copia de la escaleta con los defectos de los textos ya aplicados como valores explícitos (lo que se guarda con el culto).
+   * Los campos de canciones que nadie ha tocado (valor null) se guardan así, sin tocar: siguen al setlist, de modo que se
+   * puede preparar la escaleta antes de elegir las canciones y se rellena sola cuando se añaden.
+   */
   function explicitar(esc, canciones) {
     var copia = JSON.parse(JSON.stringify(esc));
     var res = resolverEscaleta(esc, canciones);
     esc.secciones.forEach(function (sec, i) {
       if (sec.oculta) { return; }
       sec.campos.forEach(function (c, j) {
+        if ((c.tipo === 'cancion' || c.tipo === 'canciones') && (c.valor === null || c.valor === undefined)) { return; }
         var v = res.valores.get(c);
         copia.secciones[i].campos[j].valor = c.tipo === 'canciones'
           ? v.filter(function (x) { return x.cancion || x.nombre.trim() !== ''; })
@@ -1459,7 +1464,7 @@
   /**
    * Pestaña «Escaleta» del editor. opc: { inicial: escaleta del culto o null, culto: () → {titulo, fecha, tipo, items} con el
    * estado actual del formulario }. Devuelve { el, mostrar(), setlistCambio(), validar(), valor() }: valor() es la escaleta
-   * ({titulo, central, secciones}) con los defectos ya explícitos, o undefined si el culto no tenía y no se abrió la pestaña
+   * ({titulo, central, secciones}) con los textos por defecto ya explícitos (las canciones sin tocar quedan en null), o undefined si el culto no tenía y no se abrió la pestaña
    * (entonces no se guarda nada); validar() es null o { mensaje, enfocar() } si el editor de secciones tiene algo sin acabar.
    *
    * Tiene dos modos: «Rellenar» (el valor de cada campo) y «Editar secciones» (la estructura: títulos, notas, campos, tipos,
@@ -2127,8 +2132,18 @@
           h('p', { class: 'pcan-help', text: __('Solo el responsable de escaleta o un administrador puede preparar la escaleta.') })));
         return;
       }
+      // Devuelve los campos de canciones a lo automático (siguen al setlist): útil en los cultos guardados antes de que lo
+      // hicieran, cuyos campos quedaron fijos con lo que había entonces (a menudo nada).
+      var bAuto = h('button', {
+        type: 'button', class: 'pcan-btn', onclick: function () {
+          if (!window.confirm(__('¿Rellenar las canciones de la escaleta con las del setlist? Se pierden las canciones, notas y casillas «Instrumental» que hayas puesto a mano en la escaleta.'))) { return; }
+          esc.secciones.forEach(function (s) { s.campos.forEach(function (c) { if (c.tipo === 'cancion' || c.tipo === 'canciones') { c.valor = null; } }); });
+          pintarTodo();
+          marcarCambio();
+        }
+      }, icono('lista'), __('Rellenar con el setlist'));
       append(cont, [
-        h('div', { class: 'pcan-ec-barra' }, bExportar, h('p', { class: 'pcan-help', text: __('Se rellena con las canciones del culto; cambia lo que quieras. Se guarda junto con el culto.') })),
+        h('div', { class: 'pcan-ec-barra' }, bExportar, bAuto, h('p', { class: 'pcan-help', text: __('Puedes prepararla antes de elegir las canciones: las del setlist se colocan solas en cada sección mientras no las cambies a mano. Se guarda junto con el culto.') })),
         generica ? ayuda(__('No se pudo leer la plantilla de tu grupo: se usa la estándar.')) : null,
         notaOrigen(),
         filaTitulos(),
