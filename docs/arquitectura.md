@@ -24,7 +24,7 @@ Resumen técnico del plugin **Cancionero** para quien llegue nuevo al código.
 | `includes/migracion.php` | Convierte los PDF del plugin anterior (`adoracion_culto_*`) en canciones. Idempotente. |
 | `assets/cancionero.js` | Interfaz principal (sin dependencias ni compilación): lista, ficha, formulario, subida múltiple, estadísticas, ajustes. Incluye «Acerca del Cancionero» (ruta `#/acerca`, entrada del menú de la cuenta para todos los usuarios): versión, autoría, licencia, código fuente y componentes de terceros; si se añade una librería externa, hay que listarla ahí. |
 | `assets/cultos.js` | Pantallas de cultos y editor de setlist. |
-| `assets/visor.js` | Visor / modo culto para tableta. |
+| `assets/visor.js` | Visor / modo culto para tableta; incluye el metrónomo del lector (Web Audio con programación anticipada, tempo de la canción, tap tempo y compás; atajo «M»). |
 | `assets/login.js` | Pantalla de acceso. |
 | `assets/cancionero.css` | Estilos y temas. Todo cuelga de `[data-pcan-theme]` y variables `--pc-*`. |
 

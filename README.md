@@ -38,7 +38,7 @@ la herramienta: **no incluye ninguna canción ni partitura**; cada instalación 
   las secciones). Cada culto tiene la suya, en su pestaña Escaleta: se rellena con sus canciones, se pueden cambiar las
   secciones y los títulos (solo en ese culto) y se exporta en PDF. Un culto nuevo parte de la última escaleta preparada;
   en Ajustes y equipo → Escaleta solo se eligen el logo y la imagen de cabecera.
-- **Visor / modo culto:** pantalla pensada para tableta, con la partitura grande y cambio rápido entre canciones.
+- **Visor / modo culto:** pantalla pensada para tableta, con la partitura grande, cambio rápido entre canciones y un metrónomo que parte del tempo de cada canción.
 - **Acceso:** rol «Equipo de adoración», inicio de sesión con Google (Google Identity Services) o con enlace por correo.
 - **Bienvenida:** quien se añade a la lista del equipo recibe un correo con el logo y un botón que le deja dentro
   del cancionero (sirve una vez durante 7 días), y cómo entrar más adelante. Desde **Ajustes y equipo → Equipo** se puede reenviar a las personas que se elijan.

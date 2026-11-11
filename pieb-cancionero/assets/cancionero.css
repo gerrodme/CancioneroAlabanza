@@ -852,6 +852,52 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
 .pcan-lector-pastilla-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pcan-lector-pagina { flex: 0 0 auto; margin-left: auto; font-size: 13px; font-variant-numeric: tabular-nums; opacity: .85; }
 
+/* Metrónomo del lector: panel compacto sobre la partitura, abajo y centrado (a todo el ancho en móvil). */
+.pcan-lector .pcan-metro[hidden] { display: none; }
+.pcan-lector .pcan-metro {
+  position: absolute; left: 50%; bottom: 10px; z-index: 3; transform: translateX(-50%); width: min(420px, calc(100% - 24px)); box-sizing: border-box;
+  display: grid; gap: 8px; padding: 10px 12px; border: 1px solid rgba(255, 255, 255, .22); border-radius: 16px;
+  background: color-mix(in srgb, var(--pc-stage) 88%, #000); color: var(--pc-stage-ink); box-shadow: 0 6px 24px rgba(0, 0, 0, .45);
+}
+.pcan-metro-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 14px; }
+.pcan-metro-fila { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pcan-metro button, .pcan-metro select, .pcan-metro input { font: inherit; color: inherit; }
+[data-pcan-theme] .pcan-metro-paso {
+  flex: 0 0 auto; width: 44px; height: 44px; border: 1px solid rgba(255, 255, 255, .3); border-radius: 50%; background: transparent; font-size: 24px; line-height: 1;
+  touch-action: manipulation; user-select: none; -webkit-user-select: none;
+}
+[data-pcan-theme] .pcan-metro-sec {
+  min-height: 44px; padding: 0 14px; border: 1px solid rgba(255, 255, 255, .3); border-radius: 999px; background: transparent; font-size: 14px; font-weight: 600; touch-action: manipulation;
+}
+[data-pcan-theme] .pcan-metro-sec[aria-pressed="false"] { opacity: .7; }
+[data-pcan-theme] .pcan-metro-paso:hover, [data-pcan-theme] .pcan-metro-sec:hover { background: rgba(255, 255, 255, .12); }
+.pcan-metro-valor { display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 0; font-size: 11px; font-weight: 700; letter-spacing: .08em; opacity: 1; }
+[data-pcan-theme] .pcan-metro-bpm {
+  width: 100%; max-width: 96px; height: 40px; padding: 0; border: 0; border-bottom: 2px solid rgba(255, 255, 255, .3); border-radius: 0; background: transparent;
+  text-align: center; font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; -moz-appearance: textfield; appearance: textfield;
+}
+.pcan-metro-bpm::-webkit-outer-spin-button, .pcan-metro-bpm::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.pcan-metro-compas-l { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+[data-pcan-theme] .pcan-metro-compas { height: 44px; padding: 0 8px; border: 1px solid rgba(255, 255, 255, .3); border-radius: 999px; background: transparent; font-size: 15px; }
+.pcan-metro-compas option { color: #111; }
+.pcan-metro-puntos { display: flex; align-items: center; justify-content: center; gap: 8px; flex: 1; min-width: 0; }
+.pcan-metro-punto { width: 14px; height: 14px; border-radius: 50%; background: rgba(255, 255, 255, .22); transition: background .06s, transform .06s; }
+.pcan-metro-punto.is-primero { width: 18px; height: 18px; box-shadow: 0 0 0 2px rgba(255, 255, 255, .35); }
+.pcan-metro-punto.is-on { background: #fff; transform: scale(1.25); }
+.pcan-metro-punto.is-primero.is-on { background: var(--pc-accent); box-shadow: 0 0 0 2px var(--pc-accent); }
+[data-pcan-theme] .pcan-metro-marcha {
+  flex: 1; min-height: 52px; border: 0; border-radius: 999px; background: var(--pc-accent); color: var(--pc-accent-ink); font-size: 18px; font-weight: 800; touch-action: manipulation;
+}
+[data-pcan-theme] .pcan-metro-marcha.is-parar { background: #c0392b; color: #fff; }
+[data-pcan-theme] .pcan-metro-enlace { justify-self: center; padding: 6px 8px; border: 0; background: transparent; color: var(--pc-stage-ink); font-size: 13px; text-decoration: underline; }
+.pcan-metro-enlace[hidden] { display: none; }
+.pcan-metro-paso:focus-visible, .pcan-metro-sec:focus-visible, .pcan-metro-marcha:focus-visible, .pcan-metro-enlace:focus-visible, .pcan-metro-bpm:focus-visible, .pcan-metro-compas:focus-visible { outline: 2px solid var(--pc-accent); outline-offset: 2px; }
+/* Pulso del botón de la barra: se nota que suena aunque el panel esté oculto. */
+.pcan-metro-pulso { flex: 0 0 auto; width: 9px; height: 9px; border-radius: 50%; background: currentColor; opacity: .35; transition: opacity .06s, transform .06s; }
+.pcan-metro-pulso[hidden] { display: none; }
+.pcan-metro-pulso.is-on { opacity: 1; transform: scale(1.5); }
+@media (prefers-reduced-motion: reduce) { .pcan-metro-punto, .pcan-metro-pulso { transition: none; } }
+
 /* ================================================================== paleta de búsqueda */
 
 .pcan-paleta-capa { position: fixed; inset: 0; z-index: 99998; display: flex; justify-content: center; align-items: flex-start; padding: 10vh 12px 12px; background: rgba(8, 12, 20, .5); animation: pcan-fade .15s ease; }
@@ -1749,6 +1795,7 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
   .pcan-lector-nota, .pcan-lector-pastilla-t { display: none; }
   [data-pcan-theme] .pcan-lector-pastilla { padding: 0 4px; }
   .pcan-chip-btn span { display: none; }
+  .pcan-lector .pcan-metro { left: 0; right: 0; bottom: 0; width: auto; transform: none; border-radius: 16px 16px 0 0; border-width: 1px 0 0; }
   .pcan-panel-wrap.is-modal { padding: 0; }
   .pcan-panel-wrap.is-modal .pcan-panel { width: 100%; max-height: none; height: 100%; border-radius: 0; }
 }

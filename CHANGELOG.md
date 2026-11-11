@@ -2,6 +2,13 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.23.0 · 2026-11-11
+
+Metrónomo en «Tocar el culto» y en la partitura a pantalla completa: botón «Metrónomo» en la barra (o la tecla M) para
+mostrarlo u ocultarlo. Empieza en el tempo de la canción, si lo tiene, y cambia al pasar de canción; se ajusta con «−» y
+«+», escribiendo el número o marcando el ritmo con «Marcar». Compás con acento en el primer pulso, pulsos visibles y
+opción de silenciarlo. Si se oculta mientras suena, un punto en la barra sigue marcando el pulso
+
 ## 1.22.0 · 2026-11-11
 
 La escaleta se puede preparar antes de elegir las canciones: los campos de canciones que no se tocan a mano siguen al

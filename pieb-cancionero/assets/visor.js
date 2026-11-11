@@ -327,6 +327,234 @@
     return sprintf(/* translators: 1: página que se ve («2») o páginas («1–2»), 2: total de páginas de la partitura */ __('Pág. %1$s de %2$d'), est.hasta > est.pagina ? est.pagina + '–' + est.hasta : est.pagina, est.paginas);
   }
 
+  // ---------------------------------------------------------------- metrónomo del lector
+
+  var METRO_MIN = 20, METRO_MAX = 300, METRO_DEFECTO = 100;
+
+  function leerAlmacen(clave, defecto) {
+    try { var v = window.localStorage.getItem(clave); return v === null ? defecto : v; } catch (e) { return defecto; }
+  }
+  function guardarAlmacen(clave, valor) {
+    try { window.localStorage.setItem(clave, String(valor)); } catch (e) { /* sin almacenamiento: vale solo para esta sesión */ }
+  }
+
+  /** Tempo de una canción como entero válido (20–300), o 0 si no lo tiene. */
+  function tempoValido(tempo) {
+    var n = parseInt(tempo, 10);
+    return n >= METRO_MIN && n <= METRO_MAX ? n : 0;
+  }
+
+  function limitarTempo(n) { return Math.max(METRO_MIN, Math.min(METRO_MAX, Math.round(n))); }
+
+  /**
+   * Metrónomo con Web Audio. Programa los clics por adelantado (setInterval de 25 ms que agenda 100 ms por delante con
+   * audioContext.currentTime) para que no dependa de la precisión de los temporizadores. Ocultar el panel NO lo para:
+   * el botón de la barra muestra un pulso pequeño mientras suena y el botón «Parar» está siempre en el panel.
+   * `boton` es el botón de la barra (lo crea quien lo usa). Devuelve { panel, alternar(), cambiarCancion(i), destruir() }.
+   */
+  function crearMetronomo(canciones, boton) {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    var ctx = null;
+    var sonando = false;
+    var bpm = METRO_DEFECTO;
+    var ultimoBpm = METRO_DEFECTO;
+    var manual = {};          // tempo ajustado a mano, por posición de canción, mientras el lector está abierto
+    var cancion = -1;
+    var compas = parseInt(leerAlmacen('pcan-metro-compas', '4'), 10);
+    if ([1, 2, 3, 4, 6].indexOf(compas) === -1) { compas = 4; }
+    var conSonido = leerAlmacen('pcan-metro-sonido', '1') !== '0';
+    var abierto = leerAlmacen('pcan-metro-abierto', '0') === '1';
+    var temporizador = null, cuadro = 0, pulsoTimer = null;
+    var proximo = 0, pulso = 0, cola = [];
+    var toques = [];
+    var repetir = null;
+
+    // --- interfaz
+    var campo = h('input', {
+      type: 'number', class: 'pcan-metro-bpm', min: String(METRO_MIN), max: String(METRO_MAX), step: '1', inputmode: 'numeric',
+      'aria-label': __('Pulsaciones por minuto'),
+      onchange: function () { fijar(parseInt(campo.value, 10), true); },
+      onkeydown: function (e) { if (e.key === 'Enter') { e.preventDefault(); campo.blur(); } }
+    });
+    function botonPaso(texto, etiqueta, delta) {
+      var b = h('button', { type: 'button', class: 'pcan-metro-paso', 'aria-label': etiqueta, title: etiqueta, text: texto });
+      // Al mantener pulsado repite; el clic con teclado (detail 0) da un solo paso.
+      b.addEventListener('pointerdown', function (e) {
+        if (e.button) { return; }
+        paso(delta);
+        detenerRepeticion();
+        repetir = setTimeout(function () { repetir = setInterval(function () { paso(delta); }, 80); }, 450);
+      });
+      ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (n) { b.addEventListener(n, detenerRepeticion); });
+      b.addEventListener('click', function (e) { if (e.detail === 0) { paso(delta); } });
+      b.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+      return b;
+    }
+    function detenerRepeticion() { if (repetir) { clearTimeout(repetir); clearInterval(repetir); repetir = null; } }
+    function paso(delta) { fijar(bpm + delta, true); }
+
+    var btnMenos = botonPaso('−', __('Bajar un pulso por minuto'), -1);
+    var btnMas = botonPaso('+', __('Subir un pulso por minuto'), 1);
+    var btnMarcar = h('button', { type: 'button', class: 'pcan-metro-sec', title: __('Toca varias veces al ritmo para calcular el tempo'), onclick: marcar, text: __('Marcar') });
+    var btnCancion = h('button', { type: 'button', class: 'pcan-metro-enlace', onclick: function () { delete manual[cancion]; fijar(tempoValido(canciones[cancion].tempo) || ultimoBpm, false); } });
+    var selCompas = h('select', { class: 'pcan-metro-compas', 'aria-label': __('Pulsos por compás'), onchange: function () { compas = +selCompas.value; guardarAlmacen('pcan-metro-compas', compas); pulso = 0; pintarPuntos(); } });
+    [1, 2, 3, 4, 6].forEach(function (n) { append(selCompas, h('option', { value: String(n), text: String(n) })); });
+    selCompas.value = String(compas);
+    var puntos = h('div', { class: 'pcan-metro-puntos', 'aria-hidden': 'true' });
+    var btnSonido = h('button', { type: 'button', class: 'pcan-metro-sec', onclick: function () { conSonido = !conSonido; guardarAlmacen('pcan-metro-sonido', conSonido ? '1' : '0'); pintarSonido(); } });
+    var btnMarcha = h('button', { type: 'button', class: 'pcan-metro-marcha', onclick: function () { if (sonando) { parar(); } else { empezar(); } } });
+    var btnOcultar = h('button', { type: 'button', class: 'pcan-metro-sec', onclick: function () { alternar(); }, text: __('Ocultar') });
+
+    var panel = h('div', { class: 'pcan-metro', role: 'group', 'aria-label': __('Metrónomo'), hidden: !abierto },
+      h('div', { class: 'pcan-metro-cab' }, h('strong', { text: __('Metrónomo') }), btnOcultar),
+      h('div', { class: 'pcan-metro-fila' },
+        btnMenos, h('label', { class: 'pcan-metro-valor' }, campo, h('span', { text: 'BPM' })), btnMas, btnMarcar),
+      h('div', { class: 'pcan-metro-fila' },
+        h('label', { class: 'pcan-metro-compas-l' }, h('span', { text: __('Compás') }), selCompas), puntos, btnSonido),
+      h('div', { class: 'pcan-metro-fila' }, btnMarcha),
+      btnCancion);
+    // Las teclas de página del lector no deben dispararse al usar los botones del panel (Espacio e Intro los activan).
+    panel.addEventListener('keydown', function (e) {
+      if ([' ', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'Backspace'].indexOf(e.key) !== -1) { e.stopPropagation(); }
+    });
+
+    var pulsoBoton = h('i', { class: 'pcan-metro-pulso', 'aria-hidden': 'true', hidden: true });
+    boton.insertBefore(pulsoBoton, boton.lastChild);
+    boton.addEventListener('click', function () { alternar(); });
+
+    function pintarBoton() {
+      boton.classList.toggle('is-active', abierto);
+      boton.setAttribute('aria-pressed', abierto ? 'true' : 'false');
+      boton.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+      pulsoBoton.hidden = !sonando;
+    }
+    function pintarSonido() { btnSonido.textContent = conSonido ? __('Sonido: sí') : __('Sonido: no'); btnSonido.setAttribute('aria-pressed', conSonido ? 'true' : 'false'); }
+    function pintarMarcha() {
+      btnMarcha.textContent = sonando ? __('Parar') : __('Empezar');
+      btnMarcha.classList.toggle('is-parar', sonando);
+      pintarBoton();
+    }
+    function pintarPuntos(activo) {
+      if (puntos.children.length !== compas) {
+        puntos.innerHTML = '';
+        for (var i = 0; i < compas; i++) { append(puntos, h('span', { class: 'pcan-metro-punto' + (i === 0 ? ' is-primero' : '') })); }
+      }
+      Array.prototype.forEach.call(puntos.children, function (p, k) { p.classList.toggle('is-on', k === activo); });
+    }
+    function pintarTempo() {
+      campo.value = String(bpm);
+      var t = cancion >= 0 ? tempoValido(canciones[cancion].tempo) : 0;
+      // Sin tempo en la canción no hay enlace; si ya es el de la canción, se oculta sin quitar su hueco (el panel no debe moverse al pulsar +/−).
+      btnCancion.hidden = !t;
+      btnCancion.style.visibility = t === bpm ? 'hidden' : '';
+      btnCancion.textContent = t ? sprintf(/* translators: %d: tempo de la canción en pulsaciones por minuto */ __('Volver al tempo de la canción (%d)'), t) : '';
+    }
+
+    // --- tempo
+    function fijar(n, esManual) {
+      if (isNaN(n)) { pintarTempo(); return; }
+      bpm = limitarTempo(n);
+      ultimoBpm = bpm;
+      if (esManual && cancion >= 0) { manual[cancion] = bpm; }
+      pintarTempo();
+    }
+
+    function marcar() {
+      var ahora = Date.now();
+      if (toques.length && ahora - toques[toques.length - 1] > 2000) { toques = []; }
+      toques.push(ahora);
+      if (toques.length > 6) { toques.shift(); }
+      if (toques.length >= 2) { fijar(60000 / ((toques[toques.length - 1] - toques[0]) / (toques.length - 1)), true); }
+    }
+
+    /** Al cambiar de canción: su tempo, salvo que se haya ajustado a mano para ella. Si suena, sigue al tempo nuevo. */
+    function cambiarCancion(i) {
+      cancion = i;
+      var c = canciones[i];
+      bpm = manual[i] || tempoValido(c && c.tempo) || ultimoBpm || METRO_DEFECTO;
+      pintarTempo();
+    }
+
+    // --- sonido y reloj
+    function clic(cuando, acento) {
+      if (!conSonido) { return; }
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.value = acento ? 1600 : 1000;
+      g.gain.setValueAtTime(0.0001, cuando);
+      g.gain.exponentialRampToValueAtTime(acento ? 0.9 : 0.6, cuando + 0.002);
+      g.gain.exponentialRampToValueAtTime(0.0001, cuando + 0.06);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(cuando); o.stop(cuando + 0.08);
+    }
+
+    function agenda() {
+      while (proximo < ctx.currentTime + 0.1) {
+        clic(proximo, pulso === 0);
+        cola.push({ t: proximo, p: pulso });
+        proximo += 60 / bpm;
+        pulso = (pulso + 1) % compas;
+      }
+    }
+
+    function dibuja() {
+      if (!sonando) { return; }
+      var ultimo = null;
+      while (cola.length && cola[0].t <= ctx.currentTime) { ultimo = cola.shift(); }
+      if (ultimo) {
+        pintarPuntos(ultimo.p);
+        pulsoBoton.classList.add('is-on');
+        clearTimeout(pulsoTimer);
+        pulsoTimer = setTimeout(function () { pulsoBoton.classList.remove('is-on'); }, 90);
+      }
+      cuadro = requestAnimationFrame(dibuja);
+    }
+
+    function empezar() {
+      if (!AC) { P.aviso(__('Este navegador no permite reproducir sonido'), 'error'); return; }
+      // Se crea y se reanuda dentro del gesto del usuario (el botón), como exigen los navegadores.
+      if (!ctx) { try { ctx = new AC(); } catch (e) { P.aviso(__('Este navegador no permite reproducir sonido'), 'error'); return; } }
+      if (ctx.state === 'suspended' && ctx.resume) { ctx.resume(); }
+      sonando = true;
+      pulso = 0;
+      cola = [];
+      proximo = ctx.currentTime + 0.06;
+      agenda();
+      temporizador = setInterval(agenda, 25);
+      cuadro = requestAnimationFrame(dibuja);
+      pintarMarcha();
+    }
+
+    function parar() {
+      sonando = false;
+      clearInterval(temporizador); temporizador = null;
+      cancelAnimationFrame(cuadro);
+      clearTimeout(pulsoTimer);
+      cola = [];
+      pulsoBoton.classList.remove('is-on');
+      pintarPuntos();
+      pintarMarcha();
+    }
+
+    function alternar() {
+      abierto = !abierto;
+      guardarAlmacen('pcan-metro-abierto', abierto ? '1' : '0');
+      panel.hidden = !abierto;
+      pintarBoton();
+      if (abierto) { btnMarcha.focus(); } else { boton.focus(); }
+    }
+
+    function destruir() {
+      parar();
+      detenerRepeticion();
+      if (ctx && ctx.close) { ctx.close().catch(function () {}); }
+      ctx = null;
+    }
+
+    pintarSonido(); pintarPuntos(); pintarMarcha(); pintarTempo();
+    return { panel: panel, alternar: alternar, cambiarCancion: cambiarCancion, destruir: destruir };
+  }
+
   // ---------------------------------------------------------------- lector a pantalla completa
 
   /**
@@ -341,6 +569,7 @@
 
     var titulo = h('div', { class: 'pcan-lector-titulo' });
     var btnLetra = h('button', { type: 'button', class: 'pcan-chip-btn', onclick: function () { alternarLetra(); } }, icono('letra'), h('span', { text: __('Letra') }));
+    var btnMetro = h('button', { type: 'button', class: 'pcan-chip-btn', 'aria-label': __('Metrónomo'), 'aria-pressed': 'false', 'aria-expanded': 'false', title: __('Metrónomo (M)') }, icono('metronomo'), h('span', { text: __('Metrónomo') }));
     var selVariante = h('select', { class: 'pcan-lector-variante', 'aria-label': __('Versión de la partitura'), onchange: function () { cambiarVariante(+selVariante.value); } });
     var paginaInfo = h('span', { class: 'pcan-lector-pagina' });
     var letra = h('div', { class: 'pcan-lector-letra', hidden: true });
@@ -355,14 +584,17 @@
     var flechaIzq = h('button', { type: 'button', class: 'pcan-lector-flecha is-izq', 'aria-label': __('Página anterior'), onclick: function () { anterior(); } }, icono('anterior'));
     var flechaDer = h('button', { type: 'button', class: 'pcan-lector-flecha is-der', 'aria-label': __('Página siguiente'), onclick: function () { siguiente(); } }, icono('siguiente'));
 
+    var metro = crearMetronomo(canciones, btnMetro);
+
     var capa = h('div', { class: 'pcan-lector', role: 'dialog', 'aria-modal': 'true', 'aria-label': opciones.titulo || __('Partitura'), tabindex: '-1' },
       h('div', { class: 'pcan-lector-barra' },
         h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': __('Cerrar'), onclick: cerrar }, icono('cerrar')),
         titulo,
         selVariante,
         btnLetra,
+        btnMetro,
         h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': __('Pantalla completa'), title: __('Pantalla completa'), onclick: pantallaCompleta }, icono('expandir'))),
-      h('div', { class: 'pcan-lector-cuerpo' }, escenario.el, letra, flechaIzq, flechaDer),
+      h('div', { class: 'pcan-lector-cuerpo' }, escenario.el, letra, flechaIzq, flechaDer, metro.panel),
       h('div', { class: 'pcan-lector-pie' }, pastillas, paginaInfo));
     P.temaEn(capa);
 
@@ -396,6 +628,7 @@
           b.setAttribute('aria-selected', k === est.cancion ? 'true' : 'false');
           if (k === est.cancion && b.scrollIntoView) { b.scrollIntoView({ block: 'nearest', inline: 'center' }); }
         });
+        metro.cambiarCancion(est.cancion);
         if (opciones.alCambiar) { opciones.alCambiar(est.cancion); }
       }
       paginaInfo.textContent = textoPagina(est);
@@ -436,6 +669,7 @@
       else if (['ArrowLeft', 'PageUp', 'ArrowUp', 'Backspace'].indexOf(e.key) !== -1) { e.preventDefault(); anterior(); }
       else if (e.key === 'Home') { e.preventDefault(); escenario.irACancion(cancionActual); }
       else if (e.key === 'l' || e.key === 'L') { if (canciones[cancionActual] && canciones[cancionActual].letra) { alternarLetra(); } }
+      else if (e.key === 'm' || e.key === 'M') { metro.alternar(); }
       else if (e.key === 'f' || e.key === 'F') { pantallaCompleta(); }
       else if (e.key === 'Escape' && !document.fullscreenElement) { cerrar(); }
     }
@@ -447,6 +681,7 @@
 
     function cerrar() {
       document.removeEventListener('keydown', teclas);
+      metro.destruir();
       if (document.fullscreenElement) { document.exitFullscreen().catch(function () {}); }
       if (wakeLock) { wakeLock.release().catch(function () {}); }
       escenario.destruir();

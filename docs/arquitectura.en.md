@@ -24,7 +24,7 @@ A technical summary of the **Cancionero** plugin for anyone new to the code.
 | `includes/migracion.php` | Converts the PDFs of the previous plugin (`adoracion_culto_*`) into songs. Idempotent. |
 | `assets/cancionero.js` | The main interface (no dependencies or build step): list, song page, form, bulk upload, statistics, settings. It includes "About Cancionero" (route `#/acerca`, an entry in the account menu for every user): version, credits, license, source code and third-party components; if an external library is added, it must be listed there. |
 | `assets/cultos.js` | Service screens and the setlist editor. |
-| `assets/visor.js` | Viewer / play mode for tablets. |
+| `assets/visor.js` | Viewer / play mode for tablets; includes the reader's metronome (Web Audio with look-ahead scheduling, song tempo, tap tempo and time signature; shortcut "M"). |
 | `assets/login.js` | Sign-in screen. |
 | `assets/cancionero.css` | Styles and themes. Everything hangs off `[data-pcan-theme]` and `--pc-*` variables. |
 

@@ -2727,6 +2727,54 @@ window.PIEB_I18N = {
   ],
   "Puedes prepararla antes de elegir las canciones: las del setlist se colocan solas en cada sección mientras no las cambies a mano. Se guarda junto con el culto.": [
    "You can prepare it before choosing the songs: the setlist songs go into each section by themselves as long as you don’t change them by hand. It is saved with the service."
+  ],
+  "Pulsaciones por minuto": [
+   "Beats per minute"
+  ],
+  "Bajar un pulso por minuto": [
+   "Down one beat per minute"
+  ],
+  "Subir un pulso por minuto": [
+   "Up one beat per minute"
+  ],
+  "Toca varias veces al ritmo para calcular el tempo": [
+   "Tap several times in time to work out the tempo"
+  ],
+  "Marcar": [
+   "Tap"
+  ],
+  "Pulsos por compás": [
+   "Beats per bar"
+  ],
+  "Ocultar": [
+   "Hide"
+  ],
+  "Metrónomo": [
+   "Metronome"
+  ],
+  "Compás": [
+   "Time"
+  ],
+  "Sonido: sí": [
+   "Sound: on"
+  ],
+  "Sonido: no": [
+   "Sound: off"
+  ],
+  "Parar": [
+   "Stop"
+  ],
+  "Empezar": [
+   "Start"
+  ],
+  "Volver al tempo de la canción (%d)": [
+   "Back to the song's tempo (%d)"
+  ],
+  "Este navegador no permite reproducir sonido": [
+   "This browser can't play sound"
+  ],
+  "Metrónomo (M)": [
+   "Metronome (M)"
   ]
  }
 };

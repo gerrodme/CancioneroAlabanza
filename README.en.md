@@ -39,7 +39,7 @@ can be translated into other languages. In English, an installation without a na
   with the sections). Each service has its own, in its Order of service tab: it is filled in with the service's songs, the
   sections and titles can be changed (only for that service) and it is exported as a PDF. A new service starts from the
   last order of service prepared; in Settings and team → Order of service only the logo and the header image are chosen.
-- **Viewer / play mode:** a screen designed for tablets, with a large score and quick switching between songs.
+- **Viewer / play mode:** a screen designed for tablets, with a large score, quick switching between songs and a metronome that starts at each song's tempo.
 - **Access:** the "Worship team" role, sign-in with Google (Google Identity Services) or with an email link.
 - **Welcome:** anyone added to the team list receives an email with the logo and a button that signs them
   straight into the songbook (single use, valid for 7 days), plus how to sign in later. From **Settings and team → Team** it can be sent again to the people you choose.
