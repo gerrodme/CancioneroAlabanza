@@ -2,6 +2,14 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.24.1 · 2026-11-12
+
+Arreglos de la interfaz en el móvil: al crear o editar una canción y en la subida múltiple, la barra inferior ya no tapa
+«Guardar» y «Cancelar»; el botón flotante «+» solo aparece en las listas (Inicio, Canciones y Cultos) y no encima de
+fichas, formularios o estadísticas; la cabecera de «Tocar el culto» se ordena en dos filas sin cortar el título. Las
+tarjetas de cifras de Canciones ya no recortan su rótulo, y desaparece el marco azul que rodeaba la ficha al abrirla
+con un enlace directo
+
 ## 1.24.0 · 2026-11-12
 
 Letras con formato: el campo Letra es un editor con negrita, cursiva, subrayado, «Sección» (títulos como Coro o Verso 1)

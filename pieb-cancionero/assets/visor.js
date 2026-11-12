@@ -611,12 +611,17 @@
       if (est.cancion !== cancionActual) {
         cancionActual = est.cancion;
         titulo.innerHTML = '';
+        // Dos grupos (contador y título | tono, tempo y nota): en escritorio son transparentes; en móvil van en filas distintas.
         append(titulo, [
-          canciones.length > 1 ? h('span', { class: 'pcan-lector-n', text: (est.cancion + 1) + '/' + canciones.length }) : null,
-          h('strong', { text: (c.numero ? c.numero + ' · ' : '') + c.titulo }),
-          c.tono ? h('span', { class: 'pcan-tono', text: P.tono(c.tono) }) : null,
-          c.tempo ? h('span', { class: 'pcan-lector-tempo', title: sprintf(/* translators: %s: tempo en pulsaciones por minuto */ __('%s pulsaciones por minuto'), c.tempo), text: '♩ = ' + c.tempo }) : null,
-          c.nota ? h('span', { class: 'pcan-lector-nota', text: c.nota }) : null
+          h('span', { class: 'pcan-lector-t1' }, [
+            canciones.length > 1 ? h('span', { class: 'pcan-lector-n', text: (est.cancion + 1) + '/' + canciones.length }) : null,
+            h('strong', { text: (c.numero ? c.numero + ' · ' : '') + c.titulo })
+          ]),
+          h('span', { class: 'pcan-lector-t2' }, [
+            c.tono ? h('span', { class: 'pcan-tono', text: P.tono(c.tono) }) : null,
+            c.tempo ? h('span', { class: 'pcan-lector-tempo', title: sprintf(/* translators: %s: tempo en pulsaciones por minuto */ __('%s pulsaciones por minuto'), c.tempo), text: '♩ = ' + c.tempo }) : null,
+            c.nota ? h('span', { class: 'pcan-lector-nota', text: c.nota }) : null
+          ])
         ]);
         btnLetra.hidden = !c.letra;
         selVariante.innerHTML = '';
