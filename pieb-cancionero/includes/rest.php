@@ -382,7 +382,7 @@ function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
     foreach (pieb_can_campos_texto() as $campo => $meta_key) {
         update_post_meta($post_id, $meta_key, pieb_can_valor_campo($campo, $request->get_param($campo)));
     }
-    update_post_meta($post_id, '_pieb_letra', sanitize_textarea_field((string) $request->get_param('letra')));
+    pieb_can_guardar_letra($post_id, $request->get_param('letra'), $request->has_param('letraHtml') ? (string) $request->get_param('letraHtml') : null);
     update_post_meta($post_id, '_pieb_notas', sanitize_textarea_field((string) $request->get_param('notas')));
 
     $youtube = json_decode((string) $request->get_param('youtube'), true);

@@ -34,7 +34,7 @@ const ficha = await (await fetch(c.api + 'canciones/' + id, { headers: H, creden
 const fd = new FormData();
 fd.append('titulo', g.titulo); fd.append('numero', g.numero || ''); fd.append('autor', g.autor || '');
 fd.append('tonalidad', nuevaTonalidad); fd.append('tempo', g.tempo || '');
-fd.append('etiquetas', (g.etiquetas || []).join(',')); fd.append('letra', g.letra || ''); fd.append('notas', g.notas || '');
+fd.append('etiquetas', (g.etiquetas || []).join(',')); fd.append('letra', g.letra || ''); fd.append('letraHtml', g.letraHtml || ''); fd.append('notas', g.notas || '');
 fd.append('youtube', JSON.stringify(g.youtube.map(y => ({ url: y.url, label: y.label }))));
 fd.append('partituras', JSON.stringify(g.partituras.map(p => ({ id: p.id, label: p.label }))));
 fd.append('nuevasSubidas', '[]');
@@ -46,6 +46,8 @@ await fetch(c.api + 'canciones/' + id, { method: 'POST', headers: H, credentials
 Después, **releer la canción y comparar** título, autor, letra, notas, nº de partituras, audios y YouTube con la copia
 anterior; así se detecta cualquier pérdida. Trabajar con 3–6 peticiones en paralelo es suficiente. Solo rellenar campos
 **vacíos** para no pisar datos del equipo. (Si la ficha tiene editables, reenviar también `editables`/`editablesSubidos`.)
+
+**Letras con formato:** la ficha trae `letraHtml` (HTML saneado con secciones, estribillos y negrita) además de `letra` (texto plano). Al reenviar una canción, mandar también `letraHtml` tal como viene para no perder el formato. Si el script solo envía `letra`, el servidor conserva el formato únicamente si el texto no ha cambiado; si cambia la letra, el formato se borra. Para dar una letra nueva sin formato, enviar `letraHtml` vacío.
 
 ## Leer tonalidad y tempo de las partituras
 

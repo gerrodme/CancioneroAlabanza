@@ -129,7 +129,9 @@ function pieb_can_culto_detalle($post) {
             'numero'     => $detalle['numero'],
             'tonalidad'  => $detalle['tonalidad'],
             'tempo'      => $detalle['tempo'],
+            'autor'      => $detalle['autor'],
             'letra'      => $detalle['letra'],
+            'letraHtml'  => $detalle['letraHtml'],
             'partituras' => $detalle['partituras'],
         );
     }

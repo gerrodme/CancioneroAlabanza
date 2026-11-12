@@ -765,6 +765,7 @@ function pieb_can_rest_copia_exportar() {
         }
         $canciones[] = array_merge($cancion, array(
             'letra'      => (string) get_post_meta($post->ID, '_pieb_letra', true),
+            'letraHtml'  => (string) get_post_meta($post->ID, '_pieb_letra_html', true),
             'notas'      => (string) get_post_meta($post->ID, '_pieb_notas', true),
             'etiquetas'  => pieb_can_etiquetas($post->ID),
             'youtube'    => pieb_can_get_youtube($post->ID),
@@ -969,7 +970,8 @@ function pieb_can_rest_copia_cancion(WP_REST_Request $request) {
     foreach (pieb_can_campos_texto() as $campo => $meta_key) {
         update_post_meta($id, $meta_key, pieb_can_valor_campo($campo, isset($c[$campo]) ? $c[$campo] : ''));
     }
-    update_post_meta($id, '_pieb_letra', sanitize_textarea_field(isset($c['letra']) ? (string) $c['letra'] : ''));
+    // Con letraHtml (copias nuevas) la letra plana se deriva de él; las copias antiguas solo traen letra.
+    pieb_can_guardar_letra($id, isset($c['letra']) ? (string) $c['letra'] : '', isset($c['letraHtml']) ? (string) $c['letraHtml'] : '');
     update_post_meta($id, '_pieb_notas', sanitize_textarea_field(isset($c['notas']) ? (string) $c['notas'] : ''));
     update_post_meta($id, '_pieb_youtube', pieb_can_limpiar_youtube(isset($c['youtube']) ? $c['youtube'] : array()));
     $etiquetas = array_filter(array_map('sanitize_text_field', (array) (isset($c['etiquetas']) ? $c['etiquetas'] : array())));

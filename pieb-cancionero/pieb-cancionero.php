@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Cancionero
  * Description: Cancionero para equipos de música y alabanza: canciones con partitura, letra, audios y YouTube, setlists de cultos, visor para tableta, temas propios y acceso con Google. Shortcode [cancionero].
- * Version: 1.23.0
+ * Version: 1.24.0
  * Author: Gerson Rodrigo Menéndez
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PIEB_CAN_VERSION', '1.23.0');
+define('PIEB_CAN_VERSION', '1.24.0');
 define('PIEB_CAN_FILE', __FILE__);
 define('PIEB_CAN_DIR', plugin_dir_path(__FILE__));
 define('PIEB_CAN_URL', plugin_dir_url(__FILE__));
@@ -55,6 +55,7 @@ require_once PIEB_CAN_DIR . 'includes/bienvenida.php';
 require_once PIEB_CAN_DIR . 'includes/avisos.php';
 require_once PIEB_CAN_DIR . 'includes/accesos.php';
 require_once PIEB_CAN_DIR . 'includes/escaleta.php';
+require_once PIEB_CAN_DIR . 'includes/fondos.php';
 
 add_action('init', 'pieb_can_registrar_tipos');
 
@@ -305,7 +306,8 @@ function pieb_can_shortcode() {
     wp_enqueue_script('pieb-cancionero', PIEB_CAN_URL . 'assets/cancionero.js', array('wp-i18n'), PIEB_CAN_VERSION, true);
     wp_enqueue_script('pieb-cancionero-visor', PIEB_CAN_URL . 'assets/visor.js', array('pieb-cancionero', 'wp-i18n'), PIEB_CAN_VERSION, true);
     wp_enqueue_script('pieb-cancionero-cultos', PIEB_CAN_URL . 'assets/cultos.js', array('pieb-cancionero', 'pieb-cancionero-visor', 'wp-i18n'), PIEB_CAN_VERSION, true);
-    foreach (array('pieb-cancionero', 'pieb-cancionero-visor', 'pieb-cancionero-cultos') as $script) {
+    wp_enqueue_script('pieb-cancionero-letras', PIEB_CAN_URL . 'assets/letras.js', array('pieb-cancionero', 'pieb-cancionero-cultos', 'wp-i18n'), PIEB_CAN_VERSION, true);
+    foreach (array('pieb-cancionero', 'pieb-cancionero-visor', 'pieb-cancionero-cultos', 'pieb-cancionero-letras') as $script) {
         wp_set_script_translations($script, 'pieb-cancionero', PIEB_CAN_DIR . 'languages');
     }
 

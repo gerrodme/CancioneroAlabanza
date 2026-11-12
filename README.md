@@ -34,6 +34,8 @@ la herramienta: **no incluye ninguna canción ni partitura**; cada instalación 
   y la tonalidad se deducen del nombre del archivo).
 - **Cultos y setlists:** orden de canciones por culto, con tonalidad, nota y partitura elegida por canción, cuenta atrás al próximo culto
   y PDF del setlist.
+- **Exportar letras:** la letra de una canción o de todo un setlist en hoja PDF, presentación PowerPoint, diapositivas en PDF
+  (con imágenes de fondo que sube un administrador), OpenLyrics (OpenLP, FreeShow, Quelea…) o texto.
 - **Escaleta del culto:** la hoja impresa con el orden del culto (cabecera con el logo de la iglesia y una tabla con
   las secciones). Cada culto tiene la suya, en su pestaña Escaleta: se rellena con sus canciones, se pueden cambiar las
   secciones y los títulos (solo en ese culto) y se exporta en PDF. Un culto nuevo parte de la última escaleta preparada;

@@ -630,9 +630,6 @@ window.PIEB_I18N = {
   "Autor / compositor": [
    "Author / composer"
   ],
-  "Opcional. Separa las estrofas con una línea en blanco. La letra también se usa en la búsqueda.": [
-   "Optional. Separate verses with a blank line. Lyrics are also used in search."
-  ],
   "Puedes subir varias: la original, en otra tonalidad, con acordes…": [
    "You can upload several: the original, in another key, with chords…"
   ],
@@ -2486,6 +2483,9 @@ window.PIEB_I18N = {
   "sección de la escaleta del culto (en mayúsculas)\u0004POSTLUDIO": [
    "POSTLUDE"
   ],
+  "«%s» no es una imagen JPG o PNG.": [
+   "“%s” is not a JPG or PNG image."
+  ],
   "Logo e imagen de cabecera de la hoja impresa del culto": [
    "Logo and header image of the printed order of service"
   ],
@@ -2775,6 +2775,188 @@ window.PIEB_I18N = {
   ],
   "Metrónomo (M)": [
    "Metronome (M)"
+  ],
+  "Negrita (Ctrl+B)": [
+   "Bold (Ctrl+B)"
+  ],
+  "Cursiva (Ctrl+I)": [
+   "Italic (Ctrl+I)"
+  ],
+  "Subrayado (Ctrl+U)": [
+   "Underline (Ctrl+U)"
+  ],
+  "Sección": [
+   "Section"
+  ],
+  "Marca la línea como título de sección (Coro, Verso 1, Puente…)": [
+   "Marks the line as a section title (Chorus, Verse 1, Bridge…)"
+  ],
+  "Estribillo": [
+   "Refrain"
+  ],
+  "Sangra las líneas seleccionadas como estribillo": [
+   "Indents the selected lines as a refrain"
+  ],
+  "Quitar formato": [
+   "Clear formatting"
+  ],
+  "Quita negrita, cursiva, sección y estribillo de la selección": [
+   "Removes bold, italic, section and refrain from the selection"
+  ],
+  "Formato de la letra": [
+   "Lyrics formatting"
+  ],
+  "Fondos de las letras": [
+   "Lyrics backgrounds"
+  ],
+  "Imágenes de fondo para las presentaciones de letras": [
+   "Background images for lyrics presentations"
+  ],
+  "Exportar letra": [
+   "Export lyrics"
+  ],
+  "Exportar": [
+   "Export"
+  ],
+  "Opcional. Separa las estrofas con una línea en blanco. Marca con Sección los títulos como Coro o Verso, y con Estribillo las líneas que se repiten. La letra también se usa en la búsqueda.": [
+   "Optional. Separate stanzas with a blank line. Use Section for titles such as Chorus or Verse, and Refrain for repeated lines. The lyrics are also used in search."
+  ],
+  "componente de terceros: JSZip, que viene dentro de PptxGenJS\u0004JSZip (la incluye PptxGenJS)": [
+   "JSZip (bundled with PptxGenJS)"
+  ],
+  "licencia de un componente de terceros\u0004MIT o GPLv3": [
+   "MIT or GPLv3"
+  ],
+  "Aún no hay imágenes de fondo.": [
+   "There are no background images yet."
+  ],
+  "Subir imágenes": [
+   "Upload images"
+  ],
+  "Fondo %d": [
+   "Background %d"
+  ],
+  "Borrar el fondo %d": [
+   "Delete background %d"
+  ],
+  "¿Borrar esta imagen de fondo? No se puede deshacer.": [
+   "Delete this background image? This cannot be undone."
+  ],
+  "Fondo borrado": [
+   "Background deleted"
+  ],
+  "Subiendo %1$d de %2$d…": [
+   "Uploading %1$d of %2$d…"
+  ],
+  "%d imagen subida": [
+   "%d image uploaded",
+   "%d images uploaded"
+  ],
+  "«%1$s» pesa %2$s y el máximo son 5 MB.": [
+   "“%1$s” is %2$s and the maximum is 5 MB."
+  ],
+  "Imágenes de fondo para las presentaciones de letras. Al exportar, se elige una al azar o la que quiera cada persona. Los cambios se aplican al momento.": [
+   "Background images for lyrics presentations. When exporting, one is picked at random or each person chooses one. Changes apply immediately."
+  ],
+  "JPG o PNG, de hasta 5 MB cada una.": [
+   "JPG or PNG, up to 5 MB each."
+  ],
+  "Cargando…": [
+   "Loading…"
+  ],
+  "Exportar letras": [
+   "Export lyrics"
+  ],
+  "%s ppm": [
+   "%s bpm"
+  ],
+  "No se pudo cargar el generador de PowerPoint.": [
+   "The PowerPoint generator could not be loaded."
+  ],
+  "Hoja en PDF": [
+   "PDF sheet"
+  ],
+  "Para imprimir o leer.": [
+   "To print or read."
+  ],
+  "Presentación PowerPoint (.pptx)": [
+   "PowerPoint presentation (.pptx)"
+  ],
+  "Una diapositiva por estrofa con imagen de fondo. Se puede editar.": [
+   "One slide per stanza with a background image. Editable."
+  ],
+  "Diapositivas en PDF": [
+   "PDF slides"
+  ],
+  "Las mismas diapositivas, para proyectar desde cualquier dispositivo.": [
+   "The same slides, to project from any device."
+  ],
+  "OpenLyrics (.xml)": [
+   "OpenLyrics (.xml)"
+  ],
+  "Para OpenLP, FreeShow, Quelea…": [
+   "For OpenLP, FreeShow, Quelea…"
+  ],
+  "Texto (.txt)": [
+   "Text (.txt)"
+  ],
+  "Estrofas separadas por una línea en blanco, para pegar o importar en programas de proyección.": [
+   "Stanzas separated by a blank line, to paste or import into presentation software."
+  ],
+  "Exportar letras del setlist": [
+   "Export setlist lyrics"
+  ],
+  "Fondo": [
+   "Background"
+  ],
+  "Al azar": [
+   "Random"
+  ],
+  "Subir fondos en Ajustes": [
+   "Upload backgrounds in Settings"
+  ],
+  "Preparando… %1$d de %2$d": [
+   "Preparing… %1$d of %2$d"
+  ],
+  "%d canción con letra.": [
+   "%d song with lyrics.",
+   "%d songs with lyrics."
+  ],
+  "Ninguna de las canciones tiene letra, así que no hay nada que exportar.": [
+   "None of the songs has lyrics, so there is nothing to export."
+  ],
+  "Sin letra (se omiten): %s": [
+   "No lyrics (skipped): %s"
+  ],
+  "Formato": [
+   "Format"
+  ],
+  "Preparando las letras…": [
+   "Preparing the lyrics…"
+  ],
+  "PDF abierto en una pestaña nueva.": [
+   "PDF opened in a new tab."
+  ],
+  "PDF descargado.": [
+   "PDF downloaded."
+  ],
+  "Presentación descargada.": [
+   "Presentation downloaded."
+  ],
+  "Archivo OpenLyrics descargado.": [
+   "OpenLyrics file downloaded."
+  ],
+  "Texto descargado.": [
+   "Text downloaded."
+  ],
+  "No se pudo cargar alguna imagen de fondo; se usó el fondo liso.": [
+   "A background image could not be loaded; a plain background was used."
+  ],
+  "Sin letra: %s": [
+   "No lyrics: %s"
+  ],
+  "No se pudo exportar la letra.": [
+   "The lyrics could not be exported."
   ]
  }
 };

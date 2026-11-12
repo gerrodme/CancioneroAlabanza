@@ -34,7 +34,7 @@ const ficha = await (await fetch(c.api + 'canciones/' + id, { headers: H, creden
 const fd = new FormData();
 fd.append('titulo', g.titulo); fd.append('numero', g.numero || ''); fd.append('autor', g.autor || '');
 fd.append('tonalidad', nuevaTonalidad); fd.append('tempo', g.tempo || '');
-fd.append('etiquetas', (g.etiquetas || []).join(',')); fd.append('letra', g.letra || ''); fd.append('notas', g.notas || '');
+fd.append('etiquetas', (g.etiquetas || []).join(',')); fd.append('letra', g.letra || ''); fd.append('letraHtml', g.letraHtml || ''); fd.append('notas', g.notas || '');
 fd.append('youtube', JSON.stringify(g.youtube.map(y => ({ url: y.url, label: y.label }))));
 fd.append('partituras', JSON.stringify(g.partituras.map(p => ({ id: p.id, label: p.label }))));
 fd.append('nuevasSubidas', '[]');
@@ -47,6 +47,8 @@ Afterwards, **read the song again and compare** title, author, lyrics, notes, nu
 the previous copy; that is how any loss is detected. Working with 3–6 parallel requests is enough. Only fill in **empty**
 fields so as not to overwrite the team's data. (If the song has editable files, also resend
 `editables`/`editablesSubidos`.)
+
+**Formatted lyrics:** the song record includes `letraHtml` (sanitized HTML with sections, choruses and bold) besides `letra` (plain text). When resending a song, also send `letraHtml` as it came so the formatting is not lost. If a script only sends `letra`, the server keeps the formatting only if the text has not changed; if the lyrics change, the formatting is removed. To set new unformatted lyrics, send an empty `letraHtml`.
 
 ## Reading key and tempo from the scores
 

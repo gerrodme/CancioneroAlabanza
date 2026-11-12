@@ -35,6 +35,8 @@ can be translated into other languages. In English, an installation without a na
   file name).
 - **Services and setlists:** the order of songs for each service, with key, note and chosen score per song, a countdown to
   the next service and a PDF of the setlist.
+- **Exporting lyrics:** the lyrics of one song or of a whole setlist as a PDF sheet, a PowerPoint presentation, PDF slides
+  (with background images an administrator uploads), OpenLyrics (OpenLP, FreeShow, Quelea…) or plain text.
 - **Order of service:** the printed sheet with the order of the service (a header with the church logo and a table
   with the sections). Each service has its own, in its Order of service tab: it is filled in with the service's songs, the
   sections and titles can be changed (only for that service) and it is exported as a PDF. A new service starts from the

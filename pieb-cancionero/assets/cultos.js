@@ -307,6 +307,13 @@
   function pintarFicha(c) {
     var validos = c.items.filter(function (it) { return !it.eliminada; });
     var pdfItem = { texto: __('Descargar PDF del setlist'), icono: 'descargar', fn: function () { descargarPdf(c); } };
+    var conLetra = validos.filter(function (it) { return it.datos && it.datos.letra; });
+    var letrasItem = conLetra.length && P.exportarLetras ? { texto: __('Exportar letras'), icono: 'letra', fn: function () {
+      P.exportarLetras(validos.map(function (it) {
+        var s = it.datos;
+        return { titulo: s.titulo, autor: s.autor || '', numero: s.numero || '', tonalidad: it.tonalidad || s.tonalidad || '', tempo: s.tempo || '', nota: it.nota || '', letra: s.letra || '', letraHtml: s.letraHtml || '' };
+      }), { titulo: c.titulo, fecha: c.fecha, tipo: c.tipo, esSetlist: true });
+    } } : null;
 
     var lista = h('ol', { class: 'pcan-setlist' }, c.items.map(function (it, i) {
       if (it.eliminada) {
@@ -346,6 +353,7 @@
           P.accionesSecundarias([
             { texto: __('Copiar como texto'), icono: 'copiar', fn: function () { P.copiar(textoSetlist(c), __('Setlist copiado (para WhatsApp)')); } },
             validos.length ? pdfItem : null,
+            letrasItem,
             { texto: __('Exportar escaleta'), icono: 'descargar', fn: function (e) { exportarEscaleta(c, e.currentTarget); } },
             { texto: __('Duplicar para otro día'), icono: 'mas', href: '#/culto/duplicar/' + c.id },
             c.puedeBorrar ? { texto: __('Borrar culto'), icono: 'borrar', peligro: true, fn: function () { borrar(c); } } : null
@@ -719,7 +727,7 @@
         canciones: items.map(function (it) {
           return {
             id: +it.cancion, titulo: it.datos.titulo, numero: it.datos.numero,
-            tono: it.tonalidad || it.datos.tonalidad, tempo: it.datos.tempo, nota: it.nota, letra: it.datos.letra, partituras: it.datos.partituras
+            tono: it.tonalidad || it.datos.tonalidad, tempo: it.datos.tempo, nota: it.nota, letra: it.datos.letra, letraHtml: it.datos.letraHtml, partituras: it.datos.partituras
           };
         }),
         alCambiar: function (i) {
@@ -2209,7 +2217,8 @@
    * «Preparando la escaleta…». Devuelve la ventana, o null si el navegador no la deja abrir. El estilo va en línea: la página
    * no depende del CSS del plugin.
    */
-  function abrirVentanaPdf() {
+  function abrirVentanaPdf(mensaje) {
+    mensaje = mensaje || __('Preparando la escaleta…');
     var w = null;
     try { w = window.open('', '_blank'); } catch (e) { w = null; }
     if (!w) { return null; }
@@ -2227,8 +2236,8 @@
         '</style></head><body><p class="msj" role="status"></p></body></html>');
       d.close();
       d.documentElement.lang = LOCALE;
-      d.title = __('Preparando la escaleta…');
-      d.querySelector('.msj').textContent = __('Preparando la escaleta…');
+      d.title = mensaje;
+      d.querySelector('.msj').textContent = mensaje;
     } catch (e) { return null; }
     return w;
   }
@@ -2259,6 +2268,12 @@
       p.textContent = mensaje;
     } catch (e) { /* la pestaña ya no está */ }
   }
+
+  // Utilidades de PDF compartidas con otros módulos (letras.js).
+  P.pdf = {
+    cargar: cargarPdfLib, latin1: latin1, envolverTexto: envolverTexto, guardar: guardarPdf,
+    abrirVentana: abrirVentanaPdf, mostrarEnVentana: mostrarPdfEnVentana, errorEnVentana: errorEnVentana
+  };
 
   /** Fecha corta numérica en el orden del idioma del usuario, con guiones: 18-10-26 (es), 10-18-26 (en-US). */
   function fechaNumerica(iso) {

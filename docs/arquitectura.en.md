@@ -21,9 +21,11 @@ A technical summary of the **Cancionero** plugin for anyone new to the code.
 | `includes/avisos.php` | Email alert to the administrators when someone deletes a song: queue of deletions, batched sending through cron and composing the email. |
 | `includes/accesos.php` | Access log: sign-ins (date, method and device type), days of use and `GET /accesos` with the raw data for the statistics in "Settings and team". |
 | `includes/escaleta.php` | Order of service (the printed sheet with the order of the service): generic and saved template, sanitising of the template and of each service's copy, upload of the header images and `GET /escaleta`, `POST /escaleta/imagen`. |
+| `includes/fondos.php` | Lyrics backgrounds: background images for the lyrics slides (normal media library) and `GET`/`POST /fondos`, `DELETE /fondos/{id}`. |
 | `includes/migracion.php` | Converts the PDFs of the previous plugin (`adoracion_culto_*`) into songs. Idempotent. |
 | `assets/cancionero.js` | The main interface (no dependencies or build step): list, song page, form, bulk upload, statistics, settings. It includes "About Cancionero" (route `#/acerca`, an entry in the account menu for every user): version, credits, license, source code and third-party components; if an external library is added, it must be listed there. |
 | `assets/cultos.js` | Service screens and the setlist editor. |
+| `assets/letras.js` | Exporting lyrics (sheet PDF, slides PDF, PowerPoint, OpenLyrics and text): dialog and generators. Loaded after `cultos.js`; uses `P.pdf`. |
 | `assets/visor.js` | Viewer / play mode for tablets; includes the reader's metronome (Web Audio with look-ahead scheduling, song tempo, tap tempo and time signature; shortcut "M"). |
 | `assets/login.js` | Sign-in screen. |
 | `assets/cancionero.css` | Styles and themes. Everything hangs off `[data-pcan-theme]` and `--pc-*` variables. |
@@ -57,7 +59,8 @@ The interface is a single-page application inside the WordPress page; it navigat
   | `_pieb_autor` | Author / composer. |
   | `_pieb_tonalidad` | Key in Spanish (Latin) notation: `Do`, `Fa#`, `Sib`, `Mim`… |
   | `_pieb_tempo` | Integer, beats per minute. |
-  | `_pieb_letra`, `_pieb_notas` | Plain text (lyrics, notes). |
+  | `_pieb_letra`, `_pieb_notas` | Plain text (lyrics, notes). `_pieb_letra` is always plain text (search, list, copy…); when `_pieb_letra_html` exists, it is derived from it. |
+  | `_pieb_letra_html` | Optional. Formatted lyrics, sanitized HTML: top-level children `p`, `h4` (section title) or `blockquote` (chorus, containing only `p`); inside, only text, `br`, `strong`, `em`, `u`; no attributes. Each line is a `<p>` and `<p></p>` separates stanzas. |
   | `_pieb_partituras` | List of `{id (attachment), label}`; at least 1. PDF, JPG or PNG, max. 4 MB. |
   | `_pieb_youtube` | List of `{url, label}`; only valid YouTube links are accepted. |
   | `_pieb_audios` | List of `{id, nombre, descripcion}`. MP3/M4A/OGG/WAV/AAC, max. 10 MB. |
@@ -70,7 +73,7 @@ The interface is a single-page application inside the WordPress page; it navigat
   its sections and its values; see [Order of service](#order-of-service)).
 - WordPress options: `pieb_can_ajustes` (settings: `nombre`, `tema_defecto`, `google_client_id`, `emails`,
   `administradores`, `responsablesEscaleta`, `dominio`, `bienvenida_auto`, `bienvenida_texto`, `pagina`, `aviso_borrado`), `pieb_can_escaleta`
-  (the installation's order-of-service identity: logo and header; not autoloaded; if missing, the generic one is used), `pieb_can_bienvenidas`
+  (the installation's order-of-service identity: logo and header; not autoloaded; if missing, the generic one is used), `pieb_can_fondos` (list of attachment IDs of the lyrics backgrounds; not autoloaded), `pieb_can_bienvenidas`
   (log of the welcome emails sent: email → timestamp; not autoloaded), `pieb_can_avisos_borrado` (queue of deleted songs
   waiting to be reported; not autoloaded; see [Deleted-song alert](#deleted-song-alert)), `pieb_can_accesos_desde`
   (since when accesses are logged; not autoloaded), `pieb_can_version`, `pieb_can_migrado`.
@@ -92,6 +95,8 @@ interface receives it in `PIEB_CANCIONERO.nonce`; the API base is in `PIEB_CANCI
 | `/escaleta` | GET | The **base for a new service's order of service**: the structure (without values) and the row of titles of the last order of service saved in any service, with the installation's logo and header and `desde: {id, titulo}` (the source service; `null` if it comes from the generic template). The whole team reads it, because preparing a service's order of service needs it. |
 | `/escaleta/imagen` | POST | Uploads the logo or header image of the order of service (JPG or PNG, max. 2 MB) to the normal media library; replies `{ id, url }` (requires `pieb_cancionero_gestionar`). |
 | `/etiquetas`, `/preferencias`, `/huerfanos` | various | Tags with color, user preferences (`tema`, `idioma` and `notacion`, all optional; empty = automatic), unused files. |
+| `/fondos` | GET, POST | `GET` (anyone on the team): `{ fondos: [{ id, url, miniatura }] }` (`url` full size, `miniatura` at the 'medium' size; skips attachments that no longer exist). `POST` (requires `pieb_cancionero_gestionar`): multipart `archivo`, JPG or PNG only, max. 5 MB and 40 backgrounds; uploads to the normal media library and replies `{ id, url, miniatura }`. See [Exporting lyrics](#exporting-lyrics). |
+| `/fondos/{id}` | DELETE | Removes the background from the list and deletes its attachment (requires `pieb_cancionero_gestionar`); replies `{ fondos: [...] }`. |
 | `/ajustes` | GET, POST | Songbook settings and the team list (requires `pieb_cancionero_gestionar`). The welcome fields are in [Welcome to the team](#welcome-to-the-team). The installation's order of service is just its images: `GET` returns `escaleta: { logo, cabecera }` and `POST` accepts `escaleta: { logo: {id}|null, cabecera: {id}|null }` only if present (the rest of the order of service is not touched); see [Order of service](#order-of-service). |
 | `/bienvenida` | POST | Sends the welcome email to a batch of addresses (requires `pieb_cancionero_gestionar`). See [Welcome to the team](#welcome-to-the-team). |
 | `/accesos` | GET | Raw access log of every team member, for the statistics (requires `pieb_cancionero_gestionar`). See [Access log](#access-log). |
@@ -101,10 +106,12 @@ interface receives it in `PIEB_CANCIONERO.nonce`; the API base is in `PIEB_CANCI
 
 A `multipart/form-data` body with all of these fields (missing ones are **emptied**):
 
-`titulo, numero, autor, tonalidad, tempo, etiquetas` (comma-separated), `letra, notas`,
+`titulo, numero, autor, tonalidad, tempo, etiquetas` (comma-separated), `letra, letraHtml, notas`,
 `youtube` (JSON `[{url,label}]`), `partituras` (JSON `[{id,label}]` of the ones that are kept),
 `nuevasSubidas` (JSON, files already uploaded in chunks), `audios`, `audiosSubidos`, `editables`,
 `editablesSubidos`. A song needs **at least one score**.
+
+`letraHtml` (formatted lyrics, see `_pieb_letra_html`): when it arrives non-empty it is sanitized and wins: `letra` is derived from it (each `p`/`h4` is a line, `br` a line break, `<p></p>` an empty line). When it arrives empty, the formatting is deleted and `letra` is stored as plain text. When it is **not sent** (scripts that only send `letra`), the formatting is kept only if its text still matches `letra`; otherwise it is deleted. `GET /canciones/{id}` returns `letraHtml` (`''` if none); the list does not. The `datos` of each song in a service also carry `autor` and `letraHtml`, and the backup exports `letraHtml`.
 
 To change a single value: `GET` the record, rebuild all the fields from it and modify only the one you want. Recipe in
 [carga-masiva.en.md](carga-masiva.en.md).
@@ -330,6 +337,36 @@ to `null`: their ids are not valid on another site). When restoring it is only a
 header this site already has are kept. Each service's order of service goes in `cultos[].escaleta` (only if the service has
 one), with its songs identified by `uid` (plus `titulo` and `numero`) instead of by id, like the `items`, and keeping each song's `nota` and `instrumental`; when restoring they are
 looked up on this site the same way as the setlist's songs, and any that are missing keep just the hand-written name.
+
+## Exporting lyrics
+
+`assets/letras.js` (`P.exportarLetras(canciones, opciones)`, loaded after `cultos.js`) opens a dialog to export the lyrics of one
+song (song page: "Exportar letra" and the "Exportar" button of the Lyrics section) or of a whole setlist (service page: "Exportar
+letras"). `canciones` is `[{ titulo, autor, numero, tonalidad, tempo, nota, letra, letraHtml }]` and `opciones` is `{ titulo, fecha,
+tipo, esSetlist, nombreArchivo }`. It starts from `P.letra.estrofas(c)` (see `cancionero.js`): songs without lyrics are skipped and
+the user is told at the end. Everything is generated in the browser; the last choice of format and background is remembered in
+`localStorage`.
+
+| Format | Result |
+|---|---|
+| Sheet PDF | pdf-lib, A4, Helvetica (n, b, i, bi) with bold, italic and underline; section names in capitals in the accent colour and choruses with a side bar; a stanza is not split across pages if it fits whole; in a setlist the songs are numbered and the next one starts on a new sheet only if less than ~140 pt are left. It opens in a new tab (`P.pdf.abrirVentana` is called in the click itself) or is downloaded. |
+| Slides PDF | 960x540 pt pages with the background image full-bleed. |
+| PowerPoint (.pptx) | PptxGenJS 3.12.0, **loaded on demand** from jsDelivr (like pdf-lib). One slide master per distinct background, so the image is not repeated in every slide; the text is editable (Arial, white, centred). |
+| OpenLyrics (.xml) | Version 0.9, single song only: `titles`, `authors`, `songbooks` (the installation's name and the number), `tempo`, `key` in English notation, `verseOrder` and one `verse` per stanza (`v1`, `c1`, `b1`, `p1`, `i1`, `e1`; parts `v1a`, `v1b` when one section has several consecutive stanzas; a repeated stanza with the same text reuses its name). No formatting. |
+| Text (.txt) | Title and stanzas separated by a blank line, without section names; in a setlist, songs are separated by two blank lines. |
+
+**Slides (PDF and PowerPoint, same structure).** Per song, one title slide (title, author and, in a setlist, the service note) and
+one per stanza. A stanza of more than 6 lines is split into balanced chunks of 5 lines or fewer; the section name is shown small at
+the top. The font size is the largest (between 26 and 60 units of a 960x540 sheet) at which the widest line fits in 86 % of the
+width and the block in 78 % of the height; if it does not fit even at the minimum, lines are wrapped (in PowerPoint the program does
+it). The PDF helpers in `cultos.js` (`cargarPdfLib`, `latin1`, `envolverTexto`, the tab window) are shared as `P.pdf`.
+
+**Backgrounds.** Images an administrator uploads in Settings and team -> Fondos de las letras (`includes/fondos.php`). They go to
+the **normal** media library (they are not scores), do not carry the `_pieb_*` marks (so they do not show up in "unused files" and
+are not moved to the private folder) and are **not included in backups**, just like the order-of-service images. In the dialog you
+pick "Al azar" (random; in a setlist, a different image per song while there are enough), "Sin imagen" (plain `#111827`
+background) or a specific one. On export each image is cropped *cover*-style to 1920x1080, darkened with a 45 % black layer and
+saved as JPEG 0.85 (cached by id within an export).
 
 ## Trash
 

@@ -148,6 +148,368 @@
     el.appendChild(typeof child === 'string' || typeof child === 'number' ? document.createTextNode(String(child)) : child);
   }
 
+  // ---------------------------------------------------------------- letras con formato
+
+  /**
+   * Letras con formato (PCAN.letra). El HTML de una letra tiene siempre esta forma normalizada: hijos de primer nivel
+   * p, h4 o blockquote; un blockquote solo contiene p; dentro de p/h4 solo texto, br, strong, em y u. Sin atributos.
+   * Cada línea es un <p>; una línea vacía es <p></p> y separa estrofas; h4 es el título de una sección («Coro», «Verso 1»);
+   * blockquote es un estribillo.
+   *
+   * estrofas(c) devuelve, para exportar a PDF o PowerPoint:
+   *   [ { nombre: 'Coro' | '', coro: true|false, lineas: [ [ { t: 'texto', f: 'n'|'b'|'i'|'bi', u: true|false } ] ] } ]
+   * Una estrofa por cada grupo de líneas separado por una línea vacía; un h4 no es una línea: da su nombre a la
+   * estrofa siguiente. Las líneas de un blockquote forman estrofas con coro = true. Cada línea es una lista de trozos
+   * (t = texto, f = negrita/cursiva, u = subrayado). Un br dentro de un p empieza otra línea.
+   */
+  var Letra = (function () {
+    var BLOQUES = { P: 1, DIV: 1, H1: 1, H2: 1, H3: 1, H4: 1, H5: 1, H6: 1, BLOCKQUOTE: 1, UL: 1, OL: 1, LI: 1, PRE: 1, TABLE: 1, TBODY: 1, TR: 1, TD: 1, TH: 1, SECTION: 1, ARTICLE: 1, HEADER: 1, FOOTER: 1 };
+    var OMITIR = { SCRIPT: 1, STYLE: 1, HEAD: 1, TITLE: 1, META: 1, LINK: 1, NOSCRIPT: 1, TEMPLATE: 1, IFRAME: 1, OBJECT: 1, SVG: 1, IMG: 1 };
+    var SEL_BLOQUES = 'p,div,h1,h2,h3,h4,h5,h6,blockquote,ul,ol,li,pre,table,tr,td,th,section,article,header,footer';
+
+    function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+    function analizar(html) { return new DOMParser().parseFromString(String(html), 'text/html').body; }
+    function esBloque(n) { return n.nodeType === 1 && !!BLOQUES[n.nodeName]; }
+    function tieneBloques(el) { return !!el.querySelector(SEL_BLOQUES); }
+    function sinTexto(s) { return s.replace(/<[^>]*>/g, '').replace(/\s+/g, '') === ''; }
+
+    // Contenido en línea de un nodo: solo texto, br, strong, em y u. f = formatos ya activos (para no repetirlos).
+    function uno(n, f) {
+      if (n.nodeType === 3) { return esc(n.nodeValue.replace(/[\s ]+/g, ' ')); }
+      if (n.nodeType !== 1 || OMITIR[n.nodeName]) { return ''; }
+      var t = n.nodeName;
+      if (t === 'BR') { return '<br>'; }
+      var st = n.style || {};
+      var negrita = st.fontWeight ? /^(bold|bolder|[6-9]00)$/.test(st.fontWeight) : (t === 'STRONG' || t === 'B');
+      var cursiva = st.fontStyle ? st.fontStyle === 'italic' : (t === 'EM' || t === 'I');
+      var subrayado = t === 'U' || String(st.textDecoration || st.textDecorationLine || '').indexOf('underline') !== -1;
+      var nf = { b: f.b || negrita, i: f.i || cursiva, u: f.u || subrayado };
+      var dentro = inl(n, nf);
+      if (dentro === '') { return ''; }
+      if (subrayado && !f.u) { dentro = '<u>' + dentro + '</u>'; }
+      if (cursiva && !f.i) { dentro = '<em>' + dentro + '</em>'; }
+      if (negrita && !f.b) { dentro = '<strong>' + dentro + '</strong>'; }
+      return dentro;
+    }
+    function inl(padre, f) {
+      var s = '';
+      for (var n = padre.firstChild; n; n = n.nextSibling) { s += uno(n, f); }
+      return s;
+    }
+    function limpiarLinea(s) {
+      s = s.replace(/^((?:<(?:strong|em|u)>)*)\s+/, '$1');
+      var antes;
+      do {
+        antes = s;
+        s = s.replace(/(?:<br>|\s)+((?:<\/(?:strong|em|u)>)*)$/, '$1');
+        s = s.replace(/<(strong|em|u)><\/\1>/g, '');
+      } while (s !== antes);
+      return s;
+    }
+
+    function bloques(padre, coro, salida) {
+      var pend = '';
+      var vaciar = function () {
+        if (pend !== '' && !sinTexto(pend)) { salida.push({ tipo: 'p', coro: coro, html: limpiarLinea(pend) }); }
+        pend = '';
+      };
+      for (var n = padre.firstChild; n; n = n.nextSibling) {
+        if (n.nodeType !== 1 && n.nodeType !== 3) { continue; }
+        if (n.nodeType === 1 && OMITIR[n.nodeName]) { continue; }
+        if (n.nodeType === 3 || (!esBloque(n) && !tieneBloques(n))) { pend += uno(n, {}); continue; }
+        vaciar();
+        var t = n.nodeName, s;
+        if (!esBloque(n)) { bloques(n, coro, salida); }
+        else if (/^H[1-6]$/.test(t)) {
+          s = limpiarLinea(inl(n, { b: true }));
+          if (!sinTexto(s)) { salida.push({ tipo: 'h4', coro: false, html: s }); }
+        } else if (t === 'BLOCKQUOTE') { bloques(n, true, salida); }
+        else if (t === 'PRE') {
+          n.textContent.split(/\r?\n/).forEach(function (l) { salida.push({ tipo: 'p', coro: coro, html: esc(l.replace(/\s+$/, '')) }); });
+        } else if (tieneBloques(n)) { bloques(n, coro, salida); }
+        else { salida.push({ tipo: 'p', coro: coro, html: limpiarLinea(inl(n, {})) }); }
+      }
+      vaciar();
+    }
+
+    /** HTML normalizado (ver arriba) a partir de cualquier HTML. Es la única vía para insertar HTML de una letra. */
+    function normalizar(html) {
+      if (!html) { return ''; }
+      var salida = [];
+      bloques(analizar(html), false, salida);
+      var vacia = function (b) { return b.tipo === 'p' && b.html === ''; };
+      while (salida.length && vacia(salida[0])) { salida.shift(); }
+      while (salida.length && vacia(salida[salida.length - 1])) { salida.pop(); }
+      var out = '', i = 0;
+      while (i < salida.length) {
+        var b = salida[i];
+        if (b.tipo === 'h4') { out += '<h4>' + b.html + '</h4>'; i++; }
+        else if (b.coro) {
+          out += '<blockquote>';
+          while (i < salida.length && salida[i].tipo === 'p' && salida[i].coro) { out += '<p>' + salida[i].html + '</p>'; i++; }
+          out += '</blockquote>';
+        } else { out += '<p>' + b.html + '</p>'; i++; }
+      }
+      return out;
+    }
+
+    /** HTML normalizado de un texto plano: una línea por <p>, y <p></p> para las vacías. */
+    function desdeTexto(texto) {
+      texto = String(texto || '').replace(/\r\n?/g, '\n').replace(/^\n+|\s+$/g, '');
+      if (texto === '') { return ''; }
+      return texto.split('\n').map(function (l) { l = l.replace(/\s+$/, ''); return l === '' ? '<p></p>' : '<p>' + esc(l) + '</p>'; }).join('');
+    }
+
+    // Modelo interno: [{ tipo: 'p'|'h4', coro, lineas: [ [ {t, f, u} ] ] }] a partir de HTML normalizado.
+    function recorrer(el, f, lineas) {
+      for (var n = el.firstChild; n; n = n.nextSibling) {
+        if (n.nodeType === 3) {
+          if (n.nodeValue !== '') { lineas[lineas.length - 1].push({ t: n.nodeValue, f: f.b && f.i ? 'bi' : f.b ? 'b' : f.i ? 'i' : 'n', u: !!f.u }); }
+        } else if (n.nodeType === 1) {
+          if (n.nodeName === 'BR') { lineas.push([]); }
+          else { recorrer(n, { b: f.b || n.nodeName === 'STRONG', i: f.i || n.nodeName === 'EM', u: f.u || n.nodeName === 'U' }, lineas); }
+        }
+      }
+    }
+    function modelo(html) {
+      var res = [];
+      var bloque = function (el, coro) { var lineas = [[]]; recorrer(el, {}, lineas); res.push({ tipo: el.nodeName === 'H4' ? 'h4' : 'p', coro: coro, lineas: lineas }); };
+      Array.prototype.forEach.call(analizar(normalizar(html)).children, function (el) {
+        if (el.nodeName === 'BLOCKQUOTE') { Array.prototype.forEach.call(el.children, function (p) { bloque(p, true); }); }
+        else { bloque(el, false); }
+      });
+      return res;
+    }
+    function textoLinea(l) { return l.map(function (x) { return x.t; }).join(''); }
+
+    /** Texto plano de un HTML de letra, con la misma regla que el servidor (cada p/h4 una línea, br = salto de línea). */
+    function aTexto(html) {
+      var lineas = [];
+      modelo(html).forEach(function (b) { b.lineas.forEach(function (l) { lineas.push(textoLinea(l).replace(/\s+$/, '')); }); });
+      return lineas.join('\n').replace(/^[\n ]+|[\n ]+$/g, '');
+    }
+
+    function estrofas(c) {
+      var res = [], cur = null, nombre = '';
+      var cerrar = function () { if (cur && cur.lineas.length) { res.push(cur); } cur = null; };
+      var anadir = function (l, coro) {
+        if (cur && cur.coro !== coro) { cerrar(); }
+        if (!cur) { cur = { nombre: nombre, coro: coro, lineas: [] }; nombre = ''; }
+        cur.lineas.push(l);
+      };
+      modelo(c && c.letraHtml ? c.letraHtml : desdeTexto(c && c.letra)).forEach(function (b) {
+        if (b.tipo === 'h4') {
+          cerrar();
+          nombre = b.lineas.map(textoLinea).join(' ').replace(/\s+/g, ' ').trim();
+          return;
+        }
+        b.lineas.forEach(function (l) {
+          if (textoLinea(l).trim() === '') { cerrar(); } else { anadir(l, b.coro); }
+        });
+      });
+      cerrar();
+      return res;
+    }
+
+    /** Nodo con la letra de una canción: con formato si lo tiene, o el texto plano de siempre. */
+    function vista(c) {
+      if (c && c.letraHtml) {
+        var d = h('div', { class: 'pcan-letra is-rica' });
+        d.innerHTML = normalizar(c.letraHtml); // seguro: normalizar reconstruye solo con nodos permitidos
+        return d;
+      }
+      return h('div', { class: 'pcan-letra', text: c ? c.letra : '' });
+    }
+
+    /** Un HTML de letra tiene formato si lleva negrita, cursiva, subrayado, secciones o estribillos. */
+    function tieneFormato(html) { return /<(strong|em|u|h4|blockquote)>/.test(html || ''); }
+
+    /**
+     * Editor de letras: barra de botones y área editable. Devuelve { el, valor() }, donde valor() es
+     * { letraHtml, letra }: letraHtml queda vacío si la letra no tiene formato (se guarda solo como texto plano).
+     */
+    function editor(c) {
+      var inicial = c && c.letraHtml ? normalizar(c.letraHtml) : desdeTexto(c && c.letra);
+      var area = h('div', {
+        class: 'pcan-input pcan-editor-area', contenteditable: 'true', role: 'textbox', 'aria-multiline': 'true',
+        'aria-label': __('Letra'), spellcheck: 'true'
+      });
+      area.innerHTML = (inicial || '<p></p>').replace(/<p><\/p>/g, '<p><br></p>');
+      var botones = [];
+
+      function sel() { return window.getSelection(); }
+      function rango() { var s = sel(); return s && s.rangeCount && area.contains(s.anchorNode) ? s.getRangeAt(0) : null; }
+      function cmd(nombre) { area.focus(); document.execCommand(nombre, false, null); estados(); }
+      function avisarCambio() { area.dispatchEvent(new Event('input', { bubbles: true })); }
+
+      // ¿Toca la selección este nodo? Un triple clic acaba al principio del bloque siguiente: ese no cuenta.
+      function toca(r, el) {
+        if (!r.intersectsNode(el)) { return false; }
+        if (r.collapsed) { return true; }
+        var ini = document.createRange(), fin = document.createRange();
+        ini.selectNodeContents(el); ini.collapse(true);
+        fin.selectNodeContents(el); fin.collapse(false);
+        return r.compareBoundaryPoints(Range.START_TO_END, ini) > 0 && r.compareBoundaryPoints(Range.END_TO_START, fin) < 0;
+      }
+      // Bloques «hoja» (p, h4, div) del área, dentro o fuera de un blockquote, que toca la selección.
+      function hojas() {
+        var r = rango(), res = [];
+        if (!r) { return res; }
+        Array.prototype.forEach.call(area.children, function (el) {
+          if (!toca(r, el)) { return; }
+          if (el.nodeName === 'BLOCKQUOTE') {
+            Array.prototype.forEach.call(el.children, function (p) { if (toca(r, p)) { res.push(p); } });
+          } else { res.push(el); }
+        });
+        return res;
+      }
+      function hijosSeleccionados() {
+        var r = rango();
+        return r ? Array.prototype.filter.call(area.children, function (el) { return toca(r, el); }) : [];
+      }
+      // Ejecuta fn conservando la selección: fn recibe reemplazar(viejo, nuevo) para avisar de los nodos sustituidos.
+      function conservar(fn) {
+        var r = rango();
+        var pts = r ? { sc: r.startContainer, so: r.startOffset, ec: r.endContainer, eo: r.endOffset } : null;
+        var mapa = [];
+        fn(function (viejo, nuevo) { mapa.push([viejo, nuevo]); });
+        if (!pts) { return; }
+        var buscar = function (n) { for (var i = 0; i < mapa.length; i++) { if (mapa[i][0] === n) { return mapa[i][1]; } } return n; };
+        var sc = buscar(pts.sc), ec = buscar(pts.ec);
+        if (!area.contains(sc) || !area.contains(ec)) { return; }
+        try {
+          var nr = document.createRange();
+          nr.setStart(sc, Math.min(pts.so, sc.nodeType === 3 ? sc.length : sc.childNodes.length));
+          nr.setEnd(ec, Math.min(pts.eo, ec.nodeType === 3 ? ec.length : ec.childNodes.length));
+          sel().removeAllRanges();
+          sel().addRange(nr);
+        } catch (e) { /* sin selección que restaurar */ }
+      }
+      function cambiarEtiqueta(el, tag, reemplazar) {
+        var nuevo = document.createElement(tag);
+        while (el.firstChild) { nuevo.appendChild(el.firstChild); }
+        el.parentNode.replaceChild(nuevo, el);
+        reemplazar(el, nuevo);
+        return nuevo;
+      }
+      function desenvolver(bq) {
+        while (bq.firstChild) { area.insertBefore(bq.firstChild, bq); }
+        area.removeChild(bq);
+      }
+
+      function alternarSeccion() {
+        area.focus();
+        var lista = hojas();
+        if (!lista.length) { return; }
+        var todas = lista.every(function (el) { return el.nodeName === 'H4'; });
+        conservar(function (reemplazar) {
+          lista.forEach(function (el) { cambiarEtiqueta(el, todas ? 'p' : 'h4', reemplazar); });
+        });
+        avisarCambio();
+        estados();
+      }
+      function alternarEstribillo() {
+        area.focus();
+        var lista = hijosSeleccionados();
+        if (!lista.length) { return; }
+        var sueltos = lista.filter(function (el) { return el.nodeName !== 'BLOCKQUOTE'; });
+        conservar(function () {
+          if (!sueltos.length) { lista.forEach(desenvolver); return; }
+          var bq = document.createElement('blockquote');
+          area.insertBefore(bq, sueltos[0]);
+          sueltos.forEach(function (el) { bq.appendChild(el); });
+        });
+        avisarCambio();
+        estados();
+      }
+      function quitarFormato() {
+        area.focus();
+        document.execCommand('removeFormat', false, null);
+        var lista = hojas(), bqs = hijosSeleccionados().filter(function (el) { return el.nodeName === 'BLOCKQUOTE'; });
+        conservar(function (reemplazar) {
+          lista.forEach(function (el) { if (el.nodeName === 'H4' || el.nodeName === 'DIV') { cambiarEtiqueta(el, 'p', reemplazar); } });
+          bqs.forEach(desenvolver);
+        });
+        // removeFormat deja a veces strong/em/u: se quitan a mano de lo seleccionado.
+        var r = rango();
+        if (r) {
+          Array.prototype.forEach.call(area.querySelectorAll('strong,em,u,b,i'), function (el) {
+            if (r.intersectsNode(el)) { while (el.firstChild) { el.parentNode.insertBefore(el.firstChild, el); } el.parentNode.removeChild(el); }
+          });
+        }
+        avisarCambio();
+        estados();
+      }
+
+      var defs = [
+        { id: 'b', texto: __('Negrita'), titulo: __('Negrita (Ctrl+B)'), fn: function () { cmd('bold'); }, activo: function () { return document.queryCommandState('bold'); } },
+        { id: 'i', texto: __('Cursiva'), titulo: __('Cursiva (Ctrl+I)'), fn: function () { cmd('italic'); }, activo: function () { return document.queryCommandState('italic'); } },
+        { id: 'u', texto: __('Subrayado'), titulo: __('Subrayado (Ctrl+U)'), fn: function () { cmd('underline'); }, activo: function () { return document.queryCommandState('underline'); } },
+        { id: 's', texto: __('Sección'), titulo: __('Marca la línea como título de sección (Coro, Verso 1, Puente…)'), fn: alternarSeccion,
+          activo: function () { var l = hojas(); return l.length > 0 && l.every(function (el) { return el.nodeName === 'H4'; }); } },
+        { id: 'e', texto: __('Estribillo'), titulo: __('Sangra las líneas seleccionadas como estribillo'), fn: alternarEstribillo,
+          activo: function () { var l = hijosSeleccionados(); return l.length > 0 && l.every(function (el) { return el.nodeName === 'BLOCKQUOTE'; }); } },
+        { id: 'q', texto: __('Quitar formato'), titulo: __('Quita negrita, cursiva, sección y estribillo de la selección'), fn: quitarFormato }
+      ];
+      var barra = h('div', { class: 'pcan-editor-barra', role: 'toolbar', 'aria-label': __('Formato de la letra') });
+      defs.forEach(function (d) {
+        var b = h('button', {
+          type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-sec pcan-editor-btn is-' + d.id, title: d.titulo, 'aria-label': d.titulo,
+          'aria-pressed': d.activo ? 'false' : null, text: d.texto,
+          // mousedown no debe quitar el foco (y con él la selección) del área.
+          onmousedown: function (e) { e.preventDefault(); },
+          onclick: function () { d.fn(); }
+        });
+        botones.push({ el: b, def: d });
+        barra.appendChild(b);
+      });
+
+      function estados() {
+        // El editor se quita del documento al cerrar el formulario: entonces deja de escuchar.
+        if (!area.isConnected) { document.removeEventListener('selectionchange', estados); return; }
+        var dentro = !!rango();
+        botones.forEach(function (b) {
+          if (!b.def.activo) { return; }
+          var on = false;
+          try { on = dentro && !!b.def.activo(); } catch (e) { on = false; }
+          b.el.classList.toggle('is-active', on);
+          b.el.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+      }
+      document.addEventListener('selectionchange', estados);
+
+      area.addEventListener('focus', function () { try { document.execCommand('defaultParagraphSeparator', false, 'p'); } catch (e) { /* no soportado */ } });
+      area.addEventListener('keydown', function (e) {
+        if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) { return; }
+        var k = String(e.key).toLowerCase();
+        var orden = k === 'b' ? 'bold' : k === 'i' ? 'italic' : k === 'u' ? 'underline' : '';
+        if (orden) { e.preventDefault(); cmd(orden); }
+      });
+      area.addEventListener('paste', function (e) {
+        var cd = e.clipboardData;
+        if (!cd) { return; }
+        e.preventDefault();
+        var html = cd.getData('text/html');
+        var limpio = html ? normalizar(html) : desdeTexto(cd.getData('text/plain'));
+        if (!limpio) { return; }
+        // Una sola línea sin formato de bloque se inserta dentro de la línea actual, sin partirla.
+        var una = limpio.match(/^<p>(.*)<\/p>$/);
+        if (una && !/<\/?(p|h4|blockquote)>/.test(una[1])) { limpio = una[1]; }
+        document.execCommand('insertHTML', false, limpio);
+      });
+
+      return {
+        el: h('div', { class: 'pcan-editor' }, barra, area),
+        valor: function () {
+          var html = normalizar(area.innerHTML);
+          return { letraHtml: tieneFormato(html) ? html : '', letra: aTexto(html) };
+        }
+      };
+    }
+
+    return { normalizar: normalizar, desdeTexto: desdeTexto, aTexto: aTexto, estrofas: estrofas, vista: vista, editor: editor, tieneFormato: tieneFormato };
+  })();
+
   function norm(v) {
     return String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
       .replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -914,6 +1276,7 @@
       { titulo: __('Equipo'), sub: __('Correos con acceso, administradores, responsables de escaleta y dominio'), icono: 'equipo', href: '#/ajustes/equipo' },
       { titulo: __('Accesos'), sub: __('Quién entra y cuánto se usa'), icono: 'grafica', href: '#/ajustes/accesos' },
       { titulo: __('Escaleta'), sub: __('Logo e imagen de cabecera de la hoja impresa del culto'), icono: 'lista', href: '#/ajustes/escaleta' },
+      { titulo: __('Fondos de las letras'), sub: __('Imágenes de fondo para las presentaciones de letras'), icono: 'letra', href: '#/ajustes/fondos' },
       { titulo: __('Acceso con Google'), sub: __('Client ID de Google'), icono: 'acceso', href: '#/ajustes/google' },
       { titulo: __('Archivos'), sub: __('Protección y archivos sin usar'), icono: 'partitura', href: '#/ajustes/archivos' },
       { titulo: __('Papelera'), sub: __('Restaurar o eliminar canciones borradas'), icono: 'borrar', href: '#/ajustes/papelera' },
@@ -1592,7 +1955,7 @@
     if (partitura) { orden.splice(orden.indexOf(partitura), 1); orden.unshift(partitura); }
     P.Visor.abrirLector({
       titulo: c.titulo,
-      canciones: [{ id: c.id, titulo: c.titulo, numero: c.numero, tono: c.tonalidad, tempo: c.tempo, nota: '', letra: c.letra, partituras: orden }]
+      canciones: [{ id: c.id, titulo: c.titulo, numero: c.numero, tono: c.tonalidad, tempo: c.tempo, nota: '', letra: c.letra, letraHtml: c.letraHtml || '', partituras: orden }]
     });
   }
 
@@ -1600,6 +1963,12 @@
     return h('section', { class: 'pcan-det-sec' },
       h('header', { class: 'pcan-det-sec-head' }, h('h3', null, icono(icon), titulo), accion || null),
       contenido);
+  }
+
+  /** Abre el diálogo de «Exportar letra» (letras.js, que se carga después) con esta canción. */
+  function exportarLetraCancion(c) {
+    if (!P.exportarLetras) { return; }
+    P.exportarLetras([{ titulo: c.titulo, autor: c.autor || '', numero: c.numero || '', tonalidad: c.tonalidad || '', tempo: c.tempo || '', nota: '', letra: c.letra || '', letraHtml: c.letraHtml || '' }], { titulo: c.titulo });
   }
 
   function pintarFicha(c) {
@@ -1637,6 +2006,7 @@
         c.partituras[0] ? { texto: __('Descargar partitura'), icono: 'descargar', href: c.partituras[0].url, descargar: c.partituras[0].archivo || true } : null,
         c.partituras[0] ? { texto: __('Abrir el PDF original'), icono: 'abrir', href: c.partituras[0].url, nueva: true } : null,
         c.letra ? { texto: __('Copiar letra'), icono: 'copiar', fn: function () { copiar(c.letra, __('Letra copiada')); } } : null,
+        c.letra && P.exportarLetras ? { texto: __('Exportar letra'), icono: 'descargar', fn: function () { exportarLetraCancion(c); } } : null,
         c.puedeBorrar ? { texto: __('Borrar canción'), icono: 'borrar', peligro: true, fn: function () { borrarCancion(c); } } : null
       ]));
 
@@ -1653,7 +2023,9 @@
       c.audios.length ? seccion(__('Audios'), 'audio', vistaAudios(c)) : null,
       c.editables && c.editables.length ? seccion(__('Partituras editables'), 'editable', vistaEditables(c)) : null,
       c.letra ? seccion(__('Letra'), 'letra', vistaLetra(c),
-        h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-ghost', onclick: function () { copiar(c.letra, __('Letra copiada')); } }, icono('copiar'), __('Copiar'))) : null,
+        h('span', { class: 'pcan-det-sec-acciones' },
+          P.exportarLetras ? h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-ghost', onclick: function () { exportarLetraCancion(c); } }, icono('descargar'), __('Exportar')) : null,
+          h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-ghost', onclick: function () { copiar(c.letra, __('Letra copiada')); } }, icono('copiar'), __('Copiar')))) : null,
       c.youtube.length ? seccion(__('Versiones en YouTube'), 'youtube', vistaYoutube(c)) : null,
       c.notas ? seccion(__('Notas para el equipo'), 'editar', h('div', { class: 'pcan-notas', text: c.notas })) : null);
 
@@ -1699,7 +2071,7 @@
   }
 
   function vistaLetra(c) {
-    return h('div', { class: 'pcan-letra', text: c.letra });
+    return Letra.vista(c);
   }
 
   /** Partituras editables: para descargar y abrir con su programa; la partitura que se ve sigue siendo el PDF o la imagen. */
@@ -1819,8 +2191,7 @@
     var fAutor = h('input', { type: 'text', class: 'pcan-input', value: c.autor, maxlength: '200' });
     var listaTonos = h('datalist', { id: 'pcan-tonos' }, TONALIDADES.map(function (t) { return h('option', { value: tonoVer(t) }); }));
     var fTono = h('input', { type: 'text', class: 'pcan-input', value: tonoVer(c.tonalidad), list: 'pcan-tonos', maxlength: '20' });
-    var fLetra = h('textarea', { class: 'pcan-input pcan-textarea', rows: '10' });
-    fLetra.value = c.letra;
+    var fLetra = Letra.editor(c);
     var fNotas = h('textarea', { class: 'pcan-input pcan-textarea', rows: '3' });
     fNotas.value = c.notas || '';
 
@@ -2001,8 +2372,8 @@
           campo(__('Autor / compositor'), fAutor)),
         h('fieldset', { class: 'pcan-fieldset pcan-form-letra' },
           h('legend', { text: __('Letra') }),
-          fLetra,
-          h('p', { class: 'pcan-help', text: __('Opcional. Separa las estrofas con una línea en blanco. La letra también se usa en la búsqueda.') })),
+          fLetra.el,
+          h('p', { class: 'pcan-help', text: __('Opcional. Separa las estrofas con una línea en blanco. Marca con Sección los títulos como Coro o Verso, y con Estribillo las líneas que se repiten. La letra también se usa en la búsqueda.') })),
         h('fieldset', { class: 'pcan-fieldset pcan-form-notas' },
           h('legend', { text: __('Notas para el equipo') }),
           fNotas)),
@@ -2090,7 +2461,9 @@
       fd.append('tonalidad', tonoGuardar(fTono.value));
       fd.append('tempo', fTempo.value.trim());
       fd.append('etiquetas', etiquetas.join(','));
-      fd.append('letra', fLetra.value);
+      var letraEd = fLetra.valor();
+      fd.append('letra', letraEd.letra);
+      fd.append('letraHtml', letraEd.letraHtml);
       fd.append('notas', fNotas.value);
       fd.append('youtube', JSON.stringify(videos.filter(function (v) { return v.url; })));
       fd.append('partituras', JSON.stringify(existentes.map(function (p) { return { id: p.id, label: p.label }; })));
@@ -2344,10 +2717,10 @@
   // Panel «Ajustes y equipo» abierto (null si no lo está) y turno de la última carga, para ignorar respuestas viejas.
   var ajustesAbierto = null;
   var turnoAjustes = 0;
-  var SECCIONES_AJUSTES = ['general', 'equipo', 'accesos', 'escaleta', 'google', 'archivos', 'papelera', 'copias'];
+  var SECCIONES_AJUSTES = ['general', 'equipo', 'accesos', 'escaleta', 'fondos', 'google', 'archivos', 'papelera', 'copias'];
   var RUTA_AJUSTES = /^#\/(ajustes|papelera|copias)(\/|$)/;
 
-  /** Abre «Ajustes y equipo» en una sección (general, equipo, accesos, escaleta, google, archivos, papelera o copias).
+  /** Abre «Ajustes y equipo» en una sección (general, equipo, accesos, escaleta, fondos, google, archivos, papelera o copias).
    *  Si el panel ya está abierto solo cambia de sección: no se vuelven a pedir los datos. */
   function abrirAjustes(seccion) {
     if (!CFG.gestionar) { location.hash = '#/'; return; }
@@ -2381,7 +2754,8 @@
     var terceros = [
       ['pdf-lib', 'MIT', 'https://pdf-lib.js.org/'],
       ['PDF.js (Mozilla)', 'Apache-2.0', 'https://mozilla.github.io/pdf.js/'],
-      ['JSZip', 'MIT', 'https://stuk.github.io/jszip/'],
+      ['PptxGenJS', 'MIT', 'https://gitbrent.github.io/PptxGenJS/'],
+      [_x('JSZip (la incluye PptxGenJS)', 'componente de terceros: JSZip, que viene dentro de PptxGenJS'), _x('MIT o GPLv3', 'licencia de un componente de terceros'), 'https://stuk.github.io/jszip/'],
       [_x('Unbounded (tipografía del logo)', 'componente de terceros: la tipografía en que se basa el logo'), 'SIL Open Font License', 'https://fonts.google.com/specimen/Unbounded']
     ];
     var nombre = CFG.nombre && CFG.nombre !== 'Cancionero' ? CFG.nombre : '';
@@ -2680,6 +3054,115 @@
     };
   }
 
+
+  // ---------------------------------------------------------------- fondos de las letras (Ajustes)
+
+  var FONDOS_MAX_IMAGEN = 5 * 1048576;
+
+  /**
+   * Sección «Fondos de las letras» de los ajustes: cuadrícula de miniaturas con «Borrar» y subida de varias imágenes (de una en
+   * una, con barra de progreso siempre visible). Los cambios se aplican al momento en el servidor: no dependen de «Guardar».
+   * Rellena `cuerpo` y pide GET fondos al llamarla.
+   */
+  function pintarFondos(cuerpo) {
+    var fondos = [];
+    var ocupado = false;
+    var rejilla = h('div', { class: 'pcan-fondos-rejilla' });
+    var vacio = h('p', { class: 'pcan-help', text: __('Aún no hay imágenes de fondo.'), hidden: true });
+    var error = h('p', { class: 'pcan-form-error', role: 'alert', hidden: true });
+    var textoSubida = h('span');
+    var relleno = h('span');
+    var barra = h('div', { class: 'pcan-esc-subida', role: 'status', hidden: true }, textoSubida, h('div', { class: 'pcan-progress' }, relleno));
+    var entrada = h('input', { type: 'file', class: 'pcan-file-hidden', accept: 'image/jpeg,image/png', multiple: true, tabindex: '-1', 'aria-hidden': 'true' });
+    var bSubir = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () { entrada.click(); } }, icono('subir'), __('Subir imágenes'));
+    // Nada de lo que se hace aquí son cambios por guardar de los ajustes.
+    ['input', 'change'].forEach(function (ev) { cuerpo.addEventListener(ev, function (e) { e.stopPropagation(); }); });
+
+    function mostrarError(t) { error.textContent = t || ''; error.hidden = !t; }
+    function bloquear(si) {
+      ocupado = si;
+      bSubir.disabled = si;
+      Array.prototype.forEach.call(rejilla.querySelectorAll('button'), function (b) { b.disabled = si; });
+    }
+    function pintar() {
+      rejilla.innerHTML = '';
+      vacio.hidden = fondos.length > 0;
+      fondos.forEach(function (f, i) {
+        var img = h('img', { class: 'pcan-fondo-img', src: f.miniatura || f.url, alt: sprintf(/* translators: %d: número de la imagen de fondo */ __('Fondo %d'), i + 1), loading: 'lazy' });
+        var b = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-sec is-danger', disabled: ocupado,
+          'aria-label': sprintf(/* translators: %d: número de la imagen de fondo */ __('Borrar el fondo %d'), i + 1), onclick: function () { borrar(f); } }, __('Borrar'));
+        append(rejilla, h('div', { class: 'pcan-fondo' }, h('div', { class: 'pcan-fondo-vista' }, img), b));
+      });
+    }
+    function borrar(f) {
+      if (ocupado) { return; }
+      if (!window.confirm(__('¿Borrar esta imagen de fondo? No se puede deshacer.'))) { return; }
+      mostrarError('');
+      bloquear(true);
+      api('fondos/' + f.id, { method: 'DELETE' }).then(function (r) {
+        fondos = r.fondos || [];
+        aviso(__('Fondo borrado'));
+      }).catch(function (e) { mostrarError(e.message); }).then(function () { bloquear(false); pintar(); });
+    }
+    function subir(lista) {
+      var errores = [], hechos = 0, n = lista.length;
+      function progreso(i, p) {
+        var pct = Math.round(p * 100);
+        textoSubida.textContent = sprintf(/* translators: 1: número de la imagen que se está subiendo, 2: total de imágenes */ __('Subiendo %1$d de %2$d…'), i + 1, n) + ' ' + pct + ' %';
+        relleno.style.width = pct + '%';
+      }
+      function una(i) {
+        if (i >= n) { return Promise.resolve(); }
+        progreso(i, 0);
+        var fd = new FormData();
+        fd.append('archivo', lista[i]);
+        return apiSubir('fondos', fd, function (p) { progreso(i, p); }).then(function (r) {
+          fondos.push(r);
+          hechos++;
+          pintar();
+          return una(i + 1);
+        }, function (e) {
+          errores.push(lista[i].name + ': ' + e.message);
+          // Si el servidor ya no admite más imágenes, no tiene sentido seguir.
+          if (e.codigo === 'pieb_fondos_max') { return null; }
+          return una(i + 1);
+        });
+      }
+      bloquear(true);
+      barra.hidden = false;
+      una(0).then(function () {
+        barra.hidden = true;
+        bloquear(false);
+        pintar();
+        if (errores.length) { mostrarError(errores.join('\n')); }
+        if (hechos) { aviso(sprintf(_n('%d imagen subida', '%d imágenes subidas', hechos), hechos)); }
+      });
+    }
+    entrada.addEventListener('change', function () {
+      var archivos = Array.prototype.slice.call(entrada.files || []);
+      entrada.value = '';
+      if (!archivos.length || ocupado) { return; }
+      var validos = [], rechazos = [];
+      archivos.forEach(function (f) {
+        var tipoOk = /^image\/(jpeg|png)$/.test(f.type) || (!f.type && /\.(jpe?g|png)$/i.test(f.name));
+        if (!tipoOk) { rechazos.push(sprintf(/* translators: %s: nombre del archivo */ __('«%s» no es una imagen JPG o PNG.'), f.name)); }
+        else if (f.size > FONDOS_MAX_IMAGEN) { rechazos.push(sprintf(/* translators: 1: nombre del archivo, 2: tamaño del archivo (p. ej. 3,4 MB) */ __('«%1$s» pesa %2$s y el máximo son 5 MB.'), f.name, tamano(f.size))); }
+        else { validos.push(f); }
+      });
+      mostrarError(rechazos.join('\n'));
+      if (validos.length) { subir(validos); }
+    });
+
+    append(cuerpo, [
+      h('p', { class: 'pcan-help', text: __('Imágenes de fondo para las presentaciones de letras. Al exportar, se elige una al azar o la que quiera cada persona. Los cambios se aplican al momento.') }),
+      h('div', { class: 'pcan-fondos-acciones' }, bSubir, entrada,
+        h('span', { class: 'pcan-help', text: __('JPG o PNG, de hasta 5 MB cada una.') })),
+      barra, error, vacio, rejilla]);
+
+    bloquear(true);
+    rejilla.appendChild(h('p', { class: 'pcan-muted', text: __('Cargando…') }));
+    api('fondos').then(function (r) { fondos = r.fondos || []; }).catch(function (e) { mostrarError(e.message); }).then(function () { bloquear(false); pintar(); });
+  }
 
   /**
    * Reordenar los hijos de `lista` arrastrando `asa` (ratón y pantalla táctil). La fila `li` sigue al puntero en vertical, las
@@ -3707,7 +4190,7 @@
     // Accesos, Archivos, Papelera y Copias de seguridad tienen sus propias acciones y no muestran «Guardar».
     var SEC_FORMULARIO = { general: true, equipo: true, escaleta: true, google: true };
     var etiquetas = {
-      general: [__('General'), 'ajustes'], equipo: [__('Equipo'), 'equipo'], accesos: [__('Accesos'), 'grafica'], escaleta: [__('Escaleta'), 'lista'], google: [__('Acceso con Google'), 'acceso'],
+      general: [__('General'), 'ajustes'], equipo: [__('Equipo'), 'equipo'], accesos: [__('Accesos'), 'grafica'], escaleta: [__('Escaleta'), 'lista'], fondos: [__('Fondos de las letras'), 'letra'], google: [__('Acceso con Google'), 'acceso'],
       archivos: [__('Archivos'), 'partitura'], papelera: [__('Papelera'), 'borrar'], copias: [__('Copias de seguridad'), 'descargar']
     };
     var cuerpoPapelera = h('div', { class: 'pcan-form' });
@@ -3716,12 +4199,14 @@
     cuerpoAccesos.addEventListener('input', function (e) { e.stopPropagation(); });
     cuerpoAccesos.addEventListener('change', function (e) { e.stopPropagation(); });
     var cuerpoCopias = h('div', { class: 'pcan-ajustes-copias' });
+    var cuerpoFondos = h('div', { class: 'pcan-fondos' });
     // Lo que cada sección pide al servidor, solo la primera vez que se abre.
     var cargadores = {
       accesos: function () { pintarAccesos(cuerpoAccesos); },
       archivos: function () { cargarProteccion(); cargarHuerfanos(); },
       papelera: function () { pintarPapelera(cuerpoPapelera); },
-      copias: function () { pintarCopias(cuerpoCopias); }
+      copias: function () { pintarCopias(cuerpoCopias); },
+      fondos: function () { pintarFondos(cuerpoFondos); }
     };
     var cargadas = {};
 
@@ -3799,6 +4284,7 @@
               h('li', { text: __('Copia el ID de cliente y pégalo aquí.') }))))],
       accesos: [cuerpoAccesos],
       escaleta: [imagenesEscaleta.nodo],
+      fondos: [h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: __('Fondos de las letras') }), cuerpoFondos)],
       archivos: [
         h('fieldset', { class: 'pcan-fieldset' },
           h('legend', { text: __('Protección de los archivos') }),
@@ -4949,6 +5435,7 @@
   // API para los demás módulos.
   var P = window.PCAN = {
     cfg: CFG,
+    letra: Letra,
     state: state,
     ui: ui,
     h: h,

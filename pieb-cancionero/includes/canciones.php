@@ -6,7 +6,8 @@
  *  _pieb_numero     Número en el himnario (texto, opcional)
  *  _pieb_autor      Autor / compositor
  *  _pieb_tonalidad  Tonalidad habitual
- *  _pieb_letra      Letra completa (texto plano)
+ *  _pieb_letra      Letra completa (texto plano; si hay _pieb_letra_html, se deriva de él)
+ *  _pieb_letra_html Letra con formato (HTML saneado: solo p, h4, blockquote y, dentro, br, strong, em, u), opcional
  *  _pieb_notas      Notas internas
  *  _pieb_partituras array( array('id' => attachment_id, 'label' => 'Original'), ... )  (mínimo 1)
  *  _pieb_youtube    array( array('url' => '...', 'label' => 'Versión coral'), ... )
@@ -163,6 +164,78 @@ function pieb_can_usuario_puede_borrar($post) {
     return current_user_can(PIEB_CAN_CAP_GESTIONAR) || (int) $post->post_author === get_current_user_id();
 }
 
+/**
+ * Sanea el HTML de una letra con formato. Forma resultante: hijos de primer nivel p, h4 o blockquote; dentro,
+ * solo texto, br, strong, em y u; sin atributos. b pasa a strong e i a em.
+ */
+function pieb_can_letra_html_limpiar($html) {
+    $html = (string) $html;
+    $html = preg_replace('#<(/?)b(\s[^>]*)?>#i', '<$1strong>', $html);
+    $html = preg_replace('#<(/?)i(\s[^>]*)?>#i', '<$1em>', $html);
+    $html = wp_kses($html, array(
+        'p'          => array(),
+        'br'         => array(),
+        'strong'     => array(),
+        'em'         => array(),
+        'u'          => array(),
+        'h4'         => array(),
+        'blockquote' => array(),
+    ));
+    // Fuera los espacios y saltos de línea que quedan entre bloques.
+    $html = preg_replace('#(</(?:p|h4|blockquote)>|<blockquote>)\s+(?=<)#i', '$1', $html);
+    $html = trim($html);
+    return pieb_can_letra_html_a_texto($html) === '' ? '' : $html;
+}
+
+/**
+ * Texto plano de una letra con formato: cada p/h4 es una línea (br = salto), <p></p> una línea vacía, y las líneas
+ * de un blockquote son líneas normales. Sin etiquetas y con las entidades decodificadas.
+ */
+function pieb_can_letra_html_a_texto($html) {
+    $html = (string) $html;
+    $html = preg_replace('#(</(?:p|h4|blockquote)>|<blockquote>)\s+(?=<)#i', '$1', $html);
+    $html = preg_replace('#<br\s*/?>#i', "\n", $html);
+    $html = preg_replace('#</blockquote>|<blockquote>#i', '', $html);
+    $html = preg_replace('#</(?:p|h4)>#i', "\x01", $html);
+    $texto = html_entity_decode(wp_strip_all_tags($html), ENT_QUOTES, 'UTF-8');
+    $lineas = explode("\x01", $texto);
+    // Lo que queda tras el último cierre de bloque no es una línea.
+    if (count($lineas) > 1 && trim(end($lineas)) === '') {
+        array_pop($lineas);
+    }
+    $lineas = array_map(function ($l) {
+        return rtrim(str_replace("\r", '', $l));
+    }, $lineas);
+    return trim(implode("\n", $lineas), "\n ");
+}
+
+/**
+ * Guarda la letra de una canción según lo recibido. $letra_html es null si el cliente no mandó el campo.
+ * Con HTML válido, la letra plana se deriva de él; con '' se borra el HTML; sin campo, se conserva el HTML solo si
+ * sigue coincidiendo con el texto recibido.
+ */
+function pieb_can_guardar_letra($post_id, $letra, $letra_html) {
+    $norm = function ($t) {
+        $t = str_replace(array("\r\n", "\r"), "\n", (string) $t);
+        return rtrim(preg_replace('/[ \t]+(?=\n|$)/', '', $t));
+    };
+    $html = $letra_html === null ? null : pieb_can_letra_html_limpiar($letra_html);
+    if ($html !== null && $html !== '') {
+        update_post_meta($post_id, '_pieb_letra_html', $html);
+        update_post_meta($post_id, '_pieb_letra', sanitize_textarea_field(pieb_can_letra_html_a_texto($html)));
+        return;
+    }
+    $plano = sanitize_textarea_field((string) $letra);
+    if ($html === null) {
+        $actual = (string) get_post_meta($post_id, '_pieb_letra_html', true);
+        if ($actual !== '' && $norm(pieb_can_letra_html_a_texto($actual)) === $norm($plano)) {
+            return; // el HTML sigue siendo la fuente y no hay nada que cambiar
+        }
+    }
+    delete_post_meta($post_id, '_pieb_letra_html');
+    update_post_meta($post_id, '_pieb_letra', $plano);
+}
+
 /** Datos ligeros para el listado y la búsqueda. */
 function pieb_can_resumen($post) {
     $partituras = pieb_can_get_partituras($post->ID);
@@ -199,6 +272,7 @@ function pieb_can_detalle($post) {
     $datos = pieb_can_resumen($post);
 
     $datos['notas'] = (string) get_post_meta($post->ID, '_pieb_notas', true);
+    $datos['letraHtml'] = (string) get_post_meta($post->ID, '_pieb_letra_html', true);
 
     $datos['partituras'] = array();
     foreach (pieb_can_get_partituras($post->ID) as $p) {

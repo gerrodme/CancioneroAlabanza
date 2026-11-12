@@ -2,6 +2,15 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.24.0 · 2026-11-12
+
+Letras con formato: el campo Letra es un editor con negrita, cursiva, subrayado, «Sección» (títulos como Coro o Verso 1)
+y «Estribillo» (líneas sangradas); al pegar desde Word o Google Docs se conserva lo básico. El texto plano se sigue
+guardando para la búsqueda y la carga masiva. Exportar letras de una canción o de todo el setlist: hoja en PDF,
+presentación PowerPoint, diapositivas en PDF (una por estrofa, con imagen de fondo), OpenLyrics (.xml, para OpenLP,
+FreeShow, Quelea…) y texto. Nueva sección de Ajustes «Fondos de las letras» para subir las imágenes de fondo; al exportar
+se elige una al azar, una concreta o ninguna
+
 ## 1.23.0 · 2026-11-11
 
 Metrónomo en «Tocar el culto» y en la partitura a pantalla completa: botón «Metrónomo» en la barra (o la tecla M) para

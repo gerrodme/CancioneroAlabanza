@@ -21,9 +21,11 @@ Resumen técnico del plugin **Cancionero** para quien llegue nuevo al código.
 | `includes/avisos.php` | Aviso por correo a los administradores cuando alguien borra una canción: cola de borrados, envío agrupado por cron y composición del correo. |
 | `includes/accesos.php` | Registro de accesos: inicios de sesión (fecha, método y tipo de dispositivo), días de uso y `GET /accesos` con los datos en bruto para las estadísticas de «Ajustes y equipo». |
 | `includes/escaleta.php` | Escaleta del culto (la hoja impresa con el orden del culto): plantilla genérica y guardada, saneado de la plantilla y de la copia de cada culto, subida de las imágenes de la cabecera y `GET /escaleta`, `POST /escaleta/imagen`. |
+| `includes/fondos.php` | Fondos de las letras: imágenes de fondo para las diapositivas de letras (biblioteca de medios normal) y `GET`/`POST /fondos`, `DELETE /fondos/{id}`. |
 | `includes/migracion.php` | Convierte los PDF del plugin anterior (`adoracion_culto_*`) en canciones. Idempotente. |
 | `assets/cancionero.js` | Interfaz principal (sin dependencias ni compilación): lista, ficha, formulario, subida múltiple, estadísticas, ajustes. Incluye «Acerca del Cancionero» (ruta `#/acerca`, entrada del menú de la cuenta para todos los usuarios): versión, autoría, licencia, código fuente y componentes de terceros; si se añade una librería externa, hay que listarla ahí. |
 | `assets/cultos.js` | Pantallas de cultos y editor de setlist. |
+| `assets/letras.js` | Exportar letras (hoja en PDF, diapositivas en PDF, PowerPoint, OpenLyrics y texto): diálogo y generadores. Se carga después de `cultos.js` y usa `P.pdf`. |
 | `assets/visor.js` | Visor / modo culto para tableta; incluye el metrónomo del lector (Web Audio con programación anticipada, tempo de la canción, tap tempo y compás; atajo «M»). |
 | `assets/login.js` | Pantalla de acceso. |
 | `assets/cancionero.css` | Estilos y temas. Todo cuelga de `[data-pcan-theme]` y variables `--pc-*`. |
@@ -57,7 +59,8 @@ La interfaz es una aplicación de una sola página dentro de la página de WordP
   | `_pieb_autor` | Autor / compositor. |
   | `_pieb_tonalidad` | Tonalidad en notación española: `Do`, `Fa#`, `Sib`, `Mim`… |
   | `_pieb_tempo` | Entero, pulsaciones por minuto. |
-  | `_pieb_letra`, `_pieb_notas` | Texto plano. |
+  | `_pieb_letra`, `_pieb_notas` | Texto plano. `_pieb_letra` es siempre texto plano (búsqueda, listado, copiar…); si hay `_pieb_letra_html`, se deriva de él. |
+  | `_pieb_letra_html` | Opcional. Letra con formato, HTML saneado: hijos de primer nivel `p`, `h4` (título de sección) o `blockquote` (estribillo, solo con `p`); dentro, solo texto, `br`, `strong`, `em`, `u`; sin atributos. Cada línea es un `<p>` y `<p></p>` separa estrofas. |
   | `_pieb_partituras` | Lista de `{id (adjunto), label}`; mínimo 1. PDF, JPG o PNG, máx. 4 MB. |
   | `_pieb_youtube` | Lista de `{url, label}`; solo se aceptan enlaces de YouTube válidos. |
   | `_pieb_audios` | Lista de `{id, nombre, descripcion}`. MP3/M4A/OGG/WAV/AAC, máx. 10 MB. |
@@ -70,7 +73,7 @@ La interfaz es una aplicación de una sola página dentro de la página de WordP
   [Escaleta del culto](#escaleta-del-culto)).
 - Opciones de WordPress: `pieb_can_ajustes` (ajustes: `nombre`, `tema_defecto`, `google_client_id`, `emails`,
   `administradores`, `responsablesEscaleta`, `dominio`, `bienvenida_auto`, `bienvenida_texto`, `pagina`, `aviso_borrado`), `pieb_can_escaleta`
-  (identidad de la escaleta de la instalación: logo y cabecera; sin autoload; si no existe se usa la genérica), `pieb_can_bienvenidas`
+  (identidad de la escaleta de la instalación: logo y cabecera; sin autoload; si no existe se usa la genérica), `pieb_can_fondos` (lista de IDs de adjunto de los fondos de las letras; sin autoload), `pieb_can_bienvenidas`
   (registro de los correos de bienvenida enviados: correo → marca de tiempo; sin autoload), `pieb_can_avisos_borrado`
   (cola de canciones borradas pendientes de avisar; sin autoload; ver [Aviso de canciones borradas](#aviso-de-canciones-borradas)),
   `pieb_can_accesos_desde` (desde cuándo se registran los accesos; sin autoload), `pieb_can_version`, `pieb_can_migrado`.
@@ -93,6 +96,8 @@ Todas las rutas exigen sesión iniciada con la capacidad `pieb_cancionero_acceso
 | `/escaleta` | GET | **Base de la escaleta de un culto nuevo**: la estructura (sin valores) y la fila de títulos de la última escaleta guardada en cualquier culto, con el logo y la cabecera de la instalación y `desde: {id, titulo}` (el culto de origen; `null` si sale de la plantilla genérica). La lee todo el equipo, porque preparar la escaleta de un culto la necesita. |
 | `/escaleta/imagen` | POST | Sube el logo o la imagen de cabecera de la escaleta (JPG o PNG, máx. 2 MB) a la biblioteca de medios normal; responde `{ id, url }` (exige `pieb_cancionero_gestionar`). |
 | `/etiquetas`, `/preferencias`, `/huerfanos` | varios | Etiquetas con color, preferencias del usuario (`tema`, `idioma` y `notacion`, todos opcionales; vacío = automático), archivos sin usar. |
+| `/fondos` | GET, POST | `GET` (cualquiera del equipo): `{ fondos: [{ id, url, miniatura }] }` (`url` a tamaño completo, `miniatura` en tamaño «medium»; omite los adjuntos que ya no existen). `POST` (exige `pieb_cancionero_gestionar`): multipart `archivo`, solo JPG o PNG, máx. 5 MB y 40 fondos; sube a la biblioteca de medios normal y responde `{ id, url, miniatura }`. Ver [Exportar letras](#exportar-letras). |
+| `/fondos/{id}` | DELETE | Quita el fondo de la lista y borra su adjunto (exige `pieb_cancionero_gestionar`); responde `{ fondos: [...] }`. |
 | `/ajustes` | GET, POST | Ajustes del cancionero y lista del equipo (exige `pieb_cancionero_gestionar`). Los campos de la bienvenida, en [Bienvenida al equipo](#bienvenida-al-equipo). La escaleta de la instalación son solo sus imágenes: `GET` devuelve `escaleta: { logo, cabecera }` y `POST` acepta `escaleta: { logo: {id}|null, cabecera: {id}|null }` solo si llega (lo demás de la escaleta no se toca); ver [Escaleta del culto](#escaleta-del-culto). |
 | `/bienvenida` | POST | Envía el correo de bienvenida a una tanda de correos (exige `pieb_cancionero_gestionar`). Ver [Bienvenida al equipo](#bienvenida-al-equipo). |
 | `/accesos` | GET | Registro de accesos de cada persona del equipo, en bruto, para las estadísticas (exige `pieb_cancionero_gestionar`). Ver [Registro de accesos](#registro-de-accesos). |
@@ -102,10 +107,12 @@ Todas las rutas exigen sesión iniciada con la capacidad `pieb_cancionero_acceso
 
 Cuerpo `multipart/form-data` con todos estos campos (los ausentes se **vacían**):
 
-`titulo, numero, autor, tonalidad, tempo, etiquetas` (separadas por comas), `letra, notas`,
+`titulo, numero, autor, tonalidad, tempo, etiquetas` (separadas por comas), `letra, letraHtml, notas`,
 `youtube` (JSON `[{url,label}]`), `partituras` (JSON `[{id,label}]` de las que se conservan),
 `nuevasSubidas` (JSON, archivos ya subidos por trozos), `audios`, `audiosSubidos`, `editables`,
 `editablesSubidos`. Una canción necesita **al menos una partitura**.
+
+`letraHtml` (letra con formato, ver `_pieb_letra_html`): si llega con contenido, se sanea y manda: `letra` se deriva de él (cada `p`/`h4` una línea, `br` salto, `<p></p>` línea vacía). Si llega vacío, se borra el formato y se guarda `letra` como texto plano. Si **no llega** (scripts que solo envían `letra`), el formato se conserva solo si su texto sigue coincidiendo con `letra`; si no, se borra. `GET /canciones/{id}` devuelve `letraHtml` (`''` si no hay); el listado no la lleva. Los `datos` de cada canción de un culto llevan también `autor` y `letraHtml`, y la copia de seguridad exporta `letraHtml`.
 
 Para cambiar un solo dato: `GET` la ficha, reconstruir todos los campos con ella y modificar solo el deseado. Receta en
 [carga-masiva.md](carga-masiva.md).
@@ -327,6 +334,37 @@ no valen en otra web). Al restaurar solo se aplica si la copia la trae y se cons
 web. La escaleta de cada culto va en `cultos[].escaleta` (solo si el culto tiene) con sus canciones identificadas por `uid`
 (más `titulo` y `numero`) en lugar de por id, como los `items`, y conservan su `nota` e `instrumental`; al restaurar se buscan en
 esta web igual que las del setlist y las que no estén se quedan con el nombre escrito a mano.
+
+## Exportar letras
+
+`assets/letras.js` (`P.exportarLetras(canciones, opciones)`, que se carga después de `cultos.js`) abre un diálogo para exportar
+la letra de una canción (ficha de canción: «Exportar letra» y el botón «Exportar» de la sección Letra) o la de todo un setlist
+(ficha del culto: «Exportar letras»). `canciones` es `[{ titulo, autor, numero, tonalidad, tempo, nota, letra, letraHtml }]` y
+`opciones` `{ titulo, fecha, tipo, esSetlist, nombreArchivo }`. Parte de `P.letra.estrofas(c)` (ver `cancionero.js`): las canciones
+sin letra se omiten y se avisa al terminar. Todo se genera en el navegador; la última elección de formato y de fondo se
+recuerda en `localStorage`.
+
+| Formato | Resultado |
+|---|---|
+| Hoja en PDF | pdf-lib, A4, Helvetica (n, b, i, bi) con negrita, cursiva y subrayado; secciones en mayúsculas de color de acento y estribillos con barra lateral; una estrofa no se parte entre páginas si cabe entera; en el setlist, las canciones van numeradas y la siguiente empieza en hoja nueva solo si quedan menos de ~140 pt. Se abre en una pestaña nueva (`P.pdf.abrirVentana` se llama en el propio clic) o se descarga. |
+| Diapositivas en PDF | Páginas de 960×540 pt con la imagen de fondo a sangre. |
+| PowerPoint (.pptx) | PptxGenJS 3.12.0, **cargada bajo demanda** desde jsDelivr (como pdf-lib). Un *slide master* por fondo distinto, así la imagen no se repite en cada diapositiva; el texto es editable (Arial, blanco, centrado). |
+| OpenLyrics (.xml) | Versión 0.9, solo canción individual: `titles`, `authors`, `songbooks` (nombre de la instalación y número), `tempo`, `key` en notación inglesa, `verseOrder` y un `verse` por estrofa (`v1`, `c1`, `b1`, `p1`, `i1`, `e1`; partes `v1a`, `v1b` si una misma sección tiene varias estrofas seguidas; una estrofa repetida con el mismo texto reutiliza su nombre). Sin formato. |
+| Texto (.txt) | Título y estrofas separadas por una línea en blanco, sin nombres de sección; en el setlist, canciones separadas por dos líneas en blanco. |
+
+**Diapositivas (PDF y PowerPoint, misma estructura).** Por canción, una de título (título, autor y, en el setlist, la nota del
+culto) y una por estrofa. Una estrofa de más de 6 líneas se parte en trozos equilibrados de 5 líneas o menos; el nombre de la
+sección va pequeño arriba. El tamaño de letra es el mayor (entre 26 y 60 unidades de una hoja de 960×540) con el que la línea
+más ancha cabe en el 86 % del ancho y el bloque en el 78 % del alto; si ni al mínimo cabe, se envuelve (en PowerPoint lo hace
+el propio programa). Las utilidades de PDF de `cultos.js` (`cargarPdfLib`, `latin1`, `envolverTexto`, ventana de la pestaña) se
+comparten en `P.pdf`.
+
+**Fondos.** Imágenes que sube un administrador en Ajustes y equipo → Fondos de las letras (`includes/fondos.php`). Van a la
+biblioteca de medios **normal** (no son partituras), no llevan las marcas `_pieb_*` (no salen en «Archivos sin usar» ni pasan a
+la carpeta privada) y **no van en las copias de seguridad**, igual que las imágenes de la escaleta. En el diálogo se elige
+«Al azar» (en un setlist, una imagen distinta por canción mientras haya), «Sin imagen» (fondo liso `#111827`) o una concreta. Al
+exportar, cada imagen se recorta tipo *cover* a 1920×1080, se oscurece con una capa negra al 45 % y se guarda como JPEG 0,85
+(se cachea por id dentro de una exportación).
 
 ## Papelera
 

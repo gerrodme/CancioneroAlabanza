@@ -558,7 +558,7 @@
   // ---------------------------------------------------------------- lector a pantalla completa
 
   /**
-   * opciones: { titulo, canciones: [{ id, titulo, numero, tono, tempo, nota, letra, partituras: [...] }], inicio, alCerrar(), alCambiar(i) }
+   * opciones: { titulo, canciones: [{ id, titulo, numero, tono, tempo, nota, letra, letraHtml, partituras: [...] }], inicio, alCerrar(), alCambiar(i) }
    */
   function abrirLector(opciones) {
     var canciones = opciones.canciones;
@@ -648,7 +648,12 @@
       letra.hidden = !verLetra;
       escenario.el.hidden = verLetra;
       btnLetra.classList.toggle('is-active', verLetra);
-      if (verLetra) { letra.textContent = c.letra; letra.scrollTop = 0; }
+      if (verLetra) {
+        var rica = c.letraHtml && P.letra;
+        letra.classList.toggle('is-rica', !!rica);
+        if (rica) { letra.innerHTML = P.letra.normalizar(c.letraHtml); } else { letra.textContent = c.letra; }
+        letra.scrollTop = 0;
+      }
     }
 
     function alternarLetra() { verLetra = !verLetra; mostrarLetra(); }
