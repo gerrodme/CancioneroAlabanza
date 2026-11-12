@@ -2948,6 +2948,12 @@ window.PIEB_I18N = {
   ],
   "Descargar escaleta": [
    "Download order of service"
+  ],
+  "Cerrar sin guardar": [
+   "Close without saving"
+  ],
+  "Seguir editando": [
+   "Keep editing"
   ]
  }
 };

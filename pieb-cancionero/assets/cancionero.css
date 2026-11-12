@@ -1154,6 +1154,20 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
   .pcan-modal-acciones .pcan-btn { flex: 1 1 auto; }
   .pcan-modal-acciones .pcan-btn-primary { flex-basis: 100%; order: -1; }
 }
+/* ---- Diálogo de confirmación (PCAN.confirmar): por encima de cualquier otra capa */
+.pcan-dlg-capa { position: fixed; z-index: 100000; }
+.pcan-dlg { width: min(440px, 92%); }
+.pcan-dlg .pcan-modal-cuerpo { padding: 20px 20px 16px; }
+.pcan-dlg-mensaje { margin: 0; font-size: 16px; line-height: 1.5; overflow-wrap: anywhere; }
+.pcan-dlg .pcan-modal-pie { border-top: 0; padding-top: 0; }
+.pcan-dlg-acciones { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+[data-pcan-theme] .pcan-dlg .pcan-btn-danger { border-color: var(--pc-danger); }
+@media (max-width: 760px) {
+  .pcan-dlg { width: 100%; }
+  .pcan-dlg .pcan-modal-cuerpo { padding: 18px 16px 14px; }
+  .pcan-dlg .pcan-modal-pie { padding: 0 16px calc(14px + env(safe-area-inset-bottom)); }
+  .pcan-dlg-acciones .pcan-btn { flex: 1 1 0; min-height: 44px; }
+}
 /* ---- Exportar letras (diálogo) y fondos de las letras (Ajustes) */
 .pcan-lx-capa { position: fixed; z-index: 99997; }
 .pcan-lx { width: min(640px, 92%); }

@@ -1865,27 +1865,81 @@
     return state.vista === 'inicio' ? '' : '#/' + state.vista;
   }
 
+  // ---------------------------------------------------------------- diálogo de confirmación
+
+  // Sustituye a window.confirm: devuelve una promesa que se resuelve con true (acción) o false (cancelar, Escape o pulsar el fondo).
+  // Opciones: { mensaje, aceptar (texto del botón de acción), cancelar (por defecto «Cancelar»), peligro (botón de acción en rojo) }.
+  // Con `peligro` el foco inicial va a «Cancelar», para que un Intro despistado no borre nada. Solo hay uno abierto: si se pide otro,
+  // el anterior se resuelve con false. Escape se captura y se detiene aquí para no cerrar también la ficha o el menú de debajo.
+  var dialogoConfirmar = null;
+
+  function confirmar(op) {
+    op = op || {};
+    if (dialogoConfirmar) { dialogoConfirmar(false); }
+    return new Promise(function (resolver) {
+      var previo = document.activeElement;
+      var idMensaje = 'pcan-dlg-m-' + Date.now();
+      var bCancelar = h('button', { type: 'button', class: 'pcan-btn', onclick: function () { cerrar(false); } }, op.cancelar || __('Cancelar'));
+      var bAceptar = h('button', { type: 'button', class: 'pcan-btn ' + (op.peligro ? 'pcan-btn-danger' : 'pcan-btn-primary'), onclick: function () { cerrar(true); } }, op.aceptar || '');
+      var ventana = h('div', { class: 'pcan-modal pcan-dlg', role: 'alertdialog', 'aria-modal': 'true', 'aria-labelledby': idMensaje, 'aria-describedby': idMensaje, tabindex: '-1' },
+        h('div', { class: 'pcan-modal-cuerpo' }, h('p', { class: 'pcan-dlg-mensaje', id: idMensaje, text: op.mensaje || '' })),
+        h('div', { class: 'pcan-modal-pie' }, h('div', { class: 'pcan-dlg-acciones' }, bCancelar, bAceptar)));
+      var capa = h('div', { class: 'pcan-modal-capa pcan-dlg-capa', onclick: function (e) { if (e.target === capa) { cerrar(false); } } }, ventana);
+      temaEn(capa);
+
+      function tecla(e) {
+        if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrar(false); return; }
+        // Nada de lo que se pulse debe llegar a los atajos de la página de debajo.
+        e.stopPropagation();
+        if (e.key !== 'Tab') { return; }
+        var f = [bCancelar, bAceptar], i = f.indexOf(document.activeElement);
+        if (e.shiftKey && i <= 0) { e.preventDefault(); f[1].focus(); }
+        else if (!e.shiftKey && (i < 0 || i === 1)) { e.preventDefault(); f[0].focus(); }
+      }
+      function enfoque(e) { if (!capa.contains(e.target)) { (op.peligro ? bCancelar : bAceptar).focus({ preventScroll: true }); } }
+      function cerrar(valor) {
+        if (dialogoConfirmar !== cerrar) { return; }
+        dialogoConfirmar = null;
+        document.removeEventListener('keydown', tecla, true);
+        document.removeEventListener('focusin', enfoque, true);
+        capa.remove();
+        if (previo && previo.focus && document.contains(previo)) { previo.focus({ preventScroll: true }); }
+        resolver(valor);
+      }
+      dialogoConfirmar = cerrar;
+      document.body.appendChild(capa);
+      document.addEventListener('keydown', tecla, true);
+      document.addEventListener('focusin', enfoque, true);
+      (op.peligro ? bCancelar : bAceptar).focus({ preventScroll: true });
+    });
+  }
+
+  /** Ejecuta `fn` ya, o después de confirmar si el panel tiene cambios sin guardar. */
+  function sinGuardar(fn) {
+    if (!panelSucio) { fn(); return; }
+    confirmar({ mensaje: __('¿Cerrar sin guardar los cambios?'), aceptar: __('Cerrar sin guardar'), cancelar: __('Seguir editando'), peligro: true }).then(function (si) { if (si) { fn(); } });
+  }
+
   /** «Volver» y «Cerrar» del panel: si se llegó desde otra pantalla del cancionero se retrocede en el historial,
    *  igual que el botón del navegador; así no se apilan entradas y «atrás» nunca salta fuera del cancionero. */
   function volverPanel() {
     var anterior = hashes[posicion - 1];
     var propio = history.state && history.state.pcan === posicion;
     if (propio && anterior !== undefined && anterior !== location.hash && !/^#\/(nueva|editar\/|subir|ajustes|culto\/(nuevo|editar|duplicar)|culto\/\d+\/tocar)/.test(anterior)) {
-      if (panelSucio && !window.confirm(__('¿Cerrar sin guardar los cambios?'))) { return; }
-      panelSucio = false;
-      history.back();
+      sinGuardar(function () { panelSucio = false; history.back(); });
       return;
     }
     cerrarPanel();
   }
 
   function cerrarPanel() {
-    if (panelSucio && !window.confirm(__('¿Cerrar sin guardar los cambios?'))) { return; }
-    var base = baseVista();
-    if (location.hash !== base && !(base === '' && location.hash === '#/')) {
-      history.pushState('', document.title, location.pathname + location.search + base);
-    }
-    ocultarPanel();
+    sinGuardar(function () {
+      var base = baseVista();
+      if (location.hash !== base && !(base === '' && location.hash === '#/')) {
+        history.pushState('', document.title, location.pathname + location.search + base);
+      }
+      ocultarPanel();
+    });
   }
 
   function ocultarPanel() {
@@ -2232,12 +2286,14 @@
   }
 
   function borrarCancion(c) {
-    if (!window.confirm(sprintf(/* translators: %s: título de la canción */ __('¿Borrar «%s»? Se mueve a la papelera del cancionero y un administrador podrá recuperarla.'), c.titulo))) { return; }
-    api('canciones/' + c.id, { method: 'DELETE' }).then(function () {
-      aviso(__('Canción borrada'));
-      cerrarPanel();
-      cargar().then(function () { pintarChips(); pintarLista(); });
-    }).catch(function (e) { aviso(e.message, 'error'); });
+    confirmar({ mensaje: sprintf(/* translators: %s: título de la canción */ __('¿Borrar «%s»? Se mueve a la papelera del cancionero y un administrador podrá recuperarla.'), c.titulo), aceptar: __('Borrar canción'), peligro: true }).then(function (si) {
+      if (!si) { return; }
+      api('canciones/' + c.id, { method: 'DELETE' }).then(function () {
+        aviso(__('Canción borrada'));
+        cerrarPanel();
+        cargar().then(function () { pintarChips(); pintarLista(); });
+      }).catch(function (e) { aviso(e.message, 'error'); });
+    });
   }
 
   // ---------------------------------------------------------------- vista: formulario de canción
@@ -3207,13 +3263,15 @@
     }
     function borrar(f) {
       if (ocupado) { return; }
-      if (!window.confirm(__('¿Borrar esta imagen de fondo? No se puede deshacer.'))) { return; }
-      mostrarError('');
-      bloquear(true);
-      api('fondos/' + f.id, { method: 'DELETE' }).then(function (r) {
-        fondos = r.fondos || [];
-        aviso(__('Fondo borrado'));
-      }).catch(function (e) { mostrarError(e.message); }).then(function () { bloquear(false); pintar(); });
+      confirmar({ mensaje: __('¿Borrar esta imagen de fondo? No se puede deshacer.'), aceptar: __('Borrar'), peligro: true }).then(function (si) {
+        if (!si || ocupado) { return; }
+        mostrarError('');
+        bloquear(true);
+        api('fondos/' + f.id, { method: 'DELETE' }).then(function (r) {
+          fondos = r.fondos || [];
+          aviso(__('Fondo borrado'));
+        }).catch(function (e) { mostrarError(e.message); }).then(function () { bloquear(false); pintar(); });
+      });
     }
     function subir(lista) {
       var errores = [], hechos = 0, n = lista.length;
@@ -3892,8 +3950,10 @@
       }
       if (m.enLista) {
         items.push({ texto: __('Quitar del equipo'), peligro: true, bloqueada: propia, razon: razon, fn: function () {
-          if (!window.confirm(sprintf(/* translators: %s: nombre o correo de la persona */ __('¿Quitar a %s del equipo? Perderá el acceso al cancionero.'), nombre))) { return; }
-          cambiarEquipo(sinCorreo(a.emails, clave), sinCorreo(a.administradores, clave), sprintf(/* translators: %s: nombre o correo de la persona */ __('%s ya no está en el equipo'), nombre), clave, sinCorreo(a.responsablesEscaleta, clave));
+          confirmar({ mensaje: sprintf(/* translators: %s: nombre o correo de la persona */ __('¿Quitar a %s del equipo? Perderá el acceso al cancionero.'), nombre), aceptar: __('Quitar del equipo'), peligro: true }).then(function (si) {
+            if (!si) { return; }
+            cambiarEquipo(sinCorreo(a.emails, clave), sinCorreo(a.administradores, clave), sprintf(/* translators: %s: nombre o correo de la persona */ __('%s ya no está en el equipo'), nombre), clave, sinCorreo(a.responsablesEscaleta, clave));
+          });
         } });
       } else {
         items.push({ texto: __('Añadir a la lista'), fn: function () {
@@ -4038,17 +4098,20 @@
     function enviarElegidos() {
       var emails = marcados().map(function (m) { return m.email; });
       if (enCurso || !emails.length) { return; }
-      if (!window.confirm(sprintf(_n('¿Enviar la bienvenida a %d persona?', '¿Enviar la bienvenida a %d personas?', emails.length), emails.length))) { return; }
-      mostrarResultado('');
-      enviarConProgreso(emails).then(function (res) {
-        marcarEnviadas(res);
-        // La selección se quita; si el envío se interrumpió, quedan marcadas las que no llegaron a intentarse para poder repetir.
-        elegidos = {};
-        res.sinEnviar.forEach(function (e) { elegidos[String(e).toLowerCase()] = true; });
-        sincronizarBienvenida();
-        var texto = resumenBienvenida(res), fallos = bienvenidaConFallos(res);
-        mostrarResultado(texto, fallos);
-        aviso(texto, fallos ? 'error' : undefined, fallos ? 9000 : undefined);
+      confirmar({ mensaje: sprintf(_n('¿Enviar la bienvenida a %d persona?', '¿Enviar la bienvenida a %d personas?', emails.length), emails.length),
+        aceptar: sprintf(_n('Enviar la bienvenida a %d persona', 'Enviar la bienvenida a %d personas', emails.length), emails.length) }).then(function (si) {
+        if (!si || enCurso) { return; }
+        mostrarResultado('');
+        enviarConProgreso(emails).then(function (res) {
+          marcarEnviadas(res);
+          // La selección se quita; si el envío se interrumpió, quedan marcadas las que no llegaron a intentarse para poder repetir.
+          elegidos = {};
+          res.sinEnviar.forEach(function (e) { elegidos[String(e).toLowerCase()] = true; });
+          sincronizarBienvenida();
+          var texto = resumenBienvenida(res), fallos = bienvenidaConFallos(res);
+          mostrarResultado(texto, fallos);
+          aviso(texto, fallos ? 'error' : undefined, fallos ? 9000 : undefined);
+        });
       });
     }
 
@@ -4970,12 +5033,14 @@
   }
 
   function eliminarDefinitivo(id, titulo, desdeFicha, btn) {
-    if (!window.confirm(sprintf(/* translators: %s: título de la canción */ __('¿Eliminar «%s» para siempre? Se borran también sus partituras y audios y no se puede deshacer.'), titulo))) { return Promise.resolve(); }
-    ocupado(btn, __('Eliminando…'));
-    return api('papelera/' + id, { method: 'DELETE' }).then(function () {
-      aviso(sprintf(/* translators: %s: título de la canción */ __('«%s» eliminada para siempre'), titulo));
-      if (desdeFicha) { location.hash = '#/ajustes/papelera'; } else { refrescarPapelera(); }
-    }).catch(function (e) { aviso(e.message, 'error'); });
+    return confirmar({ mensaje: sprintf(/* translators: %s: título de la canción */ __('¿Eliminar «%s» para siempre? Se borran también sus partituras y audios y no se puede deshacer.'), titulo), aceptar: __('Eliminar para siempre'), peligro: true }).then(function (si) {
+      if (!si) { return; }
+      ocupado(btn, __('Eliminando…'));
+      return api('papelera/' + id, { method: 'DELETE' }).then(function () {
+        aviso(sprintf(/* translators: %s: título de la canción */ __('«%s» eliminada para siempre'), titulo));
+        if (desdeFicha) { location.hash = '#/ajustes/papelera'; } else { refrescarPapelera(); }
+      }).catch(function (e) { aviso(e.message, 'error'); });
+    });
   }
 
   /** La papelera es una sección de «Ajustes y equipo». */
@@ -5013,28 +5078,30 @@
         })));
         append(cuerpo, h('div', { class: 'pcan-actions' },
           h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', onclick: function () {
-            if (!window.confirm(sprintf(_n('¿Vaciar la papelera? Se elimina para siempre %d canción con sus archivos. No se puede deshacer.', '¿Vaciar la papelera? Se eliminan para siempre %d canciones con sus archivos. No se puede deshacer.', r.canciones.length), r.canciones.length))) { return; }
-            // Se elimina de una en una para poder enseñar el avance (cada canción borra también sus archivos).
-            var ids = r.canciones.map(function (c) { return c.id; });
-            var hechas = 0, fallos = 0;
-            var texto = h('p', { class: 'pcan-help', role: 'status', text: sprintf(/* translators: 1: número de la canción que se elimina, 2: total */ __('Eliminando %1$d de %2$d…'), 1, ids.length) });
-            var relleno = h('span');
-            cuerpo.innerHTML = '';
-            append(cuerpo, [h('strong', { text: __('Vaciando la papelera') }), texto, h('div', { class: 'pcan-progress' }, relleno),
-              h('p', { class: 'pcan-help', text: __('No cierres esta ventana hasta que termine.') })]);
-            relleno.style.width = '0%';
-            ids.reduce(function (cadena, id) {
-              return cadena.then(function () {
-                texto.textContent = sprintf(/* translators: 1: número de la canción que se elimina, 2: total */ __('Eliminando %1$d de %2$d…'), hechas + 1, ids.length);
-                return api('papelera/' + id, { method: 'DELETE' }).then(null, function () { fallos++; }).then(function () {
-                  hechas++;
-                  relleno.style.width = Math.round(hechas / ids.length * 100) + '%';
+            confirmar({ mensaje: sprintf(_n('¿Vaciar la papelera? Se elimina para siempre %d canción con sus archivos. No se puede deshacer.', '¿Vaciar la papelera? Se eliminan para siempre %d canciones con sus archivos. No se puede deshacer.', r.canciones.length), r.canciones.length), aceptar: __('Vaciar la papelera'), peligro: true }).then(function (si) {
+              if (!si) { return; }
+              // Se elimina de una en una para poder enseñar el avance (cada canción borra también sus archivos).
+              var ids = r.canciones.map(function (c) { return c.id; });
+              var hechas = 0, fallos = 0;
+              var texto = h('p', { class: 'pcan-help', role: 'status', text: sprintf(/* translators: 1: número de la canción que se elimina, 2: total */ __('Eliminando %1$d de %2$d…'), 1, ids.length) });
+              var relleno = h('span');
+              cuerpo.innerHTML = '';
+              append(cuerpo, [h('strong', { text: __('Vaciando la papelera') }), texto, h('div', { class: 'pcan-progress' }, relleno),
+                h('p', { class: 'pcan-help', text: __('No cierres esta ventana hasta que termine.') })]);
+              relleno.style.width = '0%';
+              ids.reduce(function (cadena, id) {
+                return cadena.then(function () {
+                  texto.textContent = sprintf(/* translators: 1: número de la canción que se elimina, 2: total */ __('Eliminando %1$d de %2$d…'), hechas + 1, ids.length);
+                  return api('papelera/' + id, { method: 'DELETE' }).then(null, function () { fallos++; }).then(function () {
+                    hechas++;
+                    relleno.style.width = Math.round(hechas / ids.length * 100) + '%';
+                  });
                 });
+              }, Promise.resolve()).then(function () {
+                var ok = ids.length - fallos;
+                aviso(sprintf(_n('%d canción eliminada para siempre', '%d canciones eliminadas para siempre', ok), ok) + (fallos ? ' · ' + sprintf(_n('%d no se pudo eliminar', '%d no se pudieron eliminar', fallos), fallos) : ''), fallos ? 'error' : undefined);
+                pintarPapelera(cuerpo);
               });
-            }, Promise.resolve()).then(function () {
-              var ok = ids.length - fallos;
-              aviso(sprintf(_n('%d canción eliminada para siempre', '%d canciones eliminadas para siempre', ok), ok) + (fallos ? ' · ' + sprintf(_n('%d no se pudo eliminar', '%d no se pudieron eliminar', fallos), fallos) : ''), fallos ? 'error' : undefined);
-              pintarPapelera(cuerpo);
             });
           } }, icono('borrar'), __('Vaciar la papelera'))));
       }
@@ -5486,7 +5553,27 @@
 
   // ---------------------------------------------------------------- rutas
 
+  // Entrada del historial (posición) de la última ruta atendida y si hay un aviso de «cambios sin guardar» abierto por una navegación.
+  var rutaPos = 0;
+  var rutaPendiente = false;
+
   function ruta() {
+    // Ir de una sección de Ajustes a otra no cierra nada: los cambios siguen ahí y no hay que preguntar.
+    var dentroDeAjustes = ajustesAbierto && ajustesAbierto.raiz.isConnected && RUTA_AJUSTES.test(location.hash);
+    if (panelSucio && panelModo && !dentroDeAjustes) {
+      // Con un formulario con cambios, ir a otra pantalla (atrás del navegador, el menú…) pide confirmación; si se cancela se
+      // vuelve a la entrada del historial del formulario, que sigue intacto. Las llamadas repetidas (popstate + hashchange, o
+      // las que provoca ese retroceso) se ignoran mientras se está en la misma entrada.
+      if (rutaPendiente || posicion === rutaPos) { return; }
+      rutaPendiente = true;
+      confirmar({ mensaje: __('¿Cerrar sin guardar los cambios?'), aceptar: __('Cerrar sin guardar'), cancelar: __('Seguir editando'), peligro: true }).then(function (si) {
+        rutaPendiente = false;
+        if (si) { panelSucio = false; ruta(); }
+        else if (posicion !== rutaPos) { history.go(rutaPos - posicion); }
+      });
+      return;
+    }
+    rutaPos = posicion;
     var hash = location.hash.replace(/^#\/?/, '');
     var m;
     alternarMenu(false);
@@ -5567,6 +5654,7 @@
     },
     abrirPanel: abrirPanel,
     cerrarPanel: cerrarPanel,
+    confirmar: confirmar,
     ocultarPanel: ocultarPanel,
     cabeceraPanel: cabeceraPanel,
     marcarSeleccion: marcarSeleccion,

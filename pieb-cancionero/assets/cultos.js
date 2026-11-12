@@ -383,14 +383,16 @@
   }
 
   function borrar(c) {
-    if (!window.confirm(sprintf(/* translators: %s: título del culto */ __('¿Borrar el culto «%s»? Un administrador podrá recuperarlo desde la papelera.'), c.titulo))) { return; }
-    api('cultos/' + c.id, { method: 'DELETE' }).then(function () {
-      aviso(__('Culto borrado'));
-      return cargar(true);
-    }).then(function () {
-      location.hash = '#/cultos';
-      refrescar();
-    }).catch(function (e) { aviso(e.message, 'error'); });
+    P.confirmar({ mensaje: sprintf(/* translators: %s: título del culto */ __('¿Borrar el culto «%s»? Un administrador podrá recuperarlo desde la papelera.'), c.titulo), aceptar: __('Borrar culto'), peligro: true }).then(function (si) {
+      if (!si) { return; }
+      api('cultos/' + c.id, { method: 'DELETE' }).then(function () {
+        aviso(__('Culto borrado'));
+        return cargar(true);
+      }).then(function () {
+        location.hash = '#/cultos';
+        refrescar();
+      }).catch(function (e) { aviso(e.message, 'error'); });
+    });
   }
 
   // ---------------------------------------------------------------- editor
@@ -2147,10 +2149,12 @@
       // hicieran, cuyos campos quedaron fijos con lo que había entonces (a menudo nada).
       var bAuto = h('button', {
         type: 'button', class: 'pcan-btn', onclick: function () {
-          if (!window.confirm(__('¿Rellenar las canciones de la escaleta con las del setlist? Se pierden las canciones, notas y casillas «Instrumental» que hayas puesto a mano en la escaleta.'))) { return; }
-          esc.secciones.forEach(function (s) { s.campos.forEach(function (c) { if (c.tipo === 'cancion' || c.tipo === 'canciones') { c.valor = null; } }); });
-          pintarTodo();
-          marcarCambio();
+          P.confirmar({ mensaje: __('¿Rellenar las canciones de la escaleta con las del setlist? Se pierden las canciones, notas y casillas «Instrumental» que hayas puesto a mano en la escaleta.'), aceptar: __('Rellenar con el setlist'), peligro: true }).then(function (si) {
+            if (!si) { return; }
+            esc.secciones.forEach(function (s) { s.campos.forEach(function (c) { if (c.tipo === 'cancion' || c.tipo === 'canciones') { c.valor = null; } }); });
+            pintarTodo();
+            marcarCambio();
+          });
         }
       }, icono('lista'), __('Rellenar con el setlist'));
       append(cont, [

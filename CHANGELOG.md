@@ -2,6 +2,14 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.24.4 · 2026-11-12
+
+Las confirmaciones dejan de usar el aviso del navegador y pasan a un diálogo propio, con el aspecto del tema: la pregunta,
+«Cancelar» y un botón que dice lo que hace («Borrar canción», «Vaciar la papelera», «Cerrar sin guardar»…), en rojo cuando
+la acción destruye algo; en ese caso el foco empieza en «Cancelar». En el móvil sale como hoja inferior. Además, con un
+formulario con cambios sin guardar ahora también se pregunta al ir atrás con el navegador o al pulsar otra sección (antes
+los cambios se perdían sin avisar); «Seguir editando» deja el formulario como estaba.
+
 ## 1.24.3 · 2026-11-12
 
 Botones y acciones más ordenados. Las fichas dejan a la vista solo lo habitual y el resto pasa a un menú «Más acciones»:
