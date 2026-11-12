@@ -2,6 +2,12 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.24.6 · 2026-11-12
+
+«Exportar letras» está siempre en «Más acciones» de un culto con canciones; si ninguna tiene letra, al pulsarla se avisa
+en vez de esconder la opción. Además, las opciones de exportar letra ya no dependen de que su archivo haya terminado de
+cargarse cuando se pinta la ficha.
+
 ## 1.24.5 · 2026-11-12
 
 Pulido por pantalla. Inicio: las cifras usan las mismas tarjetas que el resumen de Canciones, el rótulo del próximo culto

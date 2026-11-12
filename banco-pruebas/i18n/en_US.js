@@ -2958,6 +2958,9 @@ window.PIEB_I18N = {
   ],
   "de todo lo que tocamos": [
    "of everything we play"
+  ],
+  "Ninguna canción de este culto tiene letra": [
+   "No song in this service has lyrics"
   ]
  }
 };

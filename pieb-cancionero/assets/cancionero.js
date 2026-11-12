@@ -2193,7 +2193,7 @@
       c.editables && c.editables.length ? seccion(__('Partituras editables'), 'editable', vistaEditables(c)) : null,
       c.letra ? seccion(__('Letra'), 'letra', vistaLetra(c),
         h('span', { class: 'pcan-det-sec-acciones' },
-          P.exportarLetras ? h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-ghost', onclick: function () { exportarLetraCancion(c); } }, icono('descargar'), __('Exportar')) : null,
+          h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-ghost', onclick: function () { exportarLetraCancion(c); } }, icono('descargar'), __('Exportar')),
           h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-ghost', onclick: function () { copiar(c.letra, __('Letra copiada')); } }, icono('copiar'), __('Copiar')))) : null,
       c.youtube.length ? seccion(__('Versiones en YouTube'), 'youtube', vistaYoutube(c)) : null,
       c.notas ? seccion(__('Notas para el equipo'), 'editar', h('div', { class: 'pcan-notas', text: c.notas })) : null);

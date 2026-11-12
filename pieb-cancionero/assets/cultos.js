@@ -322,7 +322,11 @@
     var validos = c.items.filter(function (it) { return !it.eliminada; });
     var pdfItem = { texto: __('Descargar PDF del setlist'), icono: 'descargar', fn: function (e, boton) { descargarPdf(c, boton); } };
     var conLetra = validos.filter(function (it) { return it.datos && it.datos.letra; });
-    var letrasItem = conLetra.length && P.exportarLetras ? { texto: __('Exportar letras'), icono: 'letra', fn: function () {
+    // Siempre a la vista si el culto tiene canciones: si ninguna tiene letra se avisa al pulsar, en vez de esconder la opción.
+    // «exportarLetras» (letras.js, que se carga después) se comprueba al pulsar, no al pintar.
+    var letrasItem = validos.length ? { texto: __('Exportar letras'), icono: 'letra', fn: function () {
+      if (!conLetra.length) { aviso(__('Ninguna canción de este culto tiene letra')); return; }
+      if (!P.exportarLetras) { return; }
       P.exportarLetras(validos.map(function (it) {
         var s = it.datos;
         return { titulo: s.titulo, autor: s.autor || '', numero: s.numero || '', tonalidad: it.tonalidad || s.tonalidad || '', tempo: s.tempo || '', nota: it.nota || '', letra: s.letra || '', letraHtml: s.letraHtml || '' };
