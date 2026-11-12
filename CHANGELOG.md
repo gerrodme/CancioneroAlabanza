@@ -2,6 +2,17 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.24.5 · 2026-11-12
+
+Pulido por pantalla. Inicio: las cifras usan las mismas tarjetas que el resumen de Canciones, el rótulo del próximo culto
+se corta limpio y no se repite el tipo de culto cuando coincide con el título (tampoco en la ficha ni en el PDF del
+setlist). Canciones: el recuento del filtro dice «8 canciones»; en el móvil el filtro ocupa su propia fila, «Subida
+múltiple» y «Seleccionar» llevan texto, cada fila muestra solo los iconos de lo que la canción tiene y las etiquetas de
+filtro son más altas para el dedo. Culto: filas del setlist de la misma altura. Estadísticas: los meses a cero no pintan
+barra y el dato de «la mitad de lo que tocamos» se explica mejor. Ajustes: en el menú solo destaca la sección activa, en el
+móvil un degradado avisa de que hay más pestañas y «Enviar la bienvenida» ya no dice «a 0 personas». Editor de letra: los
+botones de formato caben en una fila.
+
 ## 1.24.4 · 2026-11-12
 
 Las confirmaciones dejan de usar el aviso del navegador y pasan a un diálogo propio, con el aspecto del tema: la pregunta,

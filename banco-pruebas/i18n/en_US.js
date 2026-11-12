@@ -1614,12 +1614,6 @@ window.PIEB_I18N = {
   "de %d en el cancionero": [
    "of %d in the songbook"
   ],
-  "La mitad de lo que tocamos": [
-   "Half of what we play"
-  ],
-  "Cuantas menos, más repetimos": [
-   "The fewer, the more we repeat"
-  ],
   "Canciones nuevas": [
    "New songs"
   ],
@@ -2954,6 +2948,16 @@ window.PIEB_I18N = {
   ],
   "Seguir editando": [
    "Keep editing"
+  ],
+  "Enviar la bienvenida": [
+   "Send the welcome email"
+  ],
+  "Canción que suma la mitad": [
+   "Song making up half",
+   "Songs making up half"
+  ],
+  "de todo lo que tocamos": [
+   "of everything we play"
   ]
  }
 };

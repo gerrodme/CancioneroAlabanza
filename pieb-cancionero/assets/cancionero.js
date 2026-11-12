@@ -1376,15 +1376,18 @@
     var cs = state.canciones;
     var cuenta = function (fn) { return cs.filter(fn).length; };
     var datos = cs.length ? [
-      [__('Canciones'), cs.length, ''],
-      [__('Con audio'), cuenta(function (c) { return c.audios; }), 'audio'],
-      [__('Con letra'), cuenta(function (c) { return c.letra; }), 'letra'],
-      state.usoCargado ? [__('Nunca tocadas'), cuenta(function (c) { return !state.uso[c.id]; }), 'nunca'] : [__('Con YouTube'), cuenta(function (c) { return c.youtube; }), 'youtube']
+      [__('Canciones'), cs.length, '', 'nota'],
+      [__('Con audio'), cuenta(function (c) { return c.audios; }), 'audio', 'audio'],
+      [__('Con letra'), cuenta(function (c) { return c.letra; }), 'letra', 'letra'],
+      state.usoCargado ? [__('Nunca tocadas'), cuenta(function (c) { return !state.uso[c.id]; }), 'nunca', 'calendario'] : [__('Con YouTube'), cuenta(function (c) { return c.youtube; }), 'youtube', 'youtube']
     ] : [];
     ui.cifras.innerHTML = '';
     append(ui.cifras, datos.map(function (d) {
-      return h('a', { class: 'pcan-cifra', href: '#/canciones', onclick: function () { state.filtro = d[2]; if (ui.lista) { pintarLista(); } } },
-        h('strong', { text: String(d[1]) }), h('span', { text: d[0] }));
+      // Mismas tarjetas que el resumen de Canciones (icono, cifra y rótulo).
+      return h('a', { class: 'pcan-resumen-item', href: '#/canciones', onclick: function () { state.filtro = d[2]; if (ui.lista) { pintarLista(); } } },
+        h('span', { class: 'pcan-resumen-ico', 'aria-hidden': 'true' }, icono(d[3])),
+        h('span', { class: 'pcan-resumen-n', text: String(d[1]) }),
+        h('span', { class: 'pcan-resumen-t', text: d[0] }));
     }));
   }
 
@@ -1511,6 +1514,8 @@
       return h('button', {
         type: 'button', class: clase + ' pcan-th' + (activo ? ' is-active' : ''), 'aria-pressed': activo ? 'true' : 'false',
         title: activo ? sprintf(/* translators: %s: nombre de la columna */ __('Ordenar por %s (pulsa otra vez para invertir)'), titulo) : sprintf(/* translators: %s: nombre de la columna */ __('Ordenar por %s'), titulo),
+        // Las columnas de solo icono necesitan nombre accesible (title no basta con lectores de pantalla).
+        'aria-label': typeof contenido === 'string' ? null : sprintf(/* translators: %s: nombre de la columna */ __('Ordenar por %s'), titulo),
         onclick: function () { ordenarPor(orden); }
       }, contenido, flecha(orden));
     }
@@ -1532,7 +1537,7 @@
 
   /** Punto de un recurso (partitura, letra, audio…); `titulo` ya lleva el recuento o «Sin …». */
   function puntoRecurso(n, nombre, titulo, extra) {
-    return h('span', { class: 'pcan-dot' + (n ? ' is-on' : '') + (extra || ''), title: titulo },
+    return h('span', { class: 'pcan-dot' + (n ? ' is-on' : '') + (extra || ''), title: titulo, role: 'img', 'aria-label': titulo },
       icono(nombre), n > 1 ? h('small', { text: String(n) }) : null);
   }
 
@@ -1694,8 +1699,9 @@
     if (state.error) { append(ui.lista, h('div', { class: 'pcan-empty is-error', text: sprintf(/* translators: %s: motivo del error */ __('No se pudieron cargar las canciones: %s'), state.error) })); return; }
 
     var res = buscar(state.query, state.etiqueta).filter(function (r) { return pasaFiltro(r.c); });
-    ui.contador.textContent = String(res.length);
-    ui.contador.title = sprintf(_n('%d canción', '%d canciones', res.length), res.length);
+    var textoCuenta = sprintf(_n('%d canción', '%d canciones', res.length), res.length);
+    ui.contador.textContent = textoCuenta;
+    ui.contador.title = textoCuenta;
     ui.thead.hidden = !res.length;
 
     if (!state.canciones.length) {
@@ -4084,7 +4090,8 @@
       bSinEntrar.disabled = enCurso || !vis.some(function (f) { return !f.m.haEntrado; });
       bQuitar.disabled = enCurso || !n;
       bEnviar.disabled = enCurso || !n;
-      bEnviar.textContent = sprintf(_n('Enviar la bienvenida a %d persona', 'Enviar la bienvenida a %d personas', n), n);
+      // Sin nadie marcado no se habla de «0 personas».
+      bEnviar.textContent = n ? sprintf(_n('Enviar la bienvenida a %d persona', 'Enviar la bienvenida a %d personas', n), n) : __('Enviar la bienvenida');
     }
 
     /** Anota la fecha de la bienvenida en quienes la recibieron (sin volver a pintar toda la lista). */
@@ -4616,10 +4623,18 @@
       });
     });
 
-    var raiz = h('div', { class: 'pcan-panel-body pcan-ajustes' },
-      h('div', { class: 'pcan-ajustes-nav' }, lista,
-        h('p', { class: 'pcan-help pcan-ajustes-version', text: sprintf(/* translators: %s: número de versión del plugin */ __('Cancionero · versión %s'), a.version || CFG.version) })),
-      form);
+    var navAjustes = h('div', { class: 'pcan-ajustes-nav' }, lista,
+      h('p', { class: 'pcan-help pcan-ajustes-version', text: sprintf(/* translators: %s: número de versión del plugin */ __('Cancionero · versión %s'), a.version || CFG.version) }));
+    var raiz = h('div', { class: 'pcan-panel-body pcan-ajustes' }, navAjustes, form);
+    // En el móvil las pestañas se desplazan en horizontal: un degradado en el borde avisa de que hay más.
+    function pistaPestanas() {
+      var resto = lista.scrollWidth - lista.clientWidth;
+      navAjustes.classList.toggle('is-mas-izq', resto > 4 && lista.scrollLeft > 4);
+      navAjustes.classList.toggle('is-mas-der', resto > 4 && lista.scrollLeft < resto - 4);
+    }
+    lista.addEventListener('scroll', pistaPestanas, { passive: true });
+    var vigilaPestanas = window.ResizeObserver ? new ResizeObserver(pistaPestanas) : null;
+    if (vigilaPestanas) { vigilaPestanas.observe(lista); }
     abrirPanel([cabeceraPanel(h('h2', { text: __('Ajustes y equipo') })), raiz], __('Ajustes'), { modal: true, ancho: true });
     ajustesAbierto = {
       raiz: raiz,
@@ -4628,9 +4643,11 @@
     };
     alCerrarPanel.push(function () {
       cerrarOpciones();
+      if (vigilaPestanas) { vigilaPestanas.disconnect(); }
       if (ajustesAbierto && ajustesAbierto.raiz === raiz) { ajustesAbierto = null; }
     });
     ir(seccionInicial);
+    pistaPestanas();
   }
 
   // ---------------------------------------------------------------- accesos (responsables)

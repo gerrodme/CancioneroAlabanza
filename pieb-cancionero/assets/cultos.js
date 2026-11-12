@@ -162,6 +162,12 @@
     return c.items.map(function (it) { var s = P.cancion(+it.cancion); return s ? s.titulo : null; }).filter(Boolean);
   }
 
+  /** El tipo de culto solo se muestra si añade algo al título (sin distinguir mayúsculas ni espacios). */
+  function tipoAparte(c) {
+    var limpio = function (t) { return String(t || '').replace(/\s+/g, ' ').trim().toLowerCase(); };
+    return c.tipo && limpio(c.tipo) !== limpio(c.titulo) ? c.tipo : '';
+  }
+
   function tarjeta(c) {
     var titulos = titulosDe(c);
     var faltan = diasEntre(hoyISO(), c.fecha);
@@ -211,6 +217,16 @@
     P.repintarInicio();
   }
 
+  /** Rótulo «Próximo culto · dentro de 4 días»: si no cabe en una línea, el corte cae antes del «dentro de…», nunca en medio. */
+  function kickerProximo(fecha) {
+    var cuando = haceTanto(fecha);
+    var texto = sprintf(/* translators: %s: cuándo es el culto («mañana», «dentro de 4 días») */ __('Próximo culto · %s'), cuando);
+    var i = texto.lastIndexOf(cuando);
+    return i < 0
+      ? h('span', { class: 'pcan-hero-kicker', text: texto })
+      : h('span', { class: 'pcan-hero-kicker' }, texto.slice(0, i), h('span', { class: 'pcan-nowrap', text: cuando }));
+  }
+
   /** Tarjeta grande del próximo culto (en inicio y en la portada de cultos); sin culto, invita a preparar uno. */
   function tarjetaProximo(proximo) {
     if (!proximo) {
@@ -224,9 +240,9 @@
       h('div', { class: 'pcan-hero-cab' },
         bloqueFecha(proximo.fecha),
         h('div', { class: 'pcan-hero-texto' },
-          h('span', { class: 'pcan-hero-kicker', text: sprintf(/* translators: %s: cuándo es el culto («mañana», «dentro de 4 días») */ __('Próximo culto · %s'), haceTanto(proximo.fecha)) }),
+          kickerProximo(proximo.fecha),
           h('a', { href: '#/culto/' + proximo.id }, h('strong', { text: proximo.titulo })),
-          h('span', { text: [proximo.tipo, nCanciones(canciones.length)].filter(Boolean).join(' · ') }))),
+          h('span', { text: [tipoAparte(proximo), nCanciones(canciones.length)].filter(Boolean).join(' · ') }))),
       canciones.length ? h('ol', { class: 'pcan-hero-set' }, canciones.map(function (x, i) {
         return h('li', null, h('a', { href: '#/culto/' + proximo.id + '/tocar/' + (i + 1), title: __('Tocar desde aquí') },
           h('span', { class: 'pcan-hero-n', text: String(i + 1) }),
@@ -344,7 +360,7 @@
           h('div', null,
             h('p', { class: 'pcan-det-kicker', text: fechaLarga(c.fecha) + ' · ' + haceTanto(c.fecha) }),
             h('h2', { class: 'pcan-det-titulo', text: c.titulo }),
-            h('p', { class: 'pcan-det-meta' }, c.tipo ? h('span', { text: c.tipo }) : null, h('span', { text: nCanciones(validos.length) }), c.creadoPor ? h('span', { class: 'pcan-muted', text: sprintf(/* translators: %s: nombre de quien preparó el culto */ __('Preparado por %s'), c.creadoPor) }) : null))),
+            h('p', { class: 'pcan-det-meta' }, tipoAparte(c) ? h('span', { text: tipoAparte(c) }) : null, h('span', { text: nCanciones(validos.length) }), c.creadoPor ? h('span', { class: 'pcan-muted', text: sprintf(/* translators: %s: nombre de quien preparó el culto */ __('Preparado por %s'), c.creadoPor) }) : null))),
         h('div', { class: 'pcan-det-actions' },
           validos.length ? h('a', { class: 'pcan-btn pcan-btn-primary pcan-btn-lg', href: '#/culto/' + c.id + '/tocar/1' }, icono('play'), __('Tocar el culto')) : null,
           h('a', { class: 'pcan-btn', href: '#/culto/editar/' + c.id }, icono('editar'), h('span', { class: 'pcan-btn-label', text: __('Editar') })),
@@ -890,7 +906,7 @@
           var y = 770;
           pag.drawText(latin1(c.titulo), { x: 56, y: y, size: 24, font: negrita, color: L.rgb(0.12, 0.23, 0.45) });
           y -= 26;
-          pag.drawText(latin1(fechaLarga(c.fecha) + (c.tipo ? ' · ' + c.tipo : '')), { x: 56, y: y, size: 12, font: normal, color: L.rgb(0.37, 0.43, 0.5) });
+          pag.drawText(latin1(fechaLarga(c.fecha) + (tipoAparte(c) ? ' · ' + tipoAparte(c) : '')), { x: 56, y: y, size: 12, font: normal, color: L.rgb(0.37, 0.43, 0.5) });
           y -= 40;
           var n = 0;
           c.items.forEach(function (it) {
@@ -2809,7 +2825,7 @@
     append(contStats, h('div', { class: 'pcan-kpis' },
       kpi(__('Cultos celebrados'), String(s.cultos), s.cultos ? sprintf(/* translators: %s: media de canciones por culto, con un decimal («3,5») */ __('%s canciones de media'), s.media.toLocaleString(LOCALE, { minimumFractionDigits: 1, maximumFractionDigits: 1 })) : null),
       kpi(__('Canciones distintas'), String(s.distintas), sprintf(/* translators: %d: total de canciones del cancionero */ __('de %d en el cancionero'), s.repertorio)),
-      kpi(__('La mitad de lo que tocamos'), s.mitad ? nCanciones(s.mitad) : '—', s.mitad ? __('Cuantas menos, más repetimos') : null),
+      kpi(/* translators: el número de canciones se muestra aparte, justo debajo; son las que suman la mitad de todas las veces que han sonado */ _n('Canción que suma la mitad', 'Canciones que suman la mitad', s.mitad || 0), s.mitad ? String(s.mitad) : '—', s.mitad ? __('de todo lo que tocamos') : null),
       kpi(__('Canciones nuevas'), String(s.nuevas), s.nuevas ? sprintf(_n('%d ya se ha tocado', '%d ya se han tocado', s.nuevasTocadas), s.nuevasTocadas) : __('Añadidas en el periodo'))));
 
     var maxTop = s.top.length ? s.top[0].n : 0;
