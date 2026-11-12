@@ -229,14 +229,6 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
 .pcan-brand-text strong { font-family: var(--pc-font-head); font-size: 18px; font-weight: var(--pc-head-weight); letter-spacing: var(--pc-head-track); }
 .pcan-brand-text small { color: var(--pc-side-muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-[data-pcan-theme] .pcan-side-search {
-  display: flex; align-items: center; gap: 10px; width: 100%; height: 40px; padding: 0 10px 0 12px; border: 1px solid transparent; border-radius: var(--pc-radius-sm);
-  background: var(--pc-side-hover); color: var(--pc-side-muted); font-size: 14px; text-align: left;
-}
-[data-pcan-theme] .pcan-side-search:hover { color: var(--pc-side-ink); border-color: var(--pc-side-active); }
-.pcan-side-search span { flex: 1; }
-[data-pcan-theme] .pcan-side-search kbd { background: transparent; border-color: currentColor; color: inherit; opacity: .7; }
-
 .pcan-side-nav { display: flex; flex-direction: column; gap: 2px; }
 .pcan-side-link {
   display: flex; align-items: center; gap: 12px; height: 42px; padding: 0 12px; border-radius: var(--pc-radius-sm);
@@ -249,6 +241,8 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
 .pcan-side-link .pcan-ico { width: 20px; height: 20px; }
 
 .pcan-side-section { display: flex; flex-direction: column; gap: 4px; min-height: 0; }
+/* En Cultos la lista de próximos ya se ve al lado: el bloque de la barra lateral sobra. */
+.pcan[data-vista="cultos"] .pcan-side-section { display: none; }
 [data-pcan-theme] .pcan-side-label { padding: 0 12px 4px; color: var(--pc-side-muted); font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
 .pcan-side-cultos { display: flex; flex-direction: column; gap: 2px; }
 .pcan-side-culto { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: var(--pc-radius-sm); color: var(--pc-side-ink) !important; }
@@ -497,14 +491,6 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
 [data-pcan-theme] .pcan-home-fecha { color: var(--pc-muted); font-size: 13px; font-weight: 600; text-transform: var(--pc-label-case); letter-spacing: var(--pc-label-track); }
 [data-pcan-theme] .pcan-home-saludo h1 { font-size: clamp(28px, 5cqi, 44px); }
 [data-pcan-theme="papel"] .pcan-home-saludo h1 { font-style: italic; }
-[data-pcan-theme] .pcan-home-buscar {
-  display: flex; align-items: center; gap: 12px; width: 100%; height: 56px; padding: 0 16px; border: var(--pc-card-border); border-radius: 16px;
-  background: var(--pc-surface); color: var(--pc-muted); font-size: 17px; text-align: left; box-shadow: var(--pc-shadow);
-}
-[data-pcan-theme="papel"] .pcan-home-buscar { border-radius: var(--pc-radius); border-color: var(--pc-text); }
-[data-pcan-theme] .pcan-home-buscar:hover { border-color: var(--pc-accent); color: var(--pc-text); }
-.pcan-home-buscar span { flex: 1; }
-.pcan-home-buscar .pcan-ico { width: 22px; height: 22px; }
 
 .pcan-hero {
   display: grid; gap: 14px; padding: 20px; border-radius: 22px; color: var(--pc-accent-ink);
@@ -654,7 +640,6 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
 
 /* ---- cabecera de listas (cultos) */
 .pcan-list-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
-[data-pcan-theme] .pcan-list-head h2 { font-size: 24px; }
 .pcan-list-head p { font-size: 13px; }
 [data-pcan-theme] .pcan-list-label { margin: 16px 2px 6px; color: var(--pc-muted); font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
 
@@ -687,13 +672,10 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
 .pcan-panel-x { display: none !important; }
 .pcan-panel-title { flex: 1; min-width: 0; }
 [data-pcan-theme] .pcan-panel-head h2 { font-size: 20px; }
-.pcan-panel-crumb { color: var(--pc-muted); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
 .pcan-panel-body { flex: 1; padding: 18px 20px 40px; }
 .pcan-panel-loading { padding: 60px 24px; color: var(--pc-muted); text-align: center; }
 @container pcan (min-width: 1000px) {
-  .pcan-split-detail .pcan-panel-back { display: none !important; }
-  .pcan-split-detail .pcan-panel-x { display: inline-grid !important; }
-  .pcan-split-detail .pcan-panel-head { padding-left: 28px; }
+  .pcan-split-detail .pcan-panel-head { padding-left: 20px; }
   .pcan-split-detail .pcan-panel-body { padding: 22px 28px 48px; }
 }
 @media (min-width: 761px) {
@@ -1362,8 +1344,7 @@ a.pcan-set-title:hover { color: var(--pc-accent) !important; }
 
 /* ================================================================== estadísticas */
 
-.pcan-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 14px; }
-[data-pcan-theme] .pcan-section-head h2 { font-size: clamp(24px, 4cqi, 34px); }
+.pcan-section-head { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin: 0 0 14px; }
 .pcan-periodo { margin: 0; }
 .pcan-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
 .pcan-kpi { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border: var(--pc-card-border); border-radius: var(--pc-radius); background: var(--pc-surface); }
@@ -1598,8 +1579,6 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 }
 .pcan-vista.is-pagina .pcan-panel { min-height: 0; }
 .pcan-vista.is-pagina .pcan-panel-head { top: var(--pc-top-h); }
-.pcan-vista.is-pagina .pcan-split-detail .pcan-panel-back { display: inline-grid !important; }
-.pcan-vista.is-pagina .pcan-split-detail .pcan-panel-x { display: none !important; }
 
 /* Pantallas anchas: tabla con columnas */
 @container pcan (min-width: 860px) {
@@ -1711,7 +1690,6 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 :is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-icon-btn-line { border-color: #b3b3b3; }
 
 /* ---- barra lateral */
-:is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-side-search { border-radius: 999px; background: var(--pc-surface-2); }
 :is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-side-link { opacity: 1; color: var(--pc-side-muted) !important; font-weight: 700; border-radius: 6px; }
 :is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-side-link:hover { color: var(--pc-text) !important; background: transparent; }
 :is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-side-link.is-active { color: var(--pc-text) !important; background: var(--pc-side-active); box-shadow: none; }
@@ -1720,8 +1698,8 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 :is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-brand-logo { border-radius: 50%; background: var(--pc-ink); color: var(--pc-on-ink-accent); }
 
 /* ---- búsqueda y filtros */
-:is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) :is(.pcan-search, .pcan-top-search, .pcan-home-buscar) { border: 0; border-radius: 999px; background: var(--pc-surface-2); box-shadow: none; }
-:is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) :is(.pcan-search, .pcan-top-search, .pcan-home-buscar):hover { background: #ebebeb; }
+:is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) :is(.pcan-search, .pcan-top-search) { border: 0; border-radius: 999px; background: var(--pc-surface-2); box-shadow: none; }
+:is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) :is(.pcan-search, .pcan-top-search):hover { background: #ebebeb; }
 :is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-search:focus-within { box-shadow: 0 0 0 2px var(--pc-ink); }
 :is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-select { border: 0; border-radius: 999px; background: var(--pc-surface-2); }
 :is([data-pcan-theme="pulso"], [data-pcan-theme="sitio"]) .pcan-toolbar { background: var(--pc-surface); }
@@ -1838,7 +1816,9 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 @container pcan (max-width: 760px) {
   .pcan-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .pcan-stats-grid { grid-template-columns: 1fr; }
-  .pcan-section-head { flex-wrap: wrap; }
+  .pcan-section-head { justify-content: flex-start; }
+  .pcan-section-head .pcan-periodo { width: 100%; }
+  .pcan-section-head .pcan-seg { flex: 1 1 0; }
   .pcan-kpi-valor { font-size: 24px; }
   .pcan-grid-2 { grid-template-columns: 1fr; }
   .pcan-yt-row { grid-template-columns: 1fr auto; }
@@ -1880,11 +1860,10 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 .pcan-vista[data-vista="inicio"] { container: inicio / inline-size; max-width: 1400px; }
 .pcan-home {
   grid-template-columns: minmax(0, 1fr); gap: 14px;
-  grid-template-areas: "saludo" "buscar" "hero" "atajos" "cifras" "tarjetas";
+  grid-template-areas: "saludo" "hero" "atajos" "cifras" "tarjetas";
 }
 .pcan-home > * { min-width: 0; }
 .pcan-home-saludo { grid-area: saludo; }
-.pcan-home-buscar { grid-area: buscar; }
 .pcan-home-hero { grid-area: hero; }
 .pcan-home-atajos { grid-area: atajos; }
 .pcan-home-cifras { grid-area: cifras; }
@@ -1913,18 +1892,12 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
   .pcan-atajo small { display: none; }
   .pcan-atajo strong { font-size: 13px; line-height: 1.2; }
   .pcan-home-grid { grid-template-columns: minmax(0, 1fr); }
-  [data-pcan-theme] .pcan-home-buscar { height: 48px; font-size: 16px; }
   [data-pcan-theme] .pcan-hero { gap: 12px; padding: 16px; border-radius: 18px; }
   .pcan-hero-acciones .pcan-btn { flex: 1 1 auto; justify-content: center; }
 }
 
-/* Tableta: saludo y buscador comparten fila; el resto, a lo ancho */
+/* Tableta: una columna; las cifras en cuatro */
 @container inicio (min-width: 560px) {
-  .pcan-home {
-    grid-template-columns: minmax(0, 1fr) minmax(220px, .85fr); align-items: center;
-    grid-template-areas: "saludo buscar" "hero hero" "atajos atajos" "cifras cifras" "tarjetas tarjetas";
-  }
-  .pcan-home > :not(.pcan-home-saludo):not(.pcan-home-buscar) { align-self: start; }
   .pcan-home-cifras { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   [data-pcan-theme] .pcan-hero { gap: 12px; padding: 18px 20px; }
   /* Los botones del próximo culto, a la derecha del título: una fila menos */
@@ -1937,7 +1910,7 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 @container inicio (min-width: 980px) {
   .pcan-home {
     grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); grid-template-rows: auto auto auto auto 1fr; column-gap: 22px;
-    grid-template-areas: "saludo buscar" "hero tarjetas" "atajos tarjetas" "cifras tarjetas" ". tarjetas";
+    grid-template-areas: "saludo tarjetas" "hero tarjetas" "atajos tarjetas" "cifras tarjetas" ". tarjetas";
   }
   .pcan-home-grid { grid-template-columns: minmax(0, 1fr); align-content: start; }
 }
@@ -2231,7 +2204,7 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
   --pc-font-head: Georgia, "Times New Roman", serif;
 }
 /* Títulos con letra clásica */
-[data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-top-title, .pcan-list-head h2, .pcan-vista h1, .pcan-panel-head h2, .pcan-portada-sec h3) {
+[data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-top-title, .pcan-vista h1, .pcan-panel-head h2, .pcan-portada-sec h3) {
   font-family: Georgia, "Times New Roman", serif; font-weight: 600; letter-spacing: -0.01em;
 }
 [data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-portada-sec h3 { color: #7f5714; font-size: 13px; letter-spacing: .06em; }
@@ -2243,7 +2216,7 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 [data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-row, .pcan-culto):hover { background: var(--pc-surface-2); }
 [data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-row, .pcan-culto).is-selected { background: #efe2c4; }
 [data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-chip:hover { background: #efe2c4; }
-[data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-search, .pcan-top-search, .pcan-home-buscar):hover { background: #efe5d0; }
+[data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-search, .pcan-top-search):hover { background: #efe5d0; }
 [data-pcan-theme][data-pcan-estilo="pentagrama"] .pcan-btn { border-color: #cdbb98; }
 [data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-icon-btn-line, .pcan-btn-sec) { border-color: #d8c9a8; }
 [data-pcan-theme][data-pcan-estilo="pentagrama"] :is(.pcan-btn-primary, .pcan-btn-gold) { background: #192e59; border-color: #192e59; color: #fdf6e6; }

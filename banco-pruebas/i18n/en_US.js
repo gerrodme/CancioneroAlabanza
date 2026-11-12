@@ -235,9 +235,6 @@ window.PIEB_I18N = {
   "Aún no hay canciones.": [
    "No songs yet."
   ],
-  "¿Qué canción buscas?": [
-   "Which song are you looking for?"
-  ],
   "Partitura, letra y audios": [
    "Score, lyrics and audio"
   ],
@@ -1303,9 +1300,6 @@ window.PIEB_I18N = {
   "%d anterior": [
    "%d past",
    "%d past"
-  ],
-  "Nuevo": [
-   "New"
   ],
   "Todavía no hay cultos. Prepara el setlist del próximo domingo.": [
    "There are no services yet. Plan next Sunday’s setlist."

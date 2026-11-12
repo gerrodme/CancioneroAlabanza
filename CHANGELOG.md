@@ -2,6 +2,14 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.24.2 · 2026-11-12
+
+Navegación más limpia: queda un solo buscador, el de la barra superior (la lupa en el móvil); se quitan el de la barra
+lateral y el de Inicio. En Cultos y Estadísticas desaparece el titular repetido bajo la barra superior; en Cultos se
+quitan el botón «Nuevo» de la lista y el enlace «Nuevo culto» del pie (se crea desde la barra superior o el botón «+»),
+y «Próximos cultos» de la barra lateral se oculta mientras se está en Cultos. Las fichas y los formularios de canción y
+de culto usan la misma cabecera: flecha de volver a la izquierda y el rótulo con estilo de título
+
 ## 1.24.1 · 2026-11-12
 
 Arreglos de la interfaz en el móvil: al crear o editar una canción y en la subida múltiple, la barra inferior ya no tapa

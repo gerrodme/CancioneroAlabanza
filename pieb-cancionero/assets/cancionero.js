@@ -969,8 +969,6 @@
       h('a', { class: 'pcan-brand', href: '#/' },
         h('span', { class: 'pcan-brand-logo', 'aria-hidden': 'true' }, icono('nota')),
         h('span', { class: 'pcan-brand-text' }, h('strong', { text: CFG.nombre || 'Cancionero' }), h('small', { text: CFG.sitio }))),
-      h('button', { type: 'button', class: 'pcan-side-search', onclick: function () { abrirPaleta(); } },
-        icono('buscar'), h('span', { text: __('Buscar') }), h('kbd', { text: atajo() })),
       ui.sideNav = h('nav', { class: 'pcan-side-nav', 'aria-label': __('Secciones') }, VISTAS.map(function (v) {
         return h('a', { href: v.href, class: 'pcan-side-link', 'data-vista': v.vista }, icono(v.icono), h('span', { text: v.texto }));
       })),
@@ -1411,8 +1409,6 @@
 
     append(cont, h('div', { class: 'pcan-home' },
       h('div', { class: 'pcan-home-saludo' }, h('p', { class: 'pcan-home-fecha', text: hoy.charAt(0).toUpperCase() + hoy.slice(1) }), h('h1', { text: saludo() })),
-      h('button', { type: 'button', class: 'pcan-home-buscar', onclick: function () { abrirPaleta(); } },
-        icono('buscar'), h('span', { text: __('¿Qué canción buscas?') }), h('kbd', { text: atajo() })),
       heroe,
       h('div', { class: 'pcan-home-atajos' },
         h('a', { class: 'pcan-atajo', href: '#/nueva' }, h('span', { class: 'pcan-atajo-ico' }, icono('mas')), h('span', null, h('strong', { text: __('Nueva canción') }), h('small', { text: __('Partitura, letra y audios') }))),
@@ -2030,7 +2026,7 @@
       c.notas ? seccion(__('Notas para el equipo'), 'editar', h('div', { class: 'pcan-notas', text: c.notas })) : null);
 
     abrirPanel([
-      cabeceraPanel(h('span', { class: 'pcan-panel-crumb', text: __('Canción') })),
+      cabeceraPanel(h('h2', { text: __('Canción') })),
       h('div', { class: 'pcan-panel-body' }, h('div', { class: 'pcan-det-grid' }, principal, lateral))
     ], c.titulo, { vista: 'canciones', id: c.id });
 

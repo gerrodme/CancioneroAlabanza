@@ -129,8 +129,7 @@
     var pasados = cultos.filter(function (c) { return c.fecha < hoy; });
 
     append(contenedor, h('div', { class: 'pcan-list-head' },
-      h('div', null, h('h2', { text: __('Cultos') }), h('p', { class: 'pcan-muted', text: sprintf(/* translators: 1: cuántos cultos hay programados («3 programados»), 2: cuántos son anteriores («5 anteriores») */ __('%1$s · %2$s'), sprintf(_n('%d programado', '%d programados', proximos.length), proximos.length), sprintf(_n('%d anterior', '%d anteriores', pasados.length), pasados.length)) })),
-      h('a', { class: 'pcan-btn pcan-btn-sm', href: '#/culto/nuevo' }, icono('mas'), __('Nuevo'))));
+      h('p', { class: 'pcan-muted', text: sprintf(/* translators: 1: cuántos cultos hay programados («3 programados»), 2: cuántos son anteriores («5 anteriores») */ __('%1$s · %2$s'), sprintf(_n('%d programado', '%d programados', proximos.length), proximos.length), sprintf(_n('%d anterior', '%d anteriores', pasados.length), pasados.length)) })));
 
     if (!cultos.length) {
       append(contenedor, h('div', { class: 'pcan-empty' },
@@ -280,8 +279,7 @@
     }
 
     append(portada, h('p', { class: 'pcan-portada-pie pcan-muted' },
-      sprintf(/* translators: 1: cuántos cultos hay programados («3 cultos programados»), 2: cuántos se han celebrado («5 celebrados») */ __('%1$s · %2$s'), sprintf(_n('%d culto programado', '%d cultos programados', proximos.length), proximos.length), sprintf(_n('%d celebrado', '%d celebrados', celebrados.length), celebrados.length)) + ' · ',
-      h('a', { href: '#/culto/nuevo', text: __('Nuevo culto') })));
+      sprintf(/* translators: 1: cuántos cultos hay programados («3 cultos programados»), 2: cuántos se han celebrado («5 celebrados») */ __('%1$s · %2$s'), sprintf(_n('%d culto programado', '%d cultos programados', proximos.length), proximos.length), sprintf(_n('%d celebrado', '%d celebrados', celebrados.length), celebrados.length))));
     return true;
   }
 
@@ -339,7 +337,7 @@
     }));
 
     P.abrirPanel([
-      P.cabeceraPanel(h('span', { class: 'pcan-panel-crumb', text: __('Culto') })),
+      P.cabeceraPanel(h('h2', { text: __('Culto') })),
       h('div', { class: 'pcan-panel-body' },
         h('div', { class: 'pcan-det-hero pcan-culto-hero' },
           bloqueFecha(c.fecha),
@@ -2791,7 +2789,7 @@
       }, p.texto);
     }));
 
-    append(contStats, h('div', { class: 'pcan-section-head' }, h('h2', { text: __('Estadísticas') }), selector));
+    append(contStats, h('div', { class: 'pcan-section-head' }, selector));
 
     if (!s.cultos) {
       append(contStats, h('div', { class: 'pcan-empty' },
