@@ -483,6 +483,12 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
   [data-pcan-theme] .pcan-tema-opcion { padding: 9px 10px; }
 }
 .pcan-menu-sep { height: 1px; margin: 6px 0; background: var(--pc-line); }
+/* Menú «Más acciones» de las fichas: mismo aspecto que el de la cuenta; en pantallas anchas se ajusta a su contenido */
+[data-pcan-theme] .pcan-btn-mas[aria-expanded="true"] { border-color: var(--pc-accent); background: var(--pc-surface-2); }
+.pcan-menu-acc { overflow-y: auto; overscroll-behavior: contain; }
+@media (min-width: 761px) { .pcan-menu-acc { width: max-content; min-width: 220px; max-width: min(340px, calc(100vw - 16px)); } }
+@media (max-width: 760px) { [data-pcan-theme] .pcan-menu-acc .pcan-menu-item { min-height: 46px; } }
+[data-pcan-theme] .pcan-menu-item:focus-visible { outline: 2px solid var(--pc-focus); outline-offset: -2px; background: var(--pc-surface-2); }
 
 /* ================================================================== inicio */
 
@@ -1497,9 +1503,6 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 .pcan-lote-estado.is-error { color: var(--pc-danger); }
 [data-pcan-theme] .pcan-lote-btn { flex: none; min-height: 46px; padding: 0 14px; gap: 8px; border-radius: 12px; font-size: 14px; white-space: nowrap; }
 [data-pcan-theme] .pcan-lote-btn .pcan-ico { width: 20px; height: 20px; }
-[data-pcan-theme] .pcan-lote-btn-borrar, [data-pcan-theme] .pcan-lote-btn-borrar .pcan-ico { color: var(--pc-danger); }
-[data-pcan-theme] .pcan-lote-btn-borrar { border-color: var(--pc-danger); }
-[data-pcan-theme] .pcan-lote-btn-borrar:hover { border-color: var(--pc-danger); background: color-mix(in srgb, var(--pc-danger) 10%, var(--pc-surface)); }
 @container pcan (max-width: 699px) { [data-pcan-theme] .pcan-lote-btn { padding: 0; width: 46px; justify-content: center; } .pcan-lote-btn-txt { display: none; } }
 /* Borrado masivo: filas como casillas y barra flotante */
 [data-pcan-theme] .pcan-lote-btn.is-active, [data-pcan-theme] .pcan-lote-btn.is-active .pcan-ico { border-color: var(--pc-danger); background: var(--pc-danger); color: #fff; }
@@ -1512,6 +1515,7 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 .pcan-barra-n { flex: 1 1 160px; font-weight: 700; }
 .pcan-barra-confirmar { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--pc-radius-sm); background: color-mix(in srgb, var(--pc-danger) 10%, var(--pc-surface)); font-size: 14px; }
 .pcan-barra-confirmar span { flex: 1 1 240px; }
+[data-pcan-theme] .pcan-barra-confirmar .pcan-btn-danger { border-color: var(--pc-danger); }
 /* Modo etiquetar: botón y filas marcadas con el color de acento (el rojo queda para borrar) */
 [data-pcan-theme] .pcan-lote-btn.is-active:not(.pcan-lote-btn-borrar), [data-pcan-theme] .pcan-lote-btn.is-active:not(.pcan-lote-btn-borrar) .pcan-ico { border-color: var(--pc-accent); background: var(--pc-accent); color: #fff; }
 [data-pcan-theme] .is-modo-etiquetar .pcan-row.is-marcada { background: color-mix(in srgb, var(--pc-accent) 11%, var(--pc-surface)); }

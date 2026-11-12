@@ -304,7 +304,7 @@
 
   function pintarFicha(c) {
     var validos = c.items.filter(function (it) { return !it.eliminada; });
-    var pdfItem = { texto: __('Descargar PDF del setlist'), icono: 'descargar', fn: function () { descargarPdf(c); } };
+    var pdfItem = { texto: __('Descargar PDF del setlist'), icono: 'descargar', fn: function (e, boton) { descargarPdf(c, boton); } };
     var conLetra = validos.filter(function (it) { return it.datos && it.datos.letra; });
     var letrasItem = conLetra.length && P.exportarLetras ? { texto: __('Exportar letras'), icono: 'letra', fn: function () {
       P.exportarLetras(validos.map(function (it) {
@@ -349,11 +349,14 @@
           validos.length ? h('a', { class: 'pcan-btn pcan-btn-primary pcan-btn-lg', href: '#/culto/' + c.id + '/tocar/1' }, icono('play'), __('Tocar el culto')) : null,
           h('a', { class: 'pcan-btn', href: '#/culto/editar/' + c.id }, icono('editar'), h('span', { class: 'pcan-btn-label', text: __('Editar') })),
           P.accionesSecundarias([
-            { texto: __('Copiar como texto'), icono: 'copiar', fn: function () { P.copiar(textoSetlist(c), __('Setlist copiado (para WhatsApp)')); } },
+            { texto: __('Copiar como texto'), icono: 'copiar', fn: function () { P.copiar(textoSetlist(c), __('Setlist copiado (para WhatsApp)')); } }
+          ], [
             validos.length ? pdfItem : null,
+            { texto: __('Descargar escaleta'), icono: 'descargar', fn: function (e, boton) { exportarEscaleta(c, boton); } },
             letrasItem,
-            { texto: __('Exportar escaleta'), icono: 'descargar', fn: function (e) { exportarEscaleta(c, e.currentTarget); } },
+            { separador: true },
             { texto: __('Duplicar para otro día'), icono: 'mas', href: '#/culto/duplicar/' + c.id },
+            c.puedeBorrar ? { separador: true } : null,
             c.puedeBorrar ? { texto: __('Borrar culto'), icono: 'borrar', peligro: true, fn: function () { borrar(c); } } : null
           ])),
         c.notas ? h('div', { class: 'pcan-notas pcan-culto-notas', text: c.notas }) : null,
@@ -553,9 +556,9 @@
             repetida ? h('span', { class: 'pcan-picker-warn' }, icono('aviso'), __('Está repetida en este setlist')) : null,
             rep ? h('span', { class: 'pcan-picker-warn' }, icono('aviso'), rep) : null),
           h('span', { class: 'pcan-set-tools' },
-            h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': _x('Subir', 'mover una canción hacia arriba en el setlist'), disabled: i === 0, onclick: function () { mover(i, i - 1); } }, icono('arriba')),
-            h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': _x('Bajar', 'mover una canción hacia abajo en el setlist'), disabled: i === items.length - 1, onclick: function () { mover(i, i + 1); } }, icono('abajo')),
-            h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': sprintf(/* translators: %s: título de la canción */ __('Quitar %s'), titulo), onclick: function () { items.splice(i, 1); pintarItems(); } }, icono('cerrar'))));
+            h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': _x('Subir', 'mover una canción hacia arriba en el setlist'), title: _x('Subir', 'mover una canción hacia arriba en el setlist'), disabled: i === 0, onclick: function () { mover(i, i - 1); } }, icono('arriba')),
+            h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': _x('Bajar', 'mover una canción hacia abajo en el setlist'), title: _x('Bajar', 'mover una canción hacia abajo en el setlist'), disabled: i === items.length - 1, onclick: function () { mover(i, i + 1); } }, icono('abajo')),
+            h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': sprintf(/* translators: %s: título de la canción */ __('Quitar %s'), titulo), title: sprintf(/* translators: %s: título de la canción */ __('Quitar %s'), titulo), onclick: function () { items.splice(i, 1); pintarItems(); } }, icono('cerrar'))));
 
         arrastrable(asa, li);
         append(lista, li);
@@ -642,8 +645,8 @@
       panelEscaleta,
       errorBox,
       h('div', { class: 'pcan-form-actions' },
-        guardar,
-        h('button', { type: 'button', class: 'pcan-btn', onclick: function () { if (editando) { location.hash = '#/culto/' + c.id; } else { P.cerrarPanel(); } } }, __('Cancelar'))));
+        h('button', { type: 'button', class: 'pcan-btn', onclick: function () { if (editando) { location.hash = '#/culto/' + c.id; } else { P.cerrarPanel(); } } }, __('Cancelar')),
+        guardar));
 
     form.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -870,8 +873,9 @@
     });
   }
 
-  function descargarPdf(c) {
+  function descargarPdf(c, boton) {
     aviso(__('Preparando el PDF del setlist…'));
+    if (boton) { boton.disabled = true; }   // el menú ya se cerró: el botón que lo abrió muestra que sigue en curso
 
     cargarPdfLib().then(function (L) {
       return L.PDFDocument.create().then(function (doc) {
@@ -932,7 +936,8 @@
           });
         });
       });
-    }).catch(function (e) { aviso(e.message || __('No se pudo generar el PDF'), 'error'); });
+    }).catch(function (e) { aviso(e.message || __('No se pudo generar el PDF'), 'error'); })
+      .then(function () { if (boton) { boton.disabled = false; } });
   }
 
   // ---------------------------------------------------------------- escaleta: datos y lógica común
@@ -2132,7 +2137,7 @@
       cont.innerHTML = '';
       widgets = [];
       if (!esc) { append(cont, h('p', { class: 'pcan-muted', role: 'status', text: __('Cargando la escaleta…') })); return; }
-      var bExportar = h('button', { type: 'button', class: 'pcan-btn', onclick: function () { exportar(bExportar); } }, icono('descargar'), __('Exportar escaleta'));
+      var bExportar = h('button', { type: 'button', class: 'pcan-btn', onclick: function () { exportar(bExportar); } }, icono('descargar'), __('Descargar escaleta'));
       if (lectura) {
         append(cont, h('div', { class: 'pcan-ec-barra' }, bExportar,
           h('p', { class: 'pcan-help', text: __('Solo el responsable de escaleta o un administrador puede preparar la escaleta.') })));
@@ -2191,7 +2196,7 @@
     };
   }
 
-  /** Botón «Exportar escaleta» de la ficha del culto: la plantilla se pide aparte (imágenes, título y texto central). */
+  /** Acción «Descargar escaleta» de la ficha del culto: la plantilla se pide aparte (imágenes, título y texto central). */
   function exportarEscaleta(c, boton) {
     if (boton) { boton.disabled = true; }
     var ventana = abrirVentanaPdf();   // en el clic, antes de pedir nada, para que no la bloquee el navegador

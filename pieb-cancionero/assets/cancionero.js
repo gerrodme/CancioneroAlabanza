@@ -1057,8 +1057,7 @@
           h('label', { class: 'pcan-search' }, icono('filtro'), ui.buscador, ui.contador),
           ui.orden,
           h('a', { class: 'pcan-btn pcan-btn-sec pcan-lote-btn', href: '#/subir', title: __('Subir varias canciones de golpe'), 'aria-label': __('Subida múltiple') }, icono('subir'), h('span', { class: 'pcan-lote-btn-txt', text: __('Subida múltiple') })),
-          (ui.btnEtiquetar = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sec pcan-lote-btn', title: __('Elegir canciones para ponerles o quitarles etiquetas'), 'aria-label': __('Etiquetar'), 'aria-pressed': 'false', onclick: function () { alternarMarcado(undefined, 'etiquetar'); } }, icono('etiqueta'), h('span', { class: 'pcan-lote-btn-txt', text: __('Etiquetar') }))),
-          CFG.gestionar ? (ui.btnMarcar = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sec pcan-lote-btn pcan-lote-btn-borrar', title: __('Elegir canciones para borrarlas'), 'aria-label': __('Borrar'), 'aria-pressed': 'false', onclick: function () { alternarMarcado(undefined, 'borrar'); } }, icono('borrar'), h('span', { class: 'pcan-lote-btn-txt', text: __('Borrar') }))) : null),
+          (ui.btnSeleccionar = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sec pcan-lote-btn', title: __('Seleccionar'), 'aria-label': __('Seleccionar'), 'aria-pressed': 'false', onclick: function () { alternarMarcado(); } }, icono('check'), h('span', { class: 'pcan-lote-btn-txt', text: __('Seleccionar') })))),
         ui.chips,
         ui.thead,
         ui.lista,
@@ -1537,28 +1536,25 @@
       icono(nombre), n > 1 ? h('small', { text: String(n) }) : null);
   }
 
-  // ---------------------------------------------------------------- selección múltiple: borrar (administradores) y etiquetar
+  // ---------------------------------------------------------------- selección múltiple: etiquetar y borrar (administradores)
 
   // null: lista normal. Objeto { id: true }: modo selección, cada fila es una casilla.
   var marcadas = null;
-  var modoMarcado = 'borrar';   // 'borrar' | 'etiquetar'
+  var modoMarcado = 'seleccion'; // 'seleccion' (barra con Etiquetar y Borrar) | 'etiquetar' (controles de etiquetado)
   var ultimaMarcada = null;     // última canción pulsada, origen del rango con Mayús
   var textoEtiqueta = '';       // lo escrito en la barra de etiquetar (la barra se repinta con cada clic)
 
-  function alternarMarcado(activar, modo) {
-    modo = modo || modoMarcado;
-    var encender = activar === undefined ? (!marcadas || modoMarcado !== modo) : activar;
+  function alternarMarcado(activar) {
+    var encender = activar === undefined ? !marcadas : activar;
     marcadas = encender ? (marcadas || {}) : null;
-    modoMarcado = modo;
+    modoMarcado = 'seleccion';
     ultimaMarcada = null;
     if (!encender) { textoEtiqueta = ''; }
-    [[ui.btnMarcar, 'borrar'], [ui.btnEtiquetar, 'etiquetar']].forEach(function (par) {
-      if (!par[0]) { return; }
-      var activo = !!marcadas && modoMarcado === par[1];
-      par[0].setAttribute('aria-pressed', activo ? 'true' : 'false');
-      par[0].classList.toggle('is-active', activo);
-    });
-    ui.lista.classList.toggle('is-modo-etiquetar', !!marcadas && modoMarcado === 'etiquetar');
+    if (ui.btnSeleccionar) {
+      ui.btnSeleccionar.setAttribute('aria-pressed', marcadas ? 'true' : 'false');
+      ui.btnSeleccionar.classList.toggle('is-active', !!marcadas);
+    }
+    ui.lista.classList.toggle('is-modo-etiquetar', !!marcadas);
     // Mientras se eligen canciones, el botón flotante «+» sobra y en el móvil taparía la barra.
     if (ui.fab) { ui.fab.hidden = !!marcadas; }
     pintarLista();
@@ -1579,7 +1575,7 @@
     if (modoMarcado === 'etiquetar') { pintarBarraEtiquetar(barra, ids, visibles, todas); return; }
     var confirmar = h('div', { class: 'pcan-barra-confirmar', role: 'alert', hidden: true });
     append(barra, [
-      h('span', { class: 'pcan-barra-n', text: ids.length ? sprintf(_n('%d seleccionada', '%d seleccionadas', ids.length), ids.length) : __('Toca las canciones que quieras borrar (con Mayús, un rango)') }),
+      h('span', { class: 'pcan-barra-n', text: ids.length ? sprintf(_n('%d seleccionada', '%d seleccionadas', ids.length), ids.length) : __('Toca las canciones que quieras seleccionar (con Mayús, un rango)') }),
       // Dos botones fijos: marcar todas las de la lista (con el filtro aplicado) y desmarcar todas.
       visibles.length ? h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', disabled: todas, onclick: function () {
         visibles.forEach(function (id) { marcadas[id] = true; });
@@ -1589,13 +1585,14 @@
         marcadas = {};
         pintarLista();
       } }, __('Quitar la selección')),
-      h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', disabled: !ids.length, onclick: function () { confirmar.hidden = false; } }, icono('borrar'), __('Borrar')),
+      h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', disabled: !ids.length, onclick: function () { modoMarcado = 'etiquetar'; pintarLista(); } }, icono('etiqueta'), __('Etiquetar')),
+      CFG.gestionar ? h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', disabled: !ids.length, onclick: function () { confirmar.hidden = false; } }, icono('borrar'), __('Borrar')) : null,
       h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () { alternarMarcado(false); } }, __('Cancelar')),
       confirmar]);
     append(confirmar, [
       h('span', { text: sprintf(_n('Se moverá %d canción a la papelera: deja de verse en el cancionero y en los setlists aparecerá como eliminada. Un administrador puede recuperarla desde «Papelera».', 'Se moverán %d canciones a la papelera: dejan de verse en el cancionero y en los setlists aparecerán como eliminadas. Un administrador puede recuperarlas desde «Papelera».', ids.length), ids.length) }),
-      h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-primary', onclick: function (e) { e.currentTarget.disabled = true; borrarMarcadas(ids, confirmar); } }, __('Sí, borrar')),
-      h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () { confirmar.hidden = true; } }, __('No'))]);
+      h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () { confirmar.hidden = true; } }, __('No')),
+      h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', onclick: function (e) { e.currentTarget.disabled = true; borrarMarcadas(ids, confirmar); } }, __('Sí, borrar'))]);
   }
 
   /** Barra del modo etiquetar: elegir una etiqueta (nueva o existente) y añadirla o quitarla a las canciones marcadas. */
@@ -1633,6 +1630,7 @@
         campo, listaDatos,
         btn('pcan-btn-primary', __('Añadir etiqueta'), 'etiqueta', function () { aplicar(true); }, !ids.length),
         btn('', __('Quitar etiqueta'), null, function () { aplicar(false); }, !ids.length)),
+      btn('', __('Volver'), null, function () { modoMarcado = 'seleccion'; pintarLista(); }),
       btn('', __('Terminar'), null, function () { alternarMarcado(false); }),
       estado, avance]);
   }
@@ -1911,17 +1909,20 @@
 
   function cabeceraPanel(titulo, extra) {
     return h('div', { class: 'pcan-panel-head' },
-      h('button', { type: 'button', class: 'pcan-icon-btn pcan-panel-back', 'aria-label': __('Volver'), onclick: function () { volverPanel(); } }, icono('anterior')),
+      h('button', { type: 'button', class: 'pcan-icon-btn pcan-panel-back', 'aria-label': __('Volver'), title: __('Volver'), onclick: function () { volverPanel(); } }, icono('anterior')),
       h('div', { class: 'pcan-panel-title' }, titulo),
       extra || null,
-      h('button', { type: 'button', class: 'pcan-icon-btn pcan-panel-x', 'aria-label': __('Cerrar'), onclick: function () { volverPanel(); } }, icono('cerrar')));
+      h('button', { type: 'button', class: 'pcan-icon-btn pcan-panel-x', 'aria-label': __('Cerrar'), title: __('Cerrar'), onclick: function () { volverPanel(); } }, icono('cerrar')));
   }
 
-  /** Acciones secundarias de una ficha: botones pequeños con icono y texto, siempre a la vista (nada escondido en un «⋯»). */
-  function accionesSecundarias(items) {
+  /**
+   * Acciones secundarias de una ficha: botones pequeños con icono y texto, siempre a la vista, y, si hay `menu`, un último
+   * botón «Más acciones» con un menú desplegable para el resto. Cada elemento es { texto, icono, fn | href, descargar, nueva,
+   * peligro }; en el menú también valen { separador: true } y { rotulo: 'Texto' }. `fn` del menú recibe (evento, botón «Más acciones»).
+   */
+  function accionesSecundarias(items, menu) {
     var lista = items.filter(Boolean);
-    if (!lista.length) { return null; }
-    return h('div', { class: 'pcan-acciones-sec' }, lista.map(function (it) {
+    var botones = lista.map(function (it) {
       var attrs = { class: 'pcan-btn pcan-btn-sm pcan-btn-sec' + (it.peligro ? ' is-danger' : '') };
       if (it.href) {
         attrs.href = it.href;
@@ -1932,7 +1933,119 @@
       attrs.type = 'button';
       attrs.onclick = it.fn;
       return h('button', attrs, icono(it.icono), it.texto);
-    }));
+    });
+    var elementosMenu = menu ? limpiarMenu(menu) : [];
+    if (elementosMenu.length) { botones.push(botonMenuAcciones(elementosMenu)); }
+    if (!botones.length) { return null; }
+    return h('div', { class: 'pcan-acciones-sec' }, botones);
+  }
+
+  /** Quita huecos y separadores sobrantes (al principio, al final o repetidos) de una lista de elementos de menú. */
+  function limpiarMenu(items) {
+    var r = [];
+    items.filter(Boolean).forEach(function (it) {
+      if (it.separador && (!r.length || r[r.length - 1].separador)) { return; }
+      r.push(it);
+    });
+    while (r.length && r[r.length - 1].separador) { r.pop(); }
+    return r.some(function (it) { return !it.separador && !it.rotulo; }) ? r : [];
+  }
+
+  // Menú desplegable «Más acciones»: uno abierto como máximo. Es role="menu" y se cuelga de la raíz con posición fija, para que
+  // ningún contenedor con desbordamiento lo recorte; en el móvil usa la hoja inferior del menú de la cuenta (por encima de la barra
+  // inferior). Escape lo cierra y devuelve el foco al botón SIN cerrar la ficha; también se cierra al pulsar fuera y al elegir.
+  var menuAcc = null;
+
+  function botonMenuAcciones(items) {
+    var boton = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-sec pcan-btn-mas', 'aria-haspopup': 'menu', 'aria-expanded': 'false',
+      onclick: function () { if (menuAcc && menuAcc.boton === boton) { cerrarMenuAcciones(true); } else { abrirMenuAcciones(boton, items); } } },
+    icono('puntos'), __('Más acciones'));
+    return boton;
+  }
+
+  function elementosDeMenuAcc() {
+    return menuAcc ? Array.prototype.slice.call(menuAcc.el.querySelectorAll('[role="menuitem"]')) : [];
+  }
+
+  function teclaMenuAcc(e) {
+    if (!menuAcc) { return; }
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrarMenuAcciones(true); return; }
+    if (e.key === 'Tab') { cerrarMenuAcciones(false); return; }
+    var els = elementosDeMenuAcc(), i = els.indexOf(document.activeElement), n = els.length;
+    if (!n) { return; }
+    var nuevo = e.key === 'ArrowDown' ? (i + 1) % n : e.key === 'ArrowUp' ? (i + n - 1) % n : e.key === 'Home' ? 0 : e.key === 'End' ? n - 1 : -1;
+    if (nuevo < 0) { return; }
+    e.preventDefault();
+    e.stopPropagation();
+    els[nuevo].focus();
+  }
+
+  function fueraMenuAcc(e) {
+    if (menuAcc && !menuAcc.el.contains(e.target) && !menuAcc.boton.contains(e.target)) { cerrarMenuAcciones(false); }
+  }
+
+  function cerrarMenuAcciones(devolverFoco) {
+    if (!menuAcc) { return; }
+    var m = menuAcc;
+    menuAcc = null;
+    m.el.remove();
+    m.fondo.remove();
+    m.boton.setAttribute('aria-expanded', 'false');
+    document.removeEventListener('pointerdown', fueraMenuAcc, true);
+    document.removeEventListener('keydown', teclaMenuAcc, true);
+    window.removeEventListener('hashchange', cerrarAlNavegar);
+    window.removeEventListener('resize', cerrarAlNavegar);
+    document.removeEventListener('scroll', cerrarAlDesplazar, true);
+    if (devolverFoco && document.contains(m.boton)) { m.boton.focus(); }
+  }
+
+  function cerrarAlNavegar() { cerrarMenuAcciones(false); }
+  function cerrarAlDesplazar(e) { if (menuAcc && !menuAcc.el.contains(e.target)) { cerrarMenuAcciones(false); } }
+
+  function abrirMenuAcciones(boton, items) {
+    cerrarMenuAcciones(false);
+    var el = h('div', { class: 'pcan-menu pcan-menu-acc', role: 'menu', 'aria-label': __('Más acciones') });
+    items.forEach(function (it) {
+      if (it.separador) { append(el, h('div', { class: 'pcan-menu-sep', role: 'separator' })); return; }
+      if (it.rotulo) { append(el, h('p', { class: 'pcan-menu-label', role: 'presentation', text: it.rotulo })); return; }
+      var attrs = { class: 'pcan-menu-item' + (it.peligro ? ' is-danger' : ''), role: 'menuitem', tabindex: '-1' };
+      var nodo;
+      if (it.href) {
+        attrs.href = it.href;
+        if (it.descargar) { attrs.download = it.descargar; }
+        if (it.nueva) { attrs.target = '_blank'; attrs.rel = 'noopener'; }
+        nodo = h('a', attrs, icono(it.icono), it.texto);
+        nodo.addEventListener('click', function () { cerrarMenuAcciones(false); });
+      } else {
+        attrs.type = 'button';
+        nodo = h('button', attrs, icono(it.icono), it.texto);
+        nodo.addEventListener('click', function (e) { cerrarMenuAcciones(true); it.fn(e, boton); });
+      }
+      append(el, nodo);
+    });
+    var fondo = h('div', { class: 'pcan-menu-fondo' });
+    var raiz = ui.menu && ui.menu.parentNode ? ui.menu.parentNode : root;
+    append(raiz, [fondo, el]);
+    menuAcc = { el: el, fondo: fondo, boton: boton };
+    boton.setAttribute('aria-expanded', 'true');
+    // En pantallas anchas se coloca bajo el botón (a la izquierda del mismo, sin salirse); si abajo no cabe y arriba sí, se abre hacia arriba.
+    if (!(window.matchMedia && window.matchMedia('(max-width: 760px)').matches)) {
+      var r = boton.getBoundingClientRect(), m = el.getBoundingClientRect();
+      var abajo = window.innerHeight - r.bottom - 12, arriba = r.top - 12;
+      if (m.height > abajo && arriba > abajo) {
+        el.style.top = Math.max(8, r.top - 6 - m.height) + 'px';
+      } else {
+        el.style.top = (r.bottom + 6) + 'px';
+      }
+      el.style.left = Math.max(8, Math.min(r.left, window.innerWidth - m.width - 8)) + 'px';
+    }
+    document.addEventListener('pointerdown', fueraMenuAcc, true);
+    document.addEventListener('keydown', teclaMenuAcc, true);
+    window.addEventListener('hashchange', cerrarAlNavegar);
+    window.addEventListener('resize', cerrarAlNavegar);
+    document.addEventListener('scroll', cerrarAlDesplazar, true);
+    var primero = elementosDeMenuAcc()[0];
+    if (primero) { primero.focus({ preventScroll: true }); }
   }
 
   // ---------------------------------------------------------------- vista: ficha de canción
@@ -1998,11 +2111,11 @@
       c.partituras.length ? h('button', { type: 'button', class: 'pcan-btn pcan-btn-primary pcan-btn-lg', onclick: function () { lectorDeCancion(c); } }, icono('play'), __('Tocar')) : null,
       h('a', { class: 'pcan-btn', href: '#/editar/' + c.id }, icono('editar'), h('span', { class: 'pcan-btn-label', text: __('Editar') })),
       accionesSecundarias([
+        c.partituras[0] ? { texto: __('Descargar partitura'), icono: 'descargar', href: c.partituras[0].url, descargar: c.partituras[0].archivo || true } : null
+      ], [
         { texto: __('Copiar enlace'), icono: 'enlace', fn: function () { copiar(enlaceCancion(c.id), __('Enlace copiado')); } },
-        c.partituras[0] ? { texto: __('Descargar partitura'), icono: 'descargar', href: c.partituras[0].url, descargar: c.partituras[0].archivo || true } : null,
         c.partituras[0] ? { texto: __('Abrir el PDF original'), icono: 'abrir', href: c.partituras[0].url, nueva: true } : null,
-        c.letra ? { texto: __('Copiar letra'), icono: 'copiar', fn: function () { copiar(c.letra, __('Letra copiada')); } } : null,
-        c.letra && P.exportarLetras ? { texto: __('Exportar letra'), icono: 'descargar', fn: function () { exportarLetraCancion(c); } } : null,
+        c.puedeBorrar ? { separador: true } : null,
         c.puedeBorrar ? { texto: __('Borrar canción'), icono: 'borrar', peligro: true, fn: function () { borrarCancion(c); } } : null
       ]));
 
@@ -2084,6 +2197,7 @@
 
   function vistaAudios(c) {
     return h('div', { class: 'pcan-audios' }, c.audios.map(function (a) {
+      var textoDescarga = sprintf(/* translators: %s: nombre del audio */ __('Descargar %s'), a.nombre || a.archivo);
       return h('div', { class: 'pcan-audio' },
         h('div', { class: 'pcan-audio-head' },
           h('span', { class: 'pcan-audio-ico', 'aria-hidden': 'true' }, icono('audio')),
@@ -2091,7 +2205,7 @@
             h('strong', { text: a.nombre || a.archivo }),
             a.descripcion ? h('span', { class: 'pcan-audio-desc', text: a.descripcion }) : null),
           a.duracion ? h('span', { class: 'pcan-audio-dur', text: a.duracion }) : null,
-          h('a', { class: 'pcan-icon-btn', href: a.url, download: a.archivo || true, 'aria-label': sprintf(/* translators: %s: nombre del audio */ __('Descargar %s'), a.nombre || a.archivo) }, icono('descargar'))),
+          h('a', { class: 'pcan-icon-btn', href: a.url, download: a.archivo || true, 'aria-label': textoDescarga, title: textoDescarga }, icono('descargar'))),
         h('audio', { controls: true, preload: 'none', src: a.url }));
     }));
   }
@@ -2234,7 +2348,7 @@
       return h('div', { class: 'pcan-file' },
         icono(icon),
         h('div', { class: 'pcan-file-main' }, h('span', { class: 'pcan-file-name' }, nombre, extra), campos),
-        h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': sprintf(/* translators: %s: nombre del archivo */ __('Quitar %s'), nombre), onclick: quitar }, icono('cerrar')));
+        h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': sprintf(/* translators: %s: nombre del archivo */ __('Quitar %s'), nombre), title: sprintf(/* translators: %s: nombre del archivo */ __('Quitar %s'), nombre), onclick: quitar }, icono('cerrar')));
     }
 
     // Partituras.
@@ -2347,7 +2461,7 @@
         append(listaVideos, h('div', { class: 'pcan-yt-row' },
           url,
           h('input', { type: 'text', class: 'pcan-input', value: v.label, placeholder: __('Descripción (coro, piano…)'), 'aria-label': __('Descripción del vídeo'), oninput: function (e) { v.label = e.target.value; } }),
-          h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': __('Quitar enlace'), onclick: function () { videos.splice(i, 1); pintarVideos(); } }, icono('cerrar'))));
+          h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': __('Quitar enlace'), title: __('Quitar enlace'), onclick: function () { videos.splice(i, 1); pintarVideos(); } }, icono('cerrar'))));
       });
       append(listaVideos, h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () { videos.push({ url: '', label: '' }); pintarVideos(); listaVideos.querySelector('.pcan-yt-row:last-of-type input').focus(); } }, icono('mas'), __('Añadir enlace')));
     }
@@ -2397,8 +2511,8 @@
       errorBox,
       progreso,
       h('div', { class: 'pcan-form-actions' },
-        guardar,
-        h('button', { type: 'button', class: 'pcan-btn', onclick: function () { if (editando) { location.hash = '#/cancion/' + c.id; } else { cerrarPanel(); } } }, __('Cancelar'))));
+        h('button', { type: 'button', class: 'pcan-btn', onclick: function () { if (editando) { location.hash = '#/cancion/' + c.id; } else { cerrarPanel(); } } }, __('Cancelar')),
+        guardar));
 
     form.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -2630,7 +2744,7 @@
               })),
             h('span', { class: 'pcan-lote-archivo', text: it.file.name + ' · ' + tamano(it.file.size) }),
             dup, estado),
-          !bloqueado ? h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': sprintf(/* translators: %s: nombre del archivo */ __('Quitar %s'), it.file.name), onclick: function () { items.splice(i, 1); pintar(); } }, icono('cerrar')) : null));
+          !bloqueado ? h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': sprintf(/* translators: %s: nombre del archivo */ __('Quitar %s'), it.file.name), title: sprintf(/* translators: %s: nombre del archivo */ __('Quitar %s'), it.file.name), onclick: function () { items.splice(i, 1); pintar(); } }, icono('cerrar')) : null));
         marcarDup();
       });
       pintarResumen();
@@ -2702,8 +2816,9 @@
       h('div', { class: 'pcan-panel-body' },
         h('div', { class: 'pcan-form' },
           resumen, zona, lista, quitarYa,
-          h('div', { class: 'pcan-form-actions' }, progreso, subir,
-            h('button', { type: 'button', class: 'pcan-btn', onclick: function () { cerrarPanel(); } }, __('Cerrar')))))
+          h('div', { class: 'pcan-form-actions' }, progreso,
+            h('button', { type: 'button', class: 'pcan-btn', onclick: function () { cerrarPanel(); } }, __('Cerrar')),
+            subir)))
     ], __('Subir varias canciones'), { vista: 'canciones', id: 0 });
     pintar();
   }
@@ -3526,6 +3641,7 @@
       } }, icono('borrar'), __('Quitar sección'));
       append(confirmar, [
         textoConfirmar,
+        h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', 'data-accion': 'cancelar', onclick: function () { confirmar.hidden = true; bQuitarSeccion.setAttribute('aria-expanded', 'false'); bQuitarSeccion.focus(); } }, __('Cancelar')),
         h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', onclick: function () {
           var nom = nombreS();
           pl.secciones.splice(pl.secciones.indexOf(s), 1);
@@ -3533,8 +3649,7 @@
           bAnadirSeccion.focus();
           cambio();
           anunciar(sprintf(/* translators: %s: título de la sección */ __('Sección «%s» quitada'), nom));
-        } }, __('Sí, quitar la sección')),
-        h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', 'data-accion': 'cancelar', onclick: function () { confirmar.hidden = true; bQuitarSeccion.setAttribute('aria-expanded', 'false'); bQuitarSeccion.focus(); } }, __('Cancelar'))]);
+        } }, __('Sí, quitar la sección'))]);
 
       var cuerpo = h('div', { class: 'pcan-esc-cuerpo', id: idCuerpo, hidden: true },
         campo(__('Título de la sección'), fTit, __('Se imprime siempre en MAYÚSCULAS.')),
@@ -4001,7 +4116,7 @@
     var cajaAnadir = h('div', { class: 'pcan-anadir', id: 'pcan-aj-anadir', hidden: true },
       campo(__('Correos'), fNuevos, __('Uno o varios: uno por línea, o pega una lista (se separan por espacios, comas, puntos y comas o saltos de línea).')),
       errorAnadir,
-      h('div', { class: 'pcan-actions' }, bConfirmarAnadir, bCancelarAnadir),
+      h('div', { class: 'pcan-actions' }, bCancelarAnadir, bConfirmarAnadir),
       notaAnadir);
     var bAnadir = h('button', { type: 'button', class: 'pcan-btn pcan-btn-primary', 'aria-expanded': 'false', 'aria-controls': 'pcan-aj-anadir', onclick: function () { alternarAnadir(); } },
       icono('mas'), __('Añadir personas'));
@@ -4152,14 +4267,14 @@
         confirmar.innerHTML = '';
         append(confirmar, [
           h('span', { text: sprintf(_n('Se borrará %d archivo del servidor. No se puede deshacer.', 'Se borrarán %d archivos del servidor. No se puede deshacer.', sel.length), sel.length) }),
-          h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-primary', onclick: function (e) {
+          h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () { confirmar.hidden = true; } }, __('Cancelar')),
+          h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', onclick: function (e) {
             e.currentTarget.disabled = true;
             api('huerfanos', { json: { ids: sel.map(function (f) { return f.id; }) } }).then(function (res) {
               aviso(sprintf(_n('%d archivo borrado', '%d archivos borrados', res.borrados), res.borrados) + ' · ' + sprintf(/* translators: %s: espacio liberado (p. ej. 3 MB) */ __('%s liberados'), tamano(res.liberado)));
               pintarHuerfanos(res);
             }).catch(function (err) { aviso(err.message, 'error'); actualizar(); });
-          } }, __('Sí, borrar')),
-          h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () { confirmar.hidden = true; } }, __('Cancelar'))]);
+          } }, __('Sí, borrar'))]);
         confirmar.hidden = false;
       });
       var total = archivos.reduce(function (s, f) { return s + f.tamano; }, 0);
@@ -5139,7 +5254,7 @@
       var previo = document.activeElement;
       var cuerpo = h('div', { class: 'pcan-modal-cuerpo' });
       var pie = h('div', { class: 'pcan-modal-pie' });
-      var bX = h('button', { type: 'button', class: 'pcan-icon-btn pcan-modal-x', 'aria-label': __('Cerrar'), onclick: function () { cerrar(); } }, icono('cerrar'));
+      var bX = h('button', { type: 'button', class: 'pcan-icon-btn pcan-modal-x', 'aria-label': __('Cerrar'), title: __('Cerrar'), onclick: function () { cerrar(); } }, icono('cerrar'));
       var idTitulo = 'pcan-modal-t-' + Date.now();
       var ventana = h('div', { class: 'pcan-modal', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': idTitulo, tabindex: '-1' },
         h('div', { class: 'pcan-modal-cab' }, h('div', { class: 'pcan-modal-titulo' }, h('h2', { id: idTitulo, text: titulo }), cabecera), bX),
@@ -5333,8 +5448,8 @@
         var bSi = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-primary', onclick: function () { confirmar.hidden = true; ejecutar(); } }, __('Sí, restaurar'));
         confirmar.innerHTML = '';
         append(confirmar, [
-          h('span', { text: sustituye ? __('Lo que ya existe se sustituirá por la versión de la copia. ¿Seguimos?') : __('¿Restaurar lo marcado?') }), bSi,
-          h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () { confirmar.hidden = true; acciones.hidden = false; bRestaurar.focus(); } }, __('Cancelar'))]);
+          h('span', { text: sustituye ? __('Lo que ya existe se sustituirá por la versión de la copia. ¿Seguimos?') : __('¿Restaurar lo marcado?') }),
+          h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () { confirmar.hidden = true; acciones.hidden = false; bRestaurar.focus(); } }, __('Cancelar')), bSi]);
         acciones.hidden = true;
         confirmar.hidden = false;
         bSi.focus();

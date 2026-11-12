@@ -136,9 +136,6 @@ window.PIEB_I18N = {
   "Subida múltiple": [
    "Bulk upload"
   ],
-  "Elegir canciones para borrarlas": [
-   "Pick songs to delete"
-  ],
   "Borrar": [
    "Delete"
   ],
@@ -449,9 +446,6 @@ window.PIEB_I18N = {
   ],
   "Abrir el PDF original": [
    "Open the original PDF"
-  ],
-  "Copiar letra": [
-   "Copy lyrics"
   ],
   "Letra copiada": [
    "Lyrics copied"
@@ -2348,9 +2342,6 @@ window.PIEB_I18N = {
   "Espera a que termine de subirse la imagen para guardar.": [
    "Wait for the image to finish uploading before saving."
   ],
-  "Exportar escaleta": [
-   "Export order of service"
-  ],
   "pestaña del editor del culto: la hoja impresa con el orden del culto\u0004Escaleta": [
    "Order of service"
   ],
@@ -2639,14 +2630,8 @@ window.PIEB_I18N = {
   "Solo el responsable de escaleta o un administrador puede preparar la escaleta.": [
    "Only the order of service manager or an administrator can prepare the order of service."
   ],
-  "Elegir canciones para ponerles o quitarles etiquetas": [
-   "Pick songs to add or remove tags"
-  ],
   "Etiquetar": [
    "Tag"
-  ],
-  "Toca las canciones que quieras borrar (con Mayús, un rango)": [
-   "Tap the songs you want to delete (Shift for a range)"
   ],
   "Etiqueta nueva o existente": [
    "New or existing tag"
@@ -2951,6 +2936,18 @@ window.PIEB_I18N = {
   ],
   "No se pudo exportar la letra.": [
    "The lyrics could not be exported."
+  ],
+  "Seleccionar": [
+   "Select"
+  ],
+  "Toca las canciones que quieras seleccionar (con Mayús, un rango)": [
+   "Tap the songs you want to select (Shift for a range)"
+  ],
+  "Más acciones": [
+   "More actions"
+  ],
+  "Descargar escaleta": [
+   "Download order of service"
   ]
  }
 };

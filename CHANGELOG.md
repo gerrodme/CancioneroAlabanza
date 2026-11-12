@@ -2,6 +2,17 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.24.3 · 2026-11-12
+
+Botones y acciones más ordenados. Las fichas dejan a la vista solo lo habitual y el resto pasa a un menú «Más acciones»:
+en la canción quedan Tocar, Editar y Descargar partitura (Copiar enlace, Abrir el PDF original y Borrar van al menú; copiar
+y exportar la letra siguen junto a la letra); en el culto quedan Tocar el culto, Editar y Copiar como texto (las descargas,
+Duplicar y Borrar van al menú). Borrar aparece siempre separado y en rojo. En la lista de canciones, un único botón
+«Seleccionar» sustituye a «Etiquetar» y «Borrar»: se marcan las canciones y después se elige qué hacer con ellas.
+«Exportar escaleta» pasa a llamarse «Descargar escaleta» (entrega el archivo directamente). En todos los formularios y
+confirmaciones el orden es el mismo: Cancelar primero y la acción principal al final; las confirmaciones de borrado usan
+el botón rojo. Los botones que solo llevan icono muestran su nombre al pasar el ratón.
+
 ## 1.24.2 · 2026-11-12
 
 Navegación más limpia: queda un solo buscador, el de la barra superior (la lupa en el móvil); se quitan el de la barra
