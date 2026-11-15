@@ -6,6 +6,7 @@
  *  _pieb_fecha  Fecha (Y-m-d)
  *  _pieb_tipo   Tipo de culto (texto libre: «Culto dominical», «Oración»…)
  *  _pieb_notas  Notas generales
+ *  _pieb_iglesia  ID de la iglesia del culto (se guarda al crearlo; ver includes/iglesias.php). Los anteriores se sellan en la migración.
  *  _pieb_items  array( array('cancion' => id, 'tonalidad' => 'Sol', 'nota' => 'Solo estrofas 1 y 3'), ... ) en orden
  *  _pieb_escaleta  Escaleta del culto: copia de la plantilla con los valores de este culto (opcional; ver includes/escaleta.php).
  *                  Solo se entrega en el detalle del culto (GET /cultos/{id}), no en el listado.
@@ -92,6 +93,12 @@ function pieb_can_culto_items($post_id) {
     return is_array($items) ? array_values($items) : array();
 }
 
+/** Iglesia de un culto: la guardada o, si no la tiene, la de por defecto. */
+function pieb_can_culto_iglesia($post_id) {
+    $id = (int) get_post_meta($post_id, '_pieb_iglesia', true);
+    return $id ? $id : (int) pieb_can_iglesia_defecto();
+}
+
 function pieb_can_culto_resumen($post) {
     $author = get_userdata($post->post_author);
     return array(
@@ -102,6 +109,7 @@ function pieb_can_culto_resumen($post) {
         'notas'       => (string) get_post_meta($post->ID, '_pieb_notas', true),
         'items'       => pieb_can_culto_items($post->ID),
         'creadoPor'   => $author ? $author->display_name : '',
+        'iglesia'     => pieb_can_culto_iglesia($post->ID),
         'puedeBorrar' => pieb_can_usuario_puede_borrar($post),
     );
 }
@@ -233,7 +241,8 @@ function pieb_can_rest_culto_guardar(WP_REST_Request $request) {
         }
     }
 
-    if (!empty($request['id'])) {
+    $es_nuevo = empty($request['id']);
+    if (!$es_nuevo) {
         $post = pieb_can_rest_culto_get($request['id']);
         if (is_wp_error($post)) {
             return $post;
@@ -252,6 +261,9 @@ function pieb_can_rest_culto_guardar(WP_REST_Request $request) {
         return $post_id;
     }
 
+    if ($es_nuevo) {
+        update_post_meta($post_id, '_pieb_iglesia', pieb_can_iglesia_activa());
+    }
     update_post_meta($post_id, '_pieb_fecha', $fecha);
     update_post_meta($post_id, '_pieb_tipo', isset($params['tipo']) ? sanitize_text_field($params['tipo']) : '');
     update_post_meta($post_id, '_pieb_notas', isset($params['notas']) ? sanitize_textarea_field($params['notas']) : '');

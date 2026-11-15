@@ -2,6 +2,15 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.27.0 · 2026-11-15
+
+Cimientos para usar una misma instalación con varias iglesias (fase 1 de `docs/plan-multi-iglesia.md`), sin cambios
+visibles: una instalación de una sola iglesia sigue igual. Existe la entidad «iglesia», con una por defecto que se crea
+sola al actualizar; la pertenencia de cada persona se deduce de sus roles actuales; cada culto queda anotado con su
+iglesia; y cada partitura, audio, partitura editable y enlace de YouTube nuevo guarda quién lo añadió y desde qué iglesia
+(los anteriores se atribuyen a quien subió la canción). Aparece el administrador central, que con una sola iglesia es la
+administración de siempre. Todavía no se filtra nada por iglesia ni hay forma de crear más desde la interfaz.
+
 ## 1.26.0 · 2026-11-15
 
 Tonalidad por partitura. Al subir o editar una canción, cada partitura puede llevar su tonalidad (sin ella, se entiende que

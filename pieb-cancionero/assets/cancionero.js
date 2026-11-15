@@ -590,6 +590,8 @@
   function api(path, opts) {
     opts = opts || {};
     var headers = { 'X-WP-Nonce': CFG.nonce };
+    // Con varias iglesias, cada petición dice en cuál se trabaja; con una sola no se envía nada.
+    if (CFG.iglesias && CFG.iglesias.length > 1 && CFG.iglesia) { headers['X-PCAN-Iglesia'] = String(CFG.iglesia.id); }
     var body = opts.body;
     if (opts.json !== undefined) { headers['Content-Type'] = 'application/json'; body = JSON.stringify(opts.json); }
     return fetch(CFG.api + path, {
@@ -615,6 +617,7 @@
       var xhr = new XMLHttpRequest();
       xhr.open('POST', CFG.api + path);
       xhr.setRequestHeader('X-WP-Nonce', CFG.nonce);
+      if (CFG.iglesias && CFG.iglesias.length > 1 && CFG.iglesia) { xhr.setRequestHeader('X-PCAN-Iglesia', String(CFG.iglesia.id)); }
       xhr.upload.onprogress = function (e) { if (e.lengthComputable && onProgress) { onProgress(e.loaded / e.total); } };
       xhr.onload = function () {
         var data = {};

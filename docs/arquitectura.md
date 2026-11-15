@@ -13,6 +13,7 @@ Resumen técnico del plugin **Cancionero** para quien llegue nuevo al código.
 | `includes/rest.php` | API REST `pieb/v1`: listar, ver, crear, actualizar y borrar canciones; subida de archivos por trozos. |
 | `includes/archivos.php` | Archivos privados del cancionero: carpeta `cancionero-privado`, entrega con sesión (`?pcan_archivo=ID`), protección y archivos sin usar. |
 | `includes/papelera.php` | Papelera del cancionero: quién borró, plazo y limpieza automática, restaurar y eliminar para siempre. |
+| `includes/iglesias.php` | Iglesias (tipo `pieb_iglesia`), pertenencia de cada usuario, iglesia activa, administrador central, migración y `GET /iglesias`, `POST /iglesias/activa`. Ver [Iglesias](#iglesias). |
 | `includes/cultos.php` | Cultos y setlists (tipo de contenido y API). |
 | `includes/ajustes.php` | Temas, ajustes, lista del equipo, preferencias por usuario, copias de seguridad (exportar/importar). |
 | `includes/google.php` | Acceso con Google (ID token) y con enlace por correo. |
@@ -65,8 +66,9 @@ La interfaz es una aplicación de una sola página dentro de la página de WordP
   | `_pieb_youtube` | Lista de `{url, label}`; solo se aceptan enlaces de YouTube válidos. |
   | `_pieb_audios` | Lista de `{id, nombre, descripcion}`. MP3/M4A/OGG/WAV/AAC, máx. 10 MB. |
   | `_pieb_editables` | Lista de `{id, descripcion}`: MuseScore, MusicXML… máx. 10 MB. |
+  | `autor`, `iglesia` (en cada elemento de las cuatro listas anteriores) | `autor`: ID del usuario que lo añadió; `iglesia`: ID de la iglesia desde la que se añadió. Si faltan, los getters (`pieb_can_get_partituras/audios/editables/youtube`) los completan al leer con el autor de la canción y la iglesia por defecto, sin escribir nada. Al guardar, los elementos nuevos llevan el usuario actual y su iglesia activa; los que se conservan mantienen los suyos (nunca se aceptan del cliente; un enlace de YouTube es «el mismo» si coincide su URL). La API los devuelve en cada partitura, audio, editable y enlace. |
 
-- Metadatos de **culto**: `_pieb_fecha`, `_pieb_tipo`, `_pieb_notas`, `_pieb_items` (lista de
+- Metadatos de **culto**: `_pieb_iglesia` (ID de la iglesia; se guarda al crearlo y no cambia al editar; `pieb_can_culto_iglesia()` devuelve la de por defecto si falta; el resumen del culto la trae como `iglesia`), `_pieb_fecha`, `_pieb_tipo`, `_pieb_notas`, `_pieb_items` (lista de
   `{cancion, tonalidad, nota, partitura}` en orden; `partitura` es el ID del adjunto elegido para ese culto, 0 = la principal (la primera de la canción). Al
   servir el culto, `datos.partituras` lleva solo las partituras cuya tonalidad efectiva coincide con la del item (la suya o, si
   está vacía, la de la canción), con la elegida la primera; si ninguna coincide (tonalidad antigua escrita a mano) o la elegida
@@ -98,6 +100,8 @@ Todas las rutas exigen sesión iniciada con la capacidad `pieb_cancionero_acceso
 | `/cultos`, `/cultos/{id}` | GET, POST, DELETE | Cultos y setlists. `GET /cultos/{id}` devuelve además `escaleta` (objeto o `null`; no va en el listado) y `POST` la acepta solo si llega (`null` la borra) **y solo de quien tiene `pieb_can_escaleta`**: de cualquier otro se ignora, sin error (el resto del culto sí se guarda y la escaleta que hubiera se conserva). Ver [Escaleta del culto](#escaleta-del-culto). |
 | `/escaleta` | GET | **Base de la escaleta de un culto nuevo**: la estructura (sin valores) y la fila de títulos de la última escaleta guardada en cualquier culto, con el logo y la cabecera de la instalación y `desde: {id, titulo}` (el culto de origen; `null` si sale de la plantilla genérica). La lee todo el equipo, porque preparar la escaleta de un culto la necesita. |
 | `/escaleta/imagen` | POST | Sube el logo o la imagen de cabecera de la escaleta (JPG o PNG, máx. 2 MB) a la biblioteca de medios normal; responde `{ id, url }` (exige `pieb_cancionero_gestionar`). |
+| `/iglesias` | GET | Iglesias del usuario: `{ activa, central, iglesias: [{id, nombre, rol}] }`. Ver [Iglesias](#iglesias). |
+| `/iglesias/activa` | POST | Cuerpo `{ iglesia: id }`: elige la iglesia activa del usuario (guarda `_pieb_iglesia_activa`) y responde como el `GET`; 403 si no pertenece a ella. |
 | `/etiquetas`, `/preferencias`, `/huerfanos` | varios | Etiquetas con color, preferencias del usuario (`tema`, `idioma` y `notacion`, todos opcionales; vacío = automático), archivos sin usar. |
 | `/fondos` | GET, POST | `GET` (cualquiera del equipo): `{ fondos: [{ id, url, miniatura }] }` (`url` a tamaño completo, `miniatura` en tamaño «medium»; omite los adjuntos que ya no existen). `POST` (exige `pieb_cancionero_gestionar`): multipart `archivo`, solo JPG o PNG, máx. 5 MB y 40 fondos; sube a la biblioteca de medios normal y responde `{ id, url, miniatura }`. Ver [Exportar letras](#exportar-letras). |
 | `/fondos/{id}` | DELETE | Quita el fondo de la lista y borra su adjunto (exige `pieb_cancionero_gestionar`); responde `{ fondos: [...] }`. |
@@ -119,6 +123,36 @@ Cuerpo `multipart/form-data` con todos estos campos (los ausentes se **vacían**
 
 Para cambiar un solo dato: `GET` la ficha, reconstruir todos los campos con ella y modificar solo el deseado. Receta en
 [carga-masiva.md](carga-masiva.md).
+
+## Iglesias
+
+`includes/iglesias.php`. Una instalación puede servir a varias iglesias con un repositorio de canciones común (plan en
+[plan-multi-iglesia.md](plan-multi-iglesia.md)). La fase 1 deja los cimientos **sin ningún cambio visible**: una instalación
+de una sola iglesia se comporta exactamente igual.
+
+- **Entidad.** Tipo de contenido `pieb_iglesia` (no público, sin interfaz, sin REST nativo); el nombre es el título. Siempre
+  hay una, la **por defecto** (opción `pieb_can_iglesia_defecto`), que `pieb_can_iglesia_defecto()` crea sola la primera vez
+  con el nombre que tenía el cancionero (la línea bajo el nombre o, si está vacía, el nombre del sitio). `pieb_can_iglesias()`
+  lista las publicadas por orden de título.
+- **Pertenencia.** Meta de usuario `_pieb_iglesias` = `{ idIglesia: rol }` con rol `equipo`, `escaleta` o `admin`
+  (`pieb_can_iglesias_de()`, `pieb_can_rol_en()`). Mientras no exista la meta, quien tiene `pieb_cancionero_acceso`
+  pertenece a la iglesia por defecto con el rol que dicen sus capacidades de WordPress (`admin` si tiene
+  `pieb_cancionero_gestionar`, `escaleta` si `pieb_can_escaleta`, si no `equipo`). En esta fase no se escribe la meta para nadie:
+  los roles de WordPress siguen siendo la fuente de verdad.
+- **Iglesia activa.** `pieb_can_iglesia_activa()`: la de la cabecera `X-PCAN-Iglesia` si el usuario pertenece a ella; si no,
+  la meta de usuario `_pieb_iglesia_activa`; si no, la primera suya; si no, la de por defecto. La interfaz solo envía la
+  cabecera cuando el usuario tiene más de una iglesia. `window.PIEB_CANCIONERO` trae `iglesia` (`{id, nombre}`), `iglesias`
+  (`[{id, nombre, rol}]`) y `central`.
+- **Administrador central.** Capacidad `pieb_cancionero_central`, que reciben los administradores de WordPress.
+  `pieb_can_es_central()` es verdadero con esa capacidad **o**, mientras solo exista una iglesia, con
+  `pieb_cancionero_gestionar` (así la administración de una única iglesia hace de central y nada cambia).
+- **Migración.** `pieb_can_migrar_iglesias()` (en `init`, prioridad 20; idempotente; solo trabaja si la opción `pieb_can_multi`
+  es menor que 1) asegura la iglesia por defecto, sella con ella todos los cultos que no tengan `_pieb_iglesia` (también los
+  de la papelera) y guarda `pieb_can_multi = 1`. No reescribe canciones.
+- **Qué hace ya esta fase.** Guardar `_pieb_iglesia` al crear un culto, `autor` e `iglesia` en cada elemento de las
+  canciones (ver Modelo de datos), la iglesia activa y las rutas `/iglesias`. **Qué no:** no se filtra nada por iglesia (los
+  cultos siguen viéndose todos), no cambian los permisos de edición de canciones ni cultos, no hay selector ni textos nuevos
+  en la interfaz.
 
 ## Bienvenida al equipo
 

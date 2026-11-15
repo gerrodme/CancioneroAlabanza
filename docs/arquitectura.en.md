@@ -13,6 +13,7 @@ A technical summary of the **Cancionero** plugin for anyone new to the code.
 | `includes/rest.php` | The `pieb/v1` REST API: list, view, create, update and delete songs; chunked file uploads. |
 | `includes/archivos.php` | The songbook's private files: the `cancionero-privado` folder, delivery with a session (`?pcan_archivo=ID`), protection and unused files. |
 | `includes/papelera.php` | The songbook trash: who deleted, retention period and automatic cleanup, restore and delete forever. |
+| `includes/iglesias.php` | Churches (`pieb_iglesia` type), each user's membership, active church, central administrator, migration and `GET /iglesias`, `POST /iglesias/activa`. See [Churches](#churches). |
 | `includes/cultos.php` | Services and setlists (content type and API). |
 | `includes/ajustes.php` | Themes, settings, the team list, per-user preferences (theme, language, notation), backups (export/import). |
 | `includes/google.php` | Sign-in with Google (ID token) and with an email link. |
@@ -65,8 +66,9 @@ The interface is a single-page application inside the WordPress page; it navigat
   | `_pieb_youtube` | List of `{url, label}`; only valid YouTube links are accepted. |
   | `_pieb_audios` | List of `{id, nombre, descripcion}`. MP3/M4A/OGG/WAV/AAC, max. 10 MB. |
   | `_pieb_editables` | List of `{id, descripcion}`: MuseScore, MusicXML… max. 10 MB. |
+  | `autor`, `iglesia` (on each item of the four lists above) | `autor`: ID of the user who added it; `iglesia`: ID of the church it was added from. If missing, the getters (`pieb_can_get_partituras/audios/editables/youtube`) fill them in on read with the song's author and the default church, writing nothing. On save, new items carry the current user and their active church; kept items keep theirs (they are never accepted from the client; a YouTube link is "the same" if its URL matches). The API returns them on every score, audio, editable and link. |
 
-- **Service** metadata: `_pieb_fecha`, `_pieb_tipo`, `_pieb_notas`, `_pieb_items` (ordered list of
+- **Service** metadata: `_pieb_iglesia` (church ID; saved on creation and unchanged on edit; `pieb_can_culto_iglesia()` returns the default church if missing; the service summary carries it as `iglesia`), `_pieb_fecha`, `_pieb_tipo`, `_pieb_notas`, `_pieb_items` (ordered list of
   `{cancion, tonalidad, nota, partitura}`; `partitura` is the ID of the attachment chosen for that service, 0 = the main
   one (the first of the song). When the service is served, `datos.partituras` holds only the scores whose effective key matches
   the item's (its own or, if empty, the song's), with the chosen one first; if none matches (old hand-typed key) or the chosen
@@ -96,6 +98,8 @@ interface receives it in `PIEB_CANCIONERO.nonce`; the API base is in `PIEB_CANCI
 | `/cultos`, `/cultos/{id}` | GET, POST, DELETE | Services and setlists. `GET /cultos/{id}` also returns `escaleta` (an object or `null`; it is not in the list) and `POST` accepts it only if present (`null` deletes it) **and only from someone with `pieb_can_escaleta`**: from anyone else it is ignored, without an error (the rest of the service is saved and any existing order of service is kept). See [Order of service](#order-of-service). |
 | `/escaleta` | GET | The **base for a new service's order of service**: the structure (without values) and the row of titles of the last order of service saved in any service, with the installation's logo and header and `desde: {id, titulo}` (the source service; `null` if it comes from the generic template). The whole team reads it, because preparing a service's order of service needs it. |
 | `/escaleta/imagen` | POST | Uploads the logo or header image of the order of service (JPG or PNG, max. 2 MB) to the normal media library; replies `{ id, url }` (requires `pieb_cancionero_gestionar`). |
+| `/iglesias` | GET | The user's churches: `{ activa, central, iglesias: [{id, nombre, rol}] }`. See [Churches](#churches). |
+| `/iglesias/activa` | POST | Body `{ iglesia: id }`: sets the user's active church (saves `_pieb_iglesia_activa`) and answers like the `GET`; 403 if they do not belong to it. |
 | `/etiquetas`, `/preferencias`, `/huerfanos` | various | Tags with color, user preferences (`tema`, `idioma` and `notacion`, all optional; empty = automatic), unused files. |
 | `/fondos` | GET, POST | `GET` (anyone on the team): `{ fondos: [{ id, url, miniatura }] }` (`url` full size, `miniatura` at the 'medium' size; skips attachments that no longer exist). `POST` (requires `pieb_cancionero_gestionar`): multipart `archivo`, JPG or PNG only, max. 5 MB and 40 backgrounds; uploads to the normal media library and replies `{ id, url, miniatura }`. See [Exporting lyrics](#exporting-lyrics). |
 | `/fondos/{id}` | DELETE | Removes the background from the list and deletes its attachment (requires `pieb_cancionero_gestionar`); replies `{ fondos: [...] }`. |
@@ -117,6 +121,36 @@ A `multipart/form-data` body with all of these fields (missing ones are **emptie
 
 To change a single value: `GET` the record, rebuild all the fields from it and modify only the one you want. Recipe in
 [carga-masiva.en.md](carga-masiva.en.md).
+
+## Churches
+
+`includes/iglesias.php`. One installation can serve several churches with a shared song repository (plan in
+[plan-multi-iglesia.md](plan-multi-iglesia.md), in Spanish). Phase 1 lays the foundations with **no visible change**: a
+single-church installation behaves exactly as before.
+
+- **Entity.** Content type `pieb_iglesia` (not public, no UI, no native REST); the name is the title. There is always one,
+  the **default** (option `pieb_can_iglesia_defecto`), which `pieb_can_iglesia_defecto()` creates by itself the first time
+  with the name the songbook had (the line under the name or, if empty, the site name). `pieb_can_iglesias()` lists the
+  published ones ordered by title.
+- **Membership.** User meta `_pieb_iglesias` = `{ churchId: role }` with role `equipo`, `escaleta` or `admin`
+  (`pieb_can_iglesias_de()`, `pieb_can_rol_en()`). While the meta does not exist, anyone with `pieb_cancionero_acceso`
+  belongs to the default church with the role their WordPress capabilities imply (`admin` with
+  `pieb_cancionero_gestionar`, `escaleta` with `pieb_can_escaleta`, otherwise `equipo`). In this phase the meta is written
+  for nobody: WordPress roles remain the source of truth.
+- **Active church.** `pieb_can_iglesia_activa()`: the one in the `X-PCAN-Iglesia` header if the user belongs to it;
+  otherwise the user meta `_pieb_iglesia_activa`; otherwise their first church; otherwise the default. The UI sends the
+  header only when the user has more than one church. `window.PIEB_CANCIONERO` carries `iglesia` (`{id, nombre}`),
+  `iglesias` (`[{id, nombre, rol}]`) and `central`.
+- **Central administrator.** Capability `pieb_cancionero_central`, granted to WordPress administrators.
+  `pieb_can_es_central()` is true with that capability **or**, while only one church exists, with
+  `pieb_cancionero_gestionar` (so a single church's administration acts as central and nothing changes).
+- **Migration.** `pieb_can_migrar_iglesias()` (on `init`, priority 20; idempotent; only works if the option `pieb_can_multi`
+  is below 1) ensures the default church, stamps every service lacking `_pieb_iglesia` with it (trash included) and saves
+  `pieb_can_multi = 1`. It does not rewrite songs.
+- **What this phase already does.** Saves `_pieb_iglesia` when a service is created, `autor` and `iglesia` on every song
+  item (see Data model), the active church and the `/iglesias` routes. **What it does not:** nothing is filtered by church
+  (all services are still visible), edit permissions on songs and services do not change, and there is no selector or new
+  text in the UI.
 
 ## Welcome to the team
 

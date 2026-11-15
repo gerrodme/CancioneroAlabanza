@@ -288,7 +288,7 @@ function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
                     'label' => isset($p['label']) ? sanitize_text_field($p['label']) : '',
                     'tonalidad' => $limpiar_tono(($fijar_anterior && trim((string) (isset($p['tonalidad']) ? $p['tonalidad'] : '')) === '' && $actuales[$id]['tonalidad'] === '')
                         ? $tono_anterior : (isset($p['tonalidad']) ? $p['tonalidad'] : '')),
-                );
+                ) + pieb_can_origen_de($actuales[$id]);
             }
         }
     }
@@ -321,7 +321,7 @@ function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
                 'id'    => (int) $attachment_id,
                 'label' => isset($s['label']) ? sanitize_text_field($s['label']) : '',
                 'tonalidad' => $limpiar_tono(isset($s['tonalidad']) ? $s['tonalidad'] : ''),
-            );
+            ) + pieb_can_origen_nuevo();
         }
 
         foreach (empty($files['nuevas']['name'][0]) ? array() : array_keys($files['nuevas']['name']) as $i) {
@@ -334,7 +334,7 @@ function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
                 'id'    => (int) $attachment_id,
                 'label' => isset($labels[$i]) ? sanitize_text_field($labels[$i]) : '',
                 'tonalidad' => $limpiar_tono(isset($tonos[$i]) ? $tonos[$i] : ''),
-            );
+            ) + pieb_can_origen_nuevo();
         }
     }
 
@@ -349,7 +349,7 @@ function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
     foreach ((array) json_decode((string) $request->get_param('audios'), true) as $a) {
         $id = isset($a['id']) ? (int) $a['id'] : 0;
         if (isset($audios_actuales[$id])) {
-            $audios[] = pieb_can_limpiar_audio($id, $a);
+            $audios[] = pieb_can_limpiar_audio($id, $a, pieb_can_origen_de($audios_actuales[$id]));
         }
     }
     if (!empty($files['audiosNuevos']['name'][0])) {
@@ -392,7 +392,7 @@ function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
     foreach ((array) json_decode((string) $request->get_param('editables'), true) as $e) {
         $id = isset($e['id']) ? (int) $e['id'] : 0;
         if (isset($editables_actuales[$id])) {
-            $editables[] = pieb_can_limpiar_editable($id, $e);
+            $editables[] = pieb_can_limpiar_editable($id, $e, pieb_can_origen_de($editables_actuales[$id]));
         }
     }
     foreach ((array) json_decode((string) $request->get_param('editablesSubidos'), true) as $s) {
@@ -413,7 +413,7 @@ function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
     update_post_meta($post_id, '_pieb_notas', sanitize_textarea_field((string) $request->get_param('notas')));
 
     $youtube = json_decode((string) $request->get_param('youtube'), true);
-    update_post_meta($post_id, '_pieb_youtube', pieb_can_limpiar_youtube($youtube));
+    update_post_meta($post_id, '_pieb_youtube', pieb_can_limpiar_youtube($youtube, pieb_can_get_youtube($post_id)));
 
     $etiquetas = array_filter(array_map(function ($e) {
         return sanitize_text_field(trim($e));

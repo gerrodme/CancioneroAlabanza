@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Cancionero
  * Description: Cancionero para equipos de música y alabanza: canciones con partitura, letra, audios y YouTube, setlists de cultos, visor para tableta, temas propios y acceso con Google. Shortcode [cancionero].
- * Version: 1.26.0
+ * Version: 1.27.0
  * Author: Gerson Rodrigo Menéndez
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PIEB_CAN_VERSION', '1.26.0');
+define('PIEB_CAN_VERSION', '1.27.0');
 define('PIEB_CAN_FILE', __FILE__);
 define('PIEB_CAN_DIR', plugin_dir_path(__FILE__));
 define('PIEB_CAN_URL', plugin_dir_url(__FILE__));
@@ -24,6 +24,7 @@ define('PIEB_CAN_URL', plugin_dir_url(__FILE__));
 // Tipo de contenido, taxonomía y rol.
 const PIEB_CAN_CPT  = 'pieb_cancion';
 const PIEB_CAN_CULTO = 'pieb_culto';
+const PIEB_CAN_IGLESIA = 'pieb_iglesia';
 const PIEB_CAN_TAX  = 'pieb_etiqueta';
 const PIEB_CAN_ROLE = 'equipo_adoracion';
 const PIEB_CAN_ROLE_ADMIN = 'administrador_cancionero';
@@ -34,6 +35,8 @@ const PIEB_CAN_CAP_ACCESO     = 'pieb_cancionero_acceso';
 const PIEB_CAN_CAP_GESTIONAR  = 'pieb_cancionero_gestionar';
 // Preparar la escaleta de un culto (la hoja impresa del orden del culto); verla y exportarla basta con el acceso.
 const PIEB_CAN_CAP_ESCALETA   = 'pieb_can_escaleta';
+// Administración central: crear iglesias y ajustes globales (ver includes/iglesias.php; con una sola iglesia la reemplaza gestionar).
+const PIEB_CAN_CAP_CENTRAL    = 'pieb_cancionero_central';
 
 // Traducciones del plugin (el idioma de cada usuario se decide en el filtro plugin_locale, ver includes/ajustes.php).
 // Prioridad 1 y registrado antes de incluir el resto de archivos: así se carga antes que cualquier otro gancho de «init»
@@ -47,6 +50,7 @@ require_once PIEB_CAN_DIR . 'includes/archivos.php';
 require_once PIEB_CAN_DIR . 'includes/papelera.php';
 require_once PIEB_CAN_DIR . 'includes/rest.php';
 require_once PIEB_CAN_DIR . 'includes/migracion.php';
+require_once PIEB_CAN_DIR . 'includes/iglesias.php';
 require_once PIEB_CAN_DIR . 'includes/cultos.php';
 require_once PIEB_CAN_DIR . 'includes/ajustes.php';
 require_once PIEB_CAN_DIR . 'includes/correo.php';
@@ -191,6 +195,10 @@ function pieb_can_instalar_roles() {
             $r->add_cap(PIEB_CAN_CAP_ESCALETA);
         }
     }
+    $admin_wp = get_role('administrator');
+    if ($admin_wp) {
+        $admin_wp->add_cap(PIEB_CAN_CAP_CENTRAL);
+    }
 }
 
 // Quien administra el sitio (manage_options) tiene siempre todas las capacidades del cancionero, aunque su rol no las tenga
@@ -201,6 +209,7 @@ add_filter('user_has_cap', function ($allcaps) {
         $allcaps[PIEB_CAN_CAP_ACCESO]    = true;
         $allcaps[PIEB_CAN_CAP_GESTIONAR] = true;
         $allcaps[PIEB_CAN_CAP_ESCALETA]  = true;
+        $allcaps[PIEB_CAN_CAP_CENTRAL]   = true;
     }
     return $allcaps;
 });
@@ -312,6 +321,7 @@ function pieb_can_shortcode() {
     }
 
     $user = wp_get_current_user();
+    $iglesia_activa = pieb_can_iglesia_activa();
     $config = array(
         'api'        => esc_url_raw(rest_url('pieb/v1/')),
         'nonce'      => wp_create_nonce('wp_rest'),
@@ -341,6 +351,10 @@ function pieb_can_shortcode() {
         'idiomaElegido'   => pieb_can_idioma_elegido(),
         'notacion'        => pieb_can_notacion(),
         'notacionElegida' => pieb_can_notacion_elegida(),
+        // Iglesia activa, iglesias del usuario (id, nombre, rol) y si es administrador central (ver includes/iglesias.php).
+        'iglesia'         => array('id' => $iglesia_activa, 'nombre' => pieb_can_iglesia_nombre($iglesia_activa)),
+        'iglesias'        => pieb_can_iglesias_lista_usuario(),
+        'central'         => pieb_can_es_central(),
     );
     // wp_add_inline_script conserva los tipos (booleanos, números), a diferencia de wp_localize_script.
     wp_add_inline_script('pieb-cancionero', 'window.PIEB_CANCIONERO = ' . wp_json_encode($config) . ';', 'before');

@@ -736,10 +736,12 @@
       var escaleta = escEd.valor();
       if (escaleta) { cuerpo.escaleta = escaleta; }
 
+      var cabeceras = { 'X-WP-Nonce': P.cfg.nonce, 'Content-Type': 'application/json' };
+      if (P.cfg.iglesias && P.cfg.iglesias.length > 1 && P.cfg.iglesia) { cabeceras['X-PCAN-Iglesia'] = String(P.cfg.iglesia.id); }
       fetch(P.cfg.api + (editando ? 'cultos/' + c.id : 'cultos'), {
         method: 'POST',
         credentials: 'same-origin',
-        headers: { 'X-WP-Nonce': P.cfg.nonce, 'Content-Type': 'application/json' },
+        headers: cabeceras,
         body: JSON.stringify(cuerpo)
       }).then(function (r) {
         return r.json().then(function (d) { if (!r.ok) { throw new Error(d.message || sprintf(/* translators: %d: código de error HTTP */ __('Error %d'), r.status)); } return d; });

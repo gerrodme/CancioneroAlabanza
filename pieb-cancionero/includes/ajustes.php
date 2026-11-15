@@ -768,7 +768,9 @@ function pieb_can_rest_copia_exportar() {
             'letraHtml'  => (string) get_post_meta($post->ID, '_pieb_letra_html', true),
             'notas'      => (string) get_post_meta($post->ID, '_pieb_notas', true),
             'etiquetas'  => pieb_can_etiquetas($post->ID),
-            'youtube'    => pieb_can_get_youtube($post->ID),
+            'youtube'    => array_map(function ($y) {
+                return array('url' => (string) $y['url'], 'label' => (string) (isset($y['label']) ? $y['label'] : ''));
+            }, pieb_can_get_youtube($post->ID)),
             'creada'     => $post->post_date,
             'subidaPor'  => pieb_can_copia_email($post->post_author),
             'partituras' => $partituras,
@@ -973,7 +975,7 @@ function pieb_can_rest_copia_cancion(WP_REST_Request $request) {
     // Con letraHtml (copias nuevas) la letra plana se deriva de él; las copias antiguas solo traen letra.
     pieb_can_guardar_letra($id, isset($c['letra']) ? (string) $c['letra'] : '', isset($c['letraHtml']) ? (string) $c['letraHtml'] : '');
     update_post_meta($id, '_pieb_notas', sanitize_textarea_field(isset($c['notas']) ? (string) $c['notas'] : ''));
-    update_post_meta($id, '_pieb_youtube', pieb_can_limpiar_youtube(isset($c['youtube']) ? $c['youtube'] : array()));
+    update_post_meta($id, '_pieb_youtube', pieb_can_limpiar_youtube(isset($c['youtube']) ? $c['youtube'] : array(), pieb_can_get_youtube($id)));
     $etiquetas = array_filter(array_map('sanitize_text_field', (array) (isset($c['etiquetas']) ? $c['etiquetas'] : array())));
     wp_set_object_terms($id, array_values(array_unique($etiquetas)), PIEB_CAN_TAX);
 
@@ -992,7 +994,7 @@ function pieb_can_rest_copia_cancion(WP_REST_Request $request) {
             if (pieb_can_tono_clave($tono) === pieb_can_tono_clave(pieb_can_valor_campo('tonalidad', isset($c['tonalidad']) ? $c['tonalidad'] : ''))) {
                 $tono = '';
             }
-            $partituras[] = array('id' => (int) $adjunto, 'label' => sanitize_text_field(isset($par[1]['label']) ? (string) $par[1]['label'] : ''), 'tonalidad' => $tono);
+            $partituras[] = array('id' => (int) $adjunto, 'label' => sanitize_text_field(isset($par[1]['label']) ? (string) $par[1]['label'] : ''), 'tonalidad' => $tono) + pieb_can_origen_nuevo();
         }
         $audios = array();
         foreach ($archivos['audio'] as $par) {
@@ -1081,6 +1083,7 @@ function pieb_can_rest_copia_culto(WP_REST_Request $request) {
         if (is_wp_error($id)) {
             return $id;
         }
+        update_post_meta($id, '_pieb_iglesia', pieb_can_iglesia_activa());
         $estado = 'creado';
     }
 

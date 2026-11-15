@@ -14,6 +14,9 @@
  *  _pieb_youtube    array( array('url' => '...', 'label' => 'Versión coral'), ... )
  *  _pieb_audios     array( array('id' => attachment_id, 'nombre' => 'Ensayo voces', 'descripcion' => '...'), ... )
  *  _pieb_editables  array( array('id' => attachment_id, 'descripcion' => 'Arreglo coro'), ... )  (MuseScore, MusicXML…)
+ *  Cada elemento de partituras, audios, editables y youtube puede llevar además 'autor' (ID de usuario que lo añadió) e
+ *  'iglesia' (ID de la iglesia desde la que se añadió). Si faltan, se completan al leer con quien subió la canción y la
+ *  iglesia por defecto (ver pieb_can_con_origen en includes/iglesias.php); lo nuevo ya se guarda con ellos.
  */
 
 if (!defined('ABSPATH')) {
@@ -104,7 +107,7 @@ function pieb_can_get_partituras($post_id) {
         $p['tonalidad'] = isset($p['tonalidad']) ? (string) $p['tonalidad'] : '';
         $salida[] = $p;
     }
-    return $salida;
+    return pieb_can_con_origen($salida, $post_id);
 }
 
 /** Clave para comparar tonalidades: sin espacios en los extremos y en minúsculas (sin enarmonías). */
@@ -144,17 +147,17 @@ function pieb_can_tonalidades($post_id) {
 
 function pieb_can_get_audios($post_id) {
     $items = get_post_meta($post_id, '_pieb_audios', true);
-    return is_array($items) ? array_values($items) : array();
+    return pieb_can_con_origen(is_array($items) ? array_values($items) : array(), $post_id);
 }
 
 function pieb_can_get_editables($post_id) {
     $items = get_post_meta($post_id, '_pieb_editables', true);
-    return is_array($items) ? array_values($items) : array();
+    return pieb_can_con_origen(is_array($items) ? array_values($items) : array(), $post_id);
 }
 
 function pieb_can_get_youtube($post_id) {
     $items = get_post_meta($post_id, '_pieb_youtube', true);
-    return is_array($items) ? array_values($items) : array();
+    return pieb_can_con_origen(is_array($items) ? array_values($items) : array(), $post_id);
 }
 
 function pieb_can_youtube_id($url) {
@@ -339,6 +342,8 @@ function pieb_can_detalle($post) {
             'tipo'      => get_post_mime_type($p['id']) === 'application/pdf' ? 'pdf' : 'imagen',
             'archivo'   => $file ? wp_basename($file) : '',
             'miniatura' => pieb_can_url_miniatura($p['id'], 'large'),
+            'autor'     => (int) $p['autor'],
+            'iglesia'   => (int) $p['iglesia'],
         );
     }
 
@@ -357,6 +362,8 @@ function pieb_can_detalle($post) {
             'url'         => $url,
             'archivo'     => $file ? wp_basename($file) : '',
             'duracion'    => is_array($meta) && !empty($meta['length_formatted']) ? $meta['length_formatted'] : '',
+            'autor'       => (int) $a['autor'],
+            'iglesia'     => (int) $a['iglesia'],
         );
     }
 
@@ -373,6 +380,8 @@ function pieb_can_detalle($post) {
             'url'         => $url,
             'archivo'     => wp_basename($file),
             'tamano'      => file_exists($file) ? (int) filesize($file) : 0,
+            'autor'       => (int) $e['autor'],
+            'iglesia'     => (int) $e['iglesia'],
         );
     }
 
@@ -382,6 +391,8 @@ function pieb_can_detalle($post) {
             'url'     => $y['url'],
             'label'   => (string) $y['label'],
             'videoId' => pieb_can_youtube_id($y['url']),
+            'autor'   => (int) $y['autor'],
+            'iglesia' => (int) $y['iglesia'],
         );
     }
 
@@ -538,33 +549,44 @@ function pieb_can_archivo_subido($id, $nombre) {
     return array('name' => $nombre, 'type' => '', 'tmp_name' => $ruta, 'error' => UPLOAD_ERR_OK, 'size' => filesize($ruta));
 }
 
-/** Normaliza la lista de enlaces de YouTube recibida del formulario. */
-function pieb_can_limpiar_youtube($items) {
+/**
+ * Normaliza la lista de enlaces de YouTube recibida del formulario. $actuales son los enlaces que ya tiene la canción:
+ * un enlace con la misma URL conserva su autor e iglesia; los demás son nuevos (usuario actual e iglesia activa).
+ */
+function pieb_can_limpiar_youtube($items, $actuales = array()) {
     $limpio = array();
     foreach ((array) $items as $item) {
         $url = isset($item['url']) ? esc_url_raw(trim($item['url'])) : '';
         if (!$url || !pieb_can_youtube_id($url)) {
             continue;
         }
+        $origen = null;
+        foreach ((array) $actuales as $a) {
+            if (isset($a['url']) && $a['url'] === $url) {
+                $origen = pieb_can_origen_de($a);
+                break;
+            }
+        }
         $limpio[] = array(
             'url'   => $url,
             'label' => isset($item['label']) ? sanitize_text_field($item['label']) : '',
-        );
+        ) + ($origen ? $origen : pieb_can_origen_nuevo());
     }
     return $limpio;
 }
 
-function pieb_can_limpiar_editable($attachment_id, $datos) {
+/** $origen: autor e iglesia que se conservan (ver pieb_can_origen_de); null = elemento nuevo (usuario actual e iglesia activa). */
+function pieb_can_limpiar_editable($attachment_id, $datos, $origen = null) {
     return array(
         'id'          => (int) $attachment_id,
         'descripcion' => isset($datos['descripcion']) ? sanitize_text_field($datos['descripcion']) : '',
-    );
+    ) + ($origen ? $origen : pieb_can_origen_nuevo());
 }
 
-function pieb_can_limpiar_audio($attachment_id, $datos) {
+function pieb_can_limpiar_audio($attachment_id, $datos, $origen = null) {
     return array(
         'id'          => (int) $attachment_id,
         'nombre'      => isset($datos['nombre']) ? sanitize_text_field($datos['nombre']) : '',
         'descripcion' => isset($datos['descripcion']) ? sanitize_textarea_field($datos['descripcion']) : '',
-    );
+    ) + ($origen ? $origen : pieb_can_origen_nuevo());
 }
