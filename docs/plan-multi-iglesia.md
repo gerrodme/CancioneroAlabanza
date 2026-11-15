@@ -57,6 +57,56 @@ Se mantiene el prefijo `pieb` y no se renombra nada de lo existente.
 | Equipo y ajustes de una iglesia | Administrador de esa iglesia. |
 | Crear iglesias, papelera de canciones, copias, ajustes globales | Administrador central. |
 
+## Matriz RACI
+
+**R** lo hace · **A** responde de ello y decide (también puede hacerlo) · **C** se le consulta · **I** se le informa o lo ve ·
+**—** no puede. «Autor» es quien creó la canción, añadió el elemento o creó el culto, tenga el rol que tenga.
+
+### Nivel global (el servicio común)
+
+| Qué | Admin. central | Admin. de iglesia | Resp. de escaleta | Equipo | Autor |
+|---|---|---|---|---|---|
+| Crear, renombrar y archivar iglesias | A/R | I | — | — | — |
+| Ajustes globales (acceso con Google, protección de archivos) | A/R | — | — | — | — |
+| Copias de seguridad | A/R | — | — | — | — |
+| Ver canciones, partituras y letras | A | R | R | R | R |
+| Crear una canción | A | R | R | R | — |
+| Añadir partitura, editable o enlace de YouTube | A | R | R | R | — |
+| Cambiar o quitar una partitura, editable o enlace | A/R | — | — | — | R |
+| Rellenar un dato vacío (letra, tempo, autor…) | A | R | R | R | — |
+| Cambiar un dato ya relleno | A/R | — | — | — | R |
+| Corregir la letra | A/R | — | — | — | R (quien creó la canción) |
+| Borrar una canción | A/R | I | — | — | R (quien la creó) |
+| Papelera de canciones (restaurar, eliminar) | A/R | — | — | — | I |
+| Etiquetas universales (crear y poner) | A/R | I | I | I | — |
+| Publicar un audio en todas las iglesias | A/R | C | — | — | C |
+
+### Nivel de iglesia
+
+| Qué | Admin. central | Admin. de iglesia | Resp. de escaleta | Equipo | Autor |
+|---|---|---|---|---|---|
+| Equipo de la iglesia (añadir, cambiar rol, quitar) | I | A/R | — | — | — |
+| Ajustes de la iglesia (nombre, tipos de culto, escaleta, fondos, bienvenida) | — | A/R | — | — | — |
+| Tonalidad habitual y partitura principal de una canción | — | A/R | I | I | — |
+| Notas de la iglesia en una canción | — | A/R | I | I | — |
+| Etiquetas de la iglesia (crear y poner) | — | A | R | R | — |
+| Audios de ensayo de la iglesia | — | A | R | R | R |
+| Ver los cultos de la iglesia | — | R | R | R | R |
+| Crear y editar cultos | — | A | R | R | R |
+| Preparar la escaleta | — | A/R | R | I | — |
+| Tocar, cantar y exportar (PDF, letras, escaleta) | — | R | R | R | R |
+| Borrar un culto | — | A/R | — | — | R |
+| Papelera de cultos | — | A/R | — | — | I |
+| Estadísticas de la iglesia | — | A | I | I | — |
+| Registro de accesos del equipo | — | A/R | — | — | — |
+| Culto privado (verlo, editarlo, publicarlo, borrarlo) | — | — | — | — | A/R |
+
+Notas:
+
+- El administrador central **no ve los cultos** de una iglesia salvo que además pertenezca a ella.
+- Con una sola iglesia, su administración hace también de administración central.
+- Una misma persona puede tener un rol distinto en cada iglesia.
+
 ## Cambios en la API
 
 - **Iglesia activa.** Cada petición lleva la iglesia en la que se está trabajando (cabecera `X-PCAN-Iglesia`). El servidor
