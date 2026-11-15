@@ -251,6 +251,7 @@
       })) : h('p', { class: 'pcan-hero-vacio', text: __('Aún no tiene canciones.') }),
       h('div', { class: 'pcan-hero-acciones' },
         canciones.length ? h('a', { class: 'pcan-btn pcan-btn-primary pcan-btn-lg', href: '#/culto/' + proximo.id + '/tocar/1' }, icono('play'), __('Tocar')) : null,
+        canciones.length ? h('a', { class: 'pcan-btn pcan-btn-lg', href: '#/culto/' + proximo.id + '/cantar/1' }, icono('micro'), __('Cantar')) : null,
         h('a', { class: 'pcan-btn', href: '#/culto/editar/' + proximo.id }, icono('editar'), canciones.length ? __('Editar setlist') : __('Añadir canciones'))));
   }
 
@@ -353,6 +354,7 @@
           s.partituras && s.partituras.length ? h('span', { title: s.partituras.length === 1 ? __('Partitura') : sprintf(_n('%d partitura', '%d partituras', s.partituras.length), s.partituras.length) }, icono('partitura')) : null,
           s.letra ? h('span', { title: __('Letra') }, icono('letra')) : null),
         tono ? P.pastillaTono(tono, { title: __('Tonalidad') }) : null,
+        s.letra ? h('a', { class: 'pcan-icon-btn', href: '#/culto/' + c.id + '/cantar/' + (i + 1), 'aria-label': sprintf(/* translators: %s: título de la canción */ __('Cantar desde %s'), s.titulo), title: __('Cantar desde aquí') }, icono('micro')) : null,
         h('a', { class: 'pcan-icon-btn', href: '#/culto/' + c.id + '/tocar/' + (i + 1), 'aria-label': sprintf(/* translators: %s: título de la canción */ __('Tocar desde %s'), s.titulo), title: __('Tocar desde aquí') }, icono('play')));
     }));
 
@@ -367,6 +369,7 @@
             h('p', { class: 'pcan-det-meta' }, tipoAparte(c) ? h('span', { text: tipoAparte(c) }) : null, h('span', { text: nCanciones(validos.length) }), c.creadoPor ? h('span', { class: 'pcan-muted', text: sprintf(/* translators: %s: nombre de quien preparó el culto */ __('Preparado por %s'), c.creadoPor) }) : null))),
         h('div', { class: 'pcan-det-actions' },
           validos.length ? h('a', { class: 'pcan-btn pcan-btn-primary pcan-btn-lg', href: '#/culto/' + c.id + '/tocar/1' }, icono('play'), __('Tocar el culto')) : null,
+          validos.length ? h('a', { class: 'pcan-btn pcan-btn-lg', href: '#/culto/' + c.id + '/cantar/1' }, icono('micro'), __('Cantar el culto')) : null,
           h('a', { class: 'pcan-btn', href: '#/culto/editar/' + c.id }, icono('editar'), h('span', { class: 'pcan-btn-label', text: __('Editar') })),
           P.accionesSecundarias([
             { texto: __('Copiar como texto'), icono: 'copiar', fn: function () { P.copiar(textoSetlist(c), __('Setlist copiado (para WhatsApp)')); } }
@@ -727,43 +730,79 @@
 
   var lector = null;
 
-  function abrirModo(id, n) {
+  /**
+   * Abre el lector del culto: modo 'tocar' (partituras, por defecto) o 'cantar' (letras). `n` es la posición (1-based) en el
+   * setlist del culto, como en los enlaces de la ficha.
+   */
+  function abrirModo(id, n, modo) {
+    modo = modo === 'cantar' ? 'cantar' : 'tocar';
     var indice = Math.max(0, (parseInt(n, 10) || 1) - 1);
     // Un mismo cambio de dirección puede llegar dos veces (popstate y hashchange): mientras el culto se carga queda
     // anotado, para no abrir un segundo lector encima del primero. Si ya está abierto, solo se cambia de canción.
-    if (lector && lector.culto === +id) {
-      if (lector.cargando) { lector.indice = indice; } else { lector.irACancion(indice); }
+    if (lector && lector.culto === +id && lector.modo === modo) {
+      if (lector.cargando) { lector.indice = indice; } else { lector.irACancion(lector.aIndice(indice)); }
       return;
     }
-    var pendiente = { culto: +id, cargando: true, indice: indice };
+    // Un lector abierto del otro modo (mismo culto u otro) se sustituye sin volver a la ficha.
+    if (lector) {
+      lector.sustituido = true;
+      if (!lector.cargando) { lector.cerrar(); }
+    }
+    var pendiente = { culto: +id, modo: modo, cargando: true, indice: indice };
     lector = pendiente;
     P.ocultarPanel();
     api('cultos/' + id).then(function (c) {
       // Se salió del modo culto (o se pidió otro) mientras cargaba.
       if (lector !== pendiente) { return; }
       indice = pendiente.indice;
-      var items = c.items.filter(function (it) { return !it.eliminada && it.datos.partituras.length; });
-      if (!items.length) { lector = null; aviso(__('Este culto no tiene partituras'), 'error'); location.hash = '#/culto/' + c.id; return; }
-      var l = P.Visor.abrirLector({
+      var cantar = modo === 'cantar';
+      // Al tocar solo van las canciones con partitura; al cantar van todas las del setlist (con o sin letra), para que la
+      // numeración coincida con la del setlist. `posiciones` guarda la posición de cada una en `c.items`.
+      var items = [], posiciones = [];
+      c.items.forEach(function (it, k) {
+        if (it.eliminada) { return; }
+        if (!cantar && !it.datos.partituras.length) { return; }
+        items.push(it); posiciones.push(k);
+      });
+      var hayContenido = cantar ? items.some(function (it) { return it.datos.letra; }) : items.length;
+      if (!hayContenido) {
+        lector = null;
+        aviso(cantar ? __('Ninguna canción de este culto tiene letra') : __('Este culto no tiene partituras'), 'error');
+        location.hash = '#/culto/' + c.id;
+        return;
+      }
+      /** Posición (1-based, en `c.items`) → índice en la lista filtrada: si esa canción no está, la siguiente válida. */
+      function aIndice(pos) {
+        if (!cantar) { return pos; }
+        for (var k = 0; k < posiciones.length; k++) { if (posiciones[k] >= pos) { return k; } }
+        return posiciones.length - 1;
+      }
+      var mio = null;
+      var opciones = {
         titulo: c.titulo,
-        inicio: indice,
+        inicio: aIndice(indice),
         canciones: items.map(function (it) {
-          return {
+          var cancion = {
             id: +it.cancion, titulo: it.datos.titulo, numero: it.datos.numero,
-            tono: it.tonalidad || it.datos.tonalidad, tempo: it.datos.tempo, nota: it.nota, letra: it.datos.letra, letraHtml: it.datos.letraHtml, partituras: it.datos.partituras
+            tono: it.tonalidad || it.datos.tonalidad, tempo: it.datos.tempo, nota: it.nota, letra: it.datos.letra, letraHtml: it.datos.letraHtml
           };
+          if (!cantar) { cancion.partituras = it.datos.partituras; }
+          return cancion;
         }),
         alCambiar: function (i) {
-          history.replaceState('', document.title, location.pathname + location.search + '#/culto/' + c.id + '/tocar/' + (i + 1));
+          history.replaceState('', document.title, location.pathname + location.search + '#/culto/' + c.id + '/' + modo + '/' + ((cantar ? posiciones[i] : i) + 1));
         },
         alCerrar: function () {
+          if (mio && mio.sustituido) { return; }
           var desdeRuta = lector && lector.desdeRuta;
           lector = null;
           if (!desdeRuta) { history.pushState('', document.title, location.pathname + location.search + '#/culto/' + c.id); }
           verCulto(c.id);
         }
-      });
-      lector = { culto: +c.id, irACancion: l.irACancion, cerrar: l.cerrar, desdeRuta: false };
+      };
+      var l = cantar ? P.Visor.abrirCantor(opciones) : P.Visor.abrirLector(opciones);
+      mio = { culto: +c.id, modo: modo, irACancion: l.irACancion, cerrar: l.cerrar, aIndice: aIndice, desdeRuta: false };
+      lector = mio;
     }).catch(function (e) { if (lector === pendiente) { lector = null; } aviso(e.message, 'error'); });
   }
 
@@ -2886,7 +2925,8 @@
   P.ruta(/^culto\/nuevo(?:\/(\d+))?$/, function (m) { abrirEditor(null, { cancion: m[1] ? +m[1] : 0 }); });
   P.ruta(/^culto\/editar\/(\d+)$/, function (m) { abrirEditor(m[1]); });
   P.ruta(/^culto\/duplicar\/(\d+)$/, function (m) { abrirEditor(m[1], { duplicar: true }); });
-  P.ruta(/^culto\/(\d+)\/tocar(?:\/(\d+))?$/, function (m) { P.mostrarVista('cultos'); abrirModo(m[1], m[2]); });
+  P.ruta(/^culto\/(\d+)\/tocar(?:\/(\d+))?$/, function (m) { P.mostrarVista('cultos'); abrirModo(m[1], m[2], 'tocar'); });
+  P.ruta(/^culto\/(\d+)\/cantar(?:\/(\d+))?$/, function (m) { P.mostrarVista('cultos'); abrirModo(m[1], m[2], 'cantar'); });
   P.ruta(/^culto\/(\d+)$/, function (m) {
     if (lector && !lector.cargando) { lector.desdeRuta = true; lector.cerrar(); return; }
     lector = null; // si aún se estaba cargando, ya no se abre

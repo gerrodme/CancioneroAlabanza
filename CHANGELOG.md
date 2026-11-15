@@ -2,6 +2,16 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.25.0 · 2026-11-15
+
+«Cantar el culto»: junto a «Tocar el culto», un lector a pantalla completa con las letras del setlist en lugar de las
+partituras (también «Cantar» en el próximo culto de Inicio y un micrófono en cada canción con letra para empezar por ella).
+Tiene lo mismo que al tocar: título, tonalidad, tempo y nota del culto arriba, las canciones abajo para saltar de una a
+otra, metrónomo, pantalla completa y pantalla siempre encendida. Las flechas, AvPág/RePág o un pedal bajan la letra una
+pantalla y, al final, pasan a la canción siguiente; deslizar en horizontal cambia de canción y tocar el centro oculta las
+barras. «A−» y «A+» cambian el tamaño del texto, que se recuerda en el dispositivo. Las canciones sin letra se avisan sin
+romper la numeración del setlist.
+
 ## 1.24.6 · 2026-11-12
 
 «Exportar letras» está siempre en «Más acciones» de un culto con canciones; si ninguna tiene letra, al pulsarla se avisa

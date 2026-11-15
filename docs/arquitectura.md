@@ -26,7 +26,7 @@ Resumen técnico del plugin **Cancionero** para quien llegue nuevo al código.
 | `assets/cancionero.js` | Interfaz principal (sin dependencias ni compilación): lista, ficha, formulario, subida múltiple, estadísticas, ajustes. Incluye «Acerca del Cancionero» (ruta `#/acerca`, entrada del menú de la cuenta para todos los usuarios): versión, autoría, licencia, código fuente y componentes de terceros; si se añade una librería externa, hay que listarla ahí. |
 | `assets/cultos.js` | Pantallas de cultos y editor de setlist. |
 | `assets/letras.js` | Exportar letras (hoja en PDF, diapositivas en PDF, PowerPoint, OpenLyrics y texto): diálogo y generadores. Se carga después de `cultos.js` y usa `P.pdf`. |
-| `assets/visor.js` | Visor / modo culto para tableta; incluye el metrónomo del lector (Web Audio con programación anticipada, tempo de la canción, tap tempo y compás; atajo «M»). |
+| `assets/visor.js` | Visor / modo culto para tableta; incluye el metrónomo del lector (Web Audio con programación anticipada, tempo de la canción, tap tempo y compás; atajo «M»). `abrirLector` muestra las partituras del culto (ruta `#/culto/ID/tocar/N`); `abrirCantor` es el mismo lector con la letra de cada canción en vez de la partitura (ruta `#/culto/ID/cantar/N`, `N` = posición en el setlist): scroll vertical por «páginas» (pedal Bluetooth, teclas, toques en los tercios), deslizar en horizontal para cambiar de canción y tamaño de texto guardado en el navegador. |
 | `assets/login.js` | Pantalla de acceso. |
 | `assets/cancionero.css` | Estilos y temas. Todo cuelga de `[data-pcan-theme]` y variables `--pc-*`. |
 

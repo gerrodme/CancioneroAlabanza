@@ -555,6 +555,23 @@
     return { panel: panel, alternar: alternar, cambiarCancion: cambiarCancion, destruir: destruir };
   }
 
+  /** Rellena el título de la barra del lector (y del cantor): contador, número · título, tono, tempo y nota. */
+  function pintarTituloLector(titulo, c, i, total) {
+    titulo.innerHTML = '';
+    // Dos grupos (contador y título | tono, tempo y nota): en escritorio son transparentes; en móvil van en filas distintas.
+    append(titulo, [
+      h('span', { class: 'pcan-lector-t1' }, [
+        total > 1 ? h('span', { class: 'pcan-lector-n', text: (i + 1) + '/' + total }) : null,
+        h('strong', { text: (c.numero ? c.numero + ' · ' : '') + c.titulo })
+      ]),
+      h('span', { class: 'pcan-lector-t2' }, [
+        c.tono ? h('span', { class: 'pcan-tono', text: P.tono(c.tono) }) : null,
+        c.tempo ? h('span', { class: 'pcan-lector-tempo', title: sprintf(/* translators: %s: tempo en pulsaciones por minuto */ __('%s pulsaciones por minuto'), c.tempo), text: '♩ = ' + c.tempo }) : null,
+        c.nota ? h('span', { class: 'pcan-lector-nota', text: c.nota }) : null
+      ])
+    ]);
+  }
+
   // ---------------------------------------------------------------- lector a pantalla completa
 
   /**
@@ -610,19 +627,7 @@
       var c = canciones[est.cancion];
       if (est.cancion !== cancionActual) {
         cancionActual = est.cancion;
-        titulo.innerHTML = '';
-        // Dos grupos (contador y título | tono, tempo y nota): en escritorio son transparentes; en móvil van en filas distintas.
-        append(titulo, [
-          h('span', { class: 'pcan-lector-t1' }, [
-            canciones.length > 1 ? h('span', { class: 'pcan-lector-n', text: (est.cancion + 1) + '/' + canciones.length }) : null,
-            h('strong', { text: (c.numero ? c.numero + ' · ' : '') + c.titulo })
-          ]),
-          h('span', { class: 'pcan-lector-t2' }, [
-            c.tono ? h('span', { class: 'pcan-tono', text: P.tono(c.tono) }) : null,
-            c.tempo ? h('span', { class: 'pcan-lector-tempo', title: sprintf(/* translators: %s: tempo en pulsaciones por minuto */ __('%s pulsaciones por minuto'), c.tempo), text: '♩ = ' + c.tempo }) : null,
-            c.nota ? h('span', { class: 'pcan-lector-nota', text: c.nota }) : null
-          ])
-        ]);
+        pintarTituloLector(titulo, c, est.cancion, canciones.length);
         btnLetra.hidden = !c.letra;
         selVariante.innerHTML = '';
         selVariante.hidden = c.partituras.length < 2;
@@ -711,6 +716,219 @@
     return { cerrar: cerrar, irACancion: function (i) { return escenario.irACancion(i); } };
   }
 
+  // ---------------------------------------------------------------- cantor: el mismo lector, con la letra en vez de la partitura
+
+  var CANTAR_TAMS = [16, 18, 20, 22, 24, 28, 32, 36, 40, 48, 56, 64];
+
+  /**
+   * Lector de letras a pantalla completa («Cantar el culto»). Misma carcasa, barra, pastillas y metrónomo que `abrirLector`,
+   * pero el cuerpo es la letra de la canción, con scroll vertical.
+   * opciones: { titulo, canciones: [{ id, titulo, numero, tono, tempo, nota, letra, letraHtml }], inicio, alCerrar(), alCambiar(i) }
+   * Devuelve { cerrar, irACancion(i) }.
+   */
+  function abrirCantor(opciones) {
+    var canciones = opciones.canciones;
+    var cancionActual = -1;
+    var wakeLock = null;
+    var destino = null, destinoTimer = null;
+    var reducido = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+    var titulo = h('div', { class: 'pcan-lector-titulo' });
+    var btnMenos = h('button', { type: 'button', class: 'pcan-chip-btn pcan-cantar-tam', 'aria-label': __('Letra más pequeña'), title: __('Letra más pequeña'), onclick: function () { cambiarTam(-1); }, text: 'A−' });
+    var btnMas = h('button', { type: 'button', class: 'pcan-chip-btn pcan-cantar-tam', 'aria-label': __('Letra más grande'), title: __('Letra más grande'), onclick: function () { cambiarTam(1); }, text: 'A+' });
+    var btnMetro = h('button', { type: 'button', class: 'pcan-chip-btn', 'aria-label': __('Metrónomo'), 'aria-pressed': 'false', 'aria-expanded': 'false', title: __('Metrónomo (M)') }, icono('metronomo'), h('span', { text: __('Metrónomo') }));
+    var letra = h('div', { class: 'pcan-lector-letra' });
+    var pastillas = h('div', { class: 'pcan-lector-canciones', role: 'tablist', 'aria-label': __('Canciones') });
+    var flechaIzq = h('button', { type: 'button', class: 'pcan-lector-flecha is-izq', 'aria-label': __('Página anterior'), onclick: function () { anterior(); } }, icono('anterior'));
+    var flechaDer = h('button', { type: 'button', class: 'pcan-lector-flecha is-der', 'aria-label': __('Página siguiente'), onclick: function () { siguiente(); } }, icono('siguiente'));
+    var metro = crearMetronomo(canciones, btnMetro);
+
+    var capa = h('div', { class: 'pcan-lector is-cantar', role: 'dialog', 'aria-modal': 'true', 'aria-label': opciones.titulo || __('Letra'), tabindex: '-1' },
+      h('div', { class: 'pcan-lector-barra' },
+        h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': __('Cerrar'), onclick: cerrar }, icono('cerrar')),
+        titulo,
+        btnMenos,
+        btnMas,
+        btnMetro,
+        h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': __('Pantalla completa'), title: __('Pantalla completa'), onclick: pantallaCompleta }, icono('expandir'))),
+      h('div', { class: 'pcan-lector-cuerpo' }, letra, flechaIzq, flechaDer, metro.panel),
+      h('div', { class: 'pcan-lector-pie' }, pastillas));
+    P.temaEn(capa);
+
+    canciones.forEach(function (c, i) {
+      append(pastillas, h('button', {
+        type: 'button', role: 'tab', class: 'pcan-lector-pastilla', title: c.titulo,
+        onclick: function () { irA(i, false); }
+      }, h('span', { class: 'pcan-lector-pastilla-n', text: String(i + 1) }), h('span', { class: 'pcan-lector-pastilla-t', text: c.titulo })));
+    });
+    if (canciones.length < 2) { pastillas.hidden = true; }
+
+    // --- tamaño del texto: pasos entre 16 y 64 px; se guarda y se aplica con una variable CSS
+    var tam = 0;
+    function pintarTam() {
+      btnMenos.disabled = tam <= CANTAR_TAMS[0];
+      btnMas.disabled = tam >= CANTAR_TAMS[CANTAR_TAMS.length - 1];
+    }
+    function cambiarTam(dir) {
+      var nuevo = tam;
+      if (dir > 0) {
+        for (var i = 0; i < CANTAR_TAMS.length; i++) { if (CANTAR_TAMS[i] > tam) { nuevo = CANTAR_TAMS[i]; break; } }
+      } else {
+        for (var k = CANTAR_TAMS.length - 1; k >= 0; k--) { if (CANTAR_TAMS[k] < tam) { nuevo = CANTAR_TAMS[k]; break; } }
+      }
+      if (nuevo === tam) { return; }
+      // Se conserva la posición relativa dentro de la letra al cambiar el tamaño.
+      var max = letra.scrollHeight - letra.clientHeight;
+      var rel = max > 0 ? letra.scrollTop / max : 0;
+      tam = nuevo;
+      capa.style.setProperty('--pcan-cantar-tam', tam + 'px');
+      guardarAlmacen('pcan-cantar-tam', tam);
+      destino = null;
+      letra.scrollTop = rel * Math.max(0, letra.scrollHeight - letra.clientHeight);
+      pintarTam();
+      pintarFlechas();
+    }
+
+    // --- contenido
+    function mostrarCancion(i) {
+      var c = canciones[i];
+      if (i !== cancionActual) {
+        cancionActual = i;
+        pintarTituloLector(titulo, c, i, canciones.length);
+        Array.prototype.forEach.call(pastillas.children, function (b, k) {
+          b.classList.toggle('is-active', k === i);
+          b.setAttribute('aria-selected', k === i ? 'true' : 'false');
+          if (k === i && b.scrollIntoView) { b.scrollIntoView({ block: 'nearest', inline: 'center' }); }
+        });
+        metro.cambiarCancion(i);
+        if (opciones.alCambiar) { opciones.alCambiar(i); }
+      }
+      letra.innerHTML = '';
+      letra.classList.remove('is-rica', 'is-vacia');
+      if (c.letraHtml && P.letra) {
+        letra.classList.add('is-rica');
+        letra.innerHTML = P.letra.normalizar(c.letraHtml);
+      } else if (c.letra) {
+        letra.textContent = c.letra;
+      } else {
+        letra.classList.add('is-vacia');
+        append(letra, h('p', { class: 'pcan-cantar-vacio', text: __('Esta canción no tiene letra') }));
+      }
+    }
+
+    /** Muestra la canción i, desde arriba o (si alFinal) colocada al final de la letra. */
+    function irA(i, alFinal) {
+      i = Math.max(0, Math.min(i, canciones.length - 1));
+      destino = null;
+      mostrarCancion(i);
+      letra.scrollTop = alFinal ? letra.scrollHeight : 0;
+      pintarFlechas();
+    }
+
+    // --- scroll por «páginas»: como el pedal pasa página al tocar, «siguiente» baja casi una pantalla y, al final, cambia de canción
+    function posicion() { return destino !== null ? destino : letra.scrollTop; }
+    function maximo() { return Math.max(0, letra.scrollHeight - letra.clientHeight); }
+    function desplazarA(y) {
+      destino = Math.max(0, Math.min(y, maximo()));
+      clearTimeout(destinoTimer);
+      destinoTimer = setTimeout(function () { destino = null; pintarFlechas(); }, 600);
+      if (letra.scrollTo) { letra.scrollTo({ top: destino, behavior: reducido ? 'auto' : 'smooth' }); } else { letra.scrollTop = destino; }
+    }
+    function siguiente() {
+      var pos = posicion();
+      if (pos >= maximo() - 2) { if (cancionActual < canciones.length - 1) { irA(cancionActual + 1, false); } return; }
+      desplazarA(pos + letra.clientHeight * 0.85);
+    }
+    function anterior() {
+      var pos = posicion();
+      if (pos <= 2) { if (cancionActual > 0) { irA(cancionActual - 1, true); } return; }
+      desplazarA(pos - letra.clientHeight * 0.85);
+    }
+
+    function pintarFlechas() {
+      var pos = letra.scrollTop;
+      flechaIzq.disabled = cancionActual <= 0 && pos <= 2;
+      flechaDer.disabled = cancionActual >= canciones.length - 1 && pos >= maximo() - 2;
+    }
+    letra.addEventListener('scroll', pintarFlechas);
+    window.addEventListener('resize', pintarFlechas);
+
+    // --- gestos sobre la letra (el scroll vertical es el nativo): deslizar en horizontal = otra canción;
+    // toque corto en los tercios = página anterior/siguiente; en el centro = ocultar o mostrar las barras
+    var toque = null;
+    letra.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'mouse' && e.button !== 0) { toque = null; return; }
+      toque = { x: e.clientX, y: e.clientY, t: Date.now(), id: e.pointerId };
+    });
+    letra.addEventListener('pointercancel', function () { toque = null; });
+    letra.addEventListener('pointerup', function (e) {
+      var t = toque;
+      toque = null;
+      if (!t || t.id !== e.pointerId) { return; }
+      var dx = e.clientX - t.x, dy = e.clientY - t.y;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        if (dx < 0) { if (cancionActual < canciones.length - 1) { irA(cancionActual + 1, false); } }
+        else if (cancionActual > 0) { irA(cancionActual - 1, false); }
+        return;
+      }
+      if (Math.abs(dx) > 10 || Math.abs(dy) > 10 || Date.now() - t.t > 600) { return; }
+      var sel = window.getSelection && window.getSelection();
+      if (sel && String(sel).length) { return; }
+      var caja = letra.getBoundingClientRect();
+      var rel = (e.clientX - caja.left) / (caja.width || 1);
+      if (rel < 1 / 3) { anterior(); }
+      else if (rel > 2 / 3) { siguiente(); }
+      else { capa.classList.toggle('is-limpio'); }
+    });
+
+    function teclas(e) {
+      if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) { return; }
+      if (['ArrowRight', 'PageDown', ' ', 'ArrowDown', 'Enter'].indexOf(e.key) !== -1) { e.preventDefault(); siguiente(); }
+      else if (['ArrowLeft', 'PageUp', 'ArrowUp', 'Backspace'].indexOf(e.key) !== -1) { e.preventDefault(); anterior(); }
+      else if (e.key === 'Home') { e.preventDefault(); desplazarA(0); }
+      else if (e.key === 'm' || e.key === 'M') { metro.alternar(); }
+      else if (e.key === 'f' || e.key === 'F') { pantallaCompleta(); }
+      else if (e.key === 'Escape' && !document.fullscreenElement) { cerrar(); }
+    }
+
+    function pantallaCompleta() {
+      if (document.fullscreenElement) { document.exitFullscreen(); }
+      else if (capa.requestFullscreen) { capa.requestFullscreen().catch(function () { P.aviso(__('Este navegador no permite pantalla completa'), 'error'); }); }
+    }
+
+    function cerrar() {
+      document.removeEventListener('keydown', teclas);
+      window.removeEventListener('resize', pintarFlechas);
+      clearTimeout(destinoTimer);
+      metro.destruir();
+      if (document.fullscreenElement) { document.exitFullscreen().catch(function () {}); }
+      if (wakeLock) { wakeLock.release().catch(function () {}); }
+      capa.remove();
+      document.documentElement.classList.remove('pcan-lock');
+      if (opciones.alCerrar) { opciones.alCerrar(); }
+    }
+
+    document.body.appendChild(capa);
+    document.documentElement.classList.add('pcan-lock');
+    document.addEventListener('keydown', teclas);
+    if (navigator.wakeLock) { navigator.wakeLock.request('screen').then(function (w) { wakeLock = w; }).catch(function () {}); }
+    capa.focus();
+
+    // Tamaño inicial: el guardado, o el que da la hoja de estilos (se lee ya con la capa en la página).
+    var guardado = parseInt(leerAlmacen('pcan-cantar-tam', ''), 10);
+    if (guardado >= CANTAR_TAMS[0] && guardado <= CANTAR_TAMS[CANTAR_TAMS.length - 1]) {
+      tam = guardado;
+      capa.style.setProperty('--pcan-cantar-tam', tam + 'px');
+    } else {
+      tam = Math.round(parseFloat(window.getComputedStyle(letra).fontSize)) || 24;
+    }
+    pintarTam();
+
+    irA(Math.max(0, Math.min(opciones.inicio || 0, canciones.length - 1)), false);
+
+    return { cerrar: cerrar, irACancion: function (i) { irA(i, false); return Promise.resolve(); } };
+  }
+
   // ---------------------------------------------------------------- visor compacto (ficha de canción)
 
   function visorCompacto(cancion, partitura, alPantallaCompleta) {
@@ -734,5 +952,5 @@
     return { el: caja, destruir: esc.destruir };
   }
 
-  P.Visor = { crearEscenario: crearEscenario, abrirLector: abrirLector, visorCompacto: visorCompacto, cajaContenido: cajaContenido };
+  P.Visor = { crearEscenario: crearEscenario, abrirLector: abrirLector, abrirCantor: abrirCantor, visorCompacto: visorCompacto, cajaContenido: cajaContenido };
 })();

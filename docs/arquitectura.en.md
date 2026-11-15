@@ -26,7 +26,7 @@ A technical summary of the **Cancionero** plugin for anyone new to the code.
 | `assets/cancionero.js` | The main interface (no dependencies or build step): list, song page, form, bulk upload, statistics, settings. It includes "About Cancionero" (route `#/acerca`, an entry in the account menu for every user): version, credits, license, source code and third-party components; if an external library is added, it must be listed there. |
 | `assets/cultos.js` | Service screens and the setlist editor. |
 | `assets/letras.js` | Exporting lyrics (sheet PDF, slides PDF, PowerPoint, OpenLyrics and text): dialog and generators. Loaded after `cultos.js`; uses `P.pdf`. |
-| `assets/visor.js` | Viewer / play mode for tablets; includes the reader's metronome (Web Audio with look-ahead scheduling, song tempo, tap tempo and time signature; shortcut "M"). |
+| `assets/visor.js` | Viewer / play mode for tablets; includes the reader's metronome (Web Audio with look-ahead scheduling, song tempo, tap tempo and time signature; shortcut "M"). `abrirLector` shows the service's scores (route `#/culto/ID/tocar/N`); `abrirCantor` is the same reader showing each song's lyrics instead of the score (route `#/culto/ID/cantar/N`, `N` = position in the setlist): vertical scrolling by "pages" (Bluetooth pedal, keys, taps on the side thirds), horizontal swipe to change song, and a text size remembered in the browser. |
 | `assets/login.js` | Sign-in screen. |
 | `assets/cancionero.css` | Styles and themes. Everything hangs off `[data-pcan-theme]` and `--pc-*` variables. |
 

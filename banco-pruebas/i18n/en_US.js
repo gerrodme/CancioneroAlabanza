@@ -2961,6 +2961,27 @@ window.PIEB_I18N = {
   ],
   "Ninguna canción de este culto tiene letra": [
    "No song in this service has lyrics"
+  ],
+  "Cantar": [
+   "Sing"
+  ],
+  "Cantar desde %s": [
+   "Sing from %s"
+  ],
+  "Cantar desde aquí": [
+   "Sing from here"
+  ],
+  "Cantar el culto": [
+   "Sing the service"
+  ],
+  "Letra más pequeña": [
+   "Smaller text"
+  ],
+  "Letra más grande": [
+   "Larger text"
+  ],
+  "Esta canción no tiene letra": [
+   "This song has no lyrics"
   ]
  }
 };

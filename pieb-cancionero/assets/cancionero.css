@@ -856,6 +856,11 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
   position: absolute; inset: 0; overflow-y: auto; padding: clamp(20px, 5vw, 56px); background: var(--pc-surface); color: var(--pc-text);
   font-size: clamp(20px, 2.6vw, 30px); line-height: 1.6; white-space: pre-wrap; text-align: center;
 }
+/* Cantar el culto: la letra ocupa el cuerpo; el tamaño lo da la variable (A−/A+), el scroll vertical es el nativo y los gestos horizontales los lee el JS. */
+.pcan-lector.is-cantar .pcan-lector-letra { font-size: var(--pcan-cantar-tam, clamp(20px, 2.6vw, 30px)); touch-action: pan-y; overscroll-behavior: contain; }
+.pcan-cantar-vacio { margin: 0; font-size: .7em; font-style: italic; opacity: .6; }
+[data-pcan-theme] .pcan-cantar-tam { justify-content: center; min-width: 44px; padding: 0 10px; font-size: 15px; font-weight: 800; }
+[data-pcan-theme] .pcan-lector .pcan-chip-btn:disabled { opacity: .35; pointer-events: none; }
 [data-pcan-theme] .pcan-lector-flecha {
   position: absolute; top: 50%; z-index: 3; display: none; place-items: center; width: 52px; height: 52px; margin-top: -26px; padding: 0;
   border: 0; border-radius: 50%; background: rgba(0, 0, 0, .35); color: #fff; opacity: .6; transition: opacity .15s;

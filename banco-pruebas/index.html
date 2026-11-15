@@ -56,12 +56,14 @@
   ].map(function (x, i) {
     // Letra con formato de ejemplo (inventada): sección, estribillo y negrita.
     var letraHtml = x[0] === 440 ? '<h4>Verso 1</h4><p>Canto al sol que se levanta</p><p>sobre el valle y el trigal</p><p></p><h4>Coro</h4><blockquote><p>Luz, luz de la <strong>mañana</strong></p><p>brilla <em>siempre</em> en mi lugar</p></blockquote>' : '';
+    // Letra larga (más de una pantalla) para probar el scroll de «Cantar el culto»: versos inventados.
+    if (x[0] === 437) { for (var v = 1; v <= 6; v++) { x[6] += '\n\nVerso ' + v + '\nEl río canta bajo el puente viejo\ny el viento peina el campo de cebada\nlas campanas despiertan el camino\ny la aldea se llena de mañana'; } }
     if (letraHtml) { x[6] = 'Verso 1\nCanto al sol que se levanta\nsobre el valle y el trigal\n\nCoro\nLuz, luz de la mañana\nbrilla siempre en mi lugar'; }
     return { letraHtml: letraHtml, id: x[0], titulo: x[1], numero: x[2], tonalidad: x[3], tempo: { 432: '72', 437: '120', 436: '88', 441: '60' }[x[0]] || '', autor: x[4], etiquetas: x[5], letra: x[6], variantes: x[1] === 'A Cristo coronad' ? [{ id: 1, label: 'Himnario' }, { id: 2, label: 'Coro' }] : [], partituras: 1,
       youtube: i % 3 === 0 ? 1 : 0, audios: i % 4 === 0 ? 1 : 0, editables: i % 3 === 0 ? (i ? 1 : 2) : 0, miniatura: '', creada: dias(-i * 3) + 'T10:00:00Z', modificada: dias(-i) + 'T10:00:00Z' };
   });
   var cultos = [
-    { id: 900, titulo: 'Culto dominical', fecha: dias(4), tipo: 'Culto dominical', notas: 'Predica: pastor', items: [{ cancion: 432, tonalidad: 'Mib', nota: 'Solo estrofas 1 y 3' }, { cancion: 440, tonalidad: '', nota: '' }, { cancion: 437, tonalidad: '', nota: '' }], creadoPor: 'Ana', puedeBorrar: true },
+    { id: 900, titulo: 'Culto dominical', fecha: dias(4), tipo: 'Culto dominical', notas: 'Predica: pastor', items: [{ cancion: 432, tonalidad: 'Mib', nota: 'Solo estrofas 1 y 3' }, { cancion: 440, tonalidad: '', nota: '' }, { cancion: 437, tonalidad: '', nota: '' }, { cancion: 435, tonalidad: '', nota: '' }], creadoPor: 'Ana', puedeBorrar: true },
     { id: 901, titulo: 'Culto de oración', fecha: dias(7), tipo: 'Culto de oración', notas: '', items: [{ cancion: 441, tonalidad: '', nota: '' }], creadoPor: 'Ana', puedeBorrar: true },
     { id: 902, titulo: 'Culto dominical', fecha: dias(-3), tipo: 'Culto dominical', notas: '', items: [{ cancion: 437, tonalidad: '', nota: '' }, { cancion: 436, tonalidad: '', nota: '' }], creadoPor: 'Ana', puedeBorrar: true },
     { id: 903, titulo: 'Culto dominical', fecha: dias(-120), tipo: 'Culto dominical', notas: '', items: [{ cancion: 434, tonalidad: '', nota: '' }], creadoPor: 'Ana', puedeBorrar: true }
