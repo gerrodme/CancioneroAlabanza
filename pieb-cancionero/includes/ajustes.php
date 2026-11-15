@@ -733,7 +733,7 @@ function pieb_can_rest_copia_exportar() {
     foreach ($posts as $post) {
         $partituras = array();
         foreach (pieb_can_get_partituras($post->ID) as $p) {
-            $f = pieb_can_copia_archivo((int) $p['id'], array('label' => isset($p['label']) ? (string) $p['label'] : ''));
+            $f = pieb_can_copia_archivo((int) $p['id'], array('label' => isset($p['label']) ? (string) $p['label'] : '', 'tonalidad' => isset($p['tonalidad']) ? (string) $p['tonalidad'] : ''));
             if ($f) {
                 $partituras[] = $f;
             }
@@ -987,7 +987,12 @@ function pieb_can_rest_copia_cancion(WP_REST_Request $request) {
                 $adjunto->add_data(array('status' => 400));
                 return $adjunto;
             }
-            $partituras[] = array('id' => (int) $adjunto, 'label' => sanitize_text_field(isset($par[1]['label']) ? (string) $par[1]['label'] : ''));
+            $tono = sanitize_text_field(isset($par[1]['tonalidad']) ? (string) $par[1]['tonalidad'] : '');
+            // Una tonalidad igual a la habitual de la canción se guarda vacía (sigue a la habitual).
+            if (pieb_can_tono_clave($tono) === pieb_can_tono_clave(pieb_can_valor_campo('tonalidad', isset($c['tonalidad']) ? $c['tonalidad'] : ''))) {
+                $tono = '';
+            }
+            $partituras[] = array('id' => (int) $adjunto, 'label' => sanitize_text_field(isset($par[1]['label']) ? (string) $par[1]['label'] : ''), 'tonalidad' => $tono);
         }
         $audios = array();
         foreach ($archivos['audio'] as $par) {

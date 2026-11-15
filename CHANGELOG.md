@@ -2,6 +2,17 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.26.0 · 2026-11-15
+
+Tonalidad por partitura. Al subir o editar una canción, cada partitura puede llevar su tonalidad (sin ella, se entiende que
+está en la habitual de la canción). Con partituras en varias tonalidades, la ficha de la canción muestra un selector y solo
+se ven las de la tonalidad elegida, también al tocar. En el setlist de un culto, la tonalidad de cada canción deja de ser
+texto libre: entra con la habitual y un desplegable permite elegir otra de las disponibles; al tocar el culto y en el PDF
+del setlist solo salen las partituras de esa tonalidad. Los cultos anteriores con una tonalidad escrita a mano la conservan
+(«escrita a mano») hasta que se elija otra. La tonalidad de cada partitura va también en las copias de seguridad. Si se
+cambia la tonalidad habitual de una canción con partituras en varias tonalidades, las que estaban en la habitual conservan
+la que tenían.
+
 ## 1.25.0 · 2026-11-15
 
 «Cantar el culto»: junto a «Tocar el culto», un lector a pantalla completa con las letras del setlist en lugar de las

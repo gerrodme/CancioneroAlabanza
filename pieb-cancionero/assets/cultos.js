@@ -538,6 +538,53 @@
       pintarItems();
     }
 
+    /**
+     * Control de tonalidad de una canción del setlist: un desplegable con las tonalidades en que hay partitura (la habitual se guarda
+     * como ''); con 0 o 1 disponibles, solo la pastilla. Una tonalidad antigua escrita a mano que no coincide con ninguna se conserva.
+     */
+    function controlTono(it, s, titulo, alCambiar) {
+      var tonos = (s && s.tonalidades) || [];
+      var habitual = s && s.tonalidad ? s.tonalidad : '';
+      var actual = it.tonalidad || habitual;
+      var opciones = tonos.map(function (t) {
+        return { valor: P.tonoClave(t) === P.tonoClave(habitual) ? '' : t, texto: P.tono(t), clave: P.tonoClave(t) };
+      });
+      // Si la habitual no tiene partitura propia pero es la de la canción, sigue siendo una opción válida cuando el culto la usa.
+      if (!it.tonalidad && habitual && !opciones.some(function (o) { return o.clave === P.tonoClave(habitual); })) {
+        opciones.unshift({ valor: '', texto: P.tono(habitual), clave: P.tonoClave(habitual) });
+      }
+      var seleccion = -1;
+      opciones.forEach(function (o, k) { if (o.clave === P.tonoClave(actual)) { seleccion = k; } });
+      if (seleccion < 0 && actual) {
+        opciones.push({ valor: it.tonalidad, texto: sprintf(/* translators: %s: tonalidad */ __('%s (escrita a mano)'), P.tono(it.tonalidad)), clave: P.tonoClave(it.tonalidad) });
+        seleccion = opciones.length - 1;
+      }
+      if (tonos.length < 2 && seleccion < 0) { return null; }
+      if (tonos.length < 2 && opciones.length < 2) { return actual ? P.pastillaTono(actual, { title: __('Tonalidad') }) : null; }
+      var sel = h('select', {
+        class: 'pcan-input pcan-input-sm pcan-set-tono', 'aria-label': sprintf(/* translators: %s: título de la canción */ __('Tonalidad de %s'), titulo),
+        onchange: function (e) { it.tonalidad = opciones[+e.target.value].valor; it.partitura = 0; alCambiar(); }
+      }, opciones.map(function (o, k) { return h('option', { value: String(k), text: o.texto }); }));
+      sel.value = String(Math.max(seleccion, 0));
+      return sel;
+    }
+
+    /** Selector de partitura: solo las de la tonalidad del item (todas si no coincide ninguna) y solo si quedan 2 o más. */
+    function controlPartitura(it, s, titulo) {
+      if (!s || !s.variantes || s.variantes.length < 2) { return null; }
+      var variantes = P.partiturasDeTono(s.variantes, s, it.tonalidad || s.tonalidad);
+      if (!variantes.length) { variantes = s.variantes; }
+      if (variantes.length < 2) { return null; }
+      var sel = h('select', {
+        class: 'pcan-input pcan-input-sm pcan-set-partitura', 'aria-label': sprintf(/* translators: %s: título de la canción */ __('Partitura de %s'), titulo), title: __('Partitura que se usa en este culto (modo culto y PDF)'),
+        onchange: function (e) { it.partitura = +e.target.value; }
+      }, [h('option', { value: '0', text: __('Partitura: la principal') })].concat(variantes.map(function (v, k) {
+        return h('option', { value: String(v.id), text: sprintf(/* translators: %s: nombre de la partitura (el que le puso el equipo, o «n.º 2») */ __('Partitura: %s'), v.label || sprintf(/* translators: %d: posición de la partitura en la lista */ __('n.º %d'), k + 1)) });
+      })));
+      sel.value = String(it.partitura || 0);
+      return sel;
+    }
+
     function pintarItems() {
       lista.innerHTML = '';
       // Las listas de canciones de la escaleta siguen al setlist.
@@ -552,6 +599,12 @@
         var repetida = items.filter(function (o) { return o.cancion === it.cancion; }).length > 1;
         var rep = avisoRepeticion(it.cancion, fFecha.value, editando ? c.id : 0);
 
+        var ranuraTono = h('span', { class: 'pcan-set-slot-tono' });
+        var ranuraPartitura = h('span', { class: 'pcan-set-slot-part' });
+        var repintarPartitura = function () { ranuraPartitura.innerHTML = ''; append(ranuraPartitura, controlPartitura(it, s, titulo)); };
+        append(ranuraTono, controlTono(it, s, titulo, repintarPartitura));
+        repintarPartitura();
+
         var asa = h('button', { type: 'button', class: 'pcan-drag', 'aria-label': sprintf(/* translators: %s: título de la canción */ __('Arrastrar para reordenar %s'), titulo), title: __('Arrastrar') }, icono('arrastrar'));
         var li = h('li', { class: 'pcan-set-item', 'data-i': String(i) },
           asa,
@@ -559,25 +612,12 @@
           h('span', { class: 'pcan-set-main' },
             h('span', { class: 'pcan-set-title' }, s && s.numero ? h('span', { class: 'pcan-set-num', text: s.numero }) : null, titulo),
             h('span', { class: 'pcan-set-fields' },
-              h('input', {
-                type: 'text', class: 'pcan-input pcan-input-sm pcan-set-tono', list: 'pcan-tonos-set', value: P.tono(it.tonalidad),
-                placeholder: s && s.tonalidad ? P.tono(s.tonalidad) : _x('Tono', 'tonalidad de la canción'), 'aria-label': sprintf(/* translators: %s: título de la canción */ __('Tonalidad de %s'), titulo),
-                oninput: function (e) { it.tonalidad = P.tonoGuardar(e.target.value); }
-              }),
+              ranuraTono,
               h('input', {
                 type: 'text', class: 'pcan-input pcan-input-sm', value: it.nota, placeholder: __('Nota (p. ej. «solo estrofas 1 y 3»)'),
                 'aria-label': sprintf(/* translators: %s: título de la canción */ __('Nota para %s'), titulo), oninput: function (e) { it.nota = e.target.value; }
               }),
-              s && s.variantes && s.variantes.length > 1 ? (function () {
-                var sel = h('select', {
-                  class: 'pcan-input pcan-input-sm pcan-set-partitura', 'aria-label': sprintf(/* translators: %s: título de la canción */ __('Partitura de %s'), titulo), title: __('Partitura que se usa en este culto (modo culto y PDF)'),
-                  onchange: function (e) { it.partitura = +e.target.value; }
-                }, [h('option', { value: '0', text: __('Partitura: la principal') })].concat(s.variantes.map(function (v, k) {
-                  return h('option', { value: String(v.id), text: sprintf(/* translators: %s: nombre de la partitura (el que le puso el equipo, o «n.º 2») */ __('Partitura: %s'), v.label || sprintf(/* translators: %d: posición de la partitura en la lista */ __('n.º %d'), k + 1)) });
-                })));
-                sel.value = String(it.partitura || 0);
-                return sel;
-              })() : null),
+              ranuraPartitura),
             repetida ? h('span', { class: 'pcan-picker-warn' }, icono('aviso'), __('Está repetida en este setlist')) : null,
             rep ? h('span', { class: 'pcan-picker-warn' }, icono('aviso'), rep) : null),
           h('span', { class: 'pcan-set-tools' },
@@ -616,7 +656,6 @@
 
     var errorBox = h('div', { class: 'pcan-form-error', role: 'alert', hidden: true });
     var guardar = h('button', { type: 'submit', class: 'pcan-btn pcan-btn-primary' }, editando ? __('Guardar cambios') : __('Crear culto'));
-    var tonos = h('datalist', { id: 'pcan-tonos-set' }, P.tonalidades.map(function (t) { return h('option', { value: P.tono(t) }); }));
 
     // Dos pestañas bajo los datos del culto: «Canciones» (el setlist y las notas) y «Escaleta» (la hoja impresa del orden del culto).
     var idPestanas = 'pcan-pest-' + (++contadorEsc);
@@ -624,7 +663,7 @@
       h('fieldset', { class: 'pcan-fieldset' },
         h('legend', { text: __('Setlist') }),
         h('div', { class: 'pcan-picker' }, buscador, resultados),
-        lista, tonos),
+        lista),
       h('fieldset', { class: 'pcan-fieldset' },
         h('legend', { text: __('Notas') }),
         fNotas));

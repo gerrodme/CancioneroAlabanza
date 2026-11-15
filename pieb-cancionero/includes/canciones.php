@@ -9,7 +9,8 @@
  *  _pieb_letra      Letra completa (texto plano; si hay _pieb_letra_html, se deriva de él)
  *  _pieb_letra_html Letra con formato (HTML saneado: solo p, h4, blockquote y, dentro, br, strong, em, u), opcional
  *  _pieb_notas      Notas internas
- *  _pieb_partituras array( array('id' => attachment_id, 'label' => 'Original'), ... )  (mínimo 1)
+ *  _pieb_partituras array( array('id' => attachment_id, 'label' => 'Original', 'tonalidad' => 'Sol'), ... )  (mínimo 1)
+ *                   'tonalidad' vacía = la habitual de la canción (_pieb_tonalidad); las entradas antiguas no traen la clave
  *  _pieb_youtube    array( array('url' => '...', 'label' => 'Versión coral'), ... )
  *  _pieb_audios     array( array('id' => attachment_id, 'nombre' => 'Ensayo voces', 'descripcion' => '...'), ... )
  *  _pieb_editables  array( array('id' => attachment_id, 'descripcion' => 'Arreglo coro'), ... )  (MuseScore, MusicXML…)
@@ -91,7 +92,54 @@ function pieb_can_valor_campo($campo, $valor) {
 
 function pieb_can_get_partituras($post_id) {
     $items = get_post_meta($post_id, '_pieb_partituras', true);
-    return is_array($items) ? array_values($items) : array();
+    if (!is_array($items)) {
+        return array();
+    }
+    // Las entradas antiguas no traen 'label' ni 'tonalidad': se completan siempre.
+    $salida = array();
+    foreach (array_values($items) as $p) {
+        $p = is_array($p) ? $p : array();
+        $p['id'] = isset($p['id']) ? (int) $p['id'] : 0;
+        $p['label'] = isset($p['label']) ? (string) $p['label'] : '';
+        $p['tonalidad'] = isset($p['tonalidad']) ? (string) $p['tonalidad'] : '';
+        $salida[] = $p;
+    }
+    return $salida;
+}
+
+/** Clave para comparar tonalidades: sin espacios en los extremos y en minúsculas (sin enarmonías). */
+function pieb_can_tono_clave($tono) {
+    $tono = trim((string) $tono);
+    return function_exists('mb_strtolower') ? mb_strtolower($tono, 'UTF-8') : strtolower($tono);
+}
+
+/** Tonalidad efectiva de una partitura: la suya o, si no tiene, la habitual de la canción. */
+function pieb_can_tono_efectivo($partitura, $tono_cancion) {
+    $propia = isset($partitura['tonalidad']) ? trim((string) $partitura['tonalidad']) : '';
+    return $propia !== '' ? $propia : trim((string) $tono_cancion);
+}
+
+/**
+ * Tonalidades distintas (efectivas) de las partituras de una canción, sin vacías: primero la habitual si alguna
+ * partitura está en ella, luego las demás por orden de aparición. Cada una con el texto de su primera aparición.
+ */
+function pieb_can_tonalidades($post_id) {
+    $habitual = trim((string) get_post_meta($post_id, '_pieb_tonalidad', true));
+    $vistas = array();
+    foreach (pieb_can_get_partituras($post_id) as $p) {
+        $t = pieb_can_tono_efectivo($p, $habitual);
+        $k = pieb_can_tono_clave($t);
+        if ($k !== '' && !isset($vistas[$k])) {
+            $vistas[$k] = $t;
+        }
+    }
+    $hk = pieb_can_tono_clave($habitual);
+    $salida = array();
+    if ($hk !== '' && isset($vistas[$hk])) {
+        $salida[] = $vistas[$hk];
+        unset($vistas[$hk]);
+    }
+    return array_merge($salida, array_values($vistas));
 }
 
 function pieb_can_get_audios($post_id) {
@@ -260,8 +308,10 @@ function pieb_can_resumen($post) {
         'miniatura'   => $thumb ? $thumb : '',
         // Versiones (partituras) de la canción, solo si hay más de una: el setlist deja elegir cuál usar.
         'variantes'   => count($partituras) > 1 ? array_map(function ($p) {
-            return array('id' => (int) $p['id'], 'label' => (string) $p['label']);
+            return array('id' => (int) $p['id'], 'label' => (string) $p['label'], 'tonalidad' => (string) $p['tonalidad']);
         }, $partituras) : array(),
+        // Tonalidades en las que hay partitura (ver pieb_can_tonalidades): el setlist deja elegir una.
+        'tonalidades' => pieb_can_tonalidades($post->ID),
         'creada'      => get_post_time('c', true, $post),
         'modificada'  => get_post_modified_time('c', true, $post),
     );
@@ -284,6 +334,7 @@ function pieb_can_detalle($post) {
         $datos['partituras'][] = array(
             'id'        => (int) $p['id'],
             'label'     => (string) $p['label'],
+            'tonalidad' => (string) $p['tonalidad'],
             'url'       => $url,
             'tipo'      => get_post_mime_type($p['id']) === 'application/pdf' ? 'pdf' : 'imagen',
             'archivo'   => $file ? wp_basename($file) : '',

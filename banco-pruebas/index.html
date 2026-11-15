@@ -44,6 +44,23 @@
   var hoy = new Date();
   function iso(d) { return d.toISOString().slice(0, 10); }
   function dias(n) { var d = new Date(hoy); d.setDate(d.getDate() + n); return iso(d); }
+  // Tonalidad por partitura (como el servidor): '' = la habitual de la canción; la efectiva es la suya o, si no, la de la canción.
+  function claveTono(t) { return String(t || '').trim().toLowerCase(); }
+  function efectivaMock(p, c) { return String(p.tonalidad || '').trim() || String(c.tonalidad || '').trim(); }
+  function partiturasMock(c) {
+    return c.pmock || [{ id: 1, label: 'Himnario', tonalidad: '', archivo: 'partitura.png' }, { id: 2, label: 'Coro', tonalidad: '', archivo: 'coro.png' }];
+  }
+  // Recalcula `variantes` y `tonalidades` del resumen: las tonalidades efectivas distintas, la habitual primero si alguna partitura está en ella.
+  function recalcularMock(c) {
+    var ps = c.pmock || [], vistas = {}, lista = [];
+    c.variantes = ps.length > 1 ? ps.map(function (p) { return { id: p.id, label: p.label, tonalidad: p.tonalidad || '' }; }) : [];
+    ps.forEach(function (p) {
+      var t = efectivaMock(p, c), k = claveTono(t);
+      if (k && !vistas[k]) { vistas[k] = true; lista.push(t); }
+    });
+    lista.sort(function (a, b) { return (claveTono(b) === claveTono(c.tonalidad) ? 1 : 0) - (claveTono(a) === claveTono(c.tonalidad) ? 1 : 0); });
+    c.tonalidades = lista;
+  }
   var canciones = [
     [437, 'A Cristo coronad', '51', 'Sol', 'G. J. Elvey', ['Alabanza'], 'A Cristo coronad, divino Salvador\nsentado en alta majestad\ndigno de loor'],
     [436, 'A Dios demos gloria', '18', 'Lab', 'W. H. Doane', ['Alabanza'], ''],
@@ -59,19 +76,25 @@
     // Letra larga (más de una pantalla) para probar el scroll de «Cantar el culto»: versos inventados.
     if (x[0] === 437) { for (var v = 1; v <= 6; v++) { x[6] += '\n\nVerso ' + v + '\nEl río canta bajo el puente viejo\ny el viento peina el campo de cebada\nlas campanas despiertan el camino\ny la aldea se llena de mañana'; } }
     if (letraHtml) { x[6] = 'Verso 1\nCanto al sol que se levanta\nsobre el valle y el trigal\n\nCoro\nLuz, luz de la mañana\nbrilla siempre en mi lugar'; }
-    return { letraHtml: letraHtml, id: x[0], titulo: x[1], numero: x[2], tonalidad: x[3], tempo: { 432: '72', 437: '120', 436: '88', 441: '60' }[x[0]] || '', autor: x[4], etiquetas: x[5], letra: x[6], variantes: x[1] === 'A Cristo coronad' ? [{ id: 1, label: 'Himnario' }, { id: 2, label: 'Coro' }] : [], partituras: 1,
+    return { letraHtml: letraHtml, id: x[0], titulo: x[1], numero: x[2], tonalidad: x[3], tempo: { 432: '72', 437: '120', 436: '88', 441: '60' }[x[0]] || '', autor: x[4], etiquetas: x[5], letra: x[6], variantes: x[1] === 'A Cristo coronad' ? [{ id: 1, label: 'Himnario' }, { id: 2, label: 'Coro' }] : [], partituras: 1, tonalidades: [],
       youtube: i % 3 === 0 ? 1 : 0, audios: i % 4 === 0 ? 1 : 0, editables: i % 3 === 0 ? (i ? 1 : 2) : 0, miniatura: '', creada: dias(-i * 3) + 'T10:00:00Z', modificada: dias(-i) + 'T10:00:00Z' };
+  });
+  // «A Cristo coronad»: tres partituras, dos en la habitual (Sol) y una en Fa.
+  canciones.forEach(function (c) {
+    if (c.id === 437) { c.pmock = [{ id: 1, label: 'Himnario', tonalidad: '', archivo: 'partitura.png' }, { id: 2, label: 'Coro', tonalidad: '', archivo: 'coro.png' }, { id: 3, label: 'En Fa', tonalidad: 'Fa', archivo: 'a-cristo-en-fa.png' }]; recalcularMock(c); }
+    else if (c.tonalidad) { c.tonalidades = [c.tonalidad]; }
   });
   var cultos = [
     { id: 900, titulo: 'Culto dominical', fecha: dias(4), tipo: 'Culto dominical', notas: 'Predica: pastor', items: [{ cancion: 432, tonalidad: 'Mib', nota: 'Solo estrofas 1 y 3' }, { cancion: 440, tonalidad: '', nota: '' }, { cancion: 437, tonalidad: '', nota: '' }, { cancion: 435, tonalidad: '', nota: '' }], creadoPor: 'Ana', puedeBorrar: true },
     { id: 901, titulo: 'Culto de oración', fecha: dias(7), tipo: 'Culto de oración', notas: '', items: [{ cancion: 441, tonalidad: '', nota: '' }], creadoPor: 'Ana', puedeBorrar: true },
-    { id: 902, titulo: 'Culto dominical', fecha: dias(-3), tipo: 'Culto dominical', notas: '', items: [{ cancion: 437, tonalidad: '', nota: '' }, { cancion: 436, tonalidad: '', nota: '' }], creadoPor: 'Ana', puedeBorrar: true },
+    { id: 902, titulo: 'Culto dominical', fecha: dias(-3), tipo: 'Culto dominical', notas: '', items: [{ cancion: 437, tonalidad: 'Lab', nota: 'Tonalidad antigua escrita a mano' }, { cancion: 436, tonalidad: '', nota: '' }], creadoPor: 'Ana', puedeBorrar: true },
     { id: 903, titulo: 'Culto dominical', fecha: dias(-120), tipo: 'Culto dominical', notas: '', items: [{ cancion: 434, tonalidad: '', nota: '' }], creadoPor: 'Ana', puedeBorrar: true }
   ];
   function detalleCancion(c) {
     return Object.assign({}, c, {
       notas: c.id === 432 ? 'Empezar suave, coro entra en la segunda estrofa.' : '',
-      partituras: [{ id: 1, label: 'Himnario', url: 'partitura.png', tipo: 'imagen', archivo: 'partitura.png', miniatura: '' }, { id: 2, label: 'Coro', url: 'partitura.png', tipo: 'imagen', archivo: 'coro.png', miniatura: '' }],
+      partituras: partiturasMock(c).map(function (p) { return { id: p.id, label: p.label, tonalidad: p.tonalidad || '', url: 'partitura.png', tipo: 'imagen', archivo: p.archivo, miniatura: '' }; }),
+      tonalidades: c.tonalidades || [],
       audios: c.audios ? [{ id: 2, nombre: 'Ensayo voces', descripcion: 'Jueves', url: '#', archivo: 'ensayo.mp3', duracion: '3:12' }] : [],
       editables: c.editables ? [{ id: 3, descripcion: 'Arreglo coro', url: '#', archivo: 'a-cristo-coronad.mscz', tamano: 48213 }, { id: 4, descripcion: '', url: '#', archivo: 'a-cristo-coronad.musicxml', tamano: 151022 }].slice(0, c.editables) : [],
       youtube: c.youtube ? [{ url: 'https://youtu.be/dQw4w9WgXcQ', label: 'Coro', videoId: 'dQw4w9WgXcQ' }] : [],
@@ -88,10 +111,20 @@
     }
   }
   var ultimaEscaleta = 900;
+  // Como el servidor: las partituras de un item son solo las de su tonalidad (la del item o, si está vacía, la habitual), con la elegida
+  // la primera; si ninguna coincide (tonalidad antigua escrita a mano) o la elegida es de otra tonalidad, llegan todas.
+  function partiturasDeItemMock(it, s) {
+    var todas = detalleCancion(s).partituras, k = claveTono(it.tonalidad || s.tonalidad);
+    var mias = todas.filter(function (p) { return claveTono(efectivaMock(p, s)) === k; });
+    var elegida = it.partitura ? todas.filter(function (p) { return p.id === it.partitura; })[0] : null;
+    if (!mias.length || (elegida && mias.indexOf(elegida) === -1)) { return todas; }
+    if (elegida) { mias.splice(mias.indexOf(elegida), 1); mias.unshift(elegida); }
+    return mias;
+  }
   function detalleCulto(c) {
     return Object.assign({}, c, { escaleta: c.escaleta || null, items: c.items.map(function (it) {
       var s = canciones.filter(function (x) { return x.id === it.cancion; })[0];
-      return Object.assign({}, it, { datos: { titulo: s.titulo, numero: s.numero, tonalidad: s.tonalidad, tempo: s.tempo, autor: s.autor, letra: s.letra, letraHtml: s.letraHtml, partituras: detalleCancion(s).partituras } });
+      return Object.assign({}, it, { datos: { titulo: s.titulo, numero: s.numero, tonalidad: s.tonalidad, tempo: s.tempo, autor: s.autor, letra: s.letra, letraHtml: s.letraHtml, partituras: partiturasDeItemMock(it, s), tonalidades: s.tonalidades || [] } });
     }) });
   }
   // Ajustes y equipo: la lista guardada vive aquí para que guardar y enviar la bienvenida se noten al volver a abrir.
@@ -400,6 +433,17 @@
       var cancion = canciones.filter(function (c) { return c.id === id; })[0];
       if (!cancion) { cancion = { id: 500 + canciones.length, partituras: 1, youtube: 0, audios: 0, editables: 0, etiquetas: [], variantes: [], miniatura: '' }; canciones.unshift(cancion); }
       cancion.titulo = fd.get('titulo'); cancion.numero = fd.get('numero'); cancion.autor = fd.get('autor'); cancion.tonalidad = fd.get('tonalidad');
+      // Partituras con su tonalidad: '' si coincide con la de la canción (como el servidor).
+      if (fd.get('partituras') !== null) {
+        var previas = partiturasMock(cancion), pm = [];
+        JSON.parse(fd.get('partituras') || '[]').forEach(function (r) {
+          var p = previas.filter(function (x) { return x.id === r.id; })[0];
+          if (p) { pm.push({ id: p.id, label: r.label || '', tonalidad: r.tonalidad || '', archivo: p.archivo }); }
+        });
+        JSON.parse(fd.get('nuevasSubidas') || '[]').forEach(function (n, k) { pm.push({ id: 100 + k + pm.length, label: n.label || '', tonalidad: n.tonalidad || '', archivo: n.nombre }); });
+        pm.forEach(function (p) { if (claveTono(p.tonalidad) === claveTono(cancion.tonalidad)) { p.tonalidad = ''; } });
+        cancion.pmock = pm; recalcularMock(cancion);
+      }
       var html = fd.get('letraHtml');
       if (html) {
         cancion.letraHtml = html;

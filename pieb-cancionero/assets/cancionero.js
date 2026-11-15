@@ -93,6 +93,23 @@
     return v;
   }
 
+  /** Clave para comparar tonalidades: sin espacios sobrantes ni mayúsculas (sin enarmonías). */
+  function tonoClave(t) {
+    return String(t === null || t === undefined ? '' : t).trim().toLowerCase();
+  }
+
+  /** Tonalidad efectiva de una partitura: la suya si la tiene; si no, la habitual de la canción. */
+  function tonoEfectivo(partitura, cancion) {
+    var t = String((partitura && partitura.tonalidad) || '').trim();
+    return t || String((cancion && cancion.tonalidad) || '').trim();
+  }
+
+  /** Las partituras de la lista (variantes o partituras) cuya tonalidad efectiva es la indicada. */
+  function partiturasDeTono(lista, cancion, tono) {
+    var k = tonoClave(tono);
+    return (lista || []).filter(function (p) { return tonoClave(tonoEfectivo(p, cancion)) === k; });
+  }
+
   var state = {
     canciones: [],
     indice: [],
@@ -2119,13 +2136,24 @@
       });
   }
 
+  /** Tonalidad que se ve en la ficha de la canción: la habitual si está entre las disponibles; si no, la primera. '' si hay 0 o 1. */
+  function tonoDeFicha(c) {
+    var tonos = c.tonalidades || [];
+    if (tonos.length < 2) { return ''; }
+    if (c.tonoFicha !== undefined && tonos.some(function (t) { return tonoClave(t) === tonoClave(c.tonoFicha); })) { return c.tonoFicha; }
+    var habitual = tonos.filter(function (t) { return tonoClave(t) === tonoClave(c.tonalidad); })[0];
+    return habitual !== undefined ? habitual : tonos[0];
+  }
+
   function lectorDeCancion(c, partitura) {
     if (!P.Visor || !c.partituras.length) { return; }
-    var orden = c.partituras.slice();
-    if (partitura) { orden.splice(orden.indexOf(partitura), 1); orden.unshift(partitura); }
+    var tonoSel = tonoDeFicha(c);
+    var orden = tonoSel ? partiturasDeTono(c.partituras, c, tonoSel) : c.partituras.slice();
+    if (!orden.length) { orden = c.partituras.slice(); }
+    if (partitura && orden.indexOf(partitura) !== -1) { orden.splice(orden.indexOf(partitura), 1); orden.unshift(partitura); }
     P.Visor.abrirLector({
       titulo: c.titulo,
-      canciones: [{ id: c.id, titulo: c.titulo, numero: c.numero, tono: c.tonalidad, tempo: c.tempo, nota: '', letra: c.letra, letraHtml: c.letraHtml || '', partituras: orden }]
+      canciones: [{ id: c.id, titulo: c.titulo, numero: c.numero, tono: tonoSel || c.tonalidad, tempo: c.tempo, nota: '', letra: c.letra, letraHtml: c.letraHtml || '', partituras: orden }]
     });
   }
 
@@ -2212,10 +2240,13 @@
     if (!c.partituras.length) { return h('p', { class: 'pcan-muted', text: __('Esta canción no tiene partitura.') }); }
     var zona = h('div', { class: 'pcan-partitura-zona' });
     var selector = h('div', { class: 'pcan-segment' });
+    var selectorTono = h('div', { class: 'pcan-segment', role: 'group', 'aria-label': __('Tonalidad') });
     var visorActual = null;
+    var tonos = c.tonalidades || [];
+    var lista = c.partituras;
 
     function ver(i) {
-      var p = c.partituras[i];
+      var p = lista[i];
       Array.prototype.forEach.call(selector.children, function (b, j) { b.classList.toggle('is-active', i === j); });
       if (visorActual) { visorActual.destruir(); visorActual = null; }
       zona.innerHTML = '';
@@ -2230,13 +2261,47 @@
       }
     }
 
-    if (c.partituras.length > 1) {
-      c.partituras.forEach(function (p, i) {
-        append(selector, h('button', { type: 'button', class: 'pcan-seg', onclick: function () { ver(i); } }, p.label || sprintf(/* translators: %d: número de orden de la partitura */ __('Partitura %d'), i + 1)));
-      });
+    // Pinta las versiones de la lista actual (las de la tonalidad elegida) y muestra la primera.
+    function pintarVersiones() {
+      selector.innerHTML = '';
+      if (lista.length > 1) {
+        lista.forEach(function (p, i) {
+          append(selector, h('button', { type: 'button', class: 'pcan-seg', onclick: function () { ver(i); } }, p.label || sprintf(/* translators: %d: número de orden de la partitura */ __('Partitura %d'), i + 1)));
+        });
+      }
+      selector.style.display = lista.length < 2 ? 'none' : '';
+      ver(0);
     }
-    var wrap = h('div', null, c.partituras.length > 1 ? selector : null, zona);
-    ver(0);
+
+    // Con dos o más tonalidades, un selector encima deja ver solo las partituras de la elegida.
+    var bloqueTono = null;
+    if (tonos.length > 1) {
+      var elegida = tonoDeFicha(c);
+      var pintarTonos = function () {
+        Array.prototype.forEach.call(selectorTono.children, function (b, j) {
+          var activo = tonoClave(tonos[j]) === tonoClave(elegida);
+          b.classList.toggle('is-active', activo);
+          b.setAttribute('aria-pressed', activo ? 'true' : 'false');
+        });
+      };
+      tonos.forEach(function (t) {
+        append(selectorTono, h('button', {
+          type: 'button', class: 'pcan-seg', 'aria-pressed': 'false',
+          onclick: function () {
+            elegida = t; c.tonoFicha = t;
+            lista = partiturasDeTono(c.partituras, c, t);
+            if (!lista.length) { lista = c.partituras; }
+            pintarTonos(); pintarVersiones();
+          }
+        }, tonoVer(t)));
+      });
+      bloqueTono = h('div', { class: 'pcan-tono-selector' }, h('span', { class: 'pcan-tono-selector-label', text: __('Tonalidad') }), selectorTono);
+      lista = partiturasDeTono(c.partituras, c, elegida);
+      if (!lista.length) { lista = c.partituras; }
+      pintarTonos();
+    }
+    var wrap = h('div', null, bloqueTono, selector, zona);
+    pintarVersiones();
     return wrap;
   }
 
@@ -2335,7 +2400,7 @@
     var editando = !!c;
     c = c || { titulo: '', numero: '', autor: '', tonalidad: '', tempo: '', etiquetas: [], letra: '', notas: '', partituras: [], audios: [], editables: [], youtube: [] };
 
-    var existentes = c.partituras.map(function (p) { return { id: p.id, label: p.label, archivo: p.archivo, url: p.url }; });
+    var existentes = c.partituras.map(function (p) { return { id: p.id, label: p.label, tonalidad: p.tonalidad || '', archivo: p.archivo, url: p.url }; });
     var nuevas = [];
     var audiosExistentes = c.audios.map(function (a) { return { id: a.id, nombre: a.nombre, descripcion: a.descripcion, archivo: a.archivo, url: a.url }; });
     var audiosNuevos = [];
@@ -2407,6 +2472,17 @@
       });
     }
 
+    /** Campo opcional «Tonalidad» de una partitura; lo vacío significa «la habitual de la canción». */
+    function campoTonoPartitura(item, nombreArchivo) {
+      var placeholder = function () { return tonoGuardar(fTono.value) ? tonoVer(tonoGuardar(fTono.value)) : __('Tonalidad'); };
+      return h('input', {
+        type: 'text', class: 'pcan-input pcan-input-sm pcan-file-tono', list: 'pcan-tonos', maxlength: '20',
+        value: tonoVer(item.tonalidad), placeholder: placeholder(),
+        'aria-label': sprintf(/* translators: %s: nombre del archivo */ __('Tonalidad de %s'), nombreArchivo),
+        oninput: function (e) { item.tonalidad = tonoGuardar(e.target.value); }
+      });
+    }
+
     function filaArchivo(icon, nombre, extra, campos, quitar) {
       return h('div', { class: 'pcan-file' },
         icono(icon),
@@ -2419,7 +2495,7 @@
     var zonaPartituras = zonaArchivos('.pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png', __('Elegir partituras'),
       sprintf(/* translators: %s: tamaño máximo por archivo */ __('PDF, JPG o PNG · máx. %s por archivo'), tamano(CFG.maxPartitura)), function (files) {
         Array.prototype.forEach.call(files, function (f) {
-          if (archivoValido(f, /\.(pdf|jpe?g|png)$/i, /* translators: %s: nombre del archivo */ __('«%s» no es PDF, JPG ni PNG'), CFG.maxPartitura)) { nuevas.push({ file: f, label: '' }); }
+          if (archivoValido(f, /\.(pdf|jpe?g|png)$/i, /* translators: %s: nombre del archivo */ __('«%s» no es PDF, JPG ni PNG'), CFG.maxPartitura)) { nuevas.push({ file: f, label: '', tonalidad: '' }); }
         });
         pintarPartituras();
       });
@@ -2438,7 +2514,8 @@
           h('a', { href: p.url, target: '_blank', rel: 'noopener', class: 'pcan-file-ver', text: __('ver') }),
           marca(i === 0, true, function () { existentes.unshift(existentes.splice(i, 1)[0]); pintarPartituras(); }));
         append(listaPartituras, filaArchivo('partitura', p.archivo || __('Partitura'), extra,
-          campoTexto(p, 'label', __('Descripción (p. ej. «Original», «En Sol», «Acordes»)'), sprintf(/* translators: %s: nombre del archivo */ __('Descripción de %s'), p.archivo)),
+          [campoTexto(p, 'label', __('Descripción (p. ej. «Original», «En Sol», «Acordes»)'), sprintf(/* translators: %s: nombre del archivo */ __('Descripción de %s'), p.archivo)),
+            campoTonoPartitura(p, p.archivo)],
           function () { existentes.splice(i, 1); pintarPartituras(); }));
       });
       nuevas.forEach(function (n, i) {
@@ -2447,11 +2524,17 @@
           h('span', { class: 'pcan-file-new', text: sprintf(/* translators: %s: tamaño del archivo */ __('nueva · %s'), tamano(n.file.size)) }),
           marca(!existentes.length && i === 0, !existentes.length, function () { nuevas.unshift(nuevas.splice(i, 1)[0]); pintarPartituras(); }));
         append(listaPartituras, filaArchivo('partitura', n.file.name, extra,
-          campoTexto(n, 'label', __('Descripción (p. ej. «Original», «En Sol», «Acordes»)'), sprintf(/* translators: %s: nombre del archivo */ __('Descripción de %s'), n.file.name)),
+          [campoTexto(n, 'label', __('Descripción (p. ej. «Original», «En Sol», «Acordes»)'), sprintf(/* translators: %s: nombre del archivo */ __('Descripción de %s'), n.file.name)),
+            campoTonoPartitura(n, n.file.name)],
           function () { nuevas.splice(i, 1); pintarPartituras(); }));
       });
     }
     pintarPartituras();
+    // El texto de ejemplo de cada partitura es la tonalidad habitual que haya ahora en el campo Tonalidad de la canción.
+    fTono.addEventListener('input', function () {
+      var t = tonoGuardar(fTono.value);
+      Array.prototype.forEach.call(listaPartituras.querySelectorAll('.pcan-file-tono'), function (i) { i.placeholder = t ? tonoVer(t) : __('Tonalidad'); });
+    });
 
     // Audios: nombre y descripción personalizables.
     var listaAudios = h('div', { class: 'pcan-files' });
@@ -2555,6 +2638,7 @@
           h('legend', null, __('Partitura'), h('abbr', { title: __('obligatorio'), text: ' *' })),
           h('p', { class: 'pcan-help', text: __('Puedes subir varias: la original, en otra tonalidad, con acordes…') }),
           listaPartituras, zonaPartituras,
+          h('p', { class: 'pcan-help', text: __('Si subes la canción en varias tonalidades, indica la de cada partitura. Sin tonalidad, se entiende que está en la habitual de la canción.') }),
           !editando ? h('p', { class: 'pcan-help' }, conNodo(/* translators: %s: enlace «Súbelas de golpe» */ __('¿Son varias canciones distintas? %s.'), h('a', { href: '#/subir', text: __('Súbelas de golpe') }))) : null),
         h('fieldset', { class: 'pcan-fieldset pcan-form-audios' },
           h('legend', { text: __('Audios') }),
@@ -2639,8 +2723,8 @@
       fd.append('letraHtml', letraEd.letraHtml);
       fd.append('notas', fNotas.value);
       fd.append('youtube', JSON.stringify(videos.filter(function (v) { return v.url; })));
-      fd.append('partituras', JSON.stringify(existentes.map(function (p) { return { id: p.id, label: p.label }; })));
-      fd.append('nuevasSubidas', JSON.stringify(nuevas.map(function (n) { return { id: n.subida, nombre: n.file.name, label: n.label }; })));
+      fd.append('partituras', JSON.stringify(existentes.map(function (p) { return { id: p.id, label: p.label, tonalidad: p.tonalidad || '' }; })));
+      fd.append('nuevasSubidas', JSON.stringify(nuevas.map(function (n) { return { id: n.subida, nombre: n.file.name, label: n.label, tonalidad: n.tonalidad || '' }; })));
       fd.append('audios', JSON.stringify(audiosExistentes.map(function (a) { return { id: a.id, nombre: a.nombre, descripcion: a.descripcion }; })));
       fd.append('audiosSubidos', JSON.stringify(audiosNuevos.map(function (a) { return { id: a.subida, archivo: a.file.name, nombre: a.nombre, descripcion: a.descripcion }; })));
       fd.append('editables', JSON.stringify(editablesExistentes.map(function (e) { return { id: e.id, descripcion: e.descripcion }; })));
@@ -5685,6 +5769,9 @@
     tonalidades: TONALIDADES,
     tono: tonoVer,
     tonoGuardar: tonoGuardar,
+    tonoClave: tonoClave,
+    tonoEfectivo: tonoEfectivo,
+    partiturasDeTono: partiturasDeTono,
     locale: LOCALE,
     __: __,
     _n: _n,

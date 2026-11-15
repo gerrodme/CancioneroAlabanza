@@ -119,6 +119,19 @@ function pieb_can_culto_detalle($post) {
         $detalle = pieb_can_detalle($cancion);
         // La partitura elegida para este culto va la primera: el modo culto y el PDF usan siempre la primera.
         $elegida = isset($item['partitura']) ? (int) $item['partitura'] : 0;
+        // Solo las partituras en la tonalidad del item (la suya o, si no tiene, la de la canción). Si ninguna coincide
+        // (tonalidad antigua escrita a mano) o la elegida es de otra tonalidad, se dejan todas.
+        $tono_item = pieb_can_tono_efectivo(array('tonalidad' => isset($item['tonalidad']) ? $item['tonalidad'] : ''), $detalle['tonalidad']);
+        $clave_item = pieb_can_tono_clave($tono_item);
+        $coinciden = array();
+        foreach ($detalle['partituras'] as $p) {
+            if (pieb_can_tono_clave(pieb_can_tono_efectivo($p, $detalle['tonalidad'])) === $clave_item) {
+                $coinciden[] = $p;
+            }
+        }
+        if ($coinciden && (!$elegida || in_array($elegida, array_map('intval', wp_list_pluck($coinciden, 'id')), true))) {
+            $detalle['partituras'] = $coinciden;
+        }
         if ($elegida) {
             usort($detalle['partituras'], function ($a, $b) use ($elegida) {
                 return (int) ((int) $b['id'] === $elegida) - (int) ((int) $a['id'] === $elegida);
@@ -133,6 +146,7 @@ function pieb_can_culto_detalle($post) {
             'letra'      => $detalle['letra'],
             'letraHtml'  => $detalle['letraHtml'],
             'partituras' => $detalle['partituras'],
+            'tonalidades' => $detalle['tonalidades'],
         );
     }
     unset($item);

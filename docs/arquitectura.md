@@ -61,14 +61,17 @@ La interfaz es una aplicación de una sola página dentro de la página de WordP
   | `_pieb_tempo` | Entero, pulsaciones por minuto. |
   | `_pieb_letra`, `_pieb_notas` | Texto plano. `_pieb_letra` es siempre texto plano (búsqueda, listado, copiar…); si hay `_pieb_letra_html`, se deriva de él. |
   | `_pieb_letra_html` | Opcional. Letra con formato, HTML saneado: hijos de primer nivel `p`, `h4` (título de sección) o `blockquote` (estribillo, solo con `p`); dentro, solo texto, `br`, `strong`, `em`, `u`; sin atributos. Cada línea es un `<p>` y `<p></p>` separa estrofas. |
-  | `_pieb_partituras` | Lista de `{id (adjunto), label}`; mínimo 1. PDF, JPG o PNG, máx. 4 MB. |
+  | `_pieb_partituras` | Lista de `{id (adjunto), label, tonalidad}`; mínimo 1. PDF, JPG o PNG, máx. 4 MB. `tonalidad` vacía = la habitual de la canción (`_pieb_tonalidad`); las entradas antiguas sin la clave valen `''` (`pieb_can_get_partituras()` la devuelve siempre). La tonalidad efectiva de una partitura es la suya o, si no tiene, la de la canción; dos tonalidades son iguales si coinciden tras `trim` y minúsculas (`pieb_can_tono_clave()`, sin enarmonías). Al guardar, una tonalidad igual a la de la canción de esa misma petición se guarda como `''`. |
   | `_pieb_youtube` | Lista de `{url, label}`; solo se aceptan enlaces de YouTube válidos. |
   | `_pieb_audios` | Lista de `{id, nombre, descripcion}`. MP3/M4A/OGG/WAV/AAC, máx. 10 MB. |
   | `_pieb_editables` | Lista de `{id, descripcion}`: MuseScore, MusicXML… máx. 10 MB. |
 
 - Metadatos de **culto**: `_pieb_fecha`, `_pieb_tipo`, `_pieb_notas`, `_pieb_items` (lista de
   `{cancion, tonalidad, nota, partitura}` en orden; `partitura` es el ID del adjunto elegido para ese culto, 0 = la principal (la primera de la canción). Al
-  servir el culto, la elegida se coloca la primera en `datos.partituras`, que es la que usan el modo culto y el PDF),
+  servir el culto, `datos.partituras` lleva solo las partituras cuya tonalidad efectiva coincide con la del item (la suya o, si
+  está vacía, la de la canción), con la elegida la primera; si ninguna coincide (tonalidad antigua escrita a mano) o la elegida
+  es de otra tonalidad, lleva todas con la elegida la primera. El modo culto y el PDF usan la primera. `datos.tonalidades`
+  trae las tonalidades disponibles de la canción. El culto no valida `tonalidad` contra ellas (texto libre en cultos antiguos)),
   `_pieb_escaleta` (opcional: la escaleta de ese culto, con su fila de títulos, sus secciones y sus valores; ver
   [Escaleta del culto](#escaleta-del-culto)).
 - Opciones de WordPress: `pieb_can_ajustes` (ajustes: `nombre`, `tema_defecto`, `google_client_id`, `emails`,
@@ -87,7 +90,7 @@ Todas las rutas exigen sesión iniciada con la capacidad `pieb_cancionero_acceso
 
 | Ruta | Métodos | Notas |
 |---|---|---|
-| `/canciones` | GET, POST | GET devuelve un **resumen** de todas (`id, titulo, numero, autor, tonalidad, tempo, etiquetas, letra, miniatura, creada, modificada` y los **conteos** `partituras`, `youtube` y `audios`). POST crea. |
+| `/canciones` | GET, POST | GET devuelve un **resumen** de todas (`id, titulo, numero, autor, tonalidad, tempo, etiquetas, letra, miniatura, creada, modificada` y los **conteos** `partituras`, `youtube` y `audios`; si hay más de una partitura, `variantes` `[{id, label, tonalidad}]` con la tonalidad cruda; y `tonalidades`: las tonalidades efectivas distintas de sus partituras, sin vacías, la habitual primero si alguna está en ella). POST crea. |
 | `/canciones/{id}` | GET, POST, DELETE | GET devuelve la ficha completa (partituras con `archivo`/`url`, audios, `youtube` con `videoId`, notas…). POST **actualiza reemplazando todo** (ver abajo). DELETE manda a la papelera. |
 | `/canciones/etiquetar` | POST | Añade y/o quita etiquetas a varias canciones sin tocar el resto de la ficha. Cuerpo JSON `{ids, anadir, quitar}` (hasta 200 ids); devuelve `{canciones: [{id, etiquetas}]}`. La interfaz lo llama por tandas de 40 desde el modo «Etiquetar». |
 | `/manifest?pagina=ID` | GET | **Pública** (sin sesión ni nonce). Manifiesto web (`application/manifest+json`) para el acceso directo de la página del cancionero: nombre de la instalación, `start_url`/`scope` de esa página (`pagina` debe tener el shortcode; si no, la portada), `display: standalone` e iconos (192, 512 y maskable). No expone nada privado. |
@@ -108,11 +111,11 @@ Todas las rutas exigen sesión iniciada con la capacidad `pieb_cancionero_acceso
 Cuerpo `multipart/form-data` con todos estos campos (los ausentes se **vacían**):
 
 `titulo, numero, autor, tonalidad, tempo, etiquetas` (separadas por comas), `letra, letraHtml, notas`,
-`youtube` (JSON `[{url,label}]`), `partituras` (JSON `[{id,label}]` de las que se conservan),
-`nuevasSubidas` (JSON, archivos ya subidos por trozos), `audios`, `audiosSubidos`, `editables`,
+`youtube` (JSON `[{url,label}]`), `partituras` (JSON `[{id,label,tonalidad}]` de las que se conservan; la `tonalidad` de cada una hay que reenviarla o se pierde),
+`nuevasSubidas` (JSON `[{id,nombre,label,tonalidad}]`, archivos ya subidos por trozos; para la vía antigua `nuevas[]` hay `nuevasLabels` y `nuevasTonalidades`, JSON paralelos), `audios`, `audiosSubidos`, `editables`,
 `editablesSubidos`. Una canción necesita **al menos una partitura**.
 
-`letraHtml` (letra con formato, ver `_pieb_letra_html`): si llega con contenido, se sanea y manda: `letra` se deriva de él (cada `p`/`h4` una línea, `br` salto, `<p></p>` línea vacía). Si llega vacío, se borra el formato y se guarda `letra` como texto plano. Si **no llega** (scripts que solo envían `letra`), el formato se conserva solo si su texto sigue coincidiendo con `letra`; si no, se borra. `GET /canciones/{id}` devuelve `letraHtml` (`''` si no hay); el listado no la lleva. Los `datos` de cada canción de un culto llevan también `autor` y `letraHtml`, y la copia de seguridad exporta `letraHtml`.
+`letraHtml` (letra con formato, ver `_pieb_letra_html`): si llega con contenido, se sanea y manda: `letra` se deriva de él (cada `p`/`h4` una línea, `br` salto, `<p></p>` línea vacía). Si llega vacío, se borra el formato y se guarda `letra` como texto plano. Si **no llega** (scripts que solo envían `letra`), el formato se conserva solo si su texto sigue coincidiendo con `letra`; si no, se borra. `GET /canciones/{id}` devuelve `letraHtml` (`''` si no hay); el listado no la lleva. Los `datos` de cada canción de un culto llevan también `autor` y `letraHtml`, y la copia de seguridad exporta `letraHtml` y la `tonalidad` de cada partitura (una copia antigua sin ella se importa con `''`). `GET /canciones/{id}` devuelve la `tonalidad` cruda en cada partitura.
 
 Para cambiar un solo dato: `GET` la ficha, reconstruir todos los campos con ella y modificar solo el deseado. Receta en
 [carga-masiva.md](carga-masiva.md).

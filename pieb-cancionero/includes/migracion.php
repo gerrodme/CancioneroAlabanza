@@ -42,7 +42,7 @@ function pieb_can_migrar_recursos_antiguos() {
         }
 
         update_post_meta($post_id, '_pieb_numero', $numero);
-        update_post_meta($post_id, '_pieb_partituras', array(array('id' => $adjunto->ID, 'label' => 'Himnario')));
+        update_post_meta($post_id, '_pieb_partituras', array(array('id' => $adjunto->ID, 'label' => 'Himnario', 'tonalidad' => '')));
         update_post_meta($post_id, '_pieb_youtube', array());
         update_post_meta($adjunto->ID, '_pieb_migrado', $post_id);
         update_post_meta($adjunto->ID, '_pieb_partitura', 1);

@@ -36,7 +36,7 @@ fd.append('titulo', g.titulo); fd.append('numero', g.numero || ''); fd.append('a
 fd.append('tonalidad', nuevaTonalidad); fd.append('tempo', g.tempo || '');
 fd.append('etiquetas', (g.etiquetas || []).join(',')); fd.append('letra', g.letra || ''); fd.append('letraHtml', g.letraHtml || ''); fd.append('notas', g.notas || '');
 fd.append('youtube', JSON.stringify(g.youtube.map(y => ({ url: y.url, label: y.label }))));
-fd.append('partituras', JSON.stringify(g.partituras.map(p => ({ id: p.id, label: p.label }))));
+fd.append('partituras', JSON.stringify(g.partituras.map(p => ({ id: p.id, label: p.label, tonalidad: p.tonalidad || '' }))));
 fd.append('nuevasSubidas', '[]');
 fd.append('audios', JSON.stringify(g.audios.map(a => ({ id: a.id, nombre: a.nombre, descripcion: a.descripcion }))));
 fd.append('audiosSubidos', '[]');

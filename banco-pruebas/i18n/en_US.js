@@ -2982,6 +2982,12 @@ window.PIEB_I18N = {
   ],
   "Esta canción no tiene letra": [
    "This song has no lyrics"
+  ],
+  "Si subes la canción en varias tonalidades, indica la de cada partitura. Sin tonalidad, se entiende que está en la habitual de la canción.": [
+   "If you upload the song in several keys, set the key of each score. With no key, it is assumed to be in the song's usual key."
+  ],
+  "%s (escrita a mano)": [
+   "%s (typed by hand)"
   ]
  }
 };

@@ -1349,6 +1349,13 @@ a.pcan-set-title:hover { color: var(--pc-accent) !important; }
 .pcan-set-note { font-style: italic; }
 .pcan-set-fields { display: grid; grid-template-columns: 96px 1fr; gap: 6px; }
 .pcan-set-partitura { grid-column: 1 / -1; }
+.pcan-set-slot-tono { display: flex; align-items: center; min-width: 0; }
+.pcan-set-slot-tono > select { width: 100%; min-width: 0; text-overflow: ellipsis; }
+.pcan-set-slot-part { display: contents; }
+.pcan-file-tono { max-width: 220px; }
+.pcan-tono-selector { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-bottom: 10px; }
+.pcan-tono-selector .pcan-segment { margin-bottom: 0; }
+.pcan-tono-selector-label { color: var(--pc-muted); font-size: 13px; font-weight: 600; }
 .pcan-papelera-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .pcan-papelera-item { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--pc-line); border-radius: var(--pc-radius-sm); background: var(--pc-surface-2); }
 .pcan-papelera-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 260px; }

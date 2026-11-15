@@ -256,6 +256,27 @@ function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
         $actuales[(int) $p['id']] = $p;
     }
 
+    // Tonalidad de la canción que llega en esta misma petición: una partitura en esa misma tonalidad sigue a la habitual.
+    $tono_cancion_clave = pieb_can_tono_clave(pieb_can_valor_campo('tonalidad', $request->get_param('tonalidad')));
+    $limpiar_tono = function ($tono) use ($tono_cancion_clave) {
+        $tono = sanitize_text_field((string) $tono);
+        return pieb_can_tono_clave($tono) === $tono_cancion_clave ? '' : $tono;
+    };
+
+    // Si cambia la tonalidad habitual de una canción que tiene partituras en varias tonalidades, las que seguían a la
+    // habitual (tonalidad vacía) se quedan en la que tenían: el archivo no ha cambiado de tonalidad. Con todas en la
+    // habitual, en cambio, la siguen (lo normal es que se esté corrigiendo un dato).
+    $tono_anterior = trim((string) get_post_meta($post_id, '_pieb_tonalidad', true));
+    $fijar_anterior = false;
+    if (!$es_nueva && $tono_anterior !== '' && pieb_can_tono_clave($tono_anterior) !== $tono_cancion_clave) {
+        foreach ($actuales as $p) {
+            if (trim((string) $p['tonalidad']) !== '') {
+                $fijar_anterior = true;
+                break;
+            }
+        }
+    }
+
     $conservar = array();
     if (!$es_nueva) {
         $enviadas = json_decode((string) $request->get_param('partituras'), true);
@@ -265,6 +286,8 @@ function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
                 $conservar[] = array(
                     'id'    => $id,
                     'label' => isset($p['label']) ? sanitize_text_field($p['label']) : '',
+                    'tonalidad' => $limpiar_tono(($fijar_anterior && trim((string) (isset($p['tonalidad']) ? $p['tonalidad'] : '')) === '' && $actuales[$id]['tonalidad'] === '')
+                        ? $tono_anterior : (isset($p['tonalidad']) ? $p['tonalidad'] : '')),
                 );
             }
         }
@@ -284,6 +307,8 @@ function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
     if ($hay_nuevas) {
         $labels = json_decode((string) $request->get_param('nuevasLabels'), true);
         $labels = is_array($labels) ? $labels : array();
+        $tonos = json_decode((string) $request->get_param('nuevasTonalidades'), true);
+        $tonos = is_array($tonos) ? $tonos : array();
 
         foreach ($subidas as $s) {
             $file = pieb_can_archivo_subido(isset($s['id']) ? $s['id'] : '', isset($s['nombre']) ? $s['nombre'] : '');
@@ -295,6 +320,7 @@ function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
             $nuevas[] = array(
                 'id'    => (int) $attachment_id,
                 'label' => isset($s['label']) ? sanitize_text_field($s['label']) : '',
+                'tonalidad' => $limpiar_tono(isset($s['tonalidad']) ? $s['tonalidad'] : ''),
             );
         }
 
@@ -307,6 +333,7 @@ function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
             $nuevas[] = array(
                 'id'    => (int) $attachment_id,
                 'label' => isset($labels[$i]) ? sanitize_text_field($labels[$i]) : '',
+                'tonalidad' => $limpiar_tono(isset($tonos[$i]) ? $tonos[$i] : ''),
             );
         }
     }

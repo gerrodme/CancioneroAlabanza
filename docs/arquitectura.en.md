@@ -61,15 +61,17 @@ The interface is a single-page application inside the WordPress page; it navigat
   | `_pieb_tempo` | Integer, beats per minute. |
   | `_pieb_letra`, `_pieb_notas` | Plain text (lyrics, notes). `_pieb_letra` is always plain text (search, list, copy…); when `_pieb_letra_html` exists, it is derived from it. |
   | `_pieb_letra_html` | Optional. Formatted lyrics, sanitized HTML: top-level children `p`, `h4` (section title) or `blockquote` (chorus, containing only `p`); inside, only text, `br`, `strong`, `em`, `u`; no attributes. Each line is a `<p>` and `<p></p>` separates stanzas. |
-  | `_pieb_partituras` | List of `{id (attachment), label}`; at least 1. PDF, JPG or PNG, max. 4 MB. |
+  | `_pieb_partituras` | List of `{id (attachment), label, tonalidad}`; at least 1. PDF, JPG or PNG, max. 4 MB. Empty `tonalidad` = the song's usual key (`_pieb_tonalidad`); old entries without the key count as `''` (`pieb_can_get_partituras()` always returns it). A score's effective key is its own or, if empty, the song's; two keys are equal if they match after `trim` and lowercasing (`pieb_can_tono_clave()`, no enharmonics). On save, a key equal to the song's key in that same request is stored as `''`. |
   | `_pieb_youtube` | List of `{url, label}`; only valid YouTube links are accepted. |
   | `_pieb_audios` | List of `{id, nombre, descripcion}`. MP3/M4A/OGG/WAV/AAC, max. 10 MB. |
   | `_pieb_editables` | List of `{id, descripcion}`: MuseScore, MusicXML… max. 10 MB. |
 
 - **Service** metadata: `_pieb_fecha`, `_pieb_tipo`, `_pieb_notas`, `_pieb_items` (ordered list of
   `{cancion, tonalidad, nota, partitura}`; `partitura` is the ID of the attachment chosen for that service, 0 = the main
-  one (the first of the song). When the service is served, the chosen one is placed first in `datos.partituras`, which is
-  the one used by play mode and the PDF), `_pieb_escaleta` (optional: that service's order of service, with its row of titles,
+  one (the first of the song). When the service is served, `datos.partituras` holds only the scores whose effective key matches
+  the item's (its own or, if empty, the song's), with the chosen one first; if none matches (old hand-typed key) or the chosen
+  one is in another key, it holds all of them with the chosen one first. Play mode and the PDF use the first one.
+  `datos.tonalidades` lists the song's available keys. The service does not validate `tonalidad` against them (free text in old services)), `_pieb_escaleta` (optional: that service's order of service, with its row of titles,
   its sections and its values; see [Order of service](#order-of-service)).
 - WordPress options: `pieb_can_ajustes` (settings: `nombre`, `tema_defecto`, `google_client_id`, `emails`,
   `administradores`, `responsablesEscaleta`, `dominio`, `bienvenida_auto`, `bienvenida_texto`, `pagina`, `aviso_borrado`), `pieb_can_escaleta`
@@ -87,7 +89,7 @@ interface receives it in `PIEB_CANCIONERO.nonce`; the API base is in `PIEB_CANCI
 
 | Route | Methods | Notes |
 |---|---|---|
-| `/canciones` | GET, POST | GET returns a **summary** of all songs (`id, titulo, numero, autor, tonalidad, tempo, etiquetas, letra, miniatura, creada, modificada` and the **counts** `partituras`, `youtube` and `audios`). POST creates. |
+| `/canciones` | GET, POST | GET returns a **summary** of all songs (`id, titulo, numero, autor, tonalidad, tempo, etiquetas, letra, miniatura, creada, modificada` and the **counts** `partituras`, `youtube` and `audios`; when there is more than one score, `variantes` `[{id, label, tonalidad}]` with the raw key; and `tonalidades`: the distinct effective keys of its scores, no empties, the usual one first if any score is in it). POST creates. |
 | `/canciones/{id}` | GET, POST, DELETE | GET returns the full record (scores with `archivo`/`url`, audio, `youtube` with `videoId`, notes…). POST **updates by replacing everything** (see below). DELETE sends it to the trash. |
 | `/manifest?pagina=ID` | GET | **Public** (no session or nonce). Web manifest (`application/manifest+json`) for the shortcut to the songbook page: the installation's name, that page's `start_url`/`scope` (`pagina` must hold the shortcode; otherwise the home page), `display: standalone` and icons (192, 512 and maskable). Exposes nothing private. |
 | `/subidas` | POST | **Chunked** file upload (a 10 MB audio fits even if PHP limits requests to 2 MB). |
@@ -107,11 +109,11 @@ interface receives it in `PIEB_CANCIONERO.nonce`; the API base is in `PIEB_CANCI
 A `multipart/form-data` body with all of these fields (missing ones are **emptied**):
 
 `titulo, numero, autor, tonalidad, tempo, etiquetas` (comma-separated), `letra, letraHtml, notas`,
-`youtube` (JSON `[{url,label}]`), `partituras` (JSON `[{id,label}]` of the ones that are kept),
-`nuevasSubidas` (JSON, files already uploaded in chunks), `audios`, `audiosSubidos`, `editables`,
+`youtube` (JSON `[{url,label}]`), `partituras` (JSON `[{id,label,tonalidad}]` of the ones that are kept; resend each one's `tonalidad` or it is lost),
+`nuevasSubidas` (JSON `[{id,nombre,label,tonalidad}]`, files already uploaded in chunks; the old `nuevas[]` route has parallel JSON `nuevasLabels` and `nuevasTonalidades`), `audios`, `audiosSubidos`, `editables`,
 `editablesSubidos`. A song needs **at least one score**.
 
-`letraHtml` (formatted lyrics, see `_pieb_letra_html`): when it arrives non-empty it is sanitized and wins: `letra` is derived from it (each `p`/`h4` is a line, `br` a line break, `<p></p>` an empty line). When it arrives empty, the formatting is deleted and `letra` is stored as plain text. When it is **not sent** (scripts that only send `letra`), the formatting is kept only if its text still matches `letra`; otherwise it is deleted. `GET /canciones/{id}` returns `letraHtml` (`''` if none); the list does not. The `datos` of each song in a service also carry `autor` and `letraHtml`, and the backup exports `letraHtml`.
+`letraHtml` (formatted lyrics, see `_pieb_letra_html`): when it arrives non-empty it is sanitized and wins: `letra` is derived from it (each `p`/`h4` is a line, `br` a line break, `<p></p>` an empty line). When it arrives empty, the formatting is deleted and `letra` is stored as plain text. When it is **not sent** (scripts that only send `letra`), the formatting is kept only if its text still matches `letra`; otherwise it is deleted. `GET /canciones/{id}` returns `letraHtml` (`''` if none); the list does not. The `datos` of each song in a service also carry `autor` and `letraHtml`, and the backup exports `letraHtml` and each score's `tonalidad` (an old backup without it imports with `''`). `GET /canciones/{id}` returns the raw `tonalidad` on each score.
 
 To change a single value: `GET` the record, rebuild all the fields from it and modify only the one you want. Recipe in
 [carga-masiva.en.md](carga-masiva.en.md).
