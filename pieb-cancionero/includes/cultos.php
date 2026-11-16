@@ -7,6 +7,8 @@
  *  _pieb_tipo   Tipo de culto (texto libre: «Culto dominical», «Oración»…)
  *  _pieb_notas  Notas generales
  *  _pieb_iglesia  ID de la iglesia del culto (se guarda al crearlo; ver includes/iglesias.php). Los anteriores se sellan en la migración.
+ *  _pieb_privado  '1' = culto privado: solo lo ve su autor (post_author). Ausente = visible para el equipo de la iglesia.
+ *  Quién ve cada culto lo decide SOLO pieb_can_culto_visible() (iglesia activa + privacidad).
  *  _pieb_items  array( array('cancion' => id, 'tonalidad' => 'Sol', 'nota' => 'Solo estrofas 1 y 3'), ... ) en orden
  *  _pieb_escaleta  Escaleta del culto: copia de la plantilla con los valores de este culto (opcional; ver includes/escaleta.php).
  *                  Solo se entrega en el detalle del culto (GET /cultos/{id}), no en el listado.
@@ -86,6 +88,13 @@ add_action('rest_api_init', function () {
             'permission_callback' => $acceso,
         ),
     ));
+
+    // Hacer privado un culto (o devolverlo al equipo): solo su autor.
+    register_rest_route($ns, '/cultos/(?P<id>\d+)/privacidad', array(
+        'methods'             => WP_REST_Server::CREATABLE,
+        'callback'            => 'pieb_can_rest_culto_privacidad',
+        'permission_callback' => $acceso,
+    ));
 });
 
 function pieb_can_culto_items($post_id) {
@@ -99,6 +108,57 @@ function pieb_can_culto_iglesia($post_id) {
     return $id ? $id : (int) pieb_can_iglesia_defecto();
 }
 
+/** ¿Es privado el culto? (solo lo ve su autor). */
+function pieb_can_culto_privado($post_id) {
+    return (string) get_post_meta($post_id, '_pieb_privado', true) === '1';
+}
+
+/**
+ * ÚNICO FILTRO de visibilidad de los cultos: un culto se ve solo si es de la iglesia activa del usuario Y, si es privado,
+ * lo ha creado él. Toda vía que lea o cambie cultos debe pasar por aquí (o por pieb_can_rest_culto_get).
+ */
+function pieb_can_culto_visible($post, $user_id = 0) {
+    $user_id = $user_id ? (int) $user_id : get_current_user_id();
+    if (!$post || $post->post_type !== PIEB_CAN_CULTO) {
+        return false;
+    }
+    if (pieb_can_culto_iglesia($post->ID) !== (int) pieb_can_iglesia_activa($user_id)) {
+        return false;
+    }
+    return !pieb_can_culto_privado($post->ID) || (int) $post->post_author === $user_id;
+}
+
+/**
+ * Condición de meta_query para los cultos de una iglesia. Los cultos sin _pieb_iglesia cuentan como de la iglesia por
+ * defecto (igual que pieb_can_culto_iglesia). La privacidad no va aquí: se filtra después con pieb_can_culto_visible.
+ */
+function pieb_can_cultos_meta_iglesia($iglesia_id) {
+    $iglesia_id = (int) $iglesia_id;
+    $condicion = array(array('key' => '_pieb_iglesia', 'value' => $iglesia_id, 'compare' => '='));
+    if ($iglesia_id === (int) pieb_can_iglesia_defecto()) {
+        $condicion[] = array('key' => '_pieb_iglesia', 'compare' => 'NOT EXISTS');
+        $condicion['relation'] = 'OR';
+    }
+    return $condicion;
+}
+
+/**
+ * Escritorio de WordPress: la lista de cultos (Cancionero → Cultos y setlists) también respeta la iglesia y la privacidad.
+ * Quien no es administrador central solo ve los cultos de su iglesia activa que no son privados.
+ */
+add_action('pre_get_posts', function ($query) {
+    if (!is_admin() || !$query->is_main_query() || $query->get('post_type') !== PIEB_CAN_CULTO) {
+        return;
+    }
+    if (current_user_can(PIEB_CAN_CAP_CENTRAL)) {
+        return;
+    }
+    $meta = (array) $query->get('meta_query');
+    $meta[] = pieb_can_cultos_meta_iglesia(pieb_can_iglesia_activa());
+    $meta[] = array('key' => '_pieb_privado', 'compare' => 'NOT EXISTS');
+    $query->set('meta_query', $meta);
+});
+
 function pieb_can_culto_resumen($post) {
     $author = get_userdata($post->post_author);
     return array(
@@ -110,6 +170,8 @@ function pieb_can_culto_resumen($post) {
         'items'       => pieb_can_culto_items($post->ID),
         'creadoPor'   => $author ? $author->display_name : '',
         'iglesia'     => pieb_can_culto_iglesia($post->ID),
+        'privado'     => pieb_can_culto_privado($post->ID),
+        'mio'         => (int) $post->post_author === get_current_user_id(),
         'puedeBorrar' => pieb_can_usuario_puede_borrar($post),
     );
 }
@@ -167,7 +229,8 @@ function pieb_can_culto_detalle($post) {
 
 function pieb_can_rest_culto_get($id) {
     $post = get_post((int) $id);
-    if (!$post || $post->post_type !== PIEB_CAN_CULTO || $post->post_status !== 'publish') {
+    // Un culto de otra iglesia o privado de otra persona responde igual que si no existiera (nunca 403: no se revela).
+    if (!$post || $post->post_type !== PIEB_CAN_CULTO || $post->post_status !== 'publish' || !pieb_can_culto_visible($post)) {
         return new WP_Error('pieb_no_existe', __('El culto no existe.', 'pieb-cancionero'), array('status' => 404));
     }
     return $post;
@@ -181,7 +244,10 @@ function pieb_can_rest_cultos_listar() {
         'meta_key'       => '_pieb_fecha',
         'orderby'        => 'meta_value',
         'order'          => 'DESC',
+        'meta_query'     => array(pieb_can_cultos_meta_iglesia(pieb_can_iglesia_activa())),
     ));
+    // La iglesia ya está filtrada en la consulta; aquí se aplica el filtro completo (también la privacidad).
+    $posts = array_values(array_filter($posts, 'pieb_can_culto_visible'));
 
     return rest_ensure_response(array_map('pieb_can_culto_resumen', $posts));
 }
@@ -197,6 +263,16 @@ function pieb_can_rest_culto_ver(WP_REST_Request $request) {
 function pieb_can_rest_culto_guardar(WP_REST_Request $request) {
     $params = $request->get_json_params();
     $params = is_array($params) ? $params : array();
+
+    // Editar: primero se comprueba que el culto es visible para quien pregunta (si no, 404 como si no existiera).
+    $es_nuevo = empty($request['id']);
+    $post = null;
+    if (!$es_nuevo) {
+        $post = pieb_can_rest_culto_get($request['id']);
+        if (is_wp_error($post)) {
+            return $post;
+        }
+    }
 
     $titulo = isset($params['titulo']) ? sanitize_text_field($params['titulo']) : '';
     $fecha  = isset($params['fecha']) ? sanitize_text_field($params['fecha']) : '';
@@ -241,12 +317,7 @@ function pieb_can_rest_culto_guardar(WP_REST_Request $request) {
         }
     }
 
-    $es_nuevo = empty($request['id']);
     if (!$es_nuevo) {
-        $post = pieb_can_rest_culto_get($request['id']);
-        if (is_wp_error($post)) {
-            return $post;
-        }
         $post_id = wp_update_post(array('ID' => $post->ID, 'post_title' => $titulo), true);
     } else {
         $post_id = wp_insert_post(array(
@@ -263,6 +334,10 @@ function pieb_can_rest_culto_guardar(WP_REST_Request $request) {
 
     if ($es_nuevo) {
         update_post_meta($post_id, '_pieb_iglesia', pieb_can_iglesia_activa());
+    }
+    // Privacidad: al crear la puede poner cualquiera; al editar solo la cambia el autor (de otra persona se ignora).
+    if (array_key_exists('privado', $params) && ($es_nuevo || (int) $post->post_author === get_current_user_id())) {
+        pieb_can_culto_fijar_privado($post_id, !empty($params['privado']));
     }
     update_post_meta($post_id, '_pieb_fecha', $fecha);
     update_post_meta($post_id, '_pieb_tipo', isset($params['tipo']) ? sanitize_text_field($params['tipo']) : '');
@@ -285,4 +360,28 @@ function pieb_can_rest_culto_borrar(WP_REST_Request $request) {
     }
     wp_trash_post($post->ID);
     return rest_ensure_response(array('borrado' => true, 'id' => $post->ID));
+}
+
+/** Marca o desmarca un culto como privado (meta _pieb_privado = '1'; sin privacidad, la meta no existe). */
+function pieb_can_culto_fijar_privado($post_id, $privado) {
+    if ($privado) {
+        update_post_meta($post_id, '_pieb_privado', '1');
+    } else {
+        delete_post_meta($post_id, '_pieb_privado');
+    }
+}
+
+/** Cambia la privacidad de un culto: solo su autor. Responde el resumen del culto. */
+function pieb_can_rest_culto_privacidad(WP_REST_Request $request) {
+    $post = pieb_can_rest_culto_get($request['id']);
+    if (is_wp_error($post)) {
+        return $post;
+    }
+    if ((int) $post->post_author !== get_current_user_id()) {
+        return new WP_Error('pieb_permiso', __('Solo quien creó el culto puede cambiar su privacidad.', 'pieb-cancionero'), array('status' => 403));
+    }
+    $params = $request->get_json_params();
+    $params = is_array($params) ? $params : array();
+    pieb_can_culto_fijar_privado($post->ID, !empty($params['privado']));
+    return rest_ensure_response(pieb_can_culto_resumen(get_post($post->ID)));
 }

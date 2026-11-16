@@ -68,7 +68,7 @@ The interface is a single-page application inside the WordPress page; it navigat
   | `_pieb_editables` | List of `{id, descripcion}`: MuseScore, MusicXML… max. 10 MB. |
   | `autor`, `iglesia` (on each item of the four lists above) | `autor`: ID of the user who added it; `iglesia`: ID of the church it was added from. If missing, the getters (`pieb_can_get_partituras/audios/editables/youtube`) fill them in on read with the song's author and the default church, writing nothing. On save, new items carry the current user and their active church; kept items keep theirs (they are never accepted from the client; a YouTube link is "the same" if its URL matches). The API returns them on every score, audio, editable and link. |
 
-- **Service** metadata: `_pieb_iglesia` (church ID; saved on creation and unchanged on edit; `pieb_can_culto_iglesia()` returns the default church if missing; the service summary carries it as `iglesia`), `_pieb_fecha`, `_pieb_tipo`, `_pieb_notas`, `_pieb_items` (ordered list of
+- **Service** metadata: `_pieb_iglesia` (church ID; saved on creation and unchanged on edit; `pieb_can_culto_iglesia()` returns the default church if missing; the service summary carries it as `iglesia`), `_pieb_privado` (`'1'` = private service, visible only to its author; the summary carries `privado` and `mio`; **visibility is decided only by `pieb_can_culto_visible()`**, see [Churches](#churches)), `_pieb_fecha`, `_pieb_tipo`, `_pieb_notas`, `_pieb_items` (ordered list of
   `{cancion, tonalidad, nota, partitura}`; `partitura` is the ID of the attachment chosen for that service, 0 = the main
   one (the first of the song). When the service is served, `datos.partituras` holds only the scores whose effective key matches
   the item's (its own or, if empty, the song's), with the chosen one first; if none matches (old hand-typed key) or the chosen
@@ -95,11 +95,13 @@ interface receives it in `PIEB_CANCIONERO.nonce`; the API base is in `PIEB_CANCI
 | `/canciones/{id}` | GET, POST, DELETE | GET returns the full record (scores with `archivo`/`url`, audio, `youtube` with `videoId`, notes…). POST **updates by replacing everything** (see below). DELETE sends it to the trash. |
 | `/manifest?pagina=ID` | GET | **Public** (no session or nonce). Web manifest (`application/manifest+json`) for the shortcut to the songbook page: the installation's name, that page's `start_url`/`scope` (`pagina` must hold the shortcode; otherwise the home page), `display: standalone` and icons (192, 512 and maskable). Exposes nothing private. |
 | `/subidas` | POST | **Chunked** file upload (a 10 MB audio fits even if PHP limits requests to 2 MB). |
-| `/cultos`, `/cultos/{id}` | GET, POST, DELETE | Services and setlists. `GET /cultos/{id}` also returns `escaleta` (an object or `null`; it is not in the list) and `POST` accepts it only if present (`null` deletes it) **and only from someone with `pieb_can_escaleta`**: from anyone else it is ignored, without an error (the rest of the service is saved and any existing order of service is kept). See [Order of service](#order-of-service). |
+| `/cultos/{id}/privacidad` | POST | Body `{ privado: bool }`: makes a service private or returns it to the team. Author only (403 for others who can see it); answers the service summary. |
+| `/cultos`, `/cultos/{id}` | GET, POST, DELETE | Services and setlists. **Only those of the active church and, if private, your own; anything else answers 404.** `POST` accepts `privado` (anyone when creating; only the author when editing). `GET /cultos/{id}` also returns `escaleta` (an object or `null`; it is not in the list) and `POST` accepts it only if present (`null` deletes it) **and only from someone with `pieb_can_escaleta`**: from anyone else it is ignored, without an error (the rest of the service is saved and any existing order of service is kept). See [Order of service](#order-of-service). |
 | `/escaleta` | GET | The **base for a new service's order of service**: the structure (without values) and the row of titles of the last order of service saved in any service, with the installation's logo and header and `desde: {id, titulo}` (the source service; `null` if it comes from the generic template). The whole team reads it, because preparing a service's order of service needs it. |
 | `/escaleta/imagen` | POST | Uploads the logo or header image of the order of service (JPG or PNG, max. 2 MB) to the normal media library; replies `{ id, url }` (requires `pieb_cancionero_gestionar`). |
-| `/iglesias` | GET | The user's churches: `{ activa, central, iglesias: [{id, nombre, rol}] }`. See [Churches](#churches). |
-| `/iglesias/activa` | POST | Body `{ iglesia: id }`: sets the user's active church (saves `_pieb_iglesia_activa`) and answers like the `GET`; 403 if they do not belong to it. |
+| `/iglesias` | GET, POST | `GET`: the user's churches (all of them for the central admin): `{ activa, central, iglesias: [{id, nombre, rol, ajena}] }`. `POST` `{ nombre }`: creates a church (central only; 403 otherwise) and answers the same plus `creada: id`. See [Churches](#churches). |
+| `/iglesias/{id}` | POST | Body `{ nombre }`: renames the church (central only) and answers the state. |
+| `/iglesias/activa` | POST | Body `{ iglesia: id }`: sets the user's active church (saves `_pieb_iglesia_activa`) and answers like the `GET`; 403 if they do not belong to it (the central admin can pick any). |
 | `/etiquetas`, `/preferencias`, `/huerfanos` | various | Tags with color, user preferences (`tema`, `idioma` and `notacion`, all optional; empty = automatic), unused files. |
 | `/fondos` | GET, POST | `GET` (anyone on the team): `{ fondos: [{ id, url, miniatura }] }` (`url` full size, `miniatura` at the 'medium' size; skips attachments that no longer exist). `POST` (requires `pieb_cancionero_gestionar`): multipart `archivo`, JPG or PNG only, max. 5 MB and 40 backgrounds; uploads to the normal media library and replies `{ id, url, miniatura }`. See [Exporting lyrics](#exporting-lyrics). |
 | `/fondos/{id}` | DELETE | Removes the background from the list and deletes its attachment (requires `pieb_cancionero_gestionar`); replies `{ fondos: [...] }`. |
@@ -140,17 +142,37 @@ single-church installation behaves exactly as before.
 - **Active church.** `pieb_can_iglesia_activa()`: the one in the `X-PCAN-Iglesia` header if the user belongs to it;
   otherwise the user meta `_pieb_iglesia_activa`; otherwise their first church; otherwise the default. The UI sends the
   header only when the user has more than one church. `window.PIEB_CANCIONERO` carries `iglesia` (`{id, nombre}`),
-  `iglesias` (`[{id, nombre, rol}]`) and `central`.
+  `iglesias` (`[{id, nombre, rol, ajena}]`) and `central`.
 - **Central administrator.** Capability `pieb_cancionero_central`, granted to WordPress administrators.
   `pieb_can_es_central()` is true with that capability **or**, while only one church exists, with
   `pieb_cancionero_gestionar` (so a single church's administration acts as central and nothing changes).
 - **Migration.** `pieb_can_migrar_iglesias()` (on `init`, priority 20; idempotent; only works if the option `pieb_can_multi`
   is below 1) ensures the default church, stamps every service lacking `_pieb_iglesia` with it (trash included) and saves
   `pieb_can_multi = 1`. It does not rewrite songs.
-- **What this phase already does.** Saves `_pieb_iglesia` when a service is created, `autor` and `iglesia` on every song
-  item (see Data model), the active church and the `/iglesias` routes. **What it does not:** nothing is filtered by church
-  (all services are still visible), edit permissions on songs and services do not change, and there is no selector or new
-  text in the UI.
+- **What this phase does (2).** Filters **services** by church and adds **private services** (see below). With one church
+  and no private services everything behaves as before. Role-based edit permissions on songs and services do not change.
+  Songs are still shared by all churches.
+- **The central administrator enters any church.** Whoever has the real `pieb_cancionero_central` capability can use any
+  existing church as active (header `X-PCAN-Iglesia`, meta `_pieb_iglesia_activa`, `POST /iglesias/activa`), even without
+  being a member. `pieb_can_iglesias_lista_usuario()` returns all of them: for their own, their role and `ajena: false`; for
+  the rest `rol: 'admin'` and `ajena: true`. For everyone else, only their own (`ajena: false`).
+- **Creating and renaming churches** (minimal version; only with `pieb_cancionero_central`, 403 otherwise). `POST /iglesias`
+  with `{ nombre }` (required, max 80 characters) creates the church and adds its creator as `admin` in their
+  `_pieb_iglesias` meta (starting from the membership already deduced, so it is not lost). It answers like `GET /iglesias`
+  plus `creada: id`. `POST /iglesias/{id}` with `{ nombre }` renames it and answers the state. Once a second church exists,
+  someone who only had `pieb_cancionero_gestionar` stops being central (`pieb_can_es_central()`).
+- **Services per church, and private ones.** Meta `_pieb_privado` (`'1'` = private; otherwise absent). **The filter lives in
+  a single function, `pieb_can_culto_visible($post, $user_id = 0)`** (`includes/cultos.php`): a service is visible if its
+  church (`pieb_can_culto_iglesia()`) is the user's active one **and** (it is not private **or** its `post_author` is the
+  user). Everything that reads or changes services goes through it: `GET /cultos` (query by `_pieb_iglesia` with
+  `pieb_can_cultos_meta_iglesia()`, then the function), `GET/POST/DELETE /cultos/{id}` and `POST /cultos/{id}/privacidad`
+  (via `pieb_can_rest_culto_get()`, which answers **404** "The service does not exist" and never 403, so as not to reveal
+  it exists) and the base of `GET /escaleta` (`pieb_can_escaleta_ultima()` only looks at visible services). Anyone adding a
+  new route that reads services must use it. When creating, anyone can set `privado`; when editing, only the author changes
+  it (ignored from anyone else). Deleting a service never sends a notice (notices are for songs). `pieb_can_culto_resumen()`
+  adds `privado` and `mio` (the author is the user).
+- **Pending (later phases).** Backups (`includes/ajustes.php`) still export and import the services of the whole
+  installation, private ones included and without the church; phase 5 will adapt them.
 
 ## Welcome to the team
 

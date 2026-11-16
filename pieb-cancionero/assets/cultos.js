@@ -76,12 +76,20 @@
 
   // ---------------------------------------------------------------- datos
 
+  /** ¿Cuenta este culto para estadísticas, «veces tocada», «para recuperar» y avisos de repetición? Los privados no. */
+  function cuenta(c) { return !c.privado; }
+
+  /** Pastilla discreta «Privado» para los cultos que solo ve su autor (null si el culto es de toda la iglesia). */
+  function marcaPrivado(c) {
+    return c && c.privado ? h('span', { class: 'pcan-privado', title: __('Solo lo ve quien lo creó'), text: __('Privado') }) : null;
+  }
+
   /** Veces tocada y última fecha de cada canción (solo cultos ya celebrados), para la biblioteca. */
   function usoDeCanciones() {
     var hoy = hoyISO();
     var mapa = {};
     cultos.forEach(function (c) {
-      if (c.fecha > hoy) { return; }
+      if (c.fecha > hoy || !cuenta(c)) { return; }
       c.items.forEach(function (it) {
         var u = mapa[+it.cancion] || (mapa[+it.cancion] = { n: 0, ultima: '' });
         u.n++;
@@ -102,7 +110,7 @@
   function historial(cancionId, excluirCulto) {
     var res = [];
     cultos.forEach(function (c) {
-      if (c.id === excluirCulto) { return; }
+      if (c.id === excluirCulto || !cuenta(c)) { return; }
       if (c.items.some(function (it) { return +it.cancion === +cancionId; })) { res.push(c); }
     });
     return res.sort(function (a, b) { return b.fecha.localeCompare(a.fecha); });
@@ -178,6 +186,7 @@
       h('span', { class: 'pcan-culto-main' },
         h('span', { class: 'pcan-culto-titulo' },
           h('span', { class: 'pcan-row-title', text: c.titulo }),
+          marcaPrivado(c),
           faltan >= 0 && faltan <= 30 ? h('span', { class: 'pcan-cuenta' + (faltan <= 1 ? ' is-ya' : ''), text: faltan === 0 ? _x('hoy', 'fecha relativa') : faltan === 1 ? _x('mañana', 'fecha relativa: el día siguiente') : sprintf(_n('en %d día', 'en %d días', faltan), faltan) }) : null),
         h('span', { class: 'pcan-culto-songs' + (titulos.length ? '' : ' is-empty'), text: titulos.length ? titulos.join(' · ') : __('Sin canciones todavía') })),
       h('span', { class: 'pcan-culto-count', title: nCanciones(c.items.length) }, String(c.items.length)));
@@ -241,7 +250,7 @@
         bloqueFecha(proximo.fecha),
         h('div', { class: 'pcan-hero-texto' },
           kickerProximo(proximo.fecha),
-          h('a', { href: '#/culto/' + proximo.id }, h('strong', { text: proximo.titulo })),
+          h('a', { href: '#/culto/' + proximo.id }, h('strong', { text: proximo.titulo })), marcaPrivado(proximo),
           h('span', { text: [tipoAparte(proximo), nCanciones(canciones.length)].filter(Boolean).join(' · ') }))),
       canciones.length ? h('ol', { class: 'pcan-hero-set' }, canciones.map(function (x, i) {
         return h('li', null, h('a', { href: '#/culto/' + proximo.id + '/tocar/' + (i + 1), title: __('Tocar desde aquí') },
@@ -291,7 +300,7 @@
       append(portada, h('section', { class: 'pcan-portada-sec' }, h('h3', { text: __('Después') }),
         h('div', { class: 'pcan-portada-cultos' }, despues.map(function (c) {
           return h('a', { class: 'pcan-portada-culto', href: '#/culto/' + c.id }, bloqueFecha(c.fecha),
-            h('span', { class: 'pcan-portada-culto-texto' }, h('strong', { text: c.titulo }), h('small', { text: sprintf(/* translators: 1: número de canciones («3 canciones»), 2: cuándo es el culto («dentro de 4 días») */ __('%1$s · %2$s'), nCanciones(c.items.length), haceTanto(c.fecha)) })));
+            h('span', { class: 'pcan-portada-culto-texto' }, h('strong', { text: c.titulo }), marcaPrivado(c), h('small', { text: sprintf(/* translators: 1: número de canciones («3 canciones»), 2: cuándo es el culto («dentro de 4 días») */ __('%1$s · %2$s'), nCanciones(c.items.length), haceTanto(c.fecha)) })));
         }))));
     }
 
@@ -365,7 +374,7 @@
           bloqueFecha(c.fecha),
           h('div', null,
             h('p', { class: 'pcan-det-kicker', text: fechaLarga(c.fecha) + ' · ' + haceTanto(c.fecha) }),
-            h('h2', { class: 'pcan-det-titulo', text: c.titulo }),
+            h('h2', { class: 'pcan-det-titulo' }, c.titulo, marcaPrivado(c)),
             h('p', { class: 'pcan-det-meta' }, tipoAparte(c) ? h('span', { text: tipoAparte(c) }) : null, h('span', { text: nCanciones(validos.length) }), c.creadoPor ? h('span', { class: 'pcan-muted', text: sprintf(/* translators: %s: nombre de quien preparó el culto */ __('Preparado por %s'), c.creadoPor) }) : null))),
         h('div', { class: 'pcan-det-actions' },
           validos.length ? h('a', { class: 'pcan-btn pcan-btn-primary pcan-btn-lg', href: '#/culto/' + c.id + '/tocar/1' }, icono('play'), __('Tocar el culto')) : null,
@@ -379,6 +388,9 @@
             letrasItem,
             { separador: true },
             { texto: __('Duplicar para otro día'), icono: 'mas', href: '#/culto/duplicar/' + c.id },
+            c.mio ? (c.privado
+              ? { texto: __('Publicar en la iglesia'), icono: 'subir', fn: function () { cambiarPrivacidad(c, false); } }
+              : { texto: __('Hacer privado'), icono: 'acceso', fn: function () { cambiarPrivacidad(c, true); } }) : null,
             c.puedeBorrar ? { separador: true } : null,
             c.puedeBorrar ? { texto: __('Borrar culto'), icono: 'borrar', peligro: true, fn: function () { borrar(c); } } : null
           ])),
@@ -403,6 +415,21 @@
     if (c.notas) { lineas.push('', c.notas); }
     lineas.push('', location.href.split('#')[0] + '#/culto/' + c.id);
     return lineas.join('\n');
+  }
+
+  /** Publica un culto privado para todo el equipo de la iglesia, o lo vuelve privado. Solo su autor (el servidor lo comprueba). */
+  function cambiarPrivacidad(c, privado) {
+    function hecho() {
+      api('cultos/' + c.id + '/privacidad', { json: { privado: privado } }).then(function () {
+        aviso(privado ? __('Culto privado') : __('Culto publicado'));
+        return cargar(true);
+      }).then(function () {
+        refrescar();
+        verCulto(c.id);
+      }).catch(function (e) { aviso(e.message, 'error'); });
+    }
+    if (privado) { hecho(); return; }
+    P.confirmar({ mensaje: __('¿Publicar este culto? Lo verá todo el equipo de la iglesia.'), aceptar: __('Publicar') }).then(function (si) { if (si) { hecho(); } });
   }
 
   function borrar(c) {
@@ -458,6 +485,12 @@
     var fTitulo = h('input', { type: 'text', class: 'pcan-input', required: true, maxlength: '200', value: editando ? c.titulo : '' });
     var fNotas = h('textarea', { class: 'pcan-input pcan-textarea', rows: '2', placeholder: __('Tema del culto, quién predica, indicaciones para el equipo…') });
     fNotas.value = editando ? c.notas : (opciones.notas || '');
+
+    // Privado: solo lo ve quien lo crea. Al editar, solo su autor puede cambiarlo.
+    var fPrivado = h('input', { type: 'checkbox', checked: editando ? !!c.privado : false });
+    var cajaPrivado = h('label', { class: 'pcan-copia-opcion pcan-culto-privado' }, fPrivado,
+      h('span', null, h('strong', { text: __('Privado: solo lo veo yo') }), h('small', { text: __('No aparece para el resto del equipo ni cuenta en las estadísticas. Puedes publicarlo después.') })));
+    if (editando && !c.mio) { cajaPrivado.hidden = true; }
 
     // El título se rellena solo («Culto dominical · 26 oct») hasta que alguien lo cambie a mano.
     var tituloManual = editando;
@@ -704,6 +737,7 @@
         P.campo(__('Fecha'), fFecha, null, true),
         P.campo(__('Tipo de culto'), h('span', null, fTipo, listaTipos)),
         h('div', { class: 'pcan-span-2' }, P.campo(__('Título'), fTitulo, __('Se rellena solo con el tipo y la fecha; puedes cambiarlo.'), true))),
+      cajaPrivado,
       barraPestanas,
       panelCanciones,
       panelEscaleta,
@@ -733,6 +767,7 @@
 
       // La escaleta solo viaja si el culto ya tenía una o si se abrió la pestaña (los textos por defecto pasan a explícitos; las canciones sin tocar siguen al setlist).
       var cuerpo = { titulo: fTitulo.value.trim(), fecha: fFecha.value, tipo: fTipo.value.trim(), notas: fNotas.value, items: items };
+      if (!editando || c.mio) { cuerpo.privado = fPrivado.checked; }
       var escaleta = escEd.valor();
       if (escaleta) { cuerpo.escaleta = escaleta; }
 
@@ -859,7 +894,7 @@
       // Para recuperar: lo que lleva tiempo sin sonar (o nunca ha sonado).
       var ultima = {};
       cultos.forEach(function (c) {
-        if (c.fecha > hoy) { return; }
+        if (c.fecha > hoy || !cuenta(c)) { return; }
         c.items.forEach(function (it) { var id = +it.cancion; if (!ultima[id] || c.fecha > ultima[id]) { ultima[id] = c.fecha; } });
       });
       var limite = (function () { var d = fechaLocal(hoy); d.setDate(d.getDate() - 90); return isoDe(d); })();
@@ -2757,7 +2792,7 @@
   function calcularStats() {
     var hoy = hoyISO();
     var desde = periodoStats ? restarDias(hoy, periodoStats) : '0000-00-00';
-    var pasados = cultos.filter(function (c) { return c.fecha <= hoy; });
+    var pasados = cultos.filter(function (c) { return c.fecha <= hoy && cuenta(c); });
     var enPeriodo = pasados.filter(function (c) { return c.fecha >= desde; });
 
     var uso = {};      // en el periodo: id -> { n, ultima }

@@ -989,7 +989,7 @@
     var lateral = h('aside', { class: 'pcan-side', 'aria-label': __('Navegación del cancionero') },
       h('a', { class: 'pcan-brand', href: '#/' },
         h('span', { class: 'pcan-brand-logo', 'aria-hidden': 'true' }, icono('nota')),
-        h('span', { class: 'pcan-brand-text' }, h('strong', { text: CFG.nombre || 'Cancionero' }), h('small', { text: CFG.sitio }))),
+        h('span', { class: 'pcan-brand-text' }, h('strong', { text: CFG.nombre || 'Cancionero' }), h('small', { text: hayVariasIglesias() && CFG.iglesia ? CFG.iglesia.nombre : CFG.sitio }))),
       ui.sideNav = h('nav', { class: 'pcan-side-nav', 'aria-label': __('Secciones') }, VISTAS.map(function (v) {
         return h('a', { href: v.href, class: 'pcan-side-link', 'data-vista': v.vista }, icono(v.icono), h('span', { text: v.texto }));
       })),
@@ -1029,6 +1029,11 @@
       onchange: function (e) { guardarPreferencia({ idioma: e.target.value }); }
     }) : null;
     ui.menuNotacion = h('div', { class: 'pcan-menu-segmento', role: 'radiogroup', 'aria-labelledby': 'pcan-menu-notacion-t' });
+    // Iglesia activa: solo si la persona tiene acceso a más de una. Al cambiarla se guarda y se recarga la página.
+    ui.menuIglesia = hayVariasIglesias() ? h('select', {
+      class: 'pcan-menu-select', id: 'pcan-menu-iglesia',
+      onchange: function (e) { cambiarIglesia(e.target); }
+    }) : null;
     function enlaceMenu(href, icon, texto) {
       return h('a', { class: 'pcan-menu-item', href: href }, icono(icon), texto);
     }
@@ -1040,6 +1045,7 @@
         h('p', { class: 'pcan-menu-label', text: __('Tema') }),
         ui.menuTemas,
         ui.menuIdioma ? h('div', { class: 'pcan-menu-fila' }, h('label', { class: 'pcan-menu-label', 'for': 'pcan-menu-idioma', text: __('Idioma') }), ui.menuIdioma) : null,
+        ui.menuIglesia ? h('div', { class: 'pcan-menu-fila pcan-menu-iglesia' }, h('label', { class: 'pcan-menu-label', 'for': 'pcan-menu-iglesia', text: __('Iglesia') }), ui.menuIglesia) : null,
         h('p', { class: 'pcan-menu-label', id: 'pcan-menu-notacion-t', text: __('Notación') }),
         ui.menuNotacion,
         CFG.gestionar ? h('div', { class: 'pcan-menu-grupo' },
@@ -1209,6 +1215,38 @@
       }, o[1]));
     });
     tabulacionCircular(ui.menuNotacion);
+    pintarMenuIglesia();
+  }
+
+  // ---------------------------------------------------------------- iglesias (selector del menú)
+
+  /** ¿La persona tiene acceso a más de una iglesia? Con una sola no se muestra nada nuevo. */
+  function hayVariasIglesias() { return !!(CFG.iglesias && CFG.iglesias.length > 1); }
+
+  /** Texto de una iglesia en el selector: las que no son de la persona (administración central) lo indican. */
+  function nombreIglesia(i) {
+    return i.ajena ? sprintf(/* translators: %s: nombre de una iglesia a la que la persona no pertenece */ __('%s (no es la tuya)'), i.nombre) : i.nombre;
+  }
+
+  function pintarMenuIglesia() {
+    if (!ui.menuIglesia) { return; }
+    ui.menuIglesia.innerHTML = '';
+    CFG.iglesias.forEach(function (i) { append(ui.menuIglesia, h('option', { value: String(i.id), text: nombreIglesia(i) })); });
+    ui.menuIglesia.value = CFG.iglesia ? String(CFG.iglesia.id) : '';
+  }
+
+  /** Guarda la iglesia elegida y recarga: todo lo que se ve (cultos, equipo, ajustes) depende de ella. */
+  function cambiarIglesia(select) {
+    var anterior = CFG.iglesia ? String(CFG.iglesia.id) : '';
+    if (select.value === anterior) { return; }
+    select.disabled = true;
+    api('iglesias/activa', { json: { iglesia: +select.value } }).then(function () {
+      location.reload();
+    }).catch(function (e) {
+      select.value = anterior;
+      select.disabled = false;
+      aviso(e.message, 'error');
+    });
   }
 
   var menuOrigen = null;
@@ -2979,9 +3017,11 @@
   var ajustesAbierto = null;
   var turnoAjustes = 0;
   var SECCIONES_AJUSTES = ['general', 'equipo', 'accesos', 'escaleta', 'fondos', 'google', 'archivos', 'papelera', 'copias'];
+  // La sección Iglesias solo la ve el administrador central.
+  if (CFG.central) { SECCIONES_AJUSTES.push('iglesias'); }
   var RUTA_AJUSTES = /^#\/(ajustes|papelera|copias)(\/|$)/;
 
-  /** Abre «Ajustes y equipo» en una sección (general, equipo, accesos, escaleta, fondos, google, archivos, papelera o copias).
+  /** Abre «Ajustes y equipo» en una sección (general, equipo, accesos, escaleta, fondos, google, archivos, papelera, copias o iglesias).
    *  Si el panel ya está abierto solo cambia de sección: no se vuelven a pedir los datos. */
   function abrirAjustes(seccion) {
     if (!CFG.gestionar) { location.hash = '#/'; return; }
@@ -4456,11 +4496,11 @@
     }
 
     // Secciones: General, Equipo, Escaleta y Google son un solo formulario con un único «Guardar ajustes»;
-    // Accesos, Archivos, Papelera y Copias de seguridad tienen sus propias acciones y no muestran «Guardar».
+    // Accesos, Archivos, Papelera, Copias de seguridad e Iglesias tienen sus propias acciones y no muestran «Guardar».
     var SEC_FORMULARIO = { general: true, equipo: true, escaleta: true, google: true };
     var etiquetas = {
       general: [__('General'), 'ajustes'], equipo: [__('Equipo'), 'equipo'], accesos: [__('Accesos'), 'grafica'], escaleta: [__('Escaleta'), 'lista'], fondos: [__('Fondos de las letras'), 'letra'], google: [__('Acceso con Google'), 'acceso'],
-      archivos: [__('Archivos'), 'partitura'], papelera: [__('Papelera'), 'borrar'], copias: [__('Copias de seguridad'), 'descargar']
+      archivos: [__('Archivos'), 'partitura'], papelera: [__('Papelera'), 'borrar'], copias: [__('Copias de seguridad'), 'descargar'], iglesias: [__('Iglesias'), 'equipo']
     };
     var cuerpoPapelera = h('div', { class: 'pcan-form' });
     var cuerpoAccesos = h('div', { class: 'pcan-accesos' });
@@ -4469,13 +4509,18 @@
     cuerpoAccesos.addEventListener('change', function (e) { e.stopPropagation(); });
     var cuerpoCopias = h('div', { class: 'pcan-ajustes-copias' });
     var cuerpoFondos = h('div', { class: 'pcan-fondos' });
+    var cuerpoIglesias = h('div', { class: 'pcan-iglesias' });
+    // Crear o renombrar iglesias no son cambios del formulario de ajustes.
+    cuerpoIglesias.addEventListener('input', function (e) { e.stopPropagation(); });
+    cuerpoIglesias.addEventListener('change', function (e) { e.stopPropagation(); });
     // Lo que cada sección pide al servidor, solo la primera vez que se abre.
     var cargadores = {
       accesos: function () { pintarAccesos(cuerpoAccesos); },
       archivos: function () { cargarProteccion(); cargarHuerfanos(); },
       papelera: function () { pintarPapelera(cuerpoPapelera); },
       copias: function () { pintarCopias(cuerpoCopias); },
-      fondos: function () { pintarFondos(cuerpoFondos); }
+      fondos: function () { pintarFondos(cuerpoFondos); },
+      iglesias: function () { pintarIglesias(cuerpoIglesias); }
     };
     var cargadas = {};
 
@@ -4562,7 +4607,8 @@
           h('legend', { text: __('Archivos sin usar') }),
           cajaHuerfanos)],
       papelera: [h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: __('Papelera') }), cuerpoPapelera)],
-      copias: [cuerpoCopias]
+      copias: [cuerpoCopias],
+      iglesias: [h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: __('Iglesias') }), cuerpoIglesias)]
     };
 
     var tabs = {}, secciones = {};
@@ -5158,6 +5204,83 @@
   }
 
   /** Pinta la papelera dentro de `cuerpo` (la sección «Papelera» de los ajustes). */
+  /** Aplica a la configuración lo que responde el servidor sobre las iglesias (activa y lista). */
+  function aplicarIglesias(r) {
+    if (r.iglesias) { CFG.iglesias = r.iglesias; }
+    if (r.activa != null) {
+      var a = typeof r.activa === 'object' ? r.activa : null;
+      if (!a) { (CFG.iglesias || []).forEach(function (i) { if (+i.id === +r.activa) { a = i; } }); }
+      if (a) { CFG.iglesia = { id: a.id, nombre: a.nombre }; }
+    }
+    // Si se renombra la activa, la lista ya trae el nombre nuevo.
+    if (CFG.iglesia) { (CFG.iglesias || []).forEach(function (i) { if (+i.id === +CFG.iglesia.id) { CFG.iglesia.nombre = i.nombre; } }); }
+  }
+
+  /** Sección «Iglesias» de Ajustes (solo administración central): crear y cambiar el nombre. Cada acción guarda al momento. */
+  function pintarIglesias(cuerpo) {
+    var editando = 0;
+    var cabecera = document.querySelector('.pcan-brand-text small');
+    function pintar() {
+      cuerpo.innerHTML = '';
+      var fNueva = h('input', { type: 'text', class: 'pcan-input', maxlength: '80', 'aria-label': __('Nombre de la iglesia nueva'), placeholder: __('Nombre de la iglesia nueva'), spellcheck: 'false' });
+      var error = h('p', { class: 'pcan-form-error', role: 'alert', hidden: true });
+      var bCrear = h('button', { type: 'submit', class: 'pcan-btn pcan-btn-primary' }, icono('mas'), __('Crear iglesia'));
+      var formNueva = h('form', { class: 'pcan-iglesias-nueva', novalidate: true }, fNueva, bCrear);
+      formNueva.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var nombre = fNueva.value.trim();
+        if (!nombre) { error.textContent = __('Escribe el nombre de la iglesia.'); error.hidden = false; fNueva.focus(); return; }
+        error.hidden = true;
+        bCrear.disabled = true;
+        var eran = CFG.iglesias ? CFG.iglesias.length : 1;
+        api('iglesias', { json: { nombre: nombre } }).then(function (r) {
+          aplicarIglesias(r);
+          aviso(__('Iglesia creada'));
+          // El selector del menú se construye al abrir la página: al pasar de una a varias iglesias se recarga para que aparezca.
+          if (eran < 2 && CFG.iglesias.length > 1) { location.reload(); return; }
+          pintarMenuIglesia();
+          pintar();
+        }).catch(function (err) { error.textContent = err.message; error.hidden = false; bCrear.disabled = false; });
+      });
+      var filas = (CFG.iglesias || []).map(function (i) {
+        var activa = CFG.iglesia && +CFG.iglesia.id === +i.id;
+        if (editando === +i.id) {
+          var fNombre = h('input', { type: 'text', class: 'pcan-input', maxlength: '80', value: i.nombre, 'aria-label': __('Nombre de la iglesia'), spellcheck: 'false' });
+          var errFila = h('p', { class: 'pcan-form-error', role: 'alert', hidden: true });
+          var bGuardar = h('button', { type: 'submit', class: 'pcan-btn pcan-btn-sm pcan-btn-primary' }, __('Guardar'));
+          var f = h('form', { class: 'pcan-iglesia-edicion', novalidate: true }, fNombre, bGuardar,
+            h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () { editando = 0; pintar(); } }, __('Cancelar')));
+          f.addEventListener('submit', function (e) {
+            e.preventDefault();
+            var nombre = fNombre.value.trim();
+            if (!nombre) { errFila.textContent = __('Escribe el nombre de la iglesia.'); errFila.hidden = false; fNombre.focus(); return; }
+            bGuardar.disabled = true;
+            api('iglesias/' + i.id, { json: { nombre: nombre } }).then(function (r) {
+              aplicarIglesias(r);
+              editando = 0;
+              aviso(__('Nombre guardado'));
+              pintarMenuIglesia();
+              if (cabecera && hayVariasIglesias() && CFG.iglesia) { cabecera.textContent = CFG.iglesia.nombre; }
+              pintar();
+            }).catch(function (err) { errFila.textContent = err.message; errFila.hidden = false; bGuardar.disabled = false; });
+          });
+          setTimeout(function () { fNombre.focus(); fNombre.select(); }, 0);
+          return h('li', { class: 'pcan-papelera-item pcan-iglesia is-editando' }, f, errFila);
+        }
+        return h('li', { class: 'pcan-papelera-item pcan-iglesia' },
+          h('div', { class: 'pcan-papelera-main' }, h('strong', { text: i.nombre }),
+            activa ? h('span', { class: 'pcan-estado is-ok', text: __('la activa') }) : null),
+          h('div', { class: 'pcan-papelera-acciones' },
+            h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () { editando = +i.id; pintar(); } }, icono('editar'), __('Cambiar nombre'))));
+      });
+      append(cuerpo, [
+        h('p', { class: 'pcan-help', text: __('Cada iglesia tiene sus propios cultos. Las canciones son comunes a todas.') }),
+        h('ul', { class: 'pcan-papelera-lista' }, filas),
+        formNueva, error]);
+    }
+    pintar();
+  }
+
   function pintarPapelera(cuerpo) {
     cuerpo.innerHTML = '';
     append(cuerpo, h('p', { class: 'pcan-help', text: __('Cargando la papelera…') }));

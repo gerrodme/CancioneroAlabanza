@@ -196,20 +196,30 @@ function pieb_can_rol_en($user_id, $iglesia_id) {
 
 /**
  * Iglesia en la que trabaja el usuario (0 = el actual): la de la cabecera X-PCAN-Iglesia si pertenece a ella, si no
- * la última elegida, la primera suya o la de por defecto.
+ * la última elegida, la primera suya o la de por defecto. El administrador central (capacidad pieb_cancionero_central)
+ * puede estar en cualquier iglesia existente, aunque no sea miembro.
  */
 function pieb_can_iglesia_activa($user_id = 0) {
     $user_id = $user_id ? (int) $user_id : get_current_user_id();
     $mias = pieb_can_iglesias_de($user_id);
+    // El administrador central (capacidad real) puede trabajar en cualquier iglesia que exista.
+    $validas = $mias;
+    if ($user_id && user_can($user_id, PIEB_CAN_CAP_CENTRAL)) {
+        foreach (pieb_can_iglesias() as $i) {
+            if (!isset($validas[$i['id']])) {
+                $validas[$i['id']] = 'admin';
+            }
+        }
+    }
 
     if ($user_id === get_current_user_id() && isset($_SERVER['HTTP_X_PCAN_IGLESIA'])) {
         $cabecera = (int) $_SERVER['HTTP_X_PCAN_IGLESIA'];
-        if ($cabecera && isset($mias[$cabecera])) {
+        if ($cabecera && isset($validas[$cabecera])) {
             return $cabecera;
         }
     }
     $guardada = (int) get_user_meta($user_id, '_pieb_iglesia_activa', true);
-    if ($guardada && isset($mias[$guardada])) {
+    if ($guardada && isset($validas[$guardada])) {
         return $guardada;
     }
     if ($mias) {
@@ -234,17 +244,35 @@ function pieb_can_es_central($user_id = 0) {
     return user_can($user_id, PIEB_CAN_CAP_GESTIONAR) && count(pieb_can_iglesias()) === 1;
 }
 
-/** Iglesias del usuario como lista para la interfaz: array( array('id', 'nombre', 'rol'), … ). */
+/**
+ * Iglesias del usuario como lista para la interfaz: array( array('id', 'nombre', 'rol', 'ajena'), … ). Al administrador
+ * central (capacidad pieb_cancionero_central) le salen todas: en las que no es miembro, rol 'admin' y ajena true.
+ */
 function pieb_can_iglesias_lista_usuario($user_id = 0) {
     $user_id = $user_id ? (int) $user_id : get_current_user_id();
     $mias = pieb_can_iglesias_de($user_id);
+    $todas = $user_id && user_can($user_id, PIEB_CAN_CAP_CENTRAL);
     $lista = array();
     foreach (pieb_can_iglesias() as $i) {
         if (isset($mias[$i['id']])) {
-            $lista[] = array('id' => $i['id'], 'nombre' => $i['nombre'], 'rol' => $mias[$i['id']]);
+            $lista[] = array('id' => $i['id'], 'nombre' => $i['nombre'], 'rol' => $mias[$i['id']], 'ajena' => false);
+        } elseif ($todas) {
+            $lista[] = array('id' => $i['id'], 'nombre' => $i['nombre'], 'rol' => 'admin', 'ajena' => true);
         }
     }
     return $lista;
+}
+
+/** ¿Puede el usuario trabajar en esa iglesia? Si es miembro, o es administrador central y la iglesia existe. */
+function pieb_can_puede_entrar_en($user_id, $iglesia_id) {
+    $iglesia_id = (int) $iglesia_id;
+    if (!$iglesia_id) {
+        return false;
+    }
+    if (pieb_can_rol_en($user_id, $iglesia_id) !== '') {
+        return true;
+    }
+    return user_can((int) $user_id, PIEB_CAN_CAP_CENTRAL) && pieb_can_iglesia_nombre($iglesia_id) !== '';
 }
 
 /** Migración a varias iglesias: sella los cultos existentes con la iglesia por defecto. Se puede repetir sin duplicar nada. */
@@ -273,13 +301,26 @@ function pieb_can_migrar_iglesias() {
 
 add_action('rest_api_init', function () {
     register_rest_route('pieb/v1', '/iglesias', array(
-        'methods'             => WP_REST_Server::READABLE,
-        'callback'            => 'pieb_can_rest_iglesias',
-        'permission_callback' => 'pieb_can_rest_acceso',
+        array(
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => 'pieb_can_rest_iglesias',
+            'permission_callback' => 'pieb_can_rest_acceso',
+        ),
+        array(
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => 'pieb_can_rest_iglesia_crear',
+            'permission_callback' => 'pieb_can_rest_acceso',
+        ),
     ));
     register_rest_route('pieb/v1', '/iglesias/activa', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'pieb_can_rest_iglesia_activa',
+        'permission_callback' => 'pieb_can_rest_acceso',
+    ));
+    // Renombrar: solo el administrador central (crear es POST /iglesias).
+    register_rest_route('pieb/v1', '/iglesias/(?P<id>\d+)', array(
+        'methods'             => WP_REST_Server::CREATABLE,
+        'callback'            => 'pieb_can_rest_iglesia_renombrar',
         'permission_callback' => 'pieb_can_rest_acceso',
     ));
 });
@@ -300,12 +341,71 @@ function pieb_can_rest_iglesia_activa(WP_REST_Request $request) {
     $params = $request->get_json_params();
     $params = is_array($params) ? $params : array();
     $iglesia = isset($params['iglesia']) ? (int) $params['iglesia'] : (int) $request->get_param('iglesia');
-    if (!$iglesia || pieb_can_rol_en(get_current_user_id(), $iglesia) === '') {
+    if (!pieb_can_puede_entrar_en(get_current_user_id(), $iglesia)) {
         return new WP_Error('pieb_permiso', __('No perteneces a esa iglesia.', 'pieb-cancionero'), array('status' => 403));
     }
     update_user_meta(get_current_user_id(), '_pieb_iglesia_activa', $iglesia);
     // La elegida pasa a ser la activa también dentro de esta petición (por si la cabecera apuntaba a otra).
     unset($_SERVER['HTTP_X_PCAN_IGLESIA']);
+    return rest_ensure_response(pieb_can_iglesias_estado());
+}
+
+/** Nombre de iglesia saneado y recortado a 80 caracteres ('' si no viene). */
+function pieb_can_iglesia_nombre_limpio($params) {
+    $nombre = isset($params['nombre']) && is_scalar($params['nombre']) ? trim(sanitize_text_field((string) $params['nombre'])) : '';
+    return mb_substr($nombre, 0, 80);
+}
+
+/** Crea una iglesia (solo el administrador central) y añade a quien la crea como administrador de ella. */
+function pieb_can_rest_iglesia_crear(WP_REST_Request $request) {
+    if (!current_user_can(PIEB_CAN_CAP_CENTRAL)) {
+        return new WP_Error('pieb_permiso', __('Solo el administrador central puede crear iglesias.', 'pieb-cancionero'), array('status' => 403));
+    }
+    $params = $request->get_json_params();
+    $params = is_array($params) ? $params : array();
+    $nombre = pieb_can_iglesia_nombre_limpio($params);
+    if ($nombre === '') {
+        return new WP_Error('pieb_nombre', __('El nombre de la iglesia es obligatorio.', 'pieb-cancionero'), array('status' => 400));
+    }
+
+    $usuario = get_current_user_id();
+    // Antes de escribir la meta _pieb_iglesias hay que partir de lo que ya se deduce (iglesia por defecto), para no perderlo.
+    $pertenencia = pieb_can_iglesias_de($usuario);
+    $id = wp_insert_post(array(
+        'post_type'   => PIEB_CAN_IGLESIA,
+        'post_status' => 'publish',
+        'post_title'  => $nombre,
+    ), true);
+    if (is_wp_error($id)) {
+        return $id;
+    }
+    $pertenencia[(int) $id] = 'admin';
+    update_user_meta($usuario, '_pieb_iglesias', $pertenencia);
+
+    $estado = pieb_can_iglesias_estado();
+    $estado['creada'] = (int) $id;
+    return rest_ensure_response($estado);
+}
+
+/** Cambia el nombre de una iglesia (solo el administrador central). */
+function pieb_can_rest_iglesia_renombrar(WP_REST_Request $request) {
+    if (!current_user_can(PIEB_CAN_CAP_CENTRAL)) {
+        return new WP_Error('pieb_permiso', __('Solo el administrador central puede renombrar iglesias.', 'pieb-cancionero'), array('status' => 403));
+    }
+    $id = (int) $request['id'];
+    if (pieb_can_iglesia_nombre($id) === '') {
+        return new WP_Error('pieb_no_existe', __('La iglesia no existe.', 'pieb-cancionero'), array('status' => 404));
+    }
+    $params = $request->get_json_params();
+    $params = is_array($params) ? $params : array();
+    $nombre = pieb_can_iglesia_nombre_limpio($params);
+    if ($nombre === '') {
+        return new WP_Error('pieb_nombre', __('El nombre de la iglesia es obligatorio.', 'pieb-cancionero'), array('status' => 400));
+    }
+    $r = wp_update_post(array('ID' => $id, 'post_title' => $nombre), true);
+    if (is_wp_error($r)) {
+        return $r;
+    }
     return rest_ensure_response(pieb_can_iglesias_estado());
 }
 

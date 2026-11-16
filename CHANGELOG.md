@@ -2,6 +2,17 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.28.0 · 2026-11-16
+
+Cultos por iglesia y cultos privados (fase 2 de `docs/plan-multi-iglesia.md`). Con varias iglesias, cada una ve solo sus
+cultos: el filtro está en el servidor, y un culto de otra iglesia responde «no existe» aunque se pida por su número
+(también en la escaleta de partida y en la lista de cultos del escritorio de WordPress). Al crear un culto se puede marcar
+«Privado: solo lo veo yo»: no aparece para el resto del equipo ni cuenta en las estadísticas, en las veces tocada ni en el
+aviso de repetición; su autor puede publicarlo después desde «Más acciones» (o volver a hacerlo privado). Con más de una
+iglesia aparece un selector en el menú del usuario y el nombre de la iglesia activa bajo el del cancionero; el
+administrador central puede entrar en cualquiera para ayudar. Ajustes y equipo tiene una sección «Iglesias» (solo para el
+administrador central) para crear iglesias y cambiarles el nombre. Con una sola iglesia solo cambia la casilla «Privado».
+
 ## 1.27.0 · 2026-11-15
 
 Cimientos para usar una misma instalación con varias iglesias (fase 1 de `docs/plan-multi-iglesia.md`), sin cambios

@@ -188,23 +188,33 @@ function pieb_can_escaleta_plantilla() {
     );
 }
 
-/** Última escaleta guardada en un culto (el culto modificado más recientemente que tiene una), o null. */
+/**
+ * Última escaleta guardada en un culto (el culto modificado más recientemente que tiene una), o null. Solo cuentan los
+ * cultos visibles para quien pregunta (su iglesia activa y, si son privados, los suyos: pieb_can_culto_visible).
+ */
 function pieb_can_escaleta_ultima() {
     $ids = get_posts(array(
         'post_type'      => PIEB_CAN_CULTO,
         'post_status'    => 'publish',
-        'posts_per_page' => 1,
+        'posts_per_page' => -1,
         'orderby'        => 'modified',
         'order'          => 'DESC',
         'meta_key'       => '_pieb_escaleta',
+        'meta_query'     => array(pieb_can_cultos_meta_iglesia(pieb_can_iglesia_activa())),
         'fields'         => 'ids',
         'no_found_rows'  => true,
     ));
-    if (!$ids) {
-        return null;
+    foreach ($ids as $id) {
+        // La privacidad (y la iglesia, por si acaso) se comprueba con la función única de visibilidad.
+        if (!pieb_can_culto_visible(get_post((int) $id))) {
+            continue;
+        }
+        $escaleta = pieb_can_culto_escaleta($id);
+        if ($escaleta) {
+            return array('culto' => (int) $id, 'escaleta' => $escaleta);
+        }
     }
-    $escaleta = pieb_can_culto_escaleta($ids[0]);
-    return $escaleta ? array('culto' => (int) $ids[0], 'escaleta' => $escaleta) : null;
+    return null;
 }
 
 /**

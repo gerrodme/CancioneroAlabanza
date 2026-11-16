@@ -2526,3 +2526,16 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 [data-pcan-theme] .pcan-ec-extras .pcan-ec-nota-txt { flex: 1 1 220px; width: auto; min-width: 0; }
 .pcan-ec-escrita-bloque { display: flex; flex-direction: column; gap: 4px; }
 .pcan-ec-escrita-bloque > .pcan-ec-extras { padding-left: 0; padding-bottom: 2px; }
+
+/* Varias iglesias: marca «Privado» de los cultos, selector del menú y sección Iglesias de Ajustes */
+.pcan-privado, .pcan-hero-texto > .pcan-privado { display: inline-block; flex: 0 0 auto; margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: var(--pc-surface-2); color: var(--pc-muted); font-size: 11px; font-weight: 700; line-height: 1.6; letter-spacing: 0; text-transform: none; vertical-align: middle; opacity: 1; }
+.pcan-hero-texto > .pcan-privado, .pcan-portada-culto-texto > .pcan-privado { align-self: flex-start; margin-left: 0; margin-top: 2px; }
+/* Sobre la tarjeta de color del próximo culto: pastilla translúcida con el color del texto de la tarjeta */
+[data-pcan-theme] .pcan-hero .pcan-hero-texto > .pcan-privado { background: rgba(255, 255, 255, .22); color: inherit; }
+.pcan-culto-privado { padding: 2px 0 6px; }
+.pcan-menu-iglesia { margin-top: 6px; }
+.pcan-iglesias { display: grid; gap: 12px; }
+.pcan-iglesia .pcan-papelera-main { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pcan-iglesia-edicion, .pcan-iglesias-nueva { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; }
+.pcan-iglesia-edicion .pcan-input, .pcan-iglesias-nueva .pcan-input { flex: 1 1 200px; min-width: 0; }
+.pcan-iglesia.is-editando { display: block; }

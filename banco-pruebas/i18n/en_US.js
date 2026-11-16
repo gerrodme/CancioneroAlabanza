@@ -2988,6 +2988,75 @@ window.PIEB_I18N = {
   ],
   "%s (escrita a mano)": [
    "%s (typed by hand)"
+  ],
+  "Iglesia": [
+   "Church"
+  ],
+  "%s (no es la tuya)": [
+   "%s (not yours)"
+  ],
+  "Iglesias": [
+   "Churches"
+  ],
+  "Nombre de la iglesia nueva": [
+   "Name of the new church"
+  ],
+  "Crear iglesia": [
+   "Create church"
+  ],
+  "Escribe el nombre de la iglesia.": [
+   "Enter the name of the church."
+  ],
+  "Iglesia creada": [
+   "Church created"
+  ],
+  "Nombre de la iglesia": [
+   "Church name"
+  ],
+  "Guardar": [
+   "Save"
+  ],
+  "Nombre guardado": [
+   "Name saved"
+  ],
+  "la activa": [
+   "active"
+  ],
+  "Cambiar nombre": [
+   "Rename"
+  ],
+  "Cada iglesia tiene sus propios cultos. Las canciones son comunes a todas.": [
+   "Each church has its own services. Songs are shared by all of them."
+  ],
+  "Solo lo ve quien lo creó": [
+   "Only whoever created it can see it"
+  ],
+  "Privado": [
+   "Private"
+  ],
+  "Publicar en la iglesia": [
+   "Publish to the church"
+  ],
+  "Hacer privado": [
+   "Make private"
+  ],
+  "Culto privado": [
+   "Service made private"
+  ],
+  "Culto publicado": [
+   "Service published"
+  ],
+  "¿Publicar este culto? Lo verá todo el equipo de la iglesia.": [
+   "Publish this service? The whole church team will see it."
+  ],
+  "Publicar": [
+   "Publish"
+  ],
+  "Privado: solo lo veo yo": [
+   "Private: only I can see it"
+  ],
+  "No aparece para el resto del equipo ni cuenta en las estadísticas. Puedes publicarlo después.": [
+   "It is not shown to the rest of the team and does not count in the statistics. You can publish it later."
   ]
  }
 };
