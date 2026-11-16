@@ -28,7 +28,7 @@ ver nada nuevo.
 | Canción | Datos únicos | Los datos comunes siguen en la canción. Lo de cada iglesia va en `_pieb_ig_{id}`: `{ tonalidad, notas, principal }`. |
 | Partitura, audio, editable, YouTube | `{ id, label, … }` | Cada elemento añade `autor` (usuario) e `iglesia` (desde dónde se subió). |
 | Audios de ensayo | Comunes | **De cada iglesia**: solo los ve la que los subió. El administrador central puede marcar uno como `universal`, y entonces lo ven todas. |
-| Tonalidad de una partitura | Vacía = «la habitual» | **Siempre explícita.** La habitual pasa a ser de cada iglesia, así que «vacía» deja de tener sentido. |
+| Tonalidad de una partitura | Vacía = «la habitual» | Vacía = «la **original** de la canción» (`_pieb_tonalidad`, común a todas). La habitual de cada iglesia es un dato aparte que solo elige cuál se ofrece primero, así que no hace falta reescribir las partituras. |
 | Campos de la canción (título, número, autor, tempo, letra) | Sin autor | `_pieb_campos_autor`: quién rellenó cada campo. |
 | Etiqueta | Término global | Meta del término `iglesia` (0 = universal). |
 | Ajustes | Una opción global | Se dividen: globales (Google, protección de archivos, copias) y por iglesia (nombre, tipos de culto, escaleta, fondos, bienvenida). |
@@ -152,8 +152,9 @@ Notas:
    iglesia en el menú.
 3. **Canciones: añadir sin destruir.** Autor por elemento y por campo, guardado parcial, formulario con bloqueos, borrado
    solo por el creador o el central.
-4. **Datos por iglesia.** Tonalidad habitual, notas, etiquetas y audios por iglesia; etiquetas y audios universales. Aquí
-   las partituras con tonalidad vacía reciben de forma explícita la habitual que tenían.
+4. **Datos por iglesia**, en dos versiones:
+   - **4a.** Tonalidad habitual, partitura principal y notas por iglesia; audios por iglesia y audios universales.
+   - **4b.** Etiquetas por iglesia y etiquetas universales.
 5. **Ajustes, equipo y administración central.** Ajustes divididos, equipo por iglesia, alta de iglesias, copias de
    seguridad con iglesias y pertenencias, papelera (canciones para el central, cultos para cada iglesia).
 
