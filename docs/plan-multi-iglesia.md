@@ -22,7 +22,7 @@ ver nada nuevo.
 | Qué | Hoy | Con varias iglesias |
 |---|---|---|
 | Iglesia | No existe | Tipo de contenido nuevo `pieb_iglesia` (nombre y sus ajustes). Siempre hay al menos una. |
-| Pertenencia | Rol de WordPress, global | Meta de usuario `_pieb_iglesias`: `{ idIglesia: rol }` (equipo, escaleta, administración). |
+| Pertenencia | Rol de WordPress, global | Meta de usuario `_pieb_iglesias`: `{ idIglesia: rol }` (equipo, escaleta, administración). Los tres roles, también el de responsable de escaleta, son **por iglesia**. |
 | Administrador central | No existe | Capacidad nueva `pieb_cancionero_central`. La reciben los administradores de WordPress. |
 | Culto | Sin dueño | `_pieb_iglesia` (obligatorio) y `_pieb_privado` (0/1; privado = solo su autor). |
 | Canción | Datos únicos | Los datos comunes siguen en la canción. Lo de cada iglesia va en `_pieb_ig_{id}`: `{ tonalidad, notas, principal }`. |
@@ -49,10 +49,11 @@ Se mantiene el prefijo `pieb` y no se renombra nada de lo existente.
 | Cambiar un campo ya relleno | Quien lo rellenó, quien creó la canción y el administrador central. |
 | Corregir la letra | Quien creó la canción y el administrador central. |
 | Borrar la canción | Quien la creó y el administrador central. |
-| Tonalidad habitual y notas de la iglesia | Administrador de esa iglesia. |
+| Tonalidad habitual y partitura principal de la iglesia | Administrador de esa iglesia. |
+| Notas de la iglesia en una canción | Cualquier miembro de esa iglesia; solo las ve su iglesia. |
 | Etiquetas de la iglesia (crear y poner) | Como hoy, dentro de su iglesia. |
 | Etiquetas universales (crear y poner) | Administrador central. |
-| Ver, crear y editar cultos | Miembros de esa iglesia, con las reglas de rol actuales. |
+| Ver, crear y editar cultos | Miembros de esa iglesia, con las reglas de rol actuales. El administrador central puede entrar en cualquier iglesia con el selector y actúa en ella como su administración. |
 | Culto privado | Solo su autor. No cuenta en las estadísticas de la iglesia. |
 | Equipo y ajustes de una iglesia | Administrador de esa iglesia. |
 | Crear iglesias, papelera de canciones, copias, ajustes globales | Administrador central. |
@@ -88,22 +89,26 @@ Se mantiene el prefijo `pieb` y no se renombra nada de lo existente.
 | Equipo de la iglesia (añadir, cambiar rol, quitar) | I | A/R | — | — | — |
 | Ajustes de la iglesia (nombre, tipos de culto, escaleta, fondos, bienvenida) | — | A/R | — | — | — |
 | Tonalidad habitual y partitura principal de una canción | — | A/R | I | I | — |
-| Notas de la iglesia en una canción | — | A/R | I | I | — |
+| Notas de la iglesia en una canción | R | A | R | R | — |
 | Etiquetas de la iglesia (crear y poner) | — | A | R | R | — |
 | Audios de ensayo de la iglesia | — | A | R | R | R |
-| Ver los cultos de la iglesia | — | R | R | R | R |
-| Crear y editar cultos | — | A | R | R | R |
-| Preparar la escaleta | — | A/R | R | I | — |
-| Tocar, cantar y exportar (PDF, letras, escaleta) | — | R | R | R | R |
-| Borrar un culto | — | A/R | — | — | R |
-| Papelera de cultos | — | A/R | — | — | I |
-| Estadísticas de la iglesia | — | A | I | I | — |
+| Ver los cultos de la iglesia | R | R | R | R | R |
+| Crear y editar cultos | R | A | R | R | R |
+| Preparar la escaleta | R | A/R | R | I | — |
+| Tocar, cantar y exportar (PDF, letras, escaleta) | R | R | R | R | R |
+| Borrar un culto | R | A/R | — | — | R |
+| Papelera de cultos | R | A/R | — | — | I |
+| Estadísticas de la iglesia | I | A | I | I | — |
 | Registro de accesos del equipo | — | A/R | — | — | — |
 | Culto privado (verlo, editarlo, publicarlo, borrarlo) | — | — | — | — | A/R |
 
 Notas:
 
-- El administrador central **no ve los cultos** de una iglesia salvo que además pertenezca a ella.
+- El administrador central puede **entrar en cualquier iglesia** con el selector, aunque no pertenezca a ella, para
+  ayudarla: allí ve y edita sus cultos como su administración. La responsabilidad (A) sigue siendo de la iglesia.
+- Los **cultos privados** siguen siendo solo de su autor: tampoco los ve el administrador central.
+- Las **notas de una canción** son de cada iglesia: las edita cualquiera de su equipo y no las ven las demás.
+- El rol de **responsable de escaleta** es por iglesia, como los otros dos.
 - Con una sola iglesia, su administración hace también de administración central.
 - Una misma persona puede tener un rol distinto en cada iglesia.
 
@@ -127,7 +132,8 @@ Notas:
 ## Interfaz
 
 - **Con una sola iglesia** no aparece nada nuevo.
-- **Con varias**: un selector de iglesia en el menú del usuario; cambiarla recarga los datos.
+- **Con varias**: un selector de iglesia en el menú del usuario; cambiarla recarga los datos. Al administrador central
+  le salen todas las iglesias; las que no son suyas, marcadas como tales.
 - **Formulario de canción**: lo que no se puede cambiar aparece bloqueado, con quién lo añadió. «Añadir partitura» sigue
   disponible para todos.
 - **Ficha de canción**: junto a la tonalidad, «Habitual en tu iglesia» editable por su administrador.
