@@ -245,6 +245,22 @@ function pieb_can_es_central($user_id = 0) {
 }
 
 /**
+ * ¿Administra esa iglesia el usuario? $iglesia_id = 0: la iglesia activa; $user_id = 0: el usuario actual. Es verdadero
+ * para el administrador central (ver pieb_can_es_central) y para quien tiene rol 'admin' en esa iglesia.
+ */
+function pieb_can_es_admin_iglesia($iglesia_id = 0, $user_id = 0) {
+    $user_id = $user_id ? (int) $user_id : get_current_user_id();
+    if (!$user_id) {
+        return false;
+    }
+    if (pieb_can_es_central($user_id)) {
+        return true;
+    }
+    $iglesia_id = $iglesia_id ? (int) $iglesia_id : (int) pieb_can_iglesia_activa($user_id);
+    return pieb_can_rol_en($user_id, $iglesia_id) === 'admin';
+}
+
+/**
  * ¿Está activa la protección de lo que añade cada persona a una canción? Solo cuando hay más de una iglesia (ver fase 3
  * del plan). Con una sola, todo el equipo edita cualquier cosa, como siempre. El resultado se recuerda durante la
  * petición; $reiniciar = true lo vuelve a calcular (al crear una iglesia).

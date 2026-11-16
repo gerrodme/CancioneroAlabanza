@@ -3087,6 +3087,57 @@ window.PIEB_I18N = {
   ],
   "No se pudo descargar «%s»: se cortó la conexión. Vuelve a intentarlo.": [
    "Could not download “%s”: the connection was cut. Try again."
+  ],
+  "Lo ven todas las iglesias": [
+   "All churches can see it"
+  ],
+  "Universal": [
+   "Universal"
+  ],
+  "El audio vuelve a ser solo de su iglesia": [
+   "The audio belongs only to its church again"
+  ],
+  "Audio publicado en todas las iglesias": [
+   "Audio published to all churches"
+  ],
+  "¿Publicar este audio en todas las iglesias? Lo podrá oír cualquiera que use el cancionero.": [
+   "Publish this audio to all churches? Anyone using the songbook will be able to listen to it."
+  ],
+  "De %s": [
+   "From %s"
+  ],
+  "Dejar solo en su iglesia": [
+   "Keep only in its church"
+  ],
+  "Publicar en todas las iglesias": [
+   "Publish to all churches"
+  ],
+  "Guardado para tu iglesia": [
+   "Saved for your church"
+  ],
+  "Tonalidad habitual": [
+   "Usual key"
+  ],
+  "%s (original)": [
+   "%s (original)"
+  ],
+  "Partitura principal": [
+   "Main score"
+  ],
+  "La que eligió quien creó la canción": [
+   "The one chosen by whoever created the song"
+  ],
+  "En %s": [
+   "At %s"
+  ],
+  "Tonalidad original": [
+   "Original key"
+  ],
+  "Solo las ve tu iglesia.": [
+   "Only your church can see them."
+  ],
+  "Si subes la canción en varias tonalidades, indica la de cada partitura. Sin tonalidad, se entiende que está en la original de la canción.": [
+   "If you upload the song in several keys, set the key of each score. With no key, it is assumed to be in the song's original key."
   ]
  }
 };

@@ -58,13 +58,14 @@ La interfaz es una aplicación de una sola página dentro de la página de WordP
   |---|---|
   | `_pieb_numero` | Número en el himnario (texto). |
   | `_pieb_autor` | Autor / compositor. |
-  | `_pieb_tonalidad` | Tonalidad en notación española: `Do`, `Fa#`, `Sib`, `Mim`… |
+  | `_pieb_tonalidad` | Tonalidad **original** de la canción (común a todas las iglesias) en notación española: `Do`, `Fa#`, `Sib`, `Mim`… La habitual de cada iglesia es otro dato (`_pieb_ig_{id}`). |
   | `_pieb_tempo` | Entero, pulsaciones por minuto. |
   | `_pieb_letra`, `_pieb_notas` | Texto plano. `_pieb_letra` es siempre texto plano (búsqueda, listado, copiar…); si hay `_pieb_letra_html`, se deriva de él. |
   | `_pieb_letra_html` | Opcional. Letra con formato, HTML saneado: hijos de primer nivel `p`, `h4` (título de sección) o `blockquote` (estribillo, solo con `p`); dentro, solo texto, `br`, `strong`, `em`, `u`; sin atributos. Cada línea es un `<p>` y `<p></p>` separa estrofas. |
-  | `_pieb_partituras` | Lista de `{id (adjunto), label, tonalidad}`; mínimo 1. PDF, JPG o PNG, máx. 4 MB. `tonalidad` vacía = la habitual de la canción (`_pieb_tonalidad`); las entradas antiguas sin la clave valen `''` (`pieb_can_get_partituras()` la devuelve siempre). La tonalidad efectiva de una partitura es la suya o, si no tiene, la de la canción; dos tonalidades son iguales si coinciden tras `trim` y minúsculas (`pieb_can_tono_clave()`, sin enarmonías). Al guardar, una tonalidad igual a la de la canción de esa misma petición se guarda como `''`. |
+  | `_pieb_partituras` | Lista de `{id (adjunto), label, tonalidad}`; mínimo 1. PDF, JPG o PNG, máx. 4 MB. `tonalidad` vacía = la **original** de la canción (`_pieb_tonalidad`), nunca la habitual de una iglesia; las entradas antiguas sin la clave valen `''` (`pieb_can_get_partituras()` la devuelve siempre). La tonalidad efectiva de una partitura es la suya o, si no tiene, la original de la canción; dos tonalidades son iguales si coinciden tras `trim` y minúsculas (`pieb_can_tono_clave()`, sin enarmonías). Al guardar, una tonalidad igual a la original de esa misma petición se guarda como `''`. |
   | `_pieb_youtube` | Lista de `{url, label}`; solo se aceptan enlaces de YouTube válidos. |
-  | `_pieb_audios` | Lista de `{id, nombre, descripcion}`. MP3/M4A/OGG/WAV/AAC, máx. 10 MB. |
+  | `_pieb_audios` | Lista de `{id, nombre, descripcion}` (más `autor`, `iglesia` y, opcional, `universal: 1`). MP3/M4A/OGG/WAV/AAC, máx. 10 MB. Cada audio es **de la iglesia que lo subió**; con `universal` (solo lo pone el central) lo ven todas. Ver [Iglesias](#iglesias). |
+  | `_pieb_ig_{idIglesia}` | Datos de la canción propios de esa iglesia: `{ tonalidad, principal, notas }` (`tonalidad`: la habitual cruda, `''` = la original; `principal`: ID de la partitura principal, 0 = el orden guardado; `notas`). Si queda todo vacío, la meta se borra. **Las notas de la iglesia por defecto no van aquí sino en `_pieb_notas`** (sin migración). Ver [Iglesias](#iglesias). |
   | `_pieb_editables` | Lista de `{id, descripcion}`: MuseScore, MusicXML… máx. 10 MB. |
   | `_pieb_campos_autor` | `{ campo: idUsuario }`: quién rellenó `titulo`, `numero`, `autor`, `tonalidad` y `tempo`. Solo pesa con varias iglesias (ver [Iglesias](#iglesias)); lo que falta cuenta como rellenado por el creador de la canción. |
   | `autor`, `iglesia` (en cada elemento de las cuatro listas anteriores) | `autor`: ID del usuario que lo añadió; `iglesia`: ID de la iglesia desde la que se añadió. Si faltan, los getters (`pieb_can_get_partituras/audios/editables/youtube`) los completan al leer con el autor de la canción y la iglesia por defecto, sin escribir nada. Al guardar, los elementos nuevos llevan el usuario actual y su iglesia activa; los que se conservan mantienen los suyos (nunca se aceptan del cliente; un enlace de YouTube es «el mismo» si coincide su URL). La API los devuelve en cada partitura, audio, editable y enlace. |
@@ -93,11 +94,13 @@ Todas las rutas exigen sesión iniciada con la capacidad `pieb_cancionero_acceso
 
 | Ruta | Métodos | Notas |
 |---|---|---|
-| `/canciones` | GET, POST | GET devuelve un **resumen** de todas (`id, titulo, numero, autor, tonalidad, tempo, etiquetas, letra, miniatura, creada, modificada` y los **conteos** `partituras`, `youtube` y `audios`; si hay más de una partitura, `variantes` `[{id, label, tonalidad}]` con la tonalidad cruda; y `tonalidades`: las tonalidades efectivas distintas de sus partituras, sin vacías, la habitual primero si alguna está en ella). POST crea. |
+| `/canciones` | GET, POST | GET devuelve un **resumen** de todas (`id, titulo, numero, autor, tonalidad` (la habitual de la iglesia activa), `tonalidadOriginal`, `tempo`, etiquetas, letra, miniatura, creada, modificada` y los **conteos** `partituras`, `youtube` y `audios` (solo los que ve quien pregunta); si hay más de una partitura, `variantes` `[{id, label, tonalidad}]` con la tonalidad cruda; y `tonalidades`: las tonalidades efectivas distintas de sus partituras, sin vacías, la habitual de la iglesia activa primero si alguna está en ella). Con la partitura principal de la iglesia activa, esta va primera en `variantes` y da la `miniatura`. POST crea. |
 | `/canciones/{id}` | GET, POST, DELETE | GET devuelve la ficha completa (partituras con `archivo`/`url`, audios, `youtube` con `videoId`, notas…). POST **actualiza reemplazando todo** (ver abajo). DELETE manda a la papelera. |
 | `/canciones/etiquetar` | POST | Añade y/o quita etiquetas a varias canciones sin tocar el resto de la ficha. Cuerpo JSON `{ids, anadir, quitar}` (hasta 200 ids); devuelve `{canciones: [{id, etiquetas}]}`. La interfaz lo llama por tandas de 40 desde el modo «Etiquetar». |
 | `/manifest?pagina=ID` | GET | **Pública** (sin sesión ni nonce). Manifiesto web (`application/manifest+json`) para el acceso directo de la página del cancionero: nombre de la instalación, `start_url`/`scope` de esa página (`pagina` debe tener el shortcode; si no, la portada), `display: standalone` e iconos (192, 512 y maskable). No expone nada privado. |
 | `/subidas` | POST | Subida de archivos **por trozos** (un audio de 10 MB cabe aunque PHP limite a 2 MB por petición). |
+| `/canciones/{id}/iglesia` | POST | Cuerpo JSON `{ tonalidad?, principal? }` (solo las claves que lleguen): fija la **tonalidad habitual** (`''` = seguir la original, o una de las disponibles; 400 si no; si coincide con la original se guarda `''`) y/o la **partitura principal** (0 = el orden por defecto, o el ID de una partitura de la canción; 400 si no) de la iglesia activa. Solo la administración de esa iglesia o el central (`pieb_can_es_admin_iglesia()`; 403 si no). Responde la ficha. |
+| `/canciones/{id}/audios/{audio}/universal` | POST | Cuerpo `{ universal: bool }`: publica un audio en todas las iglesias o lo devuelve a la suya. Solo el central y con varias iglesias (403 si no); 404 si la canción no tiene ese audio. Responde la ficha. |
 | `/cultos/{id}/privacidad` | POST | Cuerpo `{ privado: bool }`: hace privado un culto o lo devuelve al equipo. Solo su autor (403 para los demás que lo ven); responde el resumen del culto. |
 | `/cultos`, `/cultos/{id}` | GET, POST, DELETE | Cultos y setlists. **Solo los de la iglesia activa y, si son privados, los propios; el resto responde 404.** `POST` acepta `privado` (al crear, cualquiera; al editar, solo el autor). `GET /cultos/{id}` devuelve además `escaleta` (objeto o `null`; no va en el listado) y `POST` la acepta solo si llega (`null` la borra) **y solo de quien tiene `pieb_can_escaleta`**: de cualquier otro se ignora, sin error (el resto del culto sí se guarda y la escaleta que hubiera se conserva). Ver [Escaleta del culto](#escaleta-del-culto). |
 | `/escaleta` | GET | **Base de la escaleta de un culto nuevo**: la estructura (sin valores) y la fila de títulos de la última escaleta guardada en cualquier culto, con el logo y la cabecera de la instalación y `desde: {id, titulo}` (el culto de origen; `null` si sale de la plantilla genérica). La lee todo el equipo, porque preparar la escaleta de un culto la necesita. |
@@ -191,7 +194,7 @@ de una sola iglesia se comporta exactamente igual.
     creador o el central.
   - `pieb_can_puede_borrar_cancion($post)`: con la protección activa, el creador o el central; si no,
     `pieb_can_usuario_puede_borrar()` (autor o `pieb_cancionero_gestionar`), que es también la regla de los **cultos** y no cambia.
-  - Notas y etiquetas no cambian en esta fase (la fase 4 las hace por iglesia).
+  - Las etiquetas no cambian en esta fase (la 4b las hace por iglesia). Notas, tonalidad habitual, partitura principal y audios: ver «Datos por iglesia (fase 4a)».
 
   **El servidor fusiona, no rechaza.** `POST /canciones/{id}` sigue siendo un multipart que «reemplaza todo», pero con la
   protección activa conserva lo que quien guarda no puede cambiar, venga lo que venga en la petición (un cliente antiguo o una
@@ -205,6 +208,40 @@ de una sola iglesia se comporta exactamente igual.
   `autorNombre` (nombre del autor, `''` si el usuario ya no existe); y `permisos`:
   `{ campos: { titulo, numero, autor, tonalidad, tempo, letra }, ordenar, borrar }` (booleanos; un campo vacío es siempre
   `true`). `puedeBorrar` es `permisos.borrar`. `DELETE /canciones/{id}` aplica la regla nueva (403 si no).
+- **Datos por iglesia (fase 4a).** Las canciones son comunes, pero cuatro datos son de cada iglesia. **Con una sola iglesia
+  todo se guarda y se comporta como siempre** (sin `_pieb_ig_*`, la habitual es la original, las notas siguen en `_pieb_notas` y
+  todos los audios se ven).
+  - **Tonalidad.** `_pieb_tonalidad` es la **original** (común; es la que edita el campo `tonalidad` de `POST /canciones/{id}`).
+    La **habitual** de una iglesia (`pieb_can_tono_habitual($post_id, $iglesia_id = 0)`) es la `tonalidad` de su
+    `_pieb_ig_{id}` si no está vacía y coincide (`pieb_can_tono_clave`) con alguna de las tonalidades en que hay partitura; si no,
+    la original. **La tonalidad vacía de una partitura sigue significando «la original»** (`pieb_can_tono_efectivo($partitura,
+    $original)` y la normalización al guardar no cambian; no hay migración). `pieb_can_tonalidades()` ordena con la habitual de
+    la iglesia activa primero. La API: `tonalidad` = la habitual de la iglesia activa y `tonalidadOriginal` = `_pieb_tonalidad`
+    (resumen y ficha). En los cultos, la tonalidad efectiva de un item es la suya o, si está vacía, la habitual de la iglesia
+    del culto (`datos.tonalidad`, y `datos.tonalidadOriginal`); las partituras del item se filtran comparando la efectiva de cada
+    una (calculada con la original) con la del item.
+  - **Partitura principal.** Si la `principal` de la iglesia activa es una partitura que la canción aún tiene,
+    `pieb_can_partituras_iglesia()` la pone la primera (ficha, y miniatura y `variantes` del resumen); el guardado de la
+    canción no usa esta función, así que no altera el orden que fijó quien la creó. En un culto manda la partitura elegida para él.
+  - **Notas.** `notas` de la API son las de la iglesia activa (`pieb_can_notas()`/`pieb_can_notas_guardar()`); las edita cualquier
+    miembro con el `notas` de `POST /canciones/{id}`. La iglesia por defecto usa `_pieb_notas`; las demás, `notas` de
+    `_pieb_ig_{id}`. La copia de seguridad sigue exportando e importando `_pieb_notas` (las de la iglesia por defecto).
+  - **Ficha.** `iglesiaDatos` = `{ tonalidad (cruda, '' = la original), principal, puedeEditar }` (`puedeEditar` =
+    `pieb_can_es_admin_iglesia()`: central o rol `admin` en la iglesia activa) y, en la raíz, `puedeUniversal`.
+  - **Audios por iglesia y universales.** Cada audio lleva `iglesia`; con `universal: 1` lo ven todas. **Una sola función decide
+    quién lo ve: `pieb_can_audio_visible($audio)`** (sin protección, siempre; con ella, universal o de la iglesia activa del
+    usuario). La ficha solo devuelve los visibles, y cada uno con `universal`, `iglesiaNombre` y `mio` según
+    `pieb_can_puede_audio()` (universal: solo el central; si no, su autor, la administración de la iglesia del audio o el
+    central); el contador `audios` del resumen cuenta solo los visibles. Al guardar la canción, los audios de otras
+    iglesias y los que no puede cambiar se conservan tal cual (`pieb_can_fusionar_elementos()` con `pieb_can_puede_cambiar_audio()`);
+    `universal` nunca se acepta del cliente (se conserva el que tenía) y los audios nuevos llevan la iglesia activa.
+  - **Entrega del archivo** (`?pcan_archivo=ID`): con varias iglesias, un audio solo se entrega si es universal, si quien pide
+    es central o si **pertenece** a la iglesia del audio (`pieb_can_rol_en`; es una dirección directa, sin cabecera de iglesia
+    activa); si no, responde 404 «Archivo no encontrado». Un audio que ninguna canción lista (huérfano) solo lo recibe el central.
+    Partituras y editables no cambian.
+  - **Otros sitios que leen audios.** La copia de seguridad exporta todos los audios solo al central (a los demás, los visibles);
+    «archivos sin usar» y el borrado definitivo de una canción cuentan todos los audios (ninguno de otra iglesia se considera
+    huérfano); el aviso de borrado y la papelera (para el central) no cambian.
 - **Pendiente (fases siguientes).** Las copias de seguridad (`includes/ajustes.php`) siguen exportando e importando los cultos
   de toda la instalación, privados incluidos y sin la iglesia; la fase 5 las adaptará.
 

@@ -127,6 +127,10 @@ function pieb_can_servir_archivo() {
     if ($padre && get_post_status($padre) === 'trash' && !current_user_can(PIEB_CAN_CAP_GESTIONAR)) {
         pieb_can_error_archivo(404, __('Archivo no encontrado.', 'pieb-cancionero'));
     }
+    // Un audio de ensayo es de la iglesia que lo subió (salvo que sea universal): se entrega como si no existiera a quien no puede verlo.
+    if (!pieb_can_puede_ver_audio_archivo($id)) {
+        pieb_can_error_archivo(404, __('Archivo no encontrado.', 'pieb-cancionero'));
+    }
 
     $base = realpath(wp_upload_dir()['basedir']);
     $ruta = get_attached_file($id);
@@ -214,6 +218,48 @@ function pieb_can_servir_archivo() {
         fclose($f);
     }
     exit;
+}
+
+/** Canción a la que pertenece un audio (adjunto): su post_parent o, si no lo tiene, la que lo lista en _pieb_audios; null si ninguna. */
+function pieb_can_cancion_de_audio($id) {
+    $padre = wp_get_post_parent_id($id);
+    if ($padre && get_post_type($padre) === PIEB_CAN_CPT) {
+        return get_post($padre);
+    }
+    $ids = get_posts(array(
+        'post_type'      => PIEB_CAN_CPT,
+        'post_status'    => 'any',
+        'posts_per_page' => 1,
+        'fields'         => 'ids',
+        'meta_query'     => array(array('key' => '_pieb_audios', 'value' => 's:2:"id";i:' . (int) $id . ';', 'compare' => 'LIKE')),
+    ));
+    return $ids ? get_post((int) $ids[0]) : null;
+}
+
+/**
+ * ¿Puede el usuario actual recibir este archivo si es un audio de una canción? Con protección activa (varias iglesias) solo
+ * si el audio es universal, el usuario es central o PERTENECE a la iglesia del audio (aquí no hay cabecera de iglesia activa:
+ * es una dirección directa, por eso se usa la pertenencia). Un audio que ninguna canción lista solo lo recibe el central.
+ * Los archivos que no son audios (partituras, editables) y las instalaciones de una iglesia siempre pasan.
+ */
+function pieb_can_puede_ver_audio_archivo($id) {
+    if (!get_post_meta($id, '_pieb_audio', true) || !pieb_can_proteccion_activa()) {
+        return true;
+    }
+    $usuario = get_current_user_id();
+    if (pieb_can_es_central($usuario)) {
+        return true;
+    }
+    $cancion = pieb_can_cancion_de_audio($id);
+    if (!$cancion) {
+        return false;
+    }
+    foreach (pieb_can_get_audios($cancion->ID) as $a) {
+        if ((int) $a['id'] === (int) $id) {
+            return !empty($a['universal']) || pieb_can_rol_en($usuario, (int) $a['iglesia']) !== '';
+        }
+    }
+    return false;
 }
 
 function pieb_can_error_archivo($codigo, $texto) {

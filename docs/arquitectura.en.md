@@ -58,13 +58,14 @@ The interface is a single-page application inside the WordPress page; it navigat
   |---|---|
   | `_pieb_numero` | Hymnal number (text). |
   | `_pieb_autor` | Author / composer. |
-  | `_pieb_tonalidad` | Key in Spanish (Latin) notation: `Do`, `Fa#`, `Sib`, `Mim`… |
+  | `_pieb_tonalidad` | The song's **original** key (shared by all churches) in Spanish (Latin) notation: `Do`, `Fa#`, `Sib`, `Mim`… Each church's usual key is another datum (`_pieb_ig_{id}`). |
   | `_pieb_tempo` | Integer, beats per minute. |
   | `_pieb_letra`, `_pieb_notas` | Plain text (lyrics, notes). `_pieb_letra` is always plain text (search, list, copy…); when `_pieb_letra_html` exists, it is derived from it. |
   | `_pieb_letra_html` | Optional. Formatted lyrics, sanitized HTML: top-level children `p`, `h4` (section title) or `blockquote` (chorus, containing only `p`); inside, only text, `br`, `strong`, `em`, `u`; no attributes. Each line is a `<p>` and `<p></p>` separates stanzas. |
-  | `_pieb_partituras` | List of `{id (attachment), label, tonalidad}`; at least 1. PDF, JPG or PNG, max. 4 MB. Empty `tonalidad` = the song's usual key (`_pieb_tonalidad`); old entries without the key count as `''` (`pieb_can_get_partituras()` always returns it). A score's effective key is its own or, if empty, the song's; two keys are equal if they match after `trim` and lowercasing (`pieb_can_tono_clave()`, no enharmonics). On save, a key equal to the song's key in that same request is stored as `''`. |
+  | `_pieb_partituras` | List of `{id (attachment), label, tonalidad}`; at least 1. PDF, JPG or PNG, max. 4 MB. Empty `tonalidad` = the song's **original** key (`_pieb_tonalidad`), never a church's usual key; old entries without the key count as `''` (`pieb_can_get_partituras()` always returns it). A score's effective key is its own or, if empty, the song's original; two keys are equal if they match after `trim` and lowercasing (`pieb_can_tono_clave()`, no enharmonics). On save, a key equal to the original key in that same request is stored as `''`. |
   | `_pieb_youtube` | List of `{url, label}`; only valid YouTube links are accepted. |
-  | `_pieb_audios` | List of `{id, nombre, descripcion}`. MP3/M4A/OGG/WAV/AAC, max. 10 MB. |
+  | `_pieb_audios` | List of `{id, nombre, descripcion}` (plus `autor`, `iglesia` and, optionally, `universal: 1`). MP3/M4A/OGG/WAV/AAC, max. 10 MB. Each audio **belongs to the church that uploaded it**; with `universal` (only the central administrator sets it) every church sees it. See [Churches](#churches). |
+  | `_pieb_ig_{churchId}` | The song's data that is specific to that church: `{ tonalidad, principal, notas }` (`tonalidad`: the raw usual key, `''` = the original; `principal`: ID of the main score, 0 = the stored order; `notas`). When everything is empty the meta is deleted. **The default church's notes are not here but in `_pieb_notas`** (no migration). See [Churches](#churches). |
   | `_pieb_editables` | List of `{id, descripcion}`: MuseScore, MusicXML… max. 10 MB. |
   | `_pieb_campos_autor` | `{ field: userId }`: who filled `titulo`, `numero`, `autor`, `tonalidad` and `tempo`. Only matters with several churches (see [Churches](#churches)); a missing field counts as filled by the song's creator. |
   | `autor`, `iglesia` (on each item of the four lists above) | `autor`: ID of the user who added it; `iglesia`: ID of the church it was added from. If missing, the getters (`pieb_can_get_partituras/audios/editables/youtube`) fill them in on read with the song's author and the default church, writing nothing. On save, new items carry the current user and their active church; kept items keep theirs (they are never accepted from the client; a YouTube link is "the same" if its URL matches). The API returns them on every score, audio, editable and link. |
@@ -92,10 +93,12 @@ interface receives it in `PIEB_CANCIONERO.nonce`; the API base is in `PIEB_CANCI
 
 | Route | Methods | Notes |
 |---|---|---|
-| `/canciones` | GET, POST | GET returns a **summary** of all songs (`id, titulo, numero, autor, tonalidad, tempo, etiquetas, letra, miniatura, creada, modificada` and the **counts** `partituras`, `youtube` and `audios`; when there is more than one score, `variantes` `[{id, label, tonalidad}]` with the raw key; and `tonalidades`: the distinct effective keys of its scores, no empties, the usual one first if any score is in it). POST creates. |
+| `/canciones` | GET, POST | GET returns a **summary** of all songs (`id, titulo, numero, autor, tonalidad` (the active church's usual key), `tonalidadOriginal`, `tempo`, etiquetas, letra, miniatura, creada, modificada` and the **counts** `partituras`, `youtube` and `audios` (only those the caller can see); when there is more than one score, `variantes` `[{id, label, tonalidad}]` with the raw key; and `tonalidades`: the distinct effective keys of its scores, no empties, the active church's usual one first if any score is in it). With the active church's main score, that score comes first in `variantes` and gives the `miniatura`. POST creates. |
 | `/canciones/{id}` | GET, POST, DELETE | GET returns the full record (scores with `archivo`/`url`, audio, `youtube` with `videoId`, notes…). POST **updates by replacing everything** (see below). DELETE sends it to the trash. |
 | `/manifest?pagina=ID` | GET | **Public** (no session or nonce). Web manifest (`application/manifest+json`) for the shortcut to the songbook page: the installation's name, that page's `start_url`/`scope` (`pagina` must hold the shortcode; otherwise the home page), `display: standalone` and icons (192, 512 and maskable). Exposes nothing private. |
 | `/subidas` | POST | **Chunked** file upload (a 10 MB audio fits even if PHP limits requests to 2 MB). |
+| `/canciones/{id}/iglesia` | POST | JSON body `{ tonalidad?, principal? }` (only the keys that arrive): sets the active church's **usual key** (`''` = follow the original, or one of the available keys; 400 otherwise; if it equals the original, `''` is stored) and/or its **main score** (0 = the default order, or the ID of a score of the song; 400 otherwise). Only that church's administration or the central administrator (`pieb_can_es_admin_iglesia()`; 403 otherwise). Answers the record. |
+| `/canciones/{id}/audios/{audio}/universal` | POST | Body `{ universal: bool }`: publishes an audio to every church or returns it to its own. Central administrator only and with several churches (403 otherwise); 404 if the song has no such audio. Answers the record. |
 | `/cultos/{id}/privacidad` | POST | Body `{ privado: bool }`: makes a service private or returns it to the team. Author only (403 for others who can see it); answers the service summary. |
 | `/cultos`, `/cultos/{id}` | GET, POST, DELETE | Services and setlists. **Only those of the active church and, if private, your own; anything else answers 404.** `POST` accepts `privado` (anyone when creating; only the author when editing). `GET /cultos/{id}` also returns `escaleta` (an object or `null`; it is not in the list) and `POST` accepts it only if present (`null` deletes it) **and only from someone with `pieb_can_escaleta`**: from anyone else it is ignored, without an error (the rest of the service is saved and any existing order of service is kept). See [Order of service](#order-of-service). |
 | `/escaleta` | GET | The **base for a new service's order of service**: the structure (without values) and the row of titles of the last order of service saved in any service, with the installation's logo and header and `desde: {id, titulo}` (the source service; `null` if it comes from the generic template). The whole team reads it, because preparing a service's order of service needs it. |
@@ -190,7 +193,7 @@ single-church installation behaves exactly as before.
     only the creator or the central administrator.
   - `pieb_can_puede_borrar_cancion($post)`: with the protection active, the creator or the central administrator; otherwise
     `pieb_can_usuario_puede_borrar()` (author or `pieb_cancionero_gestionar`), which is also the **service** rule and does not change.
-  - Notes and tags do not change in this phase (phase 4 makes them per church).
+  - Tags do not change in this phase (4b makes them per church). Notes, usual key, main score and audio: see "Per-church data (phase 4a)".
 
   **The server merges, it does not reject.** `POST /canciones/{id}` is still a multipart that "replaces everything", but with
   the protection active it keeps whatever the saver cannot change, whatever the request says (an old client or a bulk load that
@@ -204,6 +207,41 @@ single-church installation behaves exactly as before.
   `autorNombre` (author's display name, `''` if the user no longer exists); and `permisos`:
   `{ campos: { titulo, numero, autor, tonalidad, tempo, letra }, ordenar, borrar }` (booleans; an empty field is always `true`).
   `puedeBorrar` is `permisos.borrar`. `DELETE /canciones/{id}` applies the new rule (403 otherwise).
+- **Per-church data (phase 4a).** Songs are shared, but four data are each church's own. **With a single church everything is
+  stored and behaves as always** (no `_pieb_ig_*`, the usual key is the original, notes stay in `_pieb_notas`, and every audio
+  is visible).
+  - **Key.** `_pieb_tonalidad` is the **original** key (shared; it is what the `tonalidad` field of `POST /canciones/{id}`
+    edits). A church's **usual** key (`pieb_can_tono_habitual($post_id, $iglesia_id = 0)`) is the `tonalidad` of its
+    `_pieb_ig_{id}` if it is not empty and matches (`pieb_can_tono_clave`) one of the keys in which a score exists; otherwise
+    the original. **A score's empty key still means "the original"** (`pieb_can_tono_efectivo($partitura, $original)` and the
+    normalisation on save do not change; no migration). `pieb_can_tonalidades()` puts the active church's usual key first. In
+    the API: `tonalidad` = the active church's usual key and `tonalidadOriginal` = `_pieb_tonalidad` (summary and record). In
+    services, an item's effective key is its own or, if empty, the usual key of the service's church (`datos.tonalidad`, and
+    `datos.tonalidadOriginal`); the item's scores are filtered by comparing each score's effective key (computed with the
+    original) with the item's.
+  - **Main score.** If the active church's `principal` is a score the song still has, `pieb_can_partituras_iglesia()` puts it
+    first (record, and the summary's thumbnail and `variantes`); saving the song does not use this function, so it does not
+    alter the order set by whoever created it. In a service, the score chosen for it wins.
+  - **Notes.** The API's `notas` are the active church's (`pieb_can_notas()`/`pieb_can_notas_guardar()`); any member edits them
+    with the `notas` of `POST /canciones/{id}`. The default church uses `_pieb_notas`; the others use `notas` of `_pieb_ig_{id}`.
+    The backup still exports and imports `_pieb_notas` (the default church's).
+  - **Record.** `iglesiaDatos` = `{ tonalidad (raw, '' = the original), principal, puedeEditar }` (`puedeEditar` =
+    `pieb_can_es_admin_iglesia()`: central or `admin` role in the active church) and, at the root, `puedeUniversal`.
+  - **Per-church and universal audio.** Each audio carries `iglesia`; with `universal: 1` every church sees it. **One function
+    decides who sees it: `pieb_can_audio_visible($audio)`** (without protection, always; with it, universal or belonging to the
+    user's active church). The record only returns the visible ones, each with `universal`, `iglesiaNombre` and `mio` according
+    to `pieb_can_puede_audio()` (universal: only the central administrator; otherwise its author, the administration of the
+    audio's church or the central administrator); the summary's `audios` counter counts only visible ones. When saving the
+    song, other churches' audio and audio the user cannot change are kept as they are (`pieb_can_fusionar_elementos()` with
+    `pieb_can_puede_cambiar_audio()`); `universal` is never accepted from the client (the existing value is kept) and new
+    audio carries the active church.
+  - **File delivery** (`?pcan_archivo=ID`): with several churches an audio is delivered only if it is universal, the requester is
+    central, or **belongs** to the audio's church (`pieb_can_rol_en`; it is a direct URL, with no active-church header);
+    otherwise it answers 404 "File not found". An audio that no song lists (orphan) is delivered only to the central
+    administrator. Scores and editable files do not change.
+  - **Other places that read audio.** The backup exports every audio only for the central administrator (others get the visible
+    ones); "unused files" and the permanent deletion of a song count every audio (no other church's audio is considered an
+    orphan); the deletion alert and the trash (for the central administrator) do not change.
 - **Pending (later phases).** Backups (`includes/ajustes.php`) still export and import the services of the whole
   installation, private ones included and without the church; phase 5 will adapt them.
 

@@ -98,10 +98,12 @@
     return String(t === null || t === undefined ? '' : t).trim().toLowerCase();
   }
 
-  /** Tonalidad efectiva de una partitura: la suya si la tiene; si no, la habitual de la canción. */
+  /** Tonalidad efectiva de una partitura: la suya si la tiene; si no, la ORIGINAL de la canción (la habitual de una iglesia no cuenta). */
   function tonoEfectivo(partitura, cancion) {
     var t = String((partitura && partitura.tonalidad) || '').trim();
-    return t || String((cancion && cancion.tonalidad) || '').trim();
+    if (t) { return t; }
+    var o = cancion && cancion.tonalidadOriginal !== undefined && cancion.tonalidadOriginal !== null ? cancion.tonalidadOriginal : (cancion && cancion.tonalidad);
+    return String(o || '').trim();
   }
 
   /** Las partituras de la lista (variantes o partituras) cuya tonalidad efectiva es la indicada. */
@@ -2261,6 +2263,7 @@
       faltan.length && !c.enPapelera ? h('div', { class: 'pcan-faltan' },
         h('span', { text: __('Completa la ficha:') }),
         faltan.map(function (f) { return h('a', { class: 'pcan-chip is-dashed', href: '#/editar/' + c.id }, icono('mas'), f.texto); })) : null,
+      bloqueIglesia(c),
       c.audios.length ? seccion(__('Audios'), 'audio', vistaAudios(c)) : null,
       c.editables && c.editables.length ? seccion(__('Partituras editables'), 'editable', vistaEditables(c)) : null,
       c.letra ? seccion(__('Letra'), 'letra', vistaLetra(c),
@@ -2364,19 +2367,96 @@
     }));
   }
 
+  /** Pastilla discreta «Universal» de un audio que ven todas las iglesias (null si no lo es). */
+  function marcaUniversal(a) {
+    return a && a.universal ? h('span', { class: 'pcan-privado pcan-universal', title: __('Lo ven todas las iglesias'), text: __('Universal') }) : null;
+  }
+
+  /** Publica un audio en todas las iglesias o lo devuelve a la suya (solo la administración central). Repinta la ficha con la respuesta. */
+  function cambiarUniversal(c, a) {
+    var hacerlo = function () {
+      api('canciones/' + c.id + '/audios/' + a.id + '/universal', { json: { universal: !a.universal } }).then(function (r) {
+        aviso(a.universal ? __('El audio vuelve a ser solo de su iglesia') : __('Audio publicado en todas las iglesias'));
+        pintarFicha(r);
+      }).catch(function (e) { aviso(e.message, 'error'); });
+    };
+    if (a.universal) { hacerlo(); return; }
+    confirmar({ mensaje: __('¿Publicar este audio en todas las iglesias? Lo podrá oír cualquiera que use el cancionero.'), aceptar: __('Publicar') }).then(function (si) { if (si) { hacerlo(); } });
+  }
+
   function vistaAudios(c) {
     return h('div', { class: 'pcan-audios' }, c.audios.map(function (a) {
       var textoDescarga = sprintf(/* translators: %s: nombre del audio */ __('Descargar %s'), a.nombre || a.archivo);
+      var central = !!(c.protegida && c.puedeUniversal);
       return h('div', { class: 'pcan-audio' },
         h('div', { class: 'pcan-audio-head' },
           h('span', { class: 'pcan-audio-ico', 'aria-hidden': 'true' }, icono('audio')),
           h('div', { class: 'pcan-audio-text' },
-            h('strong', { text: a.nombre || a.archivo }),
+            h('strong', null, a.nombre || a.archivo, c.protegida ? marcaUniversal(a) : null),
+            central && a.iglesiaNombre ? h('span', { class: 'pcan-audio-desc', text: sprintf(/* translators: %s: nombre de la iglesia de la que es el audio */ __('De %s'), a.iglesiaNombre) }) : null,
             a.descripcion ? h('span', { class: 'pcan-audio-desc', text: a.descripcion }) : null),
           a.duracion ? h('span', { class: 'pcan-audio-dur', text: a.duracion }) : null,
           h('a', { class: 'pcan-icon-btn', href: a.url, download: a.archivo || true, 'aria-label': textoDescarga, title: textoDescarga }, icono('descargar'))),
-        h('audio', { controls: true, preload: 'none', src: a.url }));
+        h('audio', { controls: true, preload: 'none', src: a.url }),
+        central ? h('div', { class: 'pcan-audio-acc' },
+          h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-ghost', onclick: function () { cambiarUniversal(c, a); } },
+            a.universal ? __('Dejar solo en su iglesia') : __('Publicar en todas las iglesias'))) : null);
     }));
+  }
+
+  /** Copia en el listado (state.canciones y su índice de búsqueda) los datos de la canción que cambian por iglesia. */
+  function sincronizarResumen(r) {
+    state.canciones.forEach(function (s, i) {
+      if (+s.id !== +r.id) { return; }
+      s.tonalidad = r.tonalidad; s.tonalidadOriginal = r.tonalidadOriginal; s.tonalidades = r.tonalidades;
+      if (state.indice[i] && state.indice[i].c === s) { state.indice[i].tonos = tonosBuscables(s.tonalidad); }
+    });
+    if (ui.lista) { pintarLista(); }
+  }
+
+  /** Bloque «En tu iglesia» de la ficha: tonalidad habitual y partitura principal de esta iglesia. null si no hay nada que elegir. */
+  function bloqueIglesia(c) {
+    var datos = c.iglesiaDatos;
+    if (!c.protegida || c.enPapelera || !datos || !datos.puedeEditar || !CFG.iglesia) { return null; }
+    var tonos = c.tonalidades || [], partituras = c.partituras || [];
+    if (tonos.length < 2 && partituras.length < 2) { return null; }
+    var original = tonoClave(c.tonalidadOriginal);
+
+    function guardarIglesia(cuerpo, selector, anterior) {
+      selector.disabled = true;
+      api('canciones/' + c.id + '/iglesia', { json: cuerpo }).then(function (r) {
+        aviso(__('Guardado para tu iglesia'));
+        sincronizarResumen(r);
+        pintarFicha(r);
+      }).catch(function (e) { selector.disabled = false; selector.value = anterior; aviso(e.message, 'error'); });
+    }
+
+    var campos = [];
+    if (tonos.length > 1) {
+      var habitual = tonoClave(c.tonalidad);
+      var sTono = h('select', { class: 'pcan-select', 'aria-label': __('Tonalidad habitual') }, tonos.map(function (t) {
+        var esOriginal = tonoClave(t) === original;
+        return h('option', { value: esOriginal ? '' : t, selected: tonoClave(t) === habitual, text: esOriginal ? sprintf(/* translators: %s: tonalidad */ __('%s (original)'), tonoVer(t)) : tonoVer(t) });
+      }));
+      var tonoActual = sTono.value;
+      sTono.addEventListener('change', function () { guardarIglesia({ tonalidad: sTono.value }, sTono, tonoActual); });
+      campos.push(h('label', { class: 'pcan-field' }, h('span', { class: 'pcan-label', text: __('Tonalidad habitual') }), sTono));
+    }
+    if (partituras.length > 1) {
+      var sPrincipal = h('select', { class: 'pcan-select', 'aria-label': __('Partitura principal') },
+        h('option', { value: '0', text: __('La que eligió quien creó la canción') }),
+        partituras.map(function (p, i) {
+          var t = tonoEfectivo(p, c);
+          return h('option', { value: String(p.id), text: (p.label || p.archivo || sprintf(/* translators: %d: número de orden de la partitura */ __('Partitura %d'), i + 1)) + (t ? ' · ' + tonoVer(t) : '') });
+        }));
+      sPrincipal.value = String(datos.principal || 0);
+      var principalActual = sPrincipal.value;
+      sPrincipal.addEventListener('change', function () { guardarIglesia({ principal: +sPrincipal.value }, sPrincipal, principalActual); });
+      campos.push(h('label', { class: 'pcan-field' }, h('span', { class: 'pcan-label', text: __('Partitura principal') }), sPrincipal));
+    }
+    return h('section', { class: 'pcan-en-iglesia' },
+      h('h3', { class: 'pcan-en-iglesia-titulo', text: sprintf(/* translators: %s: nombre de la iglesia */ __('En %s'), CFG.iglesia.nombre) }),
+      campos);
   }
 
   function vistaYoutube(c) {
@@ -2459,10 +2539,13 @@
         ? (nombre ? sprintf(/* translators: %s: nombre de quien añadió la partitura */ __('Añadida por %s'), nombre) : __('Añadida por otra persona'))
         : (nombre ? sprintf(/* translators: %s: nombre de quien añadió el audio, el archivo editable o el enlace */ __('Añadido por %s'), nombre) : __('Añadido por otra persona'));
     }
-    var existentes = c.partituras.map(function (p) { return { id: p.id, label: p.label, tonalidad: p.tonalidad || '', archivo: p.archivo, url: p.url, mio: p.mio, autorNombre: p.autorNombre }; });
+    // La ficha trae la partitura principal de la iglesia la primera; el formulario trabaja con el orden guardado («orden»)
+    // para no cambiar, al guardar, el que fijó quien creó la canción.
+    var existentes = c.partituras.slice().sort(function (a, b) { return (a.orden || 0) - (b.orden || 0); }).map(function (p) { return { id: p.id, label: p.label, tonalidad: p.tonalidad || '', archivo: p.archivo, url: p.url, mio: p.mio, autorNombre: p.autorNombre }; });
     var nuevas = [];
-    var audiosExistentes = c.audios.map(function (a) { return { id: a.id, nombre: a.nombre, descripcion: a.descripcion, archivo: a.archivo, url: a.url, mio: a.mio, autorNombre: a.autorNombre }; });
+    var audiosExistentes = c.audios.map(function (a) { return { id: a.id, nombre: a.nombre, descripcion: a.descripcion, archivo: a.archivo, url: a.url, mio: a.mio, autorNombre: a.autorNombre, universal: !!a.universal }; });
     var audiosNuevos = [];
+    var variasIglesias = protegida || hayVariasIglesias();
     var editablesExistentes = (c.editables || []).map(function (e) { return { id: e.id, descripcion: e.descripcion, archivo: e.archivo, url: e.url, mio: e.mio, autorNombre: e.autorNombre }; });
     var editablesNuevos = [];
     var etiquetas = c.etiquetas.slice();
@@ -2487,7 +2570,8 @@
     var fTempo = h('input', { type: 'number', class: 'pcan-input', value: c.tempo || '', min: '20', max: '400', step: '1', inputmode: 'numeric', placeholder: __('p. ej. 72') });
     var fAutor = h('input', { type: 'text', class: 'pcan-input', value: c.autor, maxlength: '200' });
     var listaTonos = h('datalist', { id: 'pcan-tonos' }, TONALIDADES.map(function (t) { return h('option', { value: tonoVer(t) }); }));
-    var fTono = h('input', { type: 'text', class: 'pcan-input', value: tonoVer(c.tonalidad), list: 'pcan-tonos', maxlength: '20' });
+    // El campo edita la tonalidad ORIGINAL de la canción (la habitual de cada iglesia se elige en la ficha).
+    var fTono = h('input', { type: 'text', class: 'pcan-input', value: tonoVer(c.tonalidadOriginal !== undefined && c.tonalidadOriginal !== null ? c.tonalidadOriginal : c.tonalidad), list: 'pcan-tonos', maxlength: '20' });
     var fLetra = Letra.editor(c, { soloLectura: !puedeCampo('letra') });
     // Datos bloqueados: deshabilitados (su valor actual se sigue enviando) y con la explicación en el title.
     var bloqueados = [[fTitulo, 'titulo'], [fNumero, 'numero'], [fAutor, 'autor'], [fTono, 'tonalidad'], [fTempo, 'tempo']].filter(function (x) { return !puedeCampo(x[1]); });
@@ -2537,7 +2621,7 @@
       });
     }
 
-    /** Campo opcional «Tonalidad» de una partitura; lo vacío significa «la habitual de la canción». */
+    /** Campo opcional «Tonalidad» de una partitura; lo vacío significa «la original de la canción». */
     function campoTonoPartitura(item, nombreArchivo) {
       var placeholder = function () { return tonoGuardar(fTono.value) ? tonoVer(tonoGuardar(fTono.value)) : __('Tonalidad'); };
       return h('input', {
@@ -2623,7 +2707,7 @@
     function pintarAudios() {
       listaAudios.innerHTML = '';
       audiosExistentes.forEach(function (a, i) {
-        append(listaAudios, filaArchivo('audio', a.archivo || __('Audio'), h('a', { href: a.url, target: '_blank', rel: 'noopener', class: 'pcan-file-ver', text: __('escuchar') }),
+        append(listaAudios, filaArchivo('audio', a.archivo || __('Audio'), h('span', { class: 'pcan-file-extra' }, h('a', { href: a.url, target: '_blank', rel: 'noopener', class: 'pcan-file-ver', text: __('escuchar') }), protegida ? marcaUniversal(a) : null),
           camposAudio(a), function () { audiosExistentes.splice(i, 1); pintarAudios(); }, esAjeno(a) ? a : null));
       });
       audiosNuevos.forEach(function (a, i) {
@@ -2698,7 +2782,7 @@
         h('div', { class: 'pcan-grid-2 pcan-form-datos' },
           h('div', { class: 'pcan-span-2' }, campo(__('Título'), fTitulo, ayudaBloqueo(fTitulo), true), duplicados),
           campo(__('Número de himnario'), fNumero, ayudaBloqueo(fNumero)),
-          campo(__('Tonalidad'), h('span', null, fTono, listaTonos), ayudaBloqueo(fTono)),
+          campo(protegida ? __('Tonalidad original') : __('Tonalidad'), h('span', null, fTono, listaTonos), ayudaBloqueo(fTono)),
           campo(__('Tempo (BPM)'), fTempo, ayudaBloqueo(fTempo)),
           campo(__('Autor / compositor'), fAutor, ayudaBloqueo(fAutor))),
         h('fieldset', { class: 'pcan-fieldset pcan-form-letra' },
@@ -2708,7 +2792,8 @@
           h('p', { class: 'pcan-help', text: __('Opcional. Separa las estrofas con una línea en blanco. Marca con Sección los títulos como Coro o Verso, y con Estribillo las líneas que se repiten. La letra también se usa en la búsqueda.') })),
         h('fieldset', { class: 'pcan-fieldset pcan-form-notas' },
           h('legend', { text: __('Notas para el equipo') }),
-          fNotas)),
+          fNotas,
+          variasIglesias ? h('p', { class: 'pcan-help', text: __('Solo las ve tu iglesia.') }) : null)),
       h('div', { class: 'pcan-form-col pcan-form-col-side' },
         h('fieldset', { class: 'pcan-fieldset pcan-form-partituras' },
           h('legend', null, __('Partitura'), h('abbr', { title: __('obligatorio'), text: ' *' })),
@@ -2716,7 +2801,9 @@
           listaPartituras,
           !puedeOrdenar ? h('p', { class: 'pcan-help', text: __('La partitura principal la elige quien creó la canción.') }) : null,
           zonaPartituras,
-          h('p', { class: 'pcan-help', text: __('Si subes la canción en varias tonalidades, indica la de cada partitura. Sin tonalidad, se entiende que está en la habitual de la canción.') }),
+          h('p', { class: 'pcan-help', text: protegida
+            ? __('Si subes la canción en varias tonalidades, indica la de cada partitura. Sin tonalidad, se entiende que está en la original de la canción.')
+            : __('Si subes la canción en varias tonalidades, indica la de cada partitura. Sin tonalidad, se entiende que está en la habitual de la canción.') }),
           !editando ? h('p', { class: 'pcan-help' }, conNodo(/* translators: %s: enlace «Súbelas de golpe» */ __('¿Son varias canciones distintas? %s.'), h('a', { href: '#/subir', text: __('Súbelas de golpe') }))) : null),
         h('fieldset', { class: 'pcan-fieldset pcan-form-audios' },
           h('legend', { text: __('Audios') }),

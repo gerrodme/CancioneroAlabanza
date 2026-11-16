@@ -73,6 +73,20 @@ function pieb_can_rest_rutas() {
             'permission_callback' => $acceso,
         ),
     ));
+
+    // Tonalidad habitual y partitura principal de la iglesia activa (solo su administración).
+    register_rest_route($ns, '/canciones/(?P<id>\d+)/iglesia', array(
+        'methods'             => WP_REST_Server::CREATABLE,
+        'callback'            => 'pieb_can_rest_cancion_iglesia',
+        'permission_callback' => $acceso,
+    ));
+
+    // Publicar un audio en todas las iglesias, o retirarlo (solo el administrador central).
+    register_rest_route($ns, '/canciones/(?P<id>\d+)/audios/(?P<audio>\d+)/universal', array(
+        'methods'             => WP_REST_Server::CREATABLE,
+        'callback'            => 'pieb_can_rest_audio_universal',
+        'permission_callback' => $acceso,
+    ));
 }
 
 function pieb_can_rest_acceso() {
@@ -156,7 +170,11 @@ function pieb_can_rest_listar() {
 
     update_meta_cache('post', wp_list_pluck($posts, 'ID'));
 
-    return rest_ensure_response(array_map('pieb_can_resumen', $posts));
+    // La iglesia activa se calcula una vez para todo el listado.
+    $activa = (int) pieb_can_iglesia_activa();
+    return rest_ensure_response(array_map(function ($p) use ($activa) {
+        return pieb_can_resumen($p, $activa);
+    }, $posts));
 }
 
 function pieb_can_rest_ver(WP_REST_Request $request) {
@@ -224,6 +242,98 @@ function pieb_can_rest_actualizar(WP_REST_Request $request) {
         wp_update_post(array('ID' => $post->ID, 'post_title' => $titulo));
     }
 
+    return rest_ensure_response(pieb_can_detalle(get_post($post->ID)));
+}
+
+/**
+ * Cambia la tonalidad habitual y/o la partitura principal de la canción para la iglesia activa. Cuerpo JSON
+ * { tonalidad?, principal? }: solo se tocan las claves que llegan. Solo la administración de la iglesia (o el central).
+ */
+function pieb_can_rest_cancion_iglesia(WP_REST_Request $request) {
+    $post = pieb_can_rest_cancion($request['id']);
+    if (is_wp_error($post)) {
+        return $post;
+    }
+    if (!pieb_can_es_admin_iglesia()) {
+        return new WP_Error('pieb_permiso', __('Solo la administración de la iglesia puede cambiar esto.', 'pieb-cancionero'), array('status' => 403));
+    }
+    $params = $request->get_json_params();
+    $params = is_array($params) ? $params : array();
+
+    $cambios = array();
+    if (array_key_exists('tonalidad', $params)) {
+        $tono = is_scalar($params['tonalidad']) ? sanitize_text_field((string) $params['tonalidad']) : '';
+        if ($tono !== '') {
+            $clave = pieb_can_tono_clave($tono);
+            if ($clave === pieb_can_tono_clave(get_post_meta($post->ID, '_pieb_tonalidad', true))) {
+                $tono = ''; // igual que la original: se guarda vacía (sigue a la original)
+            } else {
+                $elegida = null;
+                foreach (pieb_can_tonalidades($post->ID) as $t) {
+                    if (pieb_can_tono_clave($t) === $clave) {
+                        $elegida = $t;
+                        break;
+                    }
+                }
+                if ($elegida === null) {
+                    return new WP_Error('pieb_tonalidad', __('Esa tonalidad no está entre las de la canción.', 'pieb-cancionero'), array('status' => 400));
+                }
+                $tono = $elegida;
+            }
+        }
+        $cambios['tonalidad'] = $tono;
+    }
+    if (array_key_exists('principal', $params)) {
+        $principal = is_scalar($params['principal']) ? (int) $params['principal'] : 0;
+        if ($principal && !in_array($principal, array_map('intval', wp_list_pluck(pieb_can_get_partituras($post->ID), 'id')), true)) {
+            return new WP_Error('pieb_principal', __('Esa partitura no es de la canción.', 'pieb-cancionero'), array('status' => 400));
+        }
+        $cambios['principal'] = $principal;
+    }
+    if ($cambios) {
+        pieb_can_cancion_iglesia_guardar($post->ID, 0, $cambios);
+    }
+    return rest_ensure_response(pieb_can_detalle(get_post($post->ID)));
+}
+
+/** Marca un audio como universal (lo ven todas las iglesias) o lo devuelve a su iglesia. Solo el central, con varias iglesias. */
+function pieb_can_rest_audio_universal(WP_REST_Request $request) {
+    $post = pieb_can_rest_cancion($request['id']);
+    if (is_wp_error($post)) {
+        return $post;
+    }
+    if (!pieb_can_proteccion_activa() || !pieb_can_es_central()) {
+        return new WP_Error('pieb_permiso', __('Solo el administrador central puede publicar un audio en todas las iglesias.', 'pieb-cancionero'), array('status' => 403));
+    }
+    $params = $request->get_json_params();
+    $params = is_array($params) ? $params : array();
+    $valor = isset($params['universal']) ? $params['universal'] : false;
+    $universal = $valor === true || $valor === 1 || $valor === '1' || $valor === 'true';
+
+    $audio_id = (int) $request['audio'];
+    $items = get_post_meta($post->ID, '_pieb_audios', true);
+    $items = is_array($items) ? array_values($items) : array();
+    $encontrado = false;
+    foreach ($items as $i => $a) {
+        if (!is_array($a) || (int) (isset($a['id']) ? $a['id'] : 0) !== $audio_id) {
+            continue;
+        }
+        // Se fijan también su autor e iglesia (los que se deducían al leer) para que no cambien al cambiar la lista.
+        $completo = pieb_can_con_origen(array($a), $post->ID);
+        $a = $completo[0];
+        if ($universal) {
+            $a['universal'] = 1;
+        } else {
+            unset($a['universal']);
+        }
+        $items[$i] = $a;
+        $encontrado = true;
+        break;
+    }
+    if (!$encontrado) {
+        return new WP_Error('pieb_no_existe', __('La canción no tiene ese audio.', 'pieb-cancionero'), array('status' => 404));
+    }
+    update_post_meta($post->ID, '_pieb_audios', $items);
     return rest_ensure_response(pieb_can_detalle(get_post($post->ID)));
 }
 
@@ -371,13 +481,21 @@ function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
     foreach ((array) json_decode((string) $request->get_param('audios'), true) as $a) {
         $id = isset($a['id']) ? (int) $a['id'] : 0;
         if (isset($audios_actuales[$id])) {
-            $audios[] = pieb_can_limpiar_audio($id, $a, pieb_can_origen_de($audios_actuales[$id]));
+            $audio = pieb_can_limpiar_audio($id, $a, pieb_can_origen_de($audios_actuales[$id]));
+            // «universal» nunca llega del cliente: se conserva el que tenía (solo cambia por su ruta, del central).
+            if (!empty($audios_actuales[$id]['universal'])) {
+                $audio['universal'] = 1;
+            }
+            $audios[] = $audio;
         }
     }
-    // Con varias iglesias, los audios ajenos se conservan tal cual (los nuevos se añaden después).
+    // Con varias iglesias, los audios ajenos, los que no puede cambiar y los de otras iglesias (que ni ve) se conservan tal
+    // cual (los nuevos se añaden después).
     $audios = pieb_can_fusionar_elementos(array_values($audios_actuales), $audios, function ($e) {
         return (int) $e['id'];
-    }, $post);
+    }, $post, true, function ($e) use ($post) {
+        return pieb_can_puede_cambiar_audio($e, $post);
+    });
     if (!empty($files['audiosNuevos']['name'][0])) {
         $metas = json_decode((string) $request->get_param('audiosNuevosMeta'), true);
         $metas = is_array($metas) ? $metas : array();
@@ -449,7 +567,8 @@ function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
     if (pieb_can_puede_letra($post)) {
         pieb_can_guardar_letra($post_id, $request->get_param('letra'), $request->has_param('letraHtml') ? (string) $request->get_param('letraHtml') : null);
     }
-    update_post_meta($post_id, '_pieb_notas', sanitize_textarea_field((string) $request->get_param('notas')));
+    // Las notas son de cada iglesia: se guardan en las de la iglesia activa (la por defecto sigue usando _pieb_notas).
+    pieb_can_notas_guardar($post_id, 0, (string) $request->get_param('notas'));
 
     $youtube_actuales = pieb_can_get_youtube($post_id);
     $youtube = json_decode((string) $request->get_param('youtube'), true);

@@ -740,6 +740,10 @@ function pieb_can_rest_copia_exportar() {
         }
         $audios = array();
         foreach (pieb_can_get_audios($post->ID) as $a) {
+            // Con varias iglesias, quien no es central no se lleva los audios de otras iglesias en la copia.
+            if (!pieb_can_es_central() && !pieb_can_audio_visible($a)) {
+                continue;
+            }
             $f = pieb_can_copia_archivo((int) $a['id'], array(
                 'nombre'      => isset($a['nombre']) ? (string) $a['nombre'] : '',
                 'descripcion' => isset($a['descripcion']) ? (string) $a['descripcion'] : '',

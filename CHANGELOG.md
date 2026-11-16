@@ -2,6 +2,16 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.30.0 · 2026-11-16
+
+Datos de cada iglesia en las canciones comunes (fase 4a de `docs/plan-multi-iglesia.md`). Con más de una iglesia, la ficha
+de una canción tiene un bloque «En (tu iglesia)» donde su administración elige la **tonalidad habitual** (entre las que
+tienen partitura) y la **partitura principal**; no cambian las de las demás iglesias. La tonalidad de la canción pasa a ser
+la «original», común a todas, y una partitura sin tonalidad está en la original. Las **notas para el equipo** son de cada
+iglesia y solo las ve ella. Los **audios de ensayo** son de la iglesia que los sube: las demás no los ven ni pueden abrir
+el archivo; el administrador central puede publicar uno en todas («Universal») o devolverlo a su iglesia. Con una sola
+iglesia todo sigue igual.
+
 ## 1.29.0 · 2026-11-16
 
 En una canción se añade, no se destruye (fase 3 de `docs/plan-multi-iglesia.md`). Con más de una iglesia, cualquiera puede

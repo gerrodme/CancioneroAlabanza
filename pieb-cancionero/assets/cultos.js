@@ -605,6 +605,7 @@
     /** Selector de partitura: solo las de la tonalidad del item (todas si no coincide ninguna) y solo si quedan 2 o más. */
     function controlPartitura(it, s, titulo) {
       if (!s || !s.variantes || s.variantes.length < 2) { return null; }
+      // Con tonalidad vacía en el culto vale la habitual de la iglesia (s.tonalidad); la tonalidad vacía de una partitura es la ORIGINAL (P.tonoEfectivo).
       var variantes = P.partiturasDeTono(s.variantes, s, it.tonalidad || s.tonalidad);
       if (!variantes.length) { variantes = s.variantes; }
       if (variantes.length < 2) { return null; }

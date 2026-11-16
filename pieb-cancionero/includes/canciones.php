@@ -5,14 +5,21 @@
  * Metadatos de cada canción:
  *  _pieb_numero     Número en el himnario (texto, opcional)
  *  _pieb_autor      Autor / compositor
- *  _pieb_tonalidad  Tonalidad habitual
+ *  _pieb_tonalidad  Tonalidad ORIGINAL de la canción (común a todas las iglesias). La habitual de cada iglesia es otra cosa
+ *                   (ver _pieb_ig_{id} y pieb_can_tono_habitual)
+ *  _pieb_ig_{id}    Datos de la canción propios de la iglesia {id}: array('tonalidad' => habitual cruda ('' = la original),
+ *                   'principal' => id de la partitura principal (0 = el orden guardado), 'notas' => string). Las notas de la
+ *                   iglesia por defecto NO van aquí sino en _pieb_notas (ver pieb_can_notas)
  *  _pieb_letra      Letra completa (texto plano; si hay _pieb_letra_html, se deriva de él)
  *  _pieb_letra_html Letra con formato (HTML saneado: solo p, h4, blockquote y, dentro, br, strong, em, u), opcional
  *  _pieb_notas      Notas internas
  *  _pieb_partituras array( array('id' => attachment_id, 'label' => 'Original', 'tonalidad' => 'Sol'), ... )  (mínimo 1)
- *                   'tonalidad' vacía = la habitual de la canción (_pieb_tonalidad); las entradas antiguas no traen la clave
+ *                   'tonalidad' vacía = la ORIGINAL de la canción (_pieb_tonalidad), no la habitual de una iglesia; las
+ *                   entradas antiguas no traen la clave
  *  _pieb_youtube    array( array('url' => '...', 'label' => 'Versión coral'), ... )
  *  _pieb_audios     array( array('id' => attachment_id, 'nombre' => 'Ensayo voces', 'descripcion' => '...'), ... )
+ *                   Cada audio es de la iglesia que lo subió ('iglesia'); con 'universal' => 1 (solo lo pone el administrador
+ *                   central) lo ven todas (ver pieb_can_audio_visible)
  *  _pieb_editables  array( array('id' => attachment_id, 'descripcion' => 'Arreglo coro'), ... )  (MuseScore, MusicXML…)
  *  Cada elemento de partituras, audios, editables y youtube puede llevar además 'autor' (ID de usuario que lo añadió) e
  *  'iglesia' (ID de la iglesia desde la que se añadió). Si faltan, se completan al leer con quien subió la canción y la
@@ -116,27 +123,133 @@ function pieb_can_tono_clave($tono) {
     return function_exists('mb_strtolower') ? mb_strtolower($tono, 'UTF-8') : strtolower($tono);
 }
 
-/** Tonalidad efectiva de una partitura: la suya o, si no tiene, la habitual de la canción. */
+/**
+ * Tonalidad efectiva de una partitura: la suya o, si no tiene, la que se pasa como $tono_cancion. Para una partitura
+ * ese segundo valor es siempre la ORIGINAL de la canción (_pieb_tonalidad); para un item de culto, la habitual de la iglesia.
+ */
 function pieb_can_tono_efectivo($partitura, $tono_cancion) {
     $propia = isset($partitura['tonalidad']) ? trim((string) $partitura['tonalidad']) : '';
     return $propia !== '' ? $propia : trim((string) $tono_cancion);
 }
 
+// ---------------------------------------------------------------- datos de la canción por iglesia (fase 4a)
+
 /**
- * Tonalidades distintas (efectivas) de las partituras de una canción, sin vacías: primero la habitual si alguna
- * partitura está en ella, luego las demás por orden de aparición. Cada una con el texto de su primera aparición.
+ * Datos de la canción propios de una iglesia (0 = la activa): array('tonalidad' => string, 'principal' => int,
+ * 'notas' => string). Valores por defecto: '', 0 y ''. Las notas de la iglesia por defecto no se leen de aquí (ver pieb_can_notas).
  */
-function pieb_can_tonalidades($post_id) {
-    $habitual = trim((string) get_post_meta($post_id, '_pieb_tonalidad', true));
+function pieb_can_cancion_iglesia($post_id, $iglesia_id = 0) {
+    $iglesia_id = $iglesia_id ? (int) $iglesia_id : (int) pieb_can_iglesia_activa();
+    $m = get_post_meta($post_id, '_pieb_ig_' . $iglesia_id, true);
+    $m = is_array($m) ? $m : array();
+    return array(
+        'tonalidad' => isset($m['tonalidad']) ? (string) $m['tonalidad'] : '',
+        'principal' => isset($m['principal']) ? (int) $m['principal'] : 0,
+        'notas'     => isset($m['notas']) ? (string) $m['notas'] : '',
+    );
+}
+
+/**
+ * Guarda datos de la canción de una iglesia (0 = la activa): fusiona $cambios (claves tonalidad, principal, notas) con lo
+ * que hubiera; si todo queda vacío, borra la meta.
+ */
+function pieb_can_cancion_iglesia_guardar($post_id, $iglesia_id, $cambios) {
+    $iglesia_id = $iglesia_id ? (int) $iglesia_id : (int) pieb_can_iglesia_activa();
+    $datos = pieb_can_cancion_iglesia($post_id, $iglesia_id);
+    foreach (array('tonalidad', 'principal', 'notas') as $clave) {
+        if (array_key_exists($clave, $cambios)) {
+            $datos[$clave] = $clave === 'principal' ? (int) $cambios[$clave] : (string) $cambios[$clave];
+        }
+    }
+    if ($datos['tonalidad'] === '' && !$datos['principal'] && $datos['notas'] === '') {
+        delete_post_meta($post_id, '_pieb_ig_' . $iglesia_id);
+    } else {
+        update_post_meta($post_id, '_pieb_ig_' . $iglesia_id, $datos);
+    }
+}
+
+/**
+ * Notas de la canción para una iglesia (0 = la activa). La iglesia por defecto sigue usando la meta de siempre,
+ * _pieb_notas (sin migración; con una sola iglesia nada cambia); las demás, 'notas' de _pieb_ig_{id}.
+ */
+function pieb_can_notas($post_id, $iglesia_id = 0) {
+    $iglesia_id = $iglesia_id ? (int) $iglesia_id : (int) pieb_can_iglesia_activa();
+    if ($iglesia_id === (int) pieb_can_iglesia_defecto()) {
+        return (string) get_post_meta($post_id, '_pieb_notas', true);
+    }
+    return pieb_can_cancion_iglesia($post_id, $iglesia_id)['notas'];
+}
+
+/** Guarda las notas de la canción de una iglesia (0 = la activa), ya saneadas aquí; ver pieb_can_notas. */
+function pieb_can_notas_guardar($post_id, $iglesia_id, $texto) {
+    $iglesia_id = $iglesia_id ? (int) $iglesia_id : (int) pieb_can_iglesia_activa();
+    $texto = sanitize_textarea_field((string) $texto);
+    if ($iglesia_id === (int) pieb_can_iglesia_defecto()) {
+        update_post_meta($post_id, '_pieb_notas', $texto);
+        return;
+    }
+    pieb_can_cancion_iglesia_guardar($post_id, $iglesia_id, array('notas' => $texto));
+}
+
+/**
+ * Tonalidad habitual de la canción en una iglesia (0 = la activa): la de _pieb_ig_{id} si no está vacía y coincide con alguna
+ * de las tonalidades en que hay partitura; si no, la ORIGINAL (_pieb_tonalidad, tal cual está guardada).
+ */
+function pieb_can_tono_habitual($post_id, $iglesia_id = 0, $partituras = null) {
+    $original = (string) get_post_meta($post_id, '_pieb_tonalidad', true);
+    $propia = trim(pieb_can_cancion_iglesia($post_id, $iglesia_id)['tonalidad']);
+    if ($propia === '') {
+        return $original;
+    }
+    $k = pieb_can_tono_clave($propia);
+    foreach ($partituras === null ? pieb_can_get_partituras($post_id) : $partituras as $p) {
+        $t = pieb_can_tono_efectivo($p, $original);
+        if (pieb_can_tono_clave($t) === $k) {
+            return $t;
+        }
+    }
+    return $original;
+}
+
+/**
+ * Partituras de la canción para la iglesia activa: con la partitura principal de esa iglesia (si es una que la canción aún
+ * tiene) la primera y el resto en su orden; si no, el orden guardado. El guardado de la canción usa pieb_can_get_partituras,
+ * no esta función, para no alterar el orden que fijó quien creó la canción.
+ */
+function pieb_can_partituras_iglesia($post_id, $iglesia_id = 0, $lista = null) {
+    $lista = $lista === null ? pieb_can_get_partituras($post_id) : $lista;
+    $principal = pieb_can_cancion_iglesia($post_id, $iglesia_id)['principal'];
+    if ($principal) {
+        foreach ($lista as $i => $p) {
+            if ((int) $p['id'] === $principal) {
+                if ($i > 0) {
+                    array_splice($lista, $i, 1);
+                    array_unshift($lista, $p);
+                }
+                break;
+            }
+        }
+    }
+    return $lista;
+}
+
+/**
+ * Tonalidades distintas (efectivas, con la original como base de las partituras sin tonalidad) de las partituras de una
+ * canción, sin vacías: primero la habitual de la iglesia activa (si hay partitura en ella), luego las demás por orden de
+ * aparición. Cada una con el texto de su primera aparición.
+ */
+function pieb_can_tonalidades($post_id, $iglesia_id = 0, $partituras = null) {
+    $original = trim((string) get_post_meta($post_id, '_pieb_tonalidad', true));
+    $partituras = $partituras === null ? pieb_can_get_partituras($post_id) : $partituras;
     $vistas = array();
-    foreach (pieb_can_get_partituras($post_id) as $p) {
-        $t = pieb_can_tono_efectivo($p, $habitual);
+    foreach ($partituras as $p) {
+        $t = pieb_can_tono_efectivo($p, $original);
         $k = pieb_can_tono_clave($t);
         if ($k !== '' && !isset($vistas[$k])) {
             $vistas[$k] = $t;
         }
     }
-    $hk = pieb_can_tono_clave($habitual);
+    $hk = pieb_can_tono_clave(pieb_can_tono_habitual($post_id, $iglesia_id, $partituras));
     $salida = array();
     if ($hk !== '' && isset($vistas[$hk])) {
         $salida[] = $vistas[$hk];
@@ -148,6 +261,32 @@ function pieb_can_tonalidades($post_id) {
 function pieb_can_get_audios($post_id) {
     $items = get_post_meta($post_id, '_pieb_audios', true);
     return pieb_can_con_origen(is_array($items) ? array_values($items) : array(), $post_id);
+}
+
+/**
+ * ¿Ve el usuario (0 = el actual) este audio? Sin protección activa (una sola iglesia), siempre. Con ella, si el audio es
+ * universal o es de la iglesia activa del usuario. ÚNICO sitio que decide la visibilidad de un audio por iglesia.
+ */
+function pieb_can_audio_visible($audio, $user_id = 0, $activa = 0) {
+    if (!pieb_can_proteccion_activa()) {
+        return true;
+    }
+    if (!empty($audio['universal'])) {
+        return true;
+    }
+    $iglesia = !empty($audio['iglesia']) ? (int) $audio['iglesia'] : (int) pieb_can_iglesia_defecto();
+    return $iglesia === ($activa ? (int) $activa : (int) pieb_can_iglesia_activa($user_id));
+}
+
+/** Audios de la canción que ve el usuario actual (ver pieb_can_audio_visible). */
+function pieb_can_get_audios_visibles($post_id, $activa = 0) {
+    $salida = array();
+    foreach (pieb_can_get_audios($post_id) as $a) {
+        if (pieb_can_audio_visible($a, 0, $activa)) {
+            $salida[] = $a;
+        }
+    }
+    return $salida;
 }
 
 function pieb_can_get_editables($post_id) {
@@ -263,6 +402,29 @@ function pieb_can_puede_elemento($elemento, $post) {
     return $autor === get_current_user_id();
 }
 
+/**
+ * ¿Puede el usuario (0 = el actual) cambiar o quitar este audio? Un audio universal, solo el central. Uno de iglesia, su autor
+ * (el de la canción si falta), quien administra la iglesia del audio o el central. Sin protección activa, siempre.
+ */
+function pieb_can_puede_audio($audio, $post, $user_id = 0) {
+    if (!pieb_can_proteccion_activa()) {
+        return true;
+    }
+    $user_id = $user_id ? (int) $user_id : get_current_user_id();
+    if (pieb_can_es_central($user_id)) {
+        return true;
+    }
+    if (!empty($audio['universal'])) {
+        return false;
+    }
+    $autor = !empty($audio['autor']) ? (int) $audio['autor'] : (int) $post->post_author;
+    if ($autor === $user_id) {
+        return true;
+    }
+    $iglesia = !empty($audio['iglesia']) ? (int) $audio['iglesia'] : (int) pieb_can_iglesia_defecto();
+    return pieb_can_es_admin_iglesia($iglesia, $user_id);
+}
+
 /** ¿Puede el usuario cambiar el valor de un campo (titulo, numero, autor, tonalidad, tempo)? Uno vacío lo rellena cualquiera. */
 function pieb_can_puede_campo($campo, $post) {
     if (!pieb_can_proteccion_activa() || pieb_can_es_central() || pieb_can_es_creador($post)) {
@@ -332,11 +494,17 @@ function pieb_can_valores_campos($post, WP_REST_Request $request) {
  * $actuales: lo guardado; $propuestos: lo que llega ya limpio (puede traer elementos nuevos); $clave: función que da la
  * identidad de un elemento (id del adjunto o URL). Un elemento ajeno se conserva tal cual esté o no en lo recibido y
  * venga como venga. $orden_libre = false: los que ya existían mantienen su orden y los nuevos van al final.
- * Sin la protección activa devuelve $propuestos sin tocar.
+ * Sin la protección activa devuelve $propuestos sin tocar. $puede (opcional): función que dice si quien guarda puede cambiar
+ * un elemento existente; por defecto pieb_can_puede_elemento. Para los audios, ver pieb_can_puede_cambiar_audio.
  */
-function pieb_can_fusionar_elementos($actuales, $propuestos, $clave, $post, $orden_libre = true) {
+function pieb_can_fusionar_elementos($actuales, $propuestos, $clave, $post, $orden_libre = true, $puede = null) {
     if (!pieb_can_proteccion_activa()) {
         return $propuestos;
+    }
+    if ($puede === null) {
+        $puede = function ($e) use ($post) {
+            return pieb_can_puede_elemento($e, $post);
+        };
     }
     $existentes = array();
     foreach ($actuales as $a) {
@@ -354,14 +522,14 @@ function pieb_can_fusionar_elementos($actuales, $propuestos, $clave, $post, $ord
             $resultado[] = $p; // nuevo
         } elseif (!isset($vistos[$k])) {
             $vistos[$k] = true;
-            $resultado[] = pieb_can_puede_elemento($existentes[$k], $post) ? $p : $existentes[$k];
+            $resultado[] = $puede($existentes[$k]) ? $p : $existentes[$k];
         }
     }
 
     // Los ajenos que no venían en lo recibido se conservan, en su posición de origen en la medida de lo posible.
     foreach ($actuales as $i => $a) {
         $k = $clave($a);
-        if (!isset($vistos[$k]) && $existentes[$k] === $a && !pieb_can_puede_elemento($a, $post)) {
+        if (!isset($vistos[$k]) && $existentes[$k] === $a && !$puede($a)) {
             $vistos[$k] = true;
             array_splice($resultado, min($i, count($resultado)), 0, array($a));
         }
@@ -395,6 +563,14 @@ function pieb_can_fusionar_elementos($actuales, $propuestos, $clave, $post, $ord
 function pieb_can_nombre_usuario($user_id) {
     $u = $user_id ? get_userdata((int) $user_id) : false;
     return $u ? (string) $u->display_name : '';
+}
+
+/**
+ * ¿Puede quien guarda cambiar o quitar este audio al guardar la canción? Solo si lo ve (los de otras iglesias se tratan como
+ * ajenos y se conservan tal cual) y puede cambiarlo (pieb_can_puede_audio).
+ */
+function pieb_can_puede_cambiar_audio($audio, $post) {
+    return pieb_can_audio_visible($audio) && pieb_can_puede_audio($audio, $post);
 }
 
 /** Añade 'mio' y 'autorNombre' a un elemento que se devuelve por la API. */
@@ -476,9 +652,12 @@ function pieb_can_guardar_letra($post_id, $letra, $letra_html) {
     update_post_meta($post_id, '_pieb_letra', $plano);
 }
 
-/** Datos ligeros para el listado y la búsqueda. */
-function pieb_can_resumen($post) {
-    $partituras = pieb_can_get_partituras($post->ID);
+/** Datos ligeros para el listado y la búsqueda. $activa: iglesia activa ya calculada (0 = se calcula aquí). */
+function pieb_can_resumen($post, $activa = 0) {
+    // La partitura principal de la iglesia activa va la primera; el resto, en su orden.
+    $activa = $activa ? (int) $activa : (int) pieb_can_iglesia_activa();
+    $todas = pieb_can_get_partituras($post->ID);
+    $partituras = pieb_can_partituras_iglesia($post->ID, $activa, $todas);
     $thumb = '';
     if ($partituras) {
         $thumb = pieb_can_url_miniatura($partituras[0]['id'], 'medium');
@@ -489,13 +668,15 @@ function pieb_can_resumen($post) {
         'titulo'      => html_entity_decode(get_the_title($post), ENT_QUOTES, 'UTF-8'),
         'numero'      => (string) get_post_meta($post->ID, '_pieb_numero', true),
         'autor'       => (string) get_post_meta($post->ID, '_pieb_autor', true),
-        'tonalidad'   => (string) get_post_meta($post->ID, '_pieb_tonalidad', true),
+        // La habitual de la iglesia activa (con una sola iglesia, igual que la original) y la original de la canción.
+        'tonalidad'   => pieb_can_tono_habitual($post->ID, $activa, $todas),
+        'tonalidadOriginal' => (string) get_post_meta($post->ID, '_pieb_tonalidad', true),
         'tempo'       => (string) get_post_meta($post->ID, '_pieb_tempo', true),
         'etiquetas'   => pieb_can_etiquetas($post->ID),
         'letra'       => (string) get_post_meta($post->ID, '_pieb_letra', true),
         'partituras'  => count($partituras),
         'youtube'     => count(pieb_can_get_youtube($post->ID)),
-        'audios'      => count(pieb_can_get_audios($post->ID)),
+        'audios'      => count(pieb_can_get_audios_visibles($post->ID, $activa)),
         'editables'   => count(pieb_can_get_editables($post->ID)),
         'miniatura'   => $thumb ? $thumb : '',
         // Versiones (partituras) de la canción, solo si hay más de una: el setlist deja elegir cuál usar.
@@ -503,7 +684,7 @@ function pieb_can_resumen($post) {
             return array('id' => (int) $p['id'], 'label' => (string) $p['label'], 'tonalidad' => (string) $p['tonalidad']);
         }, $partituras) : array(),
         // Tonalidades en las que hay partitura (ver pieb_can_tonalidades): el setlist deja elegir una.
-        'tonalidades' => pieb_can_tonalidades($post->ID),
+        'tonalidades' => pieb_can_tonalidades($post->ID, $activa, $todas),
         'creada'      => get_post_time('c', true, $post),
         'modificada'  => get_post_modified_time('c', true, $post),
     );
@@ -513,11 +694,17 @@ function pieb_can_resumen($post) {
 function pieb_can_detalle($post) {
     $datos = pieb_can_resumen($post);
 
-    $datos['notas'] = (string) get_post_meta($post->ID, '_pieb_notas', true);
+    $datos['notas'] = pieb_can_notas($post->ID);
     $datos['letraHtml'] = (string) get_post_meta($post->ID, '_pieb_letra_html', true);
 
+    // «orden» es la posición de cada partitura en el orden guardado (el que fijó quien creó la canción): la lista se entrega
+    // con la principal de la iglesia la primera, y el formulario necesita el orden real para no alterarlo al guardar.
+    $orden_guardado = array();
+    foreach (pieb_can_get_partituras($post->ID) as $i => $p) {
+        $orden_guardado[(int) $p['id']] = $i;
+    }
     $datos['partituras'] = array();
-    foreach (pieb_can_get_partituras($post->ID) as $p) {
+    foreach (pieb_can_partituras_iglesia($post->ID) as $p) {
         $file = get_attached_file($p['id']);
         if (!$file) {
             continue;
@@ -533,18 +720,23 @@ function pieb_can_detalle($post) {
             'miniatura' => pieb_can_url_miniatura($p['id'], 'large'),
             'autor'     => (int) $p['autor'],
             'iglesia'   => (int) $p['iglesia'],
+            'orden'     => isset($orden_guardado[(int) $p['id']]) ? $orden_guardado[(int) $p['id']] : 0,
         ), $p, $post);
     }
 
     $datos['audios'] = array();
-    foreach (pieb_can_get_audios($post->ID) as $a) {
+    $nombres_iglesia = array();
+    foreach (pieb_can_get_audios_visibles($post->ID) as $a) {
         $file = get_attached_file($a['id']);
         if (!$file) {
             continue;
         }
         $url = pieb_can_url_archivo($a['id']);
         $meta = wp_get_attachment_metadata($a['id']);
-        $datos['audios'][] = pieb_can_marcar_elemento(array(
+        if (!isset($nombres_iglesia[(int) $a['iglesia']])) {
+            $nombres_iglesia[(int) $a['iglesia']] = pieb_can_iglesia_nombre((int) $a['iglesia']);
+        }
+        $audio = pieb_can_marcar_elemento(array(
             'id'          => (int) $a['id'],
             'nombre'      => (string) $a['nombre'],
             'descripcion' => (string) $a['descripcion'],
@@ -553,7 +745,12 @@ function pieb_can_detalle($post) {
             'duracion'    => is_array($meta) && !empty($meta['length_formatted']) ? $meta['length_formatted'] : '',
             'autor'       => (int) $a['autor'],
             'iglesia'     => (int) $a['iglesia'],
+            'universal'   => !empty($a['universal']),
+            'iglesiaNombre' => $nombres_iglesia[(int) $a['iglesia']],
         ), $a, $post);
+        // Quien puede cambiar un audio lo decide pieb_can_puede_audio (no la regla general de los elementos).
+        $audio['mio'] = pieb_can_puede_audio($a, $post);
+        $datos['audios'][] = $audio;
     }
 
     $datos['editables'] = array();
@@ -589,6 +786,14 @@ function pieb_can_detalle($post) {
     $datos['subidaPor']   = $author ? $author->display_name : '';
     $datos['protegida']   = pieb_can_proteccion_activa();
     $datos['permisos']    = pieb_can_permisos_cancion($post);
+    // Lo que cada iglesia elige de esta canción: la tonalidad cruda ('' = la original) y la partitura principal.
+    $propios = pieb_can_cancion_iglesia($post->ID);
+    $datos['iglesiaDatos'] = array(
+        'tonalidad'  => $propios['tonalidad'],
+        'principal'  => $propios['principal'],
+        'puedeEditar' => pieb_can_es_admin_iglesia(),
+    );
+    $datos['puedeUniversal'] = pieb_can_proteccion_activa() && pieb_can_es_central();
     $datos['puedeBorrar'] = $datos['permisos']['borrar'];
     $datos['enPapelera']  = $post->post_status === 'trash';
     if ($datos['enPapelera']) {
