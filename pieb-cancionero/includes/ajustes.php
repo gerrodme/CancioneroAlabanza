@@ -486,12 +486,14 @@ function pieb_can_miembros($iglesia_id = 0) {
 
 /**
  * Lo que devuelve GET /ajustes (y, ampliado, el guardado). El equipo (emails, administradores, responsablesEscaleta,
- * dominio, miembros) es el de la iglesia ACTIVA; lo demás es común a toda la instalación. Añade `central` e `iglesia`.
+ * dominio, miembros), el correo de bienvenida (bienvenidaAuto, bienvenidaTexto) y la plantilla de la escaleta son los de la
+ * iglesia ACTIVA; lo demás es común a toda la instalación. Añade `central` e `iglesia`.
  */
 function pieb_can_ajustes_datos() {
     $ajustes = pieb_can_ajustes();
     $iglesia = (int) pieb_can_iglesia_activa();
     $equipo = pieb_can_equipo($iglesia);
+    $bienvenida = pieb_can_bienvenida_ajustes($iglesia);
     return array(
         'nombre'         => $ajustes['nombre'],
         'subtitulo'      => $ajustes['subtitulo'],
@@ -504,14 +506,15 @@ function pieb_can_ajustes_datos() {
         'dominio'        => $equipo['dominio'],
         'emails'         => $equipo['emails'],
         'miembros'       => pieb_can_miembros($iglesia),
-        'bienvenidaAuto'  => (bool) $ajustes['bienvenida_auto'],
-        'bienvenidaTexto' => (string) $ajustes['bienvenida_texto'],
+        // Correo de bienvenida: el de la iglesia activa.
+        'bienvenidaAuto'  => (bool) $bienvenida['auto'],
+        'bienvenidaTexto' => (string) $bienvenida['texto'],
         'pagina'         => (string) $ajustes['pagina'],
         'avisoBorrado'   => (bool) $ajustes['aviso_borrado'],
         // Correo de administración de la web: también recibe el aviso de borrado (la interfaz lo muestra en la ayuda).
         'correoAdmin'    => (string) get_option('admin_email'),
         'origen'         => untrailingslashit(home_url()),
-        // Plantilla de la escaleta del culto (la guardada o la genérica; ver includes/escaleta.php).
+        // Plantilla de la escaleta del culto de la iglesia activa (la guardada o la genérica; ver includes/escaleta.php).
         'escaleta'       => pieb_can_escaleta_plantilla(),
         'central'        => pieb_can_es_central(),
         'iglesia'        => array('id' => $iglesia, 'nombre' => pieb_can_iglesia_nombre($iglesia)),
@@ -523,17 +526,35 @@ function pieb_can_rest_ajustes_ver() {
 }
 
 /**
- * Guarda los ajustes. El equipo (emails, administradores, responsablesEscaleta, dominio) se guarda en la iglesia activa
- * (quien la gestione); todo lo demás es de la instalación y solo lo cambia el administrador central: si lo envía otra
- * persona, se ignora en silencio.
+ * Guarda los ajustes. Lo de la iglesia activa lo guarda quien la gestione: el equipo (emails, administradores,
+ * responsablesEscaleta, dominio), el correo de bienvenida (bienvenidaAuto, bienvenidaTexto) y la plantilla de la escaleta
+ * (escaleta). Todo lo demás es de la instalación y solo lo cambia el administrador central: si lo envía otra persona, se
+ * ignora en silencio.
  */
 function pieb_can_rest_ajustes_guardar(WP_REST_Request $request) {
     $iglesia = (int) pieb_can_iglesia_activa();
     $central = pieb_can_es_central();
     $anterior_equipo = pieb_can_equipo($iglesia);
     $ajustes = pieb_can_ajustes();
-    $con_escaleta = false;
+
+    // Plantilla de la escaleta de la iglesia activa (solo si llega; null = volver a la genérica). Se valida aquí, antes de
+    // guardar nada, y se guarda más abajo (ver includes/escaleta.php).
+    $con_escaleta = $request->has_param('escaleta');
     $escaleta = null;
+    if ($con_escaleta) {
+        $escaleta = pieb_can_escaleta_limpiar_plantilla($request->get_param('escaleta'), pieb_can_escaleta_guardada());
+        if (is_wp_error($escaleta)) {
+            return $escaleta;
+        }
+    }
+    // Correo de bienvenida de la iglesia activa (solo lo que llega).
+    $bienvenida = array();
+    if ($request->has_param('bienvenidaAuto')) {
+        $bienvenida['auto'] = rest_sanitize_boolean($request->get_param('bienvenidaAuto'));
+    }
+    if ($request->has_param('bienvenidaTexto')) {
+        $bienvenida['texto'] = mb_substr(trim(sanitize_textarea_field((string) $request->get_param('bienvenidaTexto'))), 0, 1000);
+    }
 
     if ($central) {
         if ($request->has_param('nombre')) {
@@ -557,21 +578,6 @@ function pieb_can_rest_ajustes_guardar(WP_REST_Request $request) {
             }
             $ajustes['google_client_id'] = $client;
         }
-        // Plantilla de la escaleta (solo si llega; null = volver a la genérica). Se valida aquí, antes de guardar nada, y se
-        // guarda más abajo junto con el resto (ver includes/escaleta.php).
-        $con_escaleta = $request->has_param('escaleta');
-        if ($con_escaleta) {
-            $escaleta = pieb_can_escaleta_limpiar_plantilla($request->get_param('escaleta'), pieb_can_escaleta_guardada());
-            if (is_wp_error($escaleta)) {
-                return $escaleta;
-            }
-        }
-        if ($request->has_param('bienvenidaAuto')) {
-            $ajustes['bienvenida_auto'] = rest_sanitize_boolean($request->get_param('bienvenidaAuto'));
-        }
-        if ($request->has_param('bienvenidaTexto')) {
-            $ajustes['bienvenida_texto'] = mb_substr(trim(sanitize_textarea_field((string) $request->get_param('bienvenidaTexto'))), 0, 1000);
-        }
         if ($request->has_param('avisoBorrado')) {
             $ajustes['aviso_borrado'] = rest_sanitize_boolean($request->get_param('avisoBorrado'));
         }
@@ -583,9 +589,15 @@ function pieb_can_rest_ajustes_guardar(WP_REST_Request $request) {
             }
         }
         pieb_can_guardar_ajustes($ajustes);
-        if ($con_escaleta) {
-            pieb_can_escaleta_guardar($escaleta);
-        }
+    }
+
+    // Lo de la iglesia activa (bienvenida y escaleta) lo guarda quien la gestiona, después de lo global (así el guardado
+    // de arriba, que escribe la opción entera, no pisa la bienvenida de la iglesia por defecto).
+    if ($bienvenida) {
+        pieb_can_bienvenida_guardar($bienvenida, $iglesia);
+    }
+    if ($con_escaleta) {
+        pieb_can_escaleta_guardar($escaleta);
     }
 
     // Equipo de la iglesia activa (pieb_can_equipo_guardar normaliza y añade administradores y responsables a «emails»).

@@ -9,9 +9,11 @@
  *    por defecto) y los valores de ese culto. La estructura se edita en el propio culto y solo le afecta a él. Viaja con
  *    el culto en GET/POST /cultos/{id}.
  *  - La BASE para un culto nuevo (GET /escaleta, para todo el equipo): la estructura de la última escaleta guardada, con
- *    los valores vacíos; si aún no hay ninguna, la plantilla de la instalación (opción «pieb_can_escaleta», sin autoload)
- *    o la genérica del plugin (pieb_can_escaleta_generica, con textos traducibles). El logo y la imagen de cabecera son de
- *    la instalación: se guardan en esa opción desde Ajustes (POST /ajustes, clave «escaleta») y valen para todos.
+ *    los valores vacíos; si aún no hay ninguna, la plantilla de la iglesia activa (iglesia por defecto: opción
+ *    «pieb_can_escaleta», sin autoload; las demás, la meta «_pieb_dato_escaleta» de la iglesia) o la genérica del plugin
+ *    (pieb_can_escaleta_generica, con textos traducibles; una iglesia sin plantilla propia usa la genérica, no la de otra).
+ *    El logo y la imagen de cabecera son de la iglesia: los guarda quien la gestiona desde Ajustes (POST /ajustes, clave
+ *    «escaleta») y valen para todos sus cultos.
  *
  * Cada escaleta lleva un número de versión («version»): la 2 trajo las secciones opcionales «Respuesta» y «Santa Cena», la
  * pregunta «¿cantado o instrumental?» del Preludio y las notas por canción. La interfaz pone al día las anteriores al abrirlas.
@@ -136,11 +138,12 @@ function pieb_can_escaleta_generica() {
 // ---------------------------------------------------------------- plantilla guardada
 
 /**
- * Plantilla guardada, en la forma en que se guarda (logo y cabecera son ids; «secciones» null = las de la genérica), o
- * null si la instalación no tiene nada guardado.
+ * Plantilla guardada de la iglesia activa, en la forma en que se guarda (logo y cabecera son ids; «secciones» null = las de
+ * la genérica), o null si esa iglesia no tiene nada guardado (la iglesia por defecto la guarda en la opción
+ * «pieb_can_escaleta»; las demás, en su meta: ver pieb_can_dato_iglesia).
  */
 function pieb_can_escaleta_guardada() {
-    $guardada = get_option('pieb_can_escaleta', null);
+    $guardada = pieb_can_dato_iglesia('escaleta', 0, null);
     if (!is_array($guardada)) {
         return null;
     }
@@ -151,13 +154,9 @@ function pieb_can_escaleta_guardada() {
     return $guardada;
 }
 
-/** Guarda la plantilla ya saneada; null borra la propia y la instalación vuelve a la genérica. No se carga en cada petición (autoload falso). */
+/** Guarda la plantilla ya saneada de la iglesia activa; null borra la propia y la iglesia vuelve a la genérica. */
 function pieb_can_escaleta_guardar($plantilla) {
-    if ($plantilla === null) {
-        delete_option('pieb_can_escaleta');
-    } else {
-        update_option('pieb_can_escaleta', $plantilla, false);
-    }
+    pieb_can_dato_iglesia_guardar('escaleta', 0, $plantilla);
 }
 
 /** {id, url} de una imagen de la biblioteca de medios, o null si no hay (o se borró de la biblioteca). */
@@ -220,7 +219,7 @@ function pieb_can_escaleta_ultima() {
 /**
  * Base para la escaleta de un culto nuevo: la estructura de la última escaleta guardada (secciones, campos y textos por
  * defecto, «opcional» y «modo», incluidas las secciones que se añadieron allí, sin «oculta» y sin valores) con su fila de títulos; si aún no
- * hay ninguna, la plantilla. El logo y la cabecera son siempre los de la instalación. «desde» dice de qué culto sale.
+ * hay ninguna, la plantilla. El logo y la cabecera son siempre los de la iglesia activa. «desde» dice de qué culto sale.
  */
 function pieb_can_rest_escaleta_ver() {
     $plantilla = pieb_can_escaleta_plantilla();

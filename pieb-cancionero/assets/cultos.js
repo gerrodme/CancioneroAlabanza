@@ -1437,6 +1437,13 @@
   }
 
   function tituloMay(t) { return String(t || '').toLocaleUpperCase(LOCALE); }
+  /** Nombre y línea de los documentos de un culto: con varias iglesias, la iglesia activa (sin la línea de la web);
+   *  con una sola, el nombre del cancionero y su línea, como siempre. */
+  function marcaDocumento() {
+    var c = P.cfg || {};
+    if (c.iglesias && c.iglesias.length > 1 && c.iglesia && c.iglesia.nombre) { return { nombre: c.iglesia.nombre, sitio: '' }; }
+    return { nombre: c.nombre || 'Cancionero', sitio: c.sitio || '' };
+  }
 
   /** Canciones del culto, en orden y sin repetir: [{id, titulo, numero}]. Se ignoran las eliminadas. */
   function cancionesDeCulto(culto) {
@@ -1682,9 +1689,11 @@
       if (pl.cabecera && pl.cabecera.url) {
         cab = h('img', { class: 'pcan-ec-hoja-cab-img', src: pl.cabecera.url, alt: '' });
       } else {
+        var marca = marcaDocumento();
         cab = h('div', { class: 'pcan-ec-hoja-marca' },
-          h('span', { class: 'pcan-ec-hoja-nombre', text: tituloMay(P.cfg.nombre || 'Cancionero') }),
-          P.cfg.sitio ? h('span', { class: 'pcan-ec-hoja-sitio-t', text: tituloMay(P.cfg.sitio) }) : null);
+          // Un nombre largo (el de una iglesia) encoge la letra para caber en la caja, como hace el PDF.
+          h('span', { class: 'pcan-ec-hoja-nombre', text: tituloMay(marca.nombre), style: marca.nombre.length > 11 ? 'font-size: ' + Math.max(1.1, 2.52 * 11 / marca.nombre.length).toFixed(2) + 'cqi; letter-spacing: .12cqi !important' : null }),
+          marca.sitio ? h('span', { class: 'pcan-ec-hoja-sitio-t', text: tituloMay(marca.sitio) }) : null);
       }
       var logo = pl.logo && pl.logo.url ? pl.logo.url : (BASE_ASSETS ? BASE_ASSETS + 'icono.png' : '');
       var tabla = h('div', { class: 'pcan-ec-hoja-tabla' },
@@ -2544,8 +2553,9 @@
         pag.drawImage(imagenes.cabecera, { x: M, y: arriba - d.h, width: d.w, height: d.h });
       } else {
         var cx = M + 90;
-        var nombre = latin1(tituloMay(P.cfg.nombre || 'Cancionero')).trim();
-        var sitio = latin1(tituloMay(P.cfg.sitio || '')).trim();
+        var marca = marcaDocumento();
+        var nombre = latin1(tituloMay(marca.nombre)).trim();
+        var sitio = latin1(tituloMay(marca.sitio)).trim();
         pag.drawRectangle({ x: M, y: arriba - 55, width: 180, height: 55, borderColor: tinta, borderWidth: GROSOR });
         var s1 = 15;
         while (s1 > 8 && anchoEspaciado(normal, nombre, s1, 2) > 160) { s1 -= 0.5; }

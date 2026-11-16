@@ -3,7 +3,9 @@
  * Fondos de las letras: imágenes que sube un administrador para las diapositivas de letras (PowerPoint y PDF).
  *
  * No son partituras ni tienen derechos de autor: van a la biblioteca de medios normal (como el logo de la escaleta), nunca a
- * la carpeta privada del cancionero. Se guardan como una lista de IDs de adjunto en la opción «pieb_can_fondos» (sin autoload).
+ * la carpeta privada del cancionero. Cada iglesia tiene los suyos: una lista de IDs de adjunto que, en la iglesia por
+ * defecto, está en la opción «pieb_can_fondos» (sin autoload) y, en las demás, en la meta «_pieb_dato_fondos» de la
+ * iglesia (ver pieb_can_dato_iglesia). Todo trabaja con la iglesia activa; el límite de fondos es por iglesia.
  * No llevan las marcas _pieb_* de los archivos del cancionero, así que no salen como «archivos sin usar» (/huerfanos) ni se
  * mueven a la carpeta privada. Las copias de seguridad no las incluyen (igual que las imágenes de la escaleta).
  *
@@ -43,10 +45,15 @@ add_action('rest_api_init', function () {
     ));
 });
 
-/** IDs guardados (enteros, sin repetir). */
+/** IDs guardados de la iglesia activa (enteros, sin repetir). */
 function pieb_can_fondos_ids() {
-    $ids = get_option('pieb_can_fondos', array());
+    $ids = pieb_can_dato_iglesia('fondos', 0, array());
     return is_array($ids) ? array_values(array_unique(array_filter(array_map('intval', $ids)))) : array();
+}
+
+/** Guarda la lista de IDs de fondos de la iglesia activa. */
+function pieb_can_fondos_guardar($ids) {
+    pieb_can_dato_iglesia_guardar('fondos', 0, array_values($ids));
 }
 
 /** {id, url, miniatura} de un fondo, o null si el adjunto ya no existe. */
@@ -146,7 +153,7 @@ function pieb_can_rest_fondos_subir(WP_REST_Request $request) {
     }
 
     $ids[] = (int) $id;
-    update_option('pieb_can_fondos', $ids, false);
+    pieb_can_fondos_guardar($ids);
     return rest_ensure_response(pieb_can_fondo_item($id));
 }
 
@@ -157,7 +164,7 @@ function pieb_can_rest_fondos_borrar(WP_REST_Request $request) {
     if (!in_array($id, $ids, true)) {
         return new WP_Error('pieb_fondo', __('Esa imagen de fondo no existe.', 'pieb-cancionero'), array('status' => 404));
     }
-    update_option('pieb_can_fondos', array_values(array_diff($ids, array($id))), false);
+    pieb_can_fondos_guardar(array_diff($ids, array($id)));
     wp_delete_attachment($id, true);
     return rest_ensure_response(array('fondos' => pieb_can_fondos_lista()));
 }

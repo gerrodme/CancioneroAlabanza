@@ -2,6 +2,15 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.33.0 · 2026-11-16
+
+Ajustes por iglesia (fase 5b de `docs/plan-multi-iglesia.md`). Con más de una iglesia, cada una tiene su escaleta (logo,
+imagen de cabecera y plantilla), sus fondos de las letras y su correo de bienvenida (envío automático y texto), que
+gestiona su propia administración; lo que ya existía queda como de la primera iglesia y las demás empiezan con lo genérico.
+El correo de bienvenida dice a qué iglesia se ha añadido a la persona, y la escaleta impresa lleva el nombre de la iglesia
+en lugar del nombre del cancionero. El aviso de borrado de canciones va a los administradores centrales. Con una sola
+iglesia todo sigue igual.
+
 ## 1.32.0 · 2026-11-16
 
 Equipo por iglesia (fase 5a de `docs/plan-multi-iglesia.md`). Con más de una iglesia, cada una tiene su propia lista de

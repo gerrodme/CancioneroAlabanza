@@ -44,6 +44,20 @@ function pieb_can_registrar_bienvenida($email) {
     update_option('pieb_can_bienvenidas', $registro, false);
 }
 
+/**
+ * Ajustes de la bienvenida de una iglesia (0 = la activa): array('auto' => bool, 'texto' => string). Cada iglesia tiene
+ * los suyos (ver pieb_can_dato_iglesia); la iglesia por defecto los guarda en la opción pieb_can_ajustes, como siempre.
+ */
+function pieb_can_bienvenida_ajustes($iglesia_id = 0) {
+    return pieb_can_dato_iglesia('bienvenida', $iglesia_id);
+}
+
+/** Guarda los ajustes de la bienvenida de una iglesia (0 = la activa): $cambios puede llevar solo 'auto' y/o 'texto'. */
+function pieb_can_bienvenida_guardar($cambios, $iglesia_id = 0) {
+    $actual = pieb_can_bienvenida_ajustes($iglesia_id);
+    pieb_can_dato_iglesia_guardar('bienvenida', $iglesia_id, array_merge($actual, array_intersect_key((array) $cambios, $actual)));
+}
+
 /** ¿Ha entrado alguna vez esta cuenta (con Google o con enlace)? */
 function pieb_can_usuario_ha_entrado($user) {
     return (bool) ($user && (get_user_meta($user->ID, 'pieb_can_google_sub', true) || get_user_meta($user->ID, 'pieb_can_ultimo_acceso', true)));
@@ -93,7 +107,8 @@ function pieb_can_pagina($pedida = '') {
  * acceso previo) y que no son cuentas de administración de WordPress (esas entran con contraseña).
  */
 function pieb_can_bienvenida_pendientes($anteriores, $actuales) {
-    if (!pieb_can_ajustes()['bienvenida_auto']) {
+    // La bienvenida automática es la de la iglesia activa (la que guarda el equipo).
+    if (!pieb_can_bienvenida_ajustes()['auto']) {
         return array();
     }
     $registro = pieb_can_bienvenidas();
@@ -144,15 +159,28 @@ function pieb_can_bienvenida_enlace($email, $pagina) {
  * Con $enlace (ver pieb_can_bienvenida_enlace) el botón deja dentro del cancionero; sin él, abre la página para pedir
  * el enlace de acceso.
  *
+ * $iglesia_id (0 = la activa): de ella es el texto del administrador y, con la protección activa (varias iglesias), el
+ * correo dice a qué iglesia se le ha añadido.
+ *
  * El aspecto (cabecera con el logo, tarjeta, botón) es el común de includes/correo.php.
  */
-function pieb_can_bienvenida_componer($email, $pagina, $texto_admin = null, $enlace = '') {
+function pieb_can_bienvenida_componer($email, $pagina, $texto_admin = null, $enlace = '', $iglesia_id = 0) {
     $ajustes = pieb_can_ajustes();
+    $iglesia_id = $iglesia_id ? (int) $iglesia_id : (int) pieb_can_iglesia_activa();
     $nombre = $ajustes['nombre'];
     // Igual que en el enlace de acceso: el nombre del sitio sin entidades HTML.
     $sitio = trim(wp_specialchars_decode(get_bloginfo('name'), ENT_QUOTES));
-    // El texto del administrador es el guardado, salvo en la prueba, que lleva el que se está escribiendo.
-    $texto_admin = trim(str_replace(array("\r\n", "\r"), "\n", (string) ($texto_admin === null ? $ajustes['bienvenida_texto'] : $texto_admin)));
+    // El texto del administrador es el guardado en la iglesia, salvo en la prueba, que lleva el que se está escribiendo.
+    $texto_admin = trim(str_replace(array("\r\n", "\r"), "\n", (string) ($texto_admin === null ? pieb_can_bienvenida_ajustes($iglesia_id)['texto'] : $texto_admin)));
+    // Con varias iglesias, a cuál se le ha añadido (con una sola, el correo es el de siempre).
+    $frase_iglesia = '';
+    if (pieb_can_proteccion_activa()) {
+        $nombre_iglesia = pieb_can_iglesia_nombre($iglesia_id);
+        if ($nombre_iglesia !== '') {
+            /* translators: 1: nombre de la iglesia, 2: nombre del cancionero (el servicio) */
+            $frase_iglesia = sprintf(__('Te han añadido al equipo de %1$s en %2$s.', 'pieb-cancionero'), $nombre_iglesia, $nombre);
+        }
+    }
     $con_google = $ajustes['google_client_id'] !== '';
 
     /* translators: %s: nombre del cancionero */
@@ -199,6 +227,7 @@ function pieb_can_bienvenida_componer($email, $pagina, $texto_admin = null, $enl
 
     // ---- Texto plano
     $texto = $titulo . "\n\n"
+        . ($frase_iglesia !== '' ? $frase_iglesia . "\n\n" : '')
         . $parrafo . "\n\n"
         . $como . "\n"
         . '1. ' . $paso1 . "\n"
@@ -229,6 +258,9 @@ function pieb_can_bienvenida_componer($email, $pagina, $texto_admin = null, $enl
     };
 
     $filas  = pieb_can_correo_titulo($titulo);
+    if ($frase_iglesia !== '') {
+        $filas .= pieb_can_correo_parrafo(esc_html($frase_iglesia), 14);
+    }
     $filas .= pieb_can_correo_parrafo(esc_html($parrafo));
     $filas .= pieb_can_correo_subtitulo($como);
 
@@ -324,10 +356,10 @@ function pieb_can_rest_bienvenida(WP_REST_Request $request) {
         }
         // Todos los correos de la tanda se componen en una sola pasada por el idioma del sitio (recargar las traducciones
         // una vez, no una por correo). Los motivos de arriba y de abajo, en cambio, van en el idioma de quien administra.
-        $correos = pieb_can_en_idioma_del_sitio(function () use ($destinos, $pagina, $texto_admin, $enlaces) {
+        $correos = pieb_can_en_idioma_del_sitio(function () use ($destinos, $pagina, $texto_admin, $enlaces, $iglesia_activa) {
             $compuestos = array();
             foreach ($destinos as $email) {
-                $compuestos[$email] = pieb_can_bienvenida_componer($email, $pagina, $texto_admin, $enlaces[$email]['url']);
+                $compuestos[$email] = pieb_can_bienvenida_componer($email, $pagina, $texto_admin, $enlaces[$email]['url'], $iglesia_activa);
             }
             return $compuestos;
         });

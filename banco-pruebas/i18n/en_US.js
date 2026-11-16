@@ -3189,6 +3189,9 @@ window.PIEB_I18N = {
   ],
   "Puedes añadir a alguien que ya esté en otra iglesia: tendrá un selector para cambiar de una a otra.": [
    "You can add someone who is already in another church: they will get a selector to switch between them."
+  ],
+  "De %s: cada iglesia tiene los suyos.": [
+   "From %s: each church has its own."
   ]
  }
 };

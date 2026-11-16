@@ -112,7 +112,7 @@ Todas las rutas exigen sesión iniciada con la capacidad `pieb_cancionero_acceso
 | `/etiquetas`, `/preferencias`, `/huerfanos` | varios | Etiquetas **visibles** (de la iglesia activa y universales) con color como `{ nombre: color }`, preferencias del usuario (`tema`, `idioma` y `notacion`, todos opcionales; vacío = automático), archivos sin usar. |
 | `/fondos` | GET, POST | `GET` (cualquiera del equipo): `{ fondos: [{ id, url, miniatura }] }` (`url` a tamaño completo, `miniatura` en tamaño «medium»; omite los adjuntos que ya no existen). `POST` (exige `pieb_cancionero_gestionar`): multipart `archivo`, solo JPG o PNG, máx. 5 MB y 40 fondos; sube a la biblioteca de medios normal y responde `{ id, url, miniatura }`. Ver [Exportar letras](#exportar-letras). |
 | `/fondos/{id}` | DELETE | Quita el fondo de la lista y borra su adjunto (exige `pieb_cancionero_gestionar`); responde `{ fondos: [...] }`. |
-| `/ajustes` | GET, POST | Ajustes del cancionero y equipo **de la iglesia activa** (exige `pieb_can_puede_gestionar()`; lo que no es del equipo solo lo cambia el central; ver [Iglesias](#iglesias), fase 5a). Los campos de la bienvenida, en [Bienvenida al equipo](#bienvenida-al-equipo). La escaleta de la instalación son solo sus imágenes: `GET` devuelve `escaleta: { logo, cabecera }` y `POST` acepta `escaleta: { logo: {id}|null, cabecera: {id}|null }` solo si llega (lo demás de la escaleta no se toca); ver [Escaleta del culto](#escaleta-del-culto). |
+| `/ajustes` | GET, POST | Ajustes del cancionero y equipo **de la iglesia activa** (exige `pieb_can_puede_gestionar()`; lo que no es del equipo solo lo cambia el central; ver [Iglesias](#iglesias), fase 5a). Los campos de la bienvenida, en [Bienvenida al equipo](#bienvenida-al-equipo). Desde la fase 5b, `bienvenidaAuto`, `bienvenidaTexto` y `escaleta` son **de la iglesia activa** y los guarda quien la gestiona. La escaleta de la iglesia son solo sus imágenes: `GET` devuelve `escaleta: { logo, cabecera }` y `POST` acepta `escaleta: { logo: {id}|null, cabecera: {id}|null }` solo si llega (lo demás de la escaleta no se toca); ver [Escaleta del culto](#escaleta-del-culto). |
 | `/bienvenida` | POST | Envía el correo de bienvenida a una tanda de correos (exige `pieb_cancionero_gestionar`). Ver [Bienvenida al equipo](#bienvenida-al-equipo). |
 | `/accesos` | GET | Registro de accesos de cada persona del equipo, en bruto, para las estadísticas (exige `pieb_cancionero_gestionar`). Ver [Registro de accesos](#registro-de-accesos). |
 | `/google`, `/enlace`, `/correo-prueba` | POST | Acceso con Google, enlace por correo y prueba de envío. |
@@ -293,7 +293,7 @@ de una sola iglesia se comporta exactamente igual.
   - **Qué es de la iglesia y qué del central.**
     | De la iglesia (`pieb_can_puede_gestionar`; escaleta: `_escaleta`) | Del central (`pieb_can_es_central`) |
     |---|---|
-    | Equipo y dominio (`/ajustes`), `/accesos` (solo personas de la iglesia activa), `/bienvenida` (solo a correos de su equipo), `/fondos` (subir y borrar; siguen siendo comunes hasta la fase 5b), `/escaleta/imagen`, borrar un culto (autor o administración), guardar la escaleta de un culto | Resto de `/ajustes` (nombre, subtítulo, días de papelera, tema, Google, bienvenida, aviso de borrado, página, escaleta de la instalación), `/huerfanos`, copias de seguridad (`/copia…`), papelera de canciones y sus archivos, `/archivos/…`, ver una canción borrada, prueba de correo, migración |
+    | Equipo y dominio (`/ajustes`), bienvenida (`bienvenidaAuto`, `bienvenidaTexto`) y plantilla de la escaleta (`escaleta`) de `/ajustes`, `/accesos` (solo personas de la iglesia activa), `/bienvenida` (solo a correos de su equipo), `/fondos` (subir y borrar), `/escaleta/imagen`, borrar un culto (autor o administración), guardar la escaleta de un culto | Resto de `/ajustes` (nombre, subtítulo, días de papelera, tema, Google, aviso de borrado, página), `/huerfanos`, copias de seguridad (`/copia…`), papelera de canciones y sus archivos, `/archivos/…`, ver una canción borrada, prueba de correo, migración |
   - **`/ajustes`.** `GET` (quien gestiona la iglesia activa): mismo formato, pero `emails`, `administradores`,
     `responsablesEscaleta`, `dominio` y `miembros` son los de la **iglesia activa**; añade `central` (bool) e
     `iglesia: { id, nombre }`. `miembros` (`pieb_can_miembros($iglesia_id)`): las personas de sus listas y, solo en la iglesia por
@@ -301,8 +301,39 @@ de una sola iglesia se comporta exactamente igual.
     iglesia activa; todo lo demás solo lo cambia el central (si lo envía otra persona, se ignora en silencio). Se mantienen la
     sincronización de roles y `bienvenidaPendiente`, ahora sobre la lista de la iglesia activa. Un administrador de iglesia puede añadir
     a alguien que ya está en otra. Al crear una iglesia, quien la crea pasa a `administradores` de la nueva (además de la meta).
-- **Pendiente (fases siguientes).** Las copias de seguridad (`includes/ajustes.php`) siguen exportando e importando los cultos
-  de toda la instalación, privados incluidos y sin la iglesia; la fase 5 las adaptará.
+- **Ajustes por iglesia y nombres (fase 5b).** **Con una sola iglesia todo se comporta y se guarda como siempre.**
+  - **Almacén por iglesia.** `pieb_can_dato_iglesia($clave, $iglesia_id = 0, $defecto = null)` y
+    `pieb_can_dato_iglesia_guardar($clave, $iglesia_id, $valor)` (0 = iglesia activa). La iglesia **por defecto** lee y escribe en
+    su sitio de siempre (sin migración); las demás, en la meta `_pieb_dato_{clave}` de su post `pieb_iglesia`:
+    | Dato | Iglesia por defecto | Otras iglesias |
+    |---|---|---|
+    | Plantilla de la escaleta (con logo y cabecera) | opción `pieb_can_escaleta` | meta `_pieb_dato_escaleta` (sin ella, la genérica del plugin, no la de otra iglesia) |
+    | Fondos de las letras (lista de ids) | opción `pieb_can_fondos` | meta `_pieb_dato_fondos` |
+    | Bienvenida: `bienvenida_auto`, `bienvenida_texto` | claves de la opción `pieb_can_ajustes` | meta `_pieb_dato_bienvenida` = `{ auto, texto }` (por defecto `auto = true`, `texto = ''`) |
+  - **Qué es de cada iglesia y qué global.** De la iglesia (la activa): equipo, plantilla de la escaleta, fondos y correo de
+    bienvenida (ajustes automático/texto). Globales (del central): nombre del servicio y subtítulo, días de papelera, tema por
+    defecto, Client ID de Google, aviso de borrado (`aviso_borrado`), página de los correos, copias de seguridad.
+  - **`/ajustes`.** `GET`: `bienvenidaAuto`, `bienvenidaTexto` y `escaleta` son los de la iglesia activa. `POST`: quien gestiona la
+    iglesia activa (sin ser central) guarda ahora, además de los cuatro campos del equipo, `bienvenidaAuto`, `bienvenidaTexto` y
+    `escaleta` (la plantilla se valida antes de guardar nada); el resto sigue siendo solo del central y se ignora en silencio.
+    `bienvenidaPendiente` usa el `auto` de la iglesia activa.
+  - **`/escaleta`, `/escaleta/imagen`.** La plantilla y sus imágenes (logo y cabecera) son las de la iglesia activa
+    (`pieb_can_escaleta_guardada()` / `_guardar()` / `_plantilla()` trabajan con ella); `POST /escaleta/imagen` exige gestionar la
+    iglesia activa. La hoja impresa de un culto usa las imágenes que llegan de `GET /escaleta`, siempre las de la iglesia activa
+    (los cultos que se ven son los de la activa).
+  - **`/fondos`.** `GET`, subir y borrar trabajan con la lista de la iglesia activa; el límite de 40 es por iglesia; un fondo solo
+    lo borra quien gestiona la iglesia que lo tiene (404 si su id no está en la lista de la activa).
+  - **Correo de bienvenida.** Usa el `auto` y el `texto` de la iglesia en la que se envía. Con la protección activa (varias
+    iglesias) añade la frase «Te han añadido al equipo de {iglesia} en {servicio}.»; con una sola, el texto de siempre.
+  - **Nombres.** Pantalla de acceso, correo con el enlace de acceso, manifiesto/instalación en el móvil, PowerPoint/OpenLyrics y
+    menú de WordPress usan el nombre del **servicio** (`pieb_can_nombre()`); la interfaz muestra el nombre de la iglesia
+    (`PIEB_CANCIONERO.iglesia.nombre`) donde toca.
+  - **Aviso de borrado.** Con la protección activa, los destinatarios son los administradores **centrales** (cuentas con
+    `pieb_cancionero_central` y el correo de administración del sitio), no la lista de la iglesia por defecto; con una sola iglesia,
+    los de siempre. El interruptor `aviso_borrado` es global.
+- **Pendiente (fase 5c).** Las copias de seguridad (`includes/ajustes.php`) siguen exportando e importando los cultos
+  de toda la instalación, privados incluidos y sin la iglesia; los ajustes que exportan (bienvenida, equipo) son los de la iglesia
+  por defecto y la plantilla de la escaleta es la de la iglesia activa. Se adaptarán en la fase 5c.
 
 ## Bienvenida al equipo
 

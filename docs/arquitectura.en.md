@@ -110,7 +110,7 @@ interface receives it in `PIEB_CANCIONERO.nonce`; the API base is in `PIEB_CANCI
 | `/etiquetas`, `/preferencias`, `/huerfanos` | various | **Visible** tags (the active church's and universal ones) with color as `{ name: color }`, user preferences (`tema`, `idioma` and `notacion`, all optional; empty = automatic), unused files. |
 | `/fondos` | GET, POST | `GET` (anyone on the team): `{ fondos: [{ id, url, miniatura }] }` (`url` full size, `miniatura` at the 'medium' size; skips attachments that no longer exist). `POST` (requires `pieb_cancionero_gestionar`): multipart `archivo`, JPG or PNG only, max. 5 MB and 40 backgrounds; uploads to the normal media library and replies `{ id, url, miniatura }`. See [Exporting lyrics](#exporting-lyrics). |
 | `/fondos/{id}` | DELETE | Removes the background from the list and deletes its attachment (requires `pieb_cancionero_gestionar`); replies `{ fondos: [...] }`. |
-| `/ajustes` | GET, POST | Songbook settings and the team of the **active church** (requires `pieb_can_puede_gestionar()`; everything that is not the team is changed only by the central admin; see [Churches](#churches), phase 5a). The welcome fields are in [Welcome to the team](#welcome-to-the-team). The installation's order of service is just its images: `GET` returns `escaleta: { logo, cabecera }` and `POST` accepts `escaleta: { logo: {id}|null, cabecera: {id}|null }` only if present (the rest of the order of service is not touched); see [Order of service](#order-of-service). |
+| `/ajustes` | GET, POST | Songbook settings and the team of the **active church** (requires `pieb_can_puede_gestionar()`; everything that is not the team is changed only by the central admin; see [Churches](#churches), phase 5a). The welcome fields are in [Welcome to the team](#welcome-to-the-team). Since phase 5b, `bienvenidaAuto`, `bienvenidaTexto` and `escaleta` belong to the **active church** and are saved by whoever manages it. The church's order of service is just its images: `GET` returns `escaleta: { logo, cabecera }` and `POST` accepts `escaleta: { logo: {id}|null, cabecera: {id}|null }` only if present (the rest of the order of service is not touched); see [Order of service](#order-of-service). |
 | `/bienvenida` | POST | Sends the welcome email to a batch of addresses (requires `pieb_cancionero_gestionar`). See [Welcome to the team](#welcome-to-the-team). |
 | `/accesos` | GET | Raw access log of every team member, for the statistics (requires `pieb_cancionero_gestionar`). See [Access log](#access-log). |
 | `/google`, `/enlace`, `/correo-prueba` | POST | Google sign-in, email link and a test email. |
@@ -291,7 +291,7 @@ single-church installation behaves exactly as before.
   - **What belongs to the church and what to the central admin.**
     | Church (`pieb_can_puede_gestionar`; service order: `_escaleta`) | Central (`pieb_can_es_central`) |
     |---|---|
-    | Team and domain (`/ajustes`), `/accesos` (only people of the active church), `/bienvenida` (only to emails of its team), `/fondos` (upload and delete; still shared until phase 5b), `/escaleta/imagen`, deleting a service (author or admin), saving a service's order sheet | The rest of `/ajustes` (name, subtitle, trash days, theme, Google, welcome, deletion alert, page, installation order-sheet), `/huerfanos`, backups (`/copia...`), song trash and its files, `/archivos/...`, viewing a deleted song, mail test, migration |
+    | Team and domain (`/ajustes`), `/accesos` (only people of the active church), `/bienvenida` (only to emails of its team), `/fondos` (upload and delete), `/escaleta/imagen`, deleting a service (author or admin), saving a service's order sheet; in `/ajustes` also the welcome (`bienvenidaAuto`, `bienvenidaTexto`) and the order-sheet template (`escaleta`) | The rest of `/ajustes` (name, subtitle, trash days, theme, Google, deletion alert, page), `/huerfanos`, backups (`/copia...`), song trash and its files, `/archivos/...`, viewing a deleted song, mail test, migration |
   - **`/ajustes`.** `GET` (whoever manages the active church): same format, but `emails`, `administradores`,
     `responsablesEscaleta`, `dominio` and `miembros` are those of the **active church**; adds `central` (bool) and
     `iglesia: { id, nombre }`. `miembros` (`pieb_can_miembros($iglesia_id)`): the people on its lists and, only in the default church,
@@ -299,8 +299,37 @@ single-church installation behaves exactly as before.
     changed only by the central admin (anyone else's is silently ignored). Role sync and `bienvenidaPendiente` stay, now over the
     active church's list. A church admin may add someone already in another church. When a church is created, its creator goes into the
     new church's `administradores` (besides the meta).
-- **Pending (later phases).** Backups (`includes/ajustes.php`) still export and import the services of the whole
-  installation, private ones included and without the church; phase 5 will adapt them.
+- **Per-church settings and names (phase 5b).** **With a single church everything behaves and is stored as always.**
+  - **Per-church store.** `pieb_can_dato_iglesia($clave, $iglesia_id = 0, $defecto = null)` and
+    `pieb_can_dato_iglesia_guardar($clave, $iglesia_id, $valor)` (0 = active church). The **default** church reads and writes its
+    usual place (no migration); the others use the `_pieb_dato_{clave}` meta of their `pieb_iglesia` post:
+    | Data | Default church | Other churches |
+    |---|---|---|
+    | Order-sheet template (with logo and header) | option `pieb_can_escaleta` | meta `_pieb_dato_escaleta` (without it, the plugin's generic one, never another church's) |
+    | Lyrics backgrounds (list of ids) | option `pieb_can_fondos` | meta `_pieb_dato_fondos` |
+    | Welcome: `bienvenida_auto`, `bienvenida_texto` | keys of the `pieb_can_ajustes` option | meta `_pieb_dato_bienvenida` = `{ auto, texto }` (default `auto = true`, `texto = ''`) |
+  - **What belongs to each church and what is global.** Per church (the active one): team, order-sheet template, backgrounds and
+    welcome email (automatic/text settings). Global (central admin): service name and subtitle, trash days, default theme, Google
+    Client ID, deletion alert (`aviso_borrado`), page used in emails, backups.
+  - **`/ajustes`.** `GET`: `bienvenidaAuto`, `bienvenidaTexto` and `escaleta` are the active church's. `POST`: whoever manages the
+    active church (without being central) now also saves, besides the four team fields, `bienvenidaAuto`, `bienvenidaTexto` and
+    `escaleta` (the template is validated before anything is saved); the rest stays central-only and is silently ignored.
+    `bienvenidaPendiente` uses the active church's `auto`.
+  - **`/escaleta`, `/escaleta/imagen`.** The template and its images (logo and header) are the active church's
+    (`pieb_can_escaleta_guardada()` / `_guardar()` / `_plantilla()` work with it); `POST /escaleta/imagen` requires managing the
+    active church. A service's printed sheet uses the images that come from `GET /escaleta`, always the active church's (the
+    services you see are the active church's).
+  - **`/fondos`.** `GET`, upload and delete work with the active church's list; the limit of 40 is per church; a background is
+    deleted only by whoever manages the church that has it (404 if its id is not in the active church's list).
+  - **Welcome email.** Uses the `auto` and `texto` of the church it is sent for. With protection on (several churches) it adds
+    the sentence "You have been added to the team of {church} in {service}."; with a single church, the usual text.
+  - **Names.** Sign-in screen, sign-in link email, phone manifest/install, PowerPoint/OpenLyrics and the WordPress menu use the
+    **service** name (`pieb_can_nombre()`); the interface shows the church name (`PIEB_CANCIONERO.iglesia.nombre`) where it applies.
+  - **Deletion alert.** With protection on, recipients are the **central** administrators (accounts with `pieb_cancionero_central`
+    and the site admin email), not the default church's list; with a single church, the usual ones. The `aviso_borrado` switch is global.
+- **Pending (phase 5c).** Backups (`includes/ajustes.php`) still export and import the services of the whole
+  installation, private ones included and without the church; the settings they export (welcome, team) are the default church's
+  and the order-sheet template is the active church's. They will be adapted in phase 5c.
 
 ## Welcome to the team
 

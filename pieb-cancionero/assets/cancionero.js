@@ -3203,9 +3203,7 @@
   // La sección Iglesias solo la ve el administrador central.
   if (CFG.central) { SECCIONES_AJUSTES.push('iglesias'); }
   // Con varias iglesias, quien gestiona la suya sin ser central solo ve lo de su iglesia.
-  // La escaleta (logo y cabecera) todavía es común a todas las iglesias y solo la guarda el central: se ofrecerá a cada
-  // iglesia cuando sea suya.
-  if (soloDeIglesia()) { SECCIONES_AJUSTES = ['equipo', 'accesos', 'fondos']; }
+  if (soloDeIglesia()) { SECCIONES_AJUSTES = ['equipo', 'accesos', 'escaleta', 'fondos']; }
   var RUTA_AJUSTES = /^#\/(ajustes|papelera|copias)(\/|$)/;
 
   /** Abre «Ajustes y equipo» en una sección (general, equipo, accesos, escaleta, fondos, google, archivos, papelera, copias o iglesias).
@@ -4719,8 +4717,13 @@
     // Equipo de una iglesia concreta (con varias iglesias): el nombre de la iglesia activa, tal como la devuelve el servidor.
     var iglesiaEquipo = hayVariasIglesias() ? (a.iglesia || CFG.iglesia || null) : null;
     var tituloEquipo = iglesiaEquipo && iglesiaEquipo.nombre ? sprintf(/* translators: %s: nombre de la iglesia */ __('Equipo de %s'), iglesiaEquipo.nombre) : __('Equipo');
-    // Quien solo gestiona su iglesia no cambia nada global: ni el correo de bienvenida ni la prueba de correo.
+    // Quien solo gestiona su iglesia no cambia nada global: ni la prueba de correo (es del central) ni los ajustes generales.
     var limitado = soloDeIglesia();
+    // Con varias iglesias, lo que es de cada una lleva este rótulo (también para el central).
+    function notaDeIglesia() {
+      var ig = hayVariasIglesias() ? (a.iglesia || CFG.iglesia || null) : null;
+      return ig && ig.nombre ? h('p', { class: 'pcan-help pcan-nota-comun', text: sprintf(/* translators: %s: nombre de la iglesia activa */ __('De %s: cada iglesia tiene los suyos.'), ig.nombre) }) : null;
+    }
 
     var contenido = {
       general: [
@@ -4757,8 +4760,9 @@
                 .then(function () { b.disabled = false; });
             } }, icono('enlace'), __('Enviarme un correo de prueba')),
             h('span', { class: 'pcan-help', text: __('Comprueba que el servidor puede enviar los enlaces de acceso.') }))),
-        limitado ? null : h('fieldset', { class: 'pcan-fieldset' },
+        h('fieldset', { class: 'pcan-fieldset' },
           h('legend', { text: __('Correo de bienvenida') }),
+          notaDeIglesia(),
           h('label', { class: 'pcan-copia-opcion' }, fBienvAuto,
             h('span', null,
               h('strong', { text: __('Enviar un correo de bienvenida a quien se añada a la lista') }),
@@ -4799,8 +4803,8 @@
               h('li', null, conNodo(/* translators: %s: dirección web de este sitio */ __('En «Orígenes de JavaScript autorizados» añade: %s'), h('code', { text: a.origen }))),
               h('li', { text: __('Copia el ID de cliente y pégalo aquí.') }))))],
       accesos: [cuerpoAccesos],
-      escaleta: [imagenesEscaleta.nodo],
-      fondos: [h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: __('Fondos de las letras') }), cuerpoFondos)],
+      escaleta: [notaDeIglesia(), imagenesEscaleta.nodo],
+      fondos: [h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: __('Fondos de las letras') }), notaDeIglesia(), cuerpoFondos)],
       archivos: [
         notaComun(),
         h('fieldset', { class: 'pcan-fieldset' },
@@ -4940,8 +4944,9 @@
         avisoBorrado: fAvisoBorrado.checked,
         pagina: paginaActual()
       };
-      // Quien solo gestiona su iglesia guarda aquí el dominio de su equipo; lo global no lo envía (el servidor lo ignoraría).
-      if (limitado) { cuerpo = { dominio: cuerpo.dominio, pagina: cuerpo.pagina }; }
+      // Quien solo gestiona su iglesia guarda aquí lo de su iglesia (dominio del equipo y bienvenida; la escaleta va abajo);
+      // lo global no lo envía (el servidor lo ignoraría).
+      if (limitado) { cuerpo = { dominio: cuerpo.dominio, bienvenidaAuto: cuerpo.bienvenidaAuto, bienvenidaTexto: cuerpo.bienvenidaTexto, pagina: cuerpo.pagina }; }
       var escaleta = escaletaParaGuardar();
       if (escaleta !== undefined) { cuerpo.escaleta = escaleta; }
       api('ajustes', { json: cuerpo }).then(function () {

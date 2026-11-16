@@ -11,7 +11,8 @@
  *  2. Un minuto después, un evento de WordPress-Cron («pieb_can_enviar_avisos_borrado») envía los avisos. El borrado
  *     múltiple de la interfaz hace un DELETE por canción, seguidos: con la espera, todos llegan en UN solo correo.
  *  3. El manejador vacía la cola ANTES de enviar (para no repetir nada si el envío tarda o falla) y manda un correo a cada
- *     destinatario: la lista «administradores» de los ajustes y el correo de administración de la web. A cada uno se le
+ *     destinatario: la lista «administradores» de los ajustes (con varias iglesias, los administradores centrales) y el
+ *     correo de administración de la web. A cada uno se le
  *     quitan las canciones que borró él mismo (ya lo sabe) y, si no le queda ninguna, no se le envía.
  *
  * El envío depende del cron de WordPress, que se dispara con las visitas a la web (y con las peticiones a la API de la
@@ -99,11 +100,26 @@ function pieb_can_aviso_borrado_encolar($post_id) {
 // ---------------------------------------------------------------- envío
 
 /**
- * Correos que reciben el aviso: los administradores del cancionero (lista «administradores» de los ajustes) y el correo
- * de administración de la web, sin repetir.
+ * Correos que reciben el aviso: el correo de administración de la web y, sin repetir, los administradores del cancionero
+ * (lista «administradores» de los ajustes). Con varias iglesias (protección activa) esa lista no es la de la iglesia por
+ * defecto sino la de los administradores CENTRALES: las cuentas con la capacidad PIEB_CAN_CAP_CENTRAL.
  */
 function pieb_can_avisos_destinatarios() {
-    $correos = array_filter((array) pieb_can_ajustes()['administradores'], 'is_string');
+    if (pieb_can_proteccion_activa()) {
+        $correos = array();
+        $cuentas = array_merge(
+            get_users(array('capability' => PIEB_CAN_CAP_CENTRAL)),
+            get_users(array('role' => 'administrator'))
+        );
+        foreach ($cuentas as $u) {
+            // Las cuentas de administración de WordPress tienen la capacidad central aunque su rol no la guarde.
+            if (user_can($u, PIEB_CAN_CAP_CENTRAL)) {
+                $correos[] = (string) $u->user_email;
+            }
+        }
+    } else {
+        $correos = array_filter((array) pieb_can_ajustes()['administradores'], 'is_string');
+    }
     $correos[] = (string) get_option('admin_email');
     return pieb_can_normalizar_emails(implode(' ', $correos));
 }

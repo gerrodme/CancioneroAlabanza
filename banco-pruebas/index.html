@@ -376,7 +376,9 @@
   };
   // Con varias iglesias cada una tiene su equipo (correos, administradores, responsables de escaleta, dominio y miembros).
   // ajustesMock guarda el de la iglesia activa; aquí se guardan todos y se intercambian al cambiar de iglesia.
-  var CAMPOS_EQUIPO = ['emails', 'administradores', 'responsablesEscaleta', 'dominio', 'miembros'];
+  // También van por iglesia (fase 5b): la escaleta (logo y cabecera), la bienvenida (casilla y texto) y los fondos de las letras.
+  var CAMPOS_EQUIPO = ['emails', 'administradores', 'responsablesEscaleta', 'dominio', 'miembros', 'escaleta', 'bienvenidaAuto', 'bienvenidaTexto'];
+  var fondosPorIglesia = {};
   var equiposBanco = {};
   function miembroBanco(email, nombre, o) { return Object.assign({ email: email, nombre: nombre, haEntrado: false, enLista: true, esGestor: false, esEscaleta: false, esAdmin: false, puedeBienvenida: true, bienvenida: 0 }, o || {}); }
   var equipoActual = 1;
@@ -384,12 +386,16 @@
     if (!protegidaBanco || equipoActual === igActual) { return; }
     equiposBanco[equipoActual] = {};
     CAMPOS_EQUIPO.forEach(function (k) { equiposBanco[equipoActual][k] = ajustesMock[k]; });
+    fondosPorIglesia[equipoActual] = fondosMock;
+    // Una iglesia que aún no se ha visto parte con un solo fondo (el primero) y sin imágenes de escaleta.
+    fondosMock = fondosPorIglesia[igActual] || fondosMock.slice(0, 1);
     var e = equiposBanco[igActual];
     if (!e) {
       // Equipo de una iglesia que aún no se ha visto: Luis está también en la primera; el resto es distinto.
       e = { emails: ['luis@example.com', 'carmen@example.com', 'david@example.com', 'elisa@example.com'], administradores: ['carmen@example.com'], responsablesEscaleta: ['david@example.com'], dominio: 'norte.example.org',
         miembros: [miembroBanco('carmen@example.com', 'Carmen Soto', { haEntrado: true, esGestor: true }), miembroBanco('david@example.com', 'David Ibáñez', { esEscaleta: true }),
-          miembroBanco('elisa@example.com', '', {}), miembroBanco('luis@example.com', 'Luis Gómez', { haEntrado: true })] };
+          miembroBanco('elisa@example.com', '', {}), miembroBanco('luis@example.com', 'Luis Gómez', { haEntrado: true })],
+        escaleta: { logo: null, cabecera: null }, bienvenidaAuto: false, bienvenidaTexto: 'Aquí tienes el cancionero de la iglesia del Norte.' };
     }
     CAMPOS_EQUIPO.forEach(function (k) { ajustesMock[k] = e[k]; });
     equipoActual = igActual;
@@ -401,8 +407,9 @@
   // POST ajustes: guarda lo que llega (todo es opcional, como en el servidor) y devuelve los ajustes completos, con los
   // miembros recalculados a partir de `emails` y `administradores`, y los correos nuevos que deben recibir ya la bienvenida automática.
   function guardarAjustesMock(cuerpo) {
-    // Como el servidor: con varias iglesias, quien no es central solo guarda el equipo de su iglesia (dominio incluido); lo demás se ignora.
-    if (protegidaBanco && !centralBanco) { cuerpo = { emails: cuerpo.emails, administradores: cuerpo.administradores, responsablesEscaleta: cuerpo.responsablesEscaleta, dominio: cuerpo.dominio }; }
+    // Como el servidor: con varias iglesias, quien no es central solo guarda lo de su iglesia (equipo con dominio, bienvenida y escaleta); lo demás se ignora.
+    if (protegidaBanco && !centralBanco) { cuerpo = { emails: cuerpo.emails, administradores: cuerpo.administradores, responsablesEscaleta: cuerpo.responsablesEscaleta, dominio: cuerpo.dominio,
+      bienvenidaAuto: cuerpo.bienvenidaAuto, bienvenidaTexto: cuerpo.bienvenidaTexto, escaleta: cuerpo.escaleta }; }
     ['nombre', 'subtitulo', 'papeleraDias', 'temaDefecto', 'googleClientId', 'dominio', 'bienvenidaAuto', 'bienvenidaTexto', 'avisoBorrado', 'pagina']
       .forEach(function (k) { if (cuerpo[k] !== undefined) { ajustesMock[k] = cuerpo[k]; } });
     // Escaleta: solo el logo y la cabecera ({id} o null; a las imágenes se les pone dirección). El resto no se toca (el servidor lo conserva).

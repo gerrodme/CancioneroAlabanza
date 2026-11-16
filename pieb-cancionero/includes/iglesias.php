@@ -9,6 +9,8 @@
  *  _pieb_iglesias         Meta de usuario: array( idIglesia => 'equipo' | 'escaleta' | 'admin' ) (iglesias creadas en la 1.28). La
  *                         pertenencia se calcula con el correo y el equipo de cada iglesia (ver pieb_can_iglesias_de).
  *  _pieb_equipo           Meta de la iglesia (salvo la por defecto, que usa pieb_can_ajustes): su equipo (ver pieb_can_equipo).
+ *  _pieb_dato_{clave}     Meta de la iglesia (salvo la por defecto, que usa su sitio de siempre): escaleta, fondos y bienvenida
+ *                         (ver pieb_can_dato_iglesia).
  *  _pieb_iglesia_activa   Meta de usuario: la última iglesia elegida.
  *  pieb_can_multi         Opción: versión de la migración a varias iglesias (1 = hecha).
  */
@@ -184,6 +186,85 @@ function pieb_can_equipo($iglesia_id) {
         'responsablesEscaleta' => pieb_can_equipo_lista(isset($datos['responsablesEscaleta']) ? $datos['responsablesEscaleta'] : array()),
         'dominio'              => isset($datos['dominio']) && is_string($datos['dominio']) ? $datos['dominio'] : '',
     );
+}
+
+// ---------------------------------------------------------------- datos por iglesia (fase 5b)
+//
+// Almacén genérico de lo que es de cada iglesia (plantilla de la escaleta, fondos de las letras, correo de bienvenida).
+// La iglesia POR DEFECTO sigue leyendo y escribiendo en el sitio de siempre (sin migración); las demás, en la meta
+// _pieb_dato_{clave} de su post. Claves: 'escaleta' (opción pieb_can_escaleta), 'fondos' (opción pieb_can_fondos) y
+// 'bienvenida' (claves bienvenida_auto y bienvenida_texto de la opción pieb_can_ajustes; valor array('auto', 'texto')).
+
+/** Valor de 'bienvenida' normalizado: array('auto' => bool, 'texto' => string); por defecto auto = true y texto vacío. */
+function pieb_can_dato_bienvenida_limpio($valor) {
+    $valor = is_array($valor) ? $valor : array();
+    return array(
+        'auto'  => isset($valor['auto']) ? (bool) $valor['auto'] : true,
+        'texto' => isset($valor['texto']) && is_scalar($valor['texto']) ? (string) $valor['texto'] : '',
+    );
+}
+
+/**
+ * Dato de una iglesia ($iglesia_id = 0: la activa). $defecto es lo que se devuelve si aún no hay nada guardado (la
+ * bienvenida siempre devuelve su array normalizado).
+ */
+function pieb_can_dato_iglesia($clave, $iglesia_id = 0, $defecto = null) {
+    $iglesia_id = $iglesia_id ? (int) $iglesia_id : (int) pieb_can_iglesia_activa();
+    if (pieb_can_es_iglesia_defecto($iglesia_id)) {
+        if ($clave === 'escaleta') {
+            return get_option('pieb_can_escaleta', $defecto);
+        }
+        if ($clave === 'fondos') {
+            return get_option('pieb_can_fondos', $defecto);
+        }
+        if ($clave === 'bienvenida') {
+            $guardados = get_option('pieb_can_ajustes', array());
+            $guardados = is_array($guardados) ? $guardados : array();
+            return pieb_can_dato_bienvenida_limpio(array(
+                'auto'  => isset($guardados['bienvenida_auto']) ? $guardados['bienvenida_auto'] : true,
+                'texto' => isset($guardados['bienvenida_texto']) ? $guardados['bienvenida_texto'] : '',
+            ));
+        }
+        return $defecto;
+    }
+    $meta = '_pieb_dato_' . $clave;
+    if ($clave === 'bienvenida') {
+        return pieb_can_dato_bienvenida_limpio(get_post_meta($iglesia_id, $meta, true));
+    }
+    return metadata_exists('post', $iglesia_id, $meta) ? get_post_meta($iglesia_id, $meta, true) : $defecto;
+}
+
+/**
+ * Guarda el dato de una iglesia ($iglesia_id = 0: la activa); el valor ya debe venir saneado. En 'escaleta' y 'fondos',
+ * null lo borra (la iglesia vuelve a lo genérico). Las opciones no se cargan en cada petición (autoload falso).
+ */
+function pieb_can_dato_iglesia_guardar($clave, $iglesia_id, $valor) {
+    $iglesia_id = $iglesia_id ? (int) $iglesia_id : (int) pieb_can_iglesia_activa();
+    if (pieb_can_es_iglesia_defecto($iglesia_id)) {
+        if ($clave === 'escaleta' || $clave === 'fondos') {
+            $opcion = 'pieb_can_' . $clave;
+            if ($valor === null) {
+                delete_option($opcion);
+            } else {
+                update_option($opcion, $valor, false);
+            }
+        } elseif ($clave === 'bienvenida') {
+            $valor = pieb_can_dato_bienvenida_limpio($valor);
+            $guardados = get_option('pieb_can_ajustes', array());
+            $guardados = is_array($guardados) ? $guardados : array();
+            $guardados['bienvenida_auto'] = $valor['auto'];
+            $guardados['bienvenida_texto'] = $valor['texto'];
+            update_option('pieb_can_ajustes', $guardados, false);
+        }
+        return;
+    }
+    $meta = '_pieb_dato_' . $clave;
+    if ($valor === null) {
+        delete_post_meta($iglesia_id, $meta);
+    } else {
+        // wp_slash porque update_post_meta quita las barras invertidas.
+        update_post_meta($iglesia_id, $meta, wp_slash($clave === 'bienvenida' ? pieb_can_dato_bienvenida_limpio($valor) : $valor));
+    }
 }
 
 /** Orden de los roles de una iglesia (mayor número = más poder). */
