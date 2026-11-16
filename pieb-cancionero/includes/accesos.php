@@ -32,7 +32,7 @@ add_action('rest_api_init', function () {
     register_rest_route('pieb/v1', '/accesos', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'pieb_can_rest_accesos',
-        'permission_callback' => function () { return current_user_can(PIEB_CAN_CAP_GESTIONAR); },
+        'permission_callback' => function () { return pieb_can_puede_gestionar(); },
     ));
 });
 
@@ -190,11 +190,12 @@ function pieb_can_registro_usuario($user) {
  * acceso al cancionero que tenga algo registrado (p. ej. administradores de WordPress que entran al cancionero).
  */
 function pieb_can_rest_accesos() {
-    $ajustes = pieb_can_ajustes();
+    $iglesia = (int) pieb_can_iglesia_activa();
+    $equipo = pieb_can_equipo($iglesia);
 
     $personas = array();
     $usuarios = array();
-    foreach (pieb_can_miembros($ajustes) as $miembro) {
+    foreach (pieb_can_miembros($iglesia) as $miembro) {
         $email = $miembro['email'];
         $personas[$email] = array(
             'email'    => $email,
@@ -218,7 +219,8 @@ function pieb_can_rest_accesos() {
     ));
     foreach ($con_registro as $u) {
         $email = strtolower($u->user_email);
-        if (!isset($personas[$email]) && user_can($u, PIEB_CAN_CAP_ACCESO)) {
+        // Solo las de la iglesia activa.
+        if (!isset($personas[$email]) && user_can($u, PIEB_CAN_CAP_ACCESO) && pieb_can_rol_en($u->ID, $iglesia) !== '') {
             $otras[$email] = $u;
         }
     }
@@ -242,11 +244,11 @@ function pieb_can_rest_accesos() {
         $personas[$email] = array(
             'email'    => $email,
             'nombre'   => (string) $u->display_name,
-            'enLista'  => in_array($email, $ajustes['emails'], true),
+            'enLista'  => in_array($email, $equipo['emails'], true),
             'esAdmin'  => user_can($u, 'manage_options'),
             // Igual que en pieb_can_miembros().
-            'esGestor' => in_array($email, $ajustes['administradores'], true) || in_array(PIEB_CAN_ROLE_ADMIN, (array) $u->roles, true),
-            'esEscaleta' => in_array($email, $ajustes['responsablesEscaleta'], true) || in_array(PIEB_CAN_ROLE_ESCALETA, (array) $u->roles, true),
+            'esGestor' => in_array($email, $equipo['administradores'], true) || (pieb_can_es_iglesia_defecto($iglesia) && in_array(PIEB_CAN_ROLE_ADMIN, (array) $u->roles, true)),
+            'esEscaleta' => in_array($email, $equipo['responsablesEscaleta'], true) || (pieb_can_es_iglesia_defecto($iglesia) && in_array(PIEB_CAN_ROLE_ESCALETA, (array) $u->roles, true)),
         );
         $usuarios[$email] = $u;
     }

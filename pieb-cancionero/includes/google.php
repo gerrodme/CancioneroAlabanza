@@ -42,15 +42,7 @@ function pieb_can_google_verificar($credential, $client_id) {
     return $datos;
 }
 
-function pieb_can_email_permitido($email, $ajustes) {
-    if (in_array($email, $ajustes['emails'], true) || in_array($email, $ajustes['administradores'], true) || in_array($email, $ajustes['responsablesEscaleta'], true)) {
-        return true;
-    }
-    if ($ajustes['dominio'] && substr($email, -strlen('@' . $ajustes['dominio'])) === '@' . $ajustes['dominio']) {
-        return true;
-    }
-    return false;
-}
+// pieb_can_email_permitido($email): ¿está el correo permitido en alguna iglesia? Ver includes/iglesias.php.
 
 function pieb_can_rest_google(WP_REST_Request $request) {
     $ajustes = pieb_can_ajustes();
@@ -72,7 +64,7 @@ function pieb_can_rest_google(WP_REST_Request $request) {
     $sub = (string) $datos['sub'];
     $user = get_user_by('email', $email);
 
-    $permitido = pieb_can_email_permitido($email, $ajustes) || ($user && user_can($user, PIEB_CAN_CAP_ACCESO));
+    $permitido = pieb_can_email_permitido($email) || ($user && user_can($user, PIEB_CAN_CAP_ACCESO));
     if (!$permitido) {
         return new WP_Error('pieb_google', sprintf(
             /* translators: %s: correo electrónico */
@@ -157,7 +149,7 @@ add_action('rest_api_init', function () {
     register_rest_route('pieb/v1', '/correo-prueba', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'pieb_can_rest_correo_prueba',
-        'permission_callback' => function () { return current_user_can(PIEB_CAN_CAP_GESTIONAR); },
+        'permission_callback' => function () { return pieb_can_es_central(); },
     ));
 });
 
@@ -178,7 +170,7 @@ function pieb_can_email_con_acceso($email) {
     if ($user && user_can($user, 'manage_options')) {
         return false;
     }
-    return pieb_can_email_permitido($email, pieb_can_ajustes()) || ($user && user_can($user, PIEB_CAN_CAP_ACCESO));
+    return pieb_can_email_permitido($email) || ($user && user_can($user, PIEB_CAN_CAP_ACCESO));
 }
 
 function pieb_can_rest_enlace(WP_REST_Request $request) {
@@ -322,22 +314,28 @@ function pieb_can_usuario_para_email($email) {
 }
 
 /**
- * Da o quita el rol de administrador del cancionero y el de responsable de escaleta según las listas de Ajustes.
+ * Da o quita el rol de administrador del cancionero y el de responsable de escaleta según los equipos de las iglesias:
+ * administrador si lo es de ALGUNA iglesia, responsable de escaleta si lo es en alguna. Estos roles de WordPress sirven
+ * para WordPress; el plugin decide sus permisos por la iglesia activa (pieb_can_puede_gestionar / _escaleta).
  * No toca a los administradores de WordPress, que ya lo pueden todo.
  */
-function pieb_can_sincronizar_administrador($user, $ajustes = null) {
+function pieb_can_sincronizar_administrador($user) {
     if (!$user || user_can($user, 'manage_options')) {
         return;
     }
-    $ajustes = $ajustes ? $ajustes : pieb_can_ajustes();
     $email = strtolower($user->user_email);
+    $es_admin = false;
+    $es_responsable = false;
+    foreach (pieb_can_equipos_todos() as $equipo) {
+        $es_admin = $es_admin || in_array($email, $equipo['administradores'], true);
+        $es_responsable = $es_responsable || in_array($email, $equipo['responsablesEscaleta'], true);
+    }
     $cambio = false;
     $listas = array(
-        PIEB_CAN_ROLE_ADMIN    => $ajustes['administradores'],
-        PIEB_CAN_ROLE_ESCALETA => $ajustes['responsablesEscaleta'],
+        PIEB_CAN_ROLE_ADMIN    => $es_admin,
+        PIEB_CAN_ROLE_ESCALETA => $es_responsable,
     );
-    foreach ($listas as $rol => $lista) {
-        $es = in_array($email, $lista, true);
+    foreach ($listas as $rol => $es) {
         $tiene = in_array($rol, (array) $user->roles, true);
         if ($es && !$tiene) {
             $user->add_role($rol);
@@ -346,10 +344,11 @@ function pieb_can_sincronizar_administrador($user, $ajustes = null) {
             $cambio = true;
         }
     }
-    // Deja de tener el rol, pero conserva el acceso si sigue en la lista del equipo.
-    if ($cambio && !user_can($user, PIEB_CAN_CAP_ACCESO) && pieb_can_email_permitido($email, $ajustes)) {
+    // Deja de tener el rol, pero conserva el acceso si sigue en la lista del equipo de alguna iglesia.
+    if ($cambio && !user_can($user, PIEB_CAN_CAP_ACCESO) && pieb_can_email_permitido($email)) {
         $user->add_role(PIEB_CAN_ROLE);
     }
+    pieb_can_iglesias_de(0, true);
 }
 
 // Al pulsar «Entrar» en la pantalla del enlace.

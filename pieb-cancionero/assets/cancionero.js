@@ -1267,6 +1267,13 @@
   /** ¿La persona tiene acceso a más de una iglesia? Con una sola no se muestra nada nuevo. */
   function hayVariasIglesias() { return !!(CFG.iglesias && CFG.iglesias.length > 1); }
 
+  /** Con varias iglesias: ¿gestiona la iglesia activa pero no es de la administración central? Solo ve lo de su iglesia. */
+  function soloDeIglesia() { return hayVariasIglesias() && !CFG.central; }
+
+  /** ¿Puede usar lo común a todas las iglesias (borrar canciones en lote, papelera, archivos, copias…)? Con varias iglesias,
+   *  solo la administración central; con una sola, quien gestiona (como siempre). */
+  function puedeComun() { return hayVariasIglesias() ? !!CFG.central : !!CFG.gestionar; }
+
   /** Texto de una iglesia en el selector: las que no son de la persona (administración central) lo indican. */
   function nombreIglesia(i) {
     return i.ajena ? sprintf(/* translators: %s: nombre de una iglesia a la que la persona no pertenece */ __('%s (no es la tuya)'), i.nombre) : i.nombre;
@@ -1371,12 +1378,15 @@
       { titulo: __('Subir varias canciones'), sub: __('Una canción por archivo, con su nombre como título'), icono: 'subir', href: '#/subir' },
       { titulo: __('Nuevo culto'), sub: __('Preparar un setlist'), icono: 'calendario', href: '#/culto/nuevo' },
       { titulo: __('Estadísticas'), sub: __('Qué tocamos y qué no'), icono: 'grafica', href: '#/estadisticas' }
-    ].concat(CFG.gestionar ? [
-      { titulo: __('Ajustes y equipo'), sub: __('Nombre, tema por defecto, plazo de la papelera'), icono: 'ajustes', href: '#/ajustes' },
+    ].concat(CFG.gestionar && !soloDeIglesia() ? [
+      { titulo: __('Ajustes y equipo'), sub: __('Nombre, tema por defecto, plazo de la papelera'), icono: 'ajustes', href: '#/ajustes' }] : [])
+      // Con varias iglesias, quien solo gestiona la suya ve únicamente lo de su iglesia.
+      .concat(CFG.gestionar ? [
       { titulo: __('Equipo'), sub: __('Correos con acceso, administradores, responsables de escaleta y dominio'), icono: 'equipo', href: '#/ajustes/equipo' },
       { titulo: __('Accesos'), sub: __('Quién entra y cuánto se usa'), icono: 'grafica', href: '#/ajustes/accesos' },
       { titulo: __('Escaleta'), sub: __('Logo e imagen de cabecera de la hoja impresa del culto'), icono: 'lista', href: '#/ajustes/escaleta' },
-      { titulo: __('Fondos de las letras'), sub: __('Imágenes de fondo para las presentaciones de letras'), icono: 'letra', href: '#/ajustes/fondos' },
+      { titulo: __('Fondos de las letras'), sub: __('Imágenes de fondo para las presentaciones de letras'), icono: 'letra', href: '#/ajustes/fondos' }] : [])
+      .concat(CFG.gestionar && !soloDeIglesia() ? [
       { titulo: __('Acceso con Google'), sub: __('Client ID de Google'), icono: 'acceso', href: '#/ajustes/google' },
       { titulo: __('Archivos'), sub: __('Protección y archivos sin usar'), icono: 'partitura', href: '#/ajustes/archivos' },
       { titulo: __('Papelera'), sub: __('Restaurar o eliminar canciones borradas'), icono: 'borrar', href: '#/ajustes/papelera' },
@@ -1694,7 +1704,7 @@
         pintarLista();
       } }, __('Quitar la selección')),
       h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', disabled: !ids.length, onclick: function () { modoMarcado = 'etiquetar'; pintarLista(); } }, icono('etiqueta'), __('Etiquetar')),
-      CFG.gestionar ? h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', disabled: !ids.length, onclick: function () { confirmar.hidden = false; } }, icono('borrar'), __('Borrar')) : null,
+      puedeComun() ? h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', disabled: !ids.length, onclick: function () { confirmar.hidden = false; } }, icono('borrar'), __('Borrar')) : null,
       h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () { alternarMarcado(false); } }, __('Cancelar')),
       confirmar]);
     append(confirmar, [
@@ -3192,13 +3202,18 @@
   var SECCIONES_AJUSTES = ['general', 'equipo', 'accesos', 'escaleta', 'fondos', 'google', 'archivos', 'papelera', 'copias'];
   // La sección Iglesias solo la ve el administrador central.
   if (CFG.central) { SECCIONES_AJUSTES.push('iglesias'); }
+  // Con varias iglesias, quien gestiona la suya sin ser central solo ve lo de su iglesia.
+  // La escaleta (logo y cabecera) todavía es común a todas las iglesias y solo la guarda el central: se ofrecerá a cada
+  // iglesia cuando sea suya.
+  if (soloDeIglesia()) { SECCIONES_AJUSTES = ['equipo', 'accesos', 'fondos']; }
   var RUTA_AJUSTES = /^#\/(ajustes|papelera|copias)(\/|$)/;
 
   /** Abre «Ajustes y equipo» en una sección (general, equipo, accesos, escaleta, fondos, google, archivos, papelera, copias o iglesias).
    *  Si el panel ya está abierto solo cambia de sección: no se vuelven a pedir los datos. */
   function abrirAjustes(seccion) {
     if (!CFG.gestionar) { location.hash = '#/'; return; }
-    if (SECCIONES_AJUSTES.indexOf(seccion) === -1) { seccion = 'general'; }
+    // Una sección que no le toca (o desconocida) lleva a la primera: General, o Equipo para quien solo gestiona su iglesia.
+    if (SECCIONES_AJUSTES.indexOf(seccion) === -1) { seccion = SECCIONES_AJUSTES[0]; }
     if (ajustesAbierto && ajustesAbierto.raiz.isConnected) { ajustesAbierto.ir(seccion); return; }
     var turno = ++turnoAjustes;
     ajustesAbierto = null;
@@ -4697,8 +4712,19 @@
     };
     var cargadas = {};
 
+    // Con varias iglesias, la administración central ve arriba de lo global que es común a todas. Con una sola iglesia, nada.
+    function notaComun() {
+      return hayVariasIglesias() && CFG.central ? h('p', { class: 'pcan-help pcan-nota-comun', text: __('Esto es común a todas las iglesias.') }) : null;
+    }
+    // Equipo de una iglesia concreta (con varias iglesias): el nombre de la iglesia activa, tal como la devuelve el servidor.
+    var iglesiaEquipo = hayVariasIglesias() ? (a.iglesia || CFG.iglesia || null) : null;
+    var tituloEquipo = iglesiaEquipo && iglesiaEquipo.nombre ? sprintf(/* translators: %s: nombre de la iglesia */ __('Equipo de %s'), iglesiaEquipo.nombre) : __('Equipo');
+    // Quien solo gestiona su iglesia no cambia nada global: ni el correo de bienvenida ni la prueba de correo.
+    var limitado = soloDeIglesia();
+
     var contenido = {
       general: [
+        notaComun(),
         h('fieldset', { class: 'pcan-fieldset' },
           h('legend', { text: __('General') }),
           campo(__('Nombre del cancionero'), fNombre, __('Se muestra arriba a la izquierda y en la pantalla de acceso. Por ejemplo: «Cancionero de la iglesia».')),
@@ -4715,11 +4741,13 @@
               h('small', { text: sprintf(/* translators: %s: correo de administración de la web */ __('Les llega a los administradores del cancionero y al correo de administración de la web (%s), con la canción, sus archivos, quién la borró y cuándo. Los borrados seguidos llegan juntos en un solo correo, un minuto después.'), a.correoAdmin || '') }))))],
       equipo: [
         h('fieldset', { class: 'pcan-fieldset' },
-          h('legend', { text: __('Equipo') }),
+          h('legend', { text: tituloEquipo }),
+          iglesiaEquipo ? h('p', { class: 'pcan-help', text: __('Estas personas pertenecen a esta iglesia: ven sus cultos y las canciones, que son comunes a todas.') }) : null,
+          iglesiaEquipo ? h('p', { class: 'pcan-help', text: __('Puedes añadir a alguien que ya esté en otra iglesia: tendrá un selector para cambiar de una a otra.') }) : null,
           h('p', { class: 'pcan-help', text: __('Cada persona entra con un enlace que recibe en su correo (o con Google, si lo configuras) y quien sale de la lista pierde el acceso. Los administradores pueden cambiar los ajustes, gestionar el equipo y borrar canciones; los responsables de escaleta, además de lo del equipo, preparan la escaleta de los cultos.') }),
           bloqueMiembros,
           avisoAdmin,
-          h('div', { class: 'pcan-actions' },
+          limitado ? null : h('div', { class: 'pcan-actions' },
             h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function (e) {
               var b = e.currentTarget;
               b.disabled = true;
@@ -4729,7 +4757,7 @@
                 .then(function () { b.disabled = false; });
             } }, icono('enlace'), __('Enviarme un correo de prueba')),
             h('span', { class: 'pcan-help', text: __('Comprueba que el servidor puede enviar los enlaces de acceso.') }))),
-        h('fieldset', { class: 'pcan-fieldset' },
+        limitado ? null : h('fieldset', { class: 'pcan-fieldset' },
           h('legend', { text: __('Correo de bienvenida') }),
           h('label', { class: 'pcan-copia-opcion' }, fBienvAuto,
             h('span', null,
@@ -4758,6 +4786,7 @@
           h('legend', { text: __('Acceso por dominio') }),
           campo(__('Dominio permitido'), fDominio, __('Opcional: cualquier cuenta de este dominio de Google Workspace podrá entrar.')))],
       google: [
+        notaComun(),
         h('fieldset', { class: 'pcan-fieldset' },
           h('legend', { text: __('Acceso con Google (opcional)') }),
           campo(__('Client ID de Google'), fClient),
@@ -4773,14 +4802,15 @@
       escaleta: [imagenesEscaleta.nodo],
       fondos: [h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: __('Fondos de las letras') }), cuerpoFondos)],
       archivos: [
+        notaComun(),
         h('fieldset', { class: 'pcan-fieldset' },
           h('legend', { text: __('Protección de los archivos') }),
           cajaProteccion),
         h('fieldset', { class: 'pcan-fieldset' },
           h('legend', { text: __('Archivos sin usar') }),
           cajaHuerfanos)],
-      papelera: [h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: __('Papelera') }), cuerpoPapelera)],
-      copias: [cuerpoCopias],
+      papelera: [notaComun(), h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: __('Papelera') }), cuerpoPapelera)],
+      copias: [notaComun(), cuerpoCopias],
       iglesias: [h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: __('Iglesias') }), cuerpoIglesias)]
     };
 
@@ -4851,7 +4881,7 @@
     /** Cambia de sección. La dirección cambia (para poder enlazarla) sin añadir entradas al historial:
      *  así «Atrás» cierra el panel en vez de recorrer cada sección. */
     function ir(id) {
-      if (!tabs[id]) { id = 'general'; }
+      if (!tabs[id]) { id = SECCIONES_AJUSTES[0]; }
       actual = id;
       SECCIONES_AJUSTES.forEach(function (s) {
         var activa = s === id;
@@ -4910,6 +4940,8 @@
         avisoBorrado: fAvisoBorrado.checked,
         pagina: paginaActual()
       };
+      // Quien solo gestiona su iglesia guarda aquí el dominio de su equipo; lo global no lo envía (el servidor lo ignoraría).
+      if (limitado) { cuerpo = { dominio: cuerpo.dominio, pagina: cuerpo.pagina }; }
       var escaleta = escaletaParaGuardar();
       if (escaleta !== undefined) { cuerpo.escaleta = escaleta; }
       api('ajustes', { json: cuerpo }).then(function () {

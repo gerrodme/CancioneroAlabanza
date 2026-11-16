@@ -338,7 +338,7 @@ function pieb_can_asignar_color_etiqueta($term_id) {
 
 /** Regla de borrado de cultos (y la de canciones mientras haya una sola iglesia): su autor o quien gestiona. */
 function pieb_can_usuario_puede_borrar($post) {
-    return current_user_can(PIEB_CAN_CAP_GESTIONAR) || (int) $post->post_author === get_current_user_id();
+    return pieb_can_puede_gestionar() || (int) $post->post_author === get_current_user_id();
 }
 
 // ---------------------------------------------------------------- permisos sobre lo ajeno en una canción

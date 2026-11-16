@@ -49,7 +49,7 @@ add_action('rest_api_init', function () {
     register_rest_route('pieb/v1', '/escaleta/imagen', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'pieb_can_rest_escaleta_imagen',
-        'permission_callback' => function () { return current_user_can(PIEB_CAN_CAP_GESTIONAR); },
+        'permission_callback' => function () { return pieb_can_puede_gestionar(); },
     ));
 });
 

@@ -25,7 +25,7 @@ add_action('rest_api_init', function () {
     register_rest_route('pieb/v1', '/bienvenida', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'pieb_can_rest_bienvenida',
-        'permission_callback' => function () { return current_user_can(PIEB_CAN_CAP_GESTIONAR); },
+        'permission_callback' => function () { return pieb_can_puede_gestionar(); },
     ));
 });
 
@@ -88,17 +88,17 @@ function pieb_can_pagina($pedida = '') {
 
 /**
  * Correos a los que la interfaz debe enviar ahora la bienvenida automática tras guardar los ajustes: los que entran en la
- * lista con este guardado (están en «emails» y no estaban en los anteriores) cuando la bienvenida automática está activa,
- * que nunca la han recibido, que no han entrado nunca (sin cuenta, o cuenta sin acceso previo) y que no son cuentas de
- * administración de WordPress (esas entran con contraseña).
+ * lista de la iglesia con este guardado (están en $actuales y no estaban en $anteriores, ambas listas de «emails») cuando
+ * la bienvenida automática está activa, que nunca la han recibido, que no han entrado nunca (sin cuenta, o cuenta sin
+ * acceso previo) y que no son cuentas de administración de WordPress (esas entran con contraseña).
  */
-function pieb_can_bienvenida_pendientes($anterior, $ajustes) {
-    if (empty($ajustes['bienvenida_auto'])) {
+function pieb_can_bienvenida_pendientes($anteriores, $actuales) {
+    if (!pieb_can_ajustes()['bienvenida_auto']) {
         return array();
     }
     $registro = pieb_can_bienvenidas();
     $pendientes = array();
-    foreach (array_diff($ajustes['emails'], $anterior['emails']) as $email) {
+    foreach (array_diff($actuales, $anteriores) as $email) {
         if (isset($registro[$email])) {
             continue;
         }
@@ -275,6 +275,7 @@ function pieb_can_rest_bienvenida(WP_REST_Request $request) {
     $prueba = rest_sanitize_boolean($request->get_param('prueba'));
     $pagina = pieb_can_pagina($request->get_param('pagina'));
     $res = array('enviados' => array(), 'fallidos' => array(), 'omitidos' => array());
+    $iglesia_activa = (int) pieb_can_iglesia_activa();
     $destinos = array();
     $texto_admin = null;
 
@@ -302,7 +303,8 @@ function pieb_can_rest_bienvenida(WP_REST_Request $request) {
             $user = get_user_by('email', $email);
             if ($user && user_can($user, 'manage_options')) {
                 $motivo = __('Cuenta de administración: entra con contraseña', 'pieb-cancionero');
-            } elseif (!pieb_can_email_con_acceso($email)) {
+            } elseif (!pieb_can_email_con_acceso($email) || !pieb_can_correo_en_iglesia($email, $iglesia_activa)) {
+                // Solo a quien es del equipo de la iglesia activa.
                 $motivo = __('No está en la lista del equipo', 'pieb-cancionero');
             } elseif (!pieb_can_limite('bienvenida' . $email, PIEB_CAN_BIENVENIDA_POR_HORA, HOUR_IN_SECONDS)) {
                 $motivo = __('Demasiados envíos seguidos; prueba más tarde', 'pieb-cancionero');

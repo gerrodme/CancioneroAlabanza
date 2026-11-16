@@ -49,6 +49,14 @@
   // es de «Marta» (`mio: false`) y varios datos, el orden y el borrado le están vedados. El resto de canciones son suyas.
   var protegidaBanco = params.get('iglesias') === '2';
   var centralBanco = params.get('central') !== '0';
+  // Con &central=0 la persona es administradora de la iglesia 1 y del equipo en las demás (todas suyas, ninguna «ajena»): gestiona
+  // solo la 1. Con ?rol=equipo no gestiona en ninguna.
+  if (protegidaBanco && !centralBanco) {
+    iglesiasBanco = iglesiasBanco.map(function (i) { return Object.assign({}, i, { ajena: false, rol: i.id === 1 ? 'admin' : 'equipo' }); });
+    var rolActivo = iglesiasBanco.filter(function (i) { return i.id === iglesiaActiva; })[0].rol;
+    puedeGestionar = puedeGestionar && rolActivo === 'admin';
+    puedeEscaleta = puedeEscaleta && rolActivo === 'admin';
+  }
   function restringidaBanco(c) { return protegidaBanco && !centralBanco && c.id === 437; }
   function datosIglesias() { return { activa: iglesiaActiva, central: centralBanco, iglesias: iglesiasBanco }; }
   function nombreActiva() { return iglesiasBanco.filter(function (i) { return i.id === iglesiaActiva; })[0].nombre; }
@@ -366,12 +374,35 @@
       { email: 'antiguo@example.com', nombre: 'Voluntario antiguo', haEntrado: true, enLista: false, esGestor: false, esEscaleta: false, esAdmin: false, puedeBienvenida: false, bienvenida: 0 }
     ]
   };
+  // Con varias iglesias cada una tiene su equipo (correos, administradores, responsables de escaleta, dominio y miembros).
+  // ajustesMock guarda el de la iglesia activa; aquí se guardan todos y se intercambian al cambiar de iglesia.
+  var CAMPOS_EQUIPO = ['emails', 'administradores', 'responsablesEscaleta', 'dominio', 'miembros'];
+  var equiposBanco = {};
+  function miembroBanco(email, nombre, o) { return Object.assign({ email: email, nombre: nombre, haEntrado: false, enLista: true, esGestor: false, esEscaleta: false, esAdmin: false, puedeBienvenida: true, bienvenida: 0 }, o || {}); }
+  var equipoActual = 1;
+  function cargarEquipoBanco() {
+    if (!protegidaBanco || equipoActual === igActual) { return; }
+    equiposBanco[equipoActual] = {};
+    CAMPOS_EQUIPO.forEach(function (k) { equiposBanco[equipoActual][k] = ajustesMock[k]; });
+    var e = equiposBanco[igActual];
+    if (!e) {
+      // Equipo de una iglesia que aún no se ha visto: Luis está también en la primera; el resto es distinto.
+      e = { emails: ['luis@example.com', 'carmen@example.com', 'david@example.com', 'elisa@example.com'], administradores: ['carmen@example.com'], responsablesEscaleta: ['david@example.com'], dominio: 'norte.example.org',
+        miembros: [miembroBanco('carmen@example.com', 'Carmen Soto', { haEntrado: true, esGestor: true }), miembroBanco('david@example.com', 'David Ibáñez', { esEscaleta: true }),
+          miembroBanco('elisa@example.com', '', {}), miembroBanco('luis@example.com', 'Luis Gómez', { haEntrado: true })] };
+    }
+    CAMPOS_EQUIPO.forEach(function (k) { ajustesMock[k] = e[k]; });
+    equipoActual = igActual;
+  }
+  function guardarEquipoBanco() { equiposBanco[equipoActual] = {}; CAMPOS_EQUIPO.forEach(function (k) { equiposBanco[equipoActual][k] = ajustesMock[k]; }); }
   function minusculas(emails) { return (emails || []).map(function (e) { return String(e).toLowerCase(); }); }
   // Cuentas que tienen un rol propio (administrador de la web, o con el rol del equipo pero fuera de la lista): quitarlas de la lista no las borra.
   var conRolMock = ['admin@example.com', 'antiguo@example.com'];
   // POST ajustes: guarda lo que llega (todo es opcional, como en el servidor) y devuelve los ajustes completos, con los
   // miembros recalculados a partir de `emails` y `administradores`, y los correos nuevos que deben recibir ya la bienvenida automática.
   function guardarAjustesMock(cuerpo) {
+    // Como el servidor: con varias iglesias, quien no es central solo guarda el equipo de su iglesia (dominio incluido); lo demás se ignora.
+    if (protegidaBanco && !centralBanco) { cuerpo = { emails: cuerpo.emails, administradores: cuerpo.administradores, responsablesEscaleta: cuerpo.responsablesEscaleta, dominio: cuerpo.dominio }; }
     ['nombre', 'subtitulo', 'papeleraDias', 'temaDefecto', 'googleClientId', 'dominio', 'bienvenidaAuto', 'bienvenidaTexto', 'avisoBorrado', 'pagina']
       .forEach(function (k) { if (cuerpo[k] !== undefined) { ajustesMock[k] = cuerpo[k]; } });
     // Escaleta: solo el logo y la cabecera ({id} o null; a las imágenes se les pone dirección). El resto no se toca (el servidor lo conserva).
@@ -411,8 +442,11 @@
       ajustesMock.administradores = admins;
       ajustesMock.responsablesEscaleta = resp;
     }
-    return Object.assign({}, ajustesMock, { bienvenidaPendiente: ajustesMock.bienvenidaAuto ? pendientes : [] });
+    guardarEquipoBanco();
+    return Object.assign(datosAjustes(), { bienvenidaPendiente: ajustesMock.bienvenidaAuto ? pendientes : [] });
   }
+  // GET ajustes: los de la iglesia activa, con si quien mira es central y de qué iglesia es el equipo.
+  function datosAjustes() { return Object.assign({}, ajustesMock, { central: centralBanco, iglesia: { id: iglesiaActiva, nombre: nombreActiva() } }); }
   // POST bienvenida: todos «enviados» salvo los que contienen «falla», que van a «fallidos»; una prueba va solo a Ana.
   function bienvenidaMock(cuerpo) {
     if (cuerpo.prueba) { return { enviados: ['ana@example.com'] }; }
@@ -497,7 +531,11 @@
     // Registro de las peticiones de escritura, para comprobar en las pruebas qué se envía.
     if (opts && opts.method && opts.method !== 'GET') { (window.__peticiones = window.__peticiones || []).push({ ruta: ruta, cuerpo: cuerpo }); }
     var vacio404 = { code: 'pieb_no_encontrado', message: 'Culto no encontrado.' };
-    if (ruta === 'iglesias' && opts && opts.method === 'POST') {
+    cargarEquipoBanco();
+    // Solo la administración central: archivos sin usar, protección, copias, papelera de canciones, prueba de correo y alta o cambio de iglesias.
+    var soloCentral = /^(huerfanos|archivos\/|papelera|correo-prueba|copia\/)/.test(ruta) || (/^iglesias(\/\d+)?$/.test(ruta) && opts && opts.method === 'POST');
+    if (protegidaBanco && !centralBanco && soloCentral) { estado = 403; datos = { code: 'pieb_prohibido', message: 'Solo la administración central puede hacerlo.' }; }
+    else if (ruta === 'iglesias' && opts && opts.method === 'POST') {
       var nuevaIg = { id: Math.max.apply(null, iglesiasBanco.map(function (i) { return i.id; })) + 1, nombre: String(cuerpo.nombre || '').trim(), rol: 'admin' };
       iglesiasBanco.push(nuevaIg);
       guardarIglesiasBanco();
@@ -612,7 +650,7 @@
     else if ((mc = ruta.match(/^fondos\/(\d+)$/)) && opts && opts.method === 'DELETE') { fondosMock = fondosMock.filter(function (f) { return f.id !== +mc[1]; }); datos = { fondos: fondosMock }; }
     else if (ruta === 'archivos/estado') { datos = { pendientes: 3, proteccion: 'expuesto', tanda: 50 }; }
     else if (ruta === 'ajustes' && opts && opts.method === 'POST') { datos = guardarAjustesMock(cuerpo); }
-    else if (ruta === 'ajustes') { datos = ajustesMock; }
+    else if (ruta === 'ajustes') { datos = datosAjustes(); }
     else if (ruta === 'bienvenida') { datos = bienvenidaMock(cuerpo); espera = 400; }
     else if (ruta === 'accesos') {
       espera = 500;

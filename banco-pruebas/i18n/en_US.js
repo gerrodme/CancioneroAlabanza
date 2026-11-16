@@ -3177,6 +3177,18 @@ window.PIEB_I18N = {
   ],
   "Escribe el nombre de la etiqueta.": [
    "Enter the name of the tag."
+  ],
+  "Esto es común a todas las iglesias.": [
+   "This is shared by all churches."
+  ],
+  "Equipo de %s": [
+   "Team of %s"
+  ],
+  "Estas personas pertenecen a esta iglesia: ven sus cultos y las canciones, que son comunes a todas.": [
+   "These people belong to this church: they see its services and the songs, which are shared by all."
+  ],
+  "Puedes añadir a alguien que ya esté en otra iglesia: tendrá un selector para cambiar de una a otra.": [
+   "You can add someone who is already in another church: they will get a selector to switch between them."
   ]
  }
 };

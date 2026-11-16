@@ -112,7 +112,7 @@ Todas las rutas exigen sesión iniciada con la capacidad `pieb_cancionero_acceso
 | `/etiquetas`, `/preferencias`, `/huerfanos` | varios | Etiquetas **visibles** (de la iglesia activa y universales) con color como `{ nombre: color }`, preferencias del usuario (`tema`, `idioma` y `notacion`, todos opcionales; vacío = automático), archivos sin usar. |
 | `/fondos` | GET, POST | `GET` (cualquiera del equipo): `{ fondos: [{ id, url, miniatura }] }` (`url` a tamaño completo, `miniatura` en tamaño «medium»; omite los adjuntos que ya no existen). `POST` (exige `pieb_cancionero_gestionar`): multipart `archivo`, solo JPG o PNG, máx. 5 MB y 40 fondos; sube a la biblioteca de medios normal y responde `{ id, url, miniatura }`. Ver [Exportar letras](#exportar-letras). |
 | `/fondos/{id}` | DELETE | Quita el fondo de la lista y borra su adjunto (exige `pieb_cancionero_gestionar`); responde `{ fondos: [...] }`. |
-| `/ajustes` | GET, POST | Ajustes del cancionero y lista del equipo (exige `pieb_cancionero_gestionar`). Los campos de la bienvenida, en [Bienvenida al equipo](#bienvenida-al-equipo). La escaleta de la instalación son solo sus imágenes: `GET` devuelve `escaleta: { logo, cabecera }` y `POST` acepta `escaleta: { logo: {id}|null, cabecera: {id}|null }` solo si llega (lo demás de la escaleta no se toca); ver [Escaleta del culto](#escaleta-del-culto). |
+| `/ajustes` | GET, POST | Ajustes del cancionero y equipo **de la iglesia activa** (exige `pieb_can_puede_gestionar()`; lo que no es del equipo solo lo cambia el central; ver [Iglesias](#iglesias), fase 5a). Los campos de la bienvenida, en [Bienvenida al equipo](#bienvenida-al-equipo). La escaleta de la instalación son solo sus imágenes: `GET` devuelve `escaleta: { logo, cabecera }` y `POST` acepta `escaleta: { logo: {id}|null, cabecera: {id}|null }` solo si llega (lo demás de la escaleta no se toca); ver [Escaleta del culto](#escaleta-del-culto). |
 | `/bienvenida` | POST | Envía el correo de bienvenida a una tanda de correos (exige `pieb_cancionero_gestionar`). Ver [Bienvenida al equipo](#bienvenida-al-equipo). |
 | `/accesos` | GET | Registro de accesos de cada persona del equipo, en bruto, para las estadísticas (exige `pieb_cancionero_gestionar`). Ver [Registro de accesos](#registro-de-accesos). |
 | `/google`, `/enlace`, `/correo-prueba` | POST | Acceso con Google, enlace por correo y prueba de envío. |
@@ -269,6 +269,38 @@ de una sola iglesia se comporta exactamente igual.
     del resultado añade `etiquetasUniversales`); para quien no es central, poner o quitar una universal se ignora.
   - **Copias de seguridad.** La exportación da las etiquetas visibles para quien exporta; la importación usa
     `pieb_can_etiquetas_fijar()`.
+- **Equipo por iglesia y permisos según la iglesia activa (fase 5a).** **Con una sola iglesia todo se comporta y se guarda
+  como siempre.**
+  - **Equipo.** `pieb_can_equipo($iglesia_id)` devuelve `{ emails, administradores, responsablesEscaleta, dominio }`. La iglesia
+    **por defecto** sigue usando esas claves de la opción `pieb_can_ajustes` (sin migración); las demás, la meta `_pieb_equipo` de
+    su post. `pieb_can_equipo_guardar($iglesia_id, $equipo)` normaliza los correos y mete a administradores y responsables de
+    escaleta también en `emails`. `pieb_can_equipo()` solo lee opciones y metas (no depende de la pertenencia: evita recursión).
+  - **Pertenencia por correo.** `pieb_can_iglesias_de($user_id)` (recordado por petición; se vacía con
+    `pieb_can_iglesias_de(0, true)`) suma: el correo del usuario en cada equipo (`admin` en `administradores`, `escaleta` en
+    `responsablesEscaleta`, `equipo` en `emails` o con el dominio de esa iglesia); la meta de usuario `_pieb_iglesias` (iglesias
+    creadas en la 1.28; se borra su entrada de una iglesia cuando cambia el rol de esa persona en ella); y, solo en la iglesia por
+    defecto, la compatibilidad con los roles de WordPress (`pieb_can_rol_por_capacidades()`): si la persona no figura en otra
+    iglesia cuentan todas sus capacidades; si figura en otra, solo los roles que no son del plugin (administrador, editor…), para que
+    el rol de WordPress de quien administra otra iglesia no se herede aquí. Gana el rol mayor (`admin` > `escaleta` > `equipo`).
+  - **Acceso.** Un correo entra si está permitido en **cualquier** iglesia (`pieb_can_email_permitido($email)`, que ya no recibe
+    los ajustes; lo usan Google, el enlace por correo y el alta de la cuenta). `pieb_can_sincronizar_administrador($user)` da el rol
+    de WordPress de administrador si lo es de alguna iglesia y el de responsable de escaleta si lo es en alguna; esos roles sirven
+    para WordPress, el plugin ya no decide permisos con ellos. Quien sale de una lista solo pierde el rol de acceso si no queda en otra.
+  - **Permisos.** `pieb_can_puede_gestionar($user_id = 0)` = central o rol `admin` en la iglesia **activa**
+    (`pieb_can_es_admin_iglesia()`); `pieb_can_puede_escaleta()` = central o rol `admin` o `escaleta` en ella. Con una sola iglesia
+    equivalen a las capacidades `pieb_cancionero_gestionar` / `pieb_can_escaleta` de siempre. `window.PIEB_CANCIONERO.gestionar` y
+    `.escaleta` salen de ellas.
+  - **Qué es de la iglesia y qué del central.**
+    | De la iglesia (`pieb_can_puede_gestionar`; escaleta: `_escaleta`) | Del central (`pieb_can_es_central`) |
+    |---|---|
+    | Equipo y dominio (`/ajustes`), `/accesos` (solo personas de la iglesia activa), `/bienvenida` (solo a correos de su equipo), `/fondos` (subir y borrar; siguen siendo comunes hasta la fase 5b), `/escaleta/imagen`, borrar un culto (autor o administración), guardar la escaleta de un culto | Resto de `/ajustes` (nombre, subtítulo, días de papelera, tema, Google, bienvenida, aviso de borrado, página, escaleta de la instalación), `/huerfanos`, copias de seguridad (`/copia…`), papelera de canciones y sus archivos, `/archivos/…`, ver una canción borrada, prueba de correo, migración |
+  - **`/ajustes`.** `GET` (quien gestiona la iglesia activa): mismo formato, pero `emails`, `administradores`,
+    `responsablesEscaleta`, `dominio` y `miembros` son los de la **iglesia activa**; añade `central` (bool) e
+    `iglesia: { id, nombre }`. `miembros` (`pieb_can_miembros($iglesia_id)`): las personas de sus listas y, solo en la iglesia por
+    defecto, las cuentas con rol del cancionero que no figuran en ninguna lista. `POST`: los cuatro campos del equipo se guardan en la
+    iglesia activa; todo lo demás solo lo cambia el central (si lo envía otra persona, se ignora en silencio). Se mantienen la
+    sincronización de roles y `bienvenidaPendiente`, ahora sobre la lista de la iglesia activa. Un administrador de iglesia puede añadir
+    a alguien que ya está en otra. Al crear una iglesia, quien la crea pasa a `administradores` de la nueva (además de la meta).
 - **Pendiente (fases siguientes).** Las copias de seguridad (`includes/ajustes.php`) siguen exportando e importando los cultos
   de toda la instalación, privados incluidos y sin la iglesia; la fase 5 las adaptará.
 

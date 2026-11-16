@@ -6,8 +6,9 @@
  * (la «por defecto», guardada en la opción pieb_can_iglesia_defecto), que se crea sola la primera vez que se necesita.
  *
  * Datos:
- *  _pieb_iglesias         Meta de usuario: array( idIglesia => 'equipo' | 'escaleta' | 'admin' ). Si no existe, se deduce de los
- *                         roles de WordPress (ver pieb_can_iglesias_de): en esta fase los roles siguen siendo la fuente de verdad.
+ *  _pieb_iglesias         Meta de usuario: array( idIglesia => 'equipo' | 'escaleta' | 'admin' ) (iglesias creadas en la 1.28). La
+ *                         pertenencia se calcula con el correo y el equipo de cada iglesia (ver pieb_can_iglesias_de).
+ *  _pieb_equipo           Meta de la iglesia (salvo la por defecto, que usa pieb_can_ajustes): su equipo (ver pieb_can_equipo).
  *  _pieb_iglesia_activa   Meta de usuario: la última iglesia elegida.
  *  pieb_can_multi         Opción: versión de la migración a varias iglesias (1 = hecha).
  */
@@ -150,41 +151,245 @@ function pieb_can_iglesia_nombre($id) {
     return '';
 }
 
+// ---------------------------------------------------------------- equipo de cada iglesia (fase 5a)
+//
+// Cada iglesia tiene su equipo: tres listas de correos (emails = acceso, administradores, responsablesEscaleta) y un
+// dominio. La iglesia POR DEFECTO sigue usando las claves de siempre de la opción pieb_can_ajustes (sin migración); las
+// demás, la meta _pieb_equipo de su post. Un administrador o responsable de escaleta está siempre también en «emails».
+// Atención a la recursión: pieb_can_equipo() solo lee opciones y metas; nunca debe llamar a nada que dependa de la
+// pertenencia (pieb_can_iglesias_de y derivadas).
+
+/** Lista de correos limpia (solo cadenas, sin huecos). */
+function pieb_can_equipo_lista($valor) {
+    return is_array($valor) ? array_values(array_filter($valor, 'is_string')) : array();
+}
+
+/** ¿Es esta la iglesia por defecto? El 0 también cuenta (aún no hay iglesias: se usan las claves de siempre). */
+function pieb_can_es_iglesia_defecto($iglesia_id) {
+    $iglesia_id = (int) $iglesia_id;
+    return !$iglesia_id || $iglesia_id === (int) pieb_can_iglesia_defecto();
+}
+
+/** Equipo de una iglesia: array('emails', 'administradores', 'responsablesEscaleta', 'dominio'). */
+function pieb_can_equipo($iglesia_id) {
+    if (pieb_can_es_iglesia_defecto($iglesia_id)) {
+        $datos = get_option('pieb_can_ajustes', array());
+    } else {
+        $datos = get_post_meta((int) $iglesia_id, '_pieb_equipo', true);
+    }
+    $datos = is_array($datos) ? $datos : array();
+    return array(
+        'emails'               => pieb_can_equipo_lista(isset($datos['emails']) ? $datos['emails'] : array()),
+        'administradores'      => pieb_can_equipo_lista(isset($datos['administradores']) ? $datos['administradores'] : array()),
+        'responsablesEscaleta' => pieb_can_equipo_lista(isset($datos['responsablesEscaleta']) ? $datos['responsablesEscaleta'] : array()),
+        'dominio'              => isset($datos['dominio']) && is_string($datos['dominio']) ? $datos['dominio'] : '',
+    );
+}
+
+/** Orden de los roles de una iglesia (mayor número = más poder). */
+function pieb_can_rol_rango($rol) {
+    $rangos = array('equipo' => 1, 'escaleta' => 2, 'admin' => 3);
+    return isset($rangos[$rol]) ? $rangos[$rol] : 0;
+}
+
+/** El mayor de dos roles ('' si ninguno). */
+function pieb_can_rol_mayor($a, $b) {
+    return pieb_can_rol_rango($b) > pieb_can_rol_rango($a) ? $b : $a;
+}
+
+/** Rol de un correo según las listas y el dominio de un equipo ('admin', 'escaleta', 'equipo' o ''). */
+function pieb_can_rol_en_equipo($equipo, $email) {
+    $email = strtolower(trim((string) $email));
+    if ($email === '') {
+        return '';
+    }
+    if (in_array($email, $equipo['administradores'], true)) {
+        return 'admin';
+    }
+    if (in_array($email, $equipo['responsablesEscaleta'], true)) {
+        return 'escaleta';
+    }
+    if (in_array($email, $equipo['emails'], true)) {
+        return 'equipo';
+    }
+    $dominio = (string) $equipo['dominio'];
+    if ($dominio !== '' && substr($email, -strlen('@' . $dominio)) === '@' . $dominio) {
+        return 'equipo';
+    }
+    return '';
+}
+
+/** Los equipos de todas las iglesias: array( idIglesia => equipo ). */
+function pieb_can_equipos_todos() {
+    $equipos = array();
+    foreach (pieb_can_iglesias() as $i) {
+        $equipos[$i['id']] = pieb_can_equipo($i['id']);
+    }
+    return $equipos;
+}
+
 /**
- * Iglesias a las que pertenece un usuario: array( idIglesia => rol ), solo de iglesias que existen. Sin la meta
- * _pieb_iglesias, quien tiene acceso al cancionero pertenece a la iglesia por defecto con el rol que dicen sus
- * capacidades de WordPress (no se escribe nada).
+ * Roles de un correo en cada iglesia según sus listas y dominios: array( idIglesia => rol ). Vacío = no está en ninguna.
+ * $equipos (opcional): lo que devuelve pieb_can_equipos_todos(), para no recalcularlo dentro de un bucle.
  */
-function pieb_can_iglesias_de($user_id) {
+function pieb_can_roles_por_correo($email, $equipos = null) {
+    $equipos = $equipos === null ? pieb_can_equipos_todos() : $equipos;
+    $salida = array();
+    foreach ($equipos as $id => $equipo) {
+        $rol = pieb_can_rol_en_equipo($equipo, $email);
+        if ($rol !== '') {
+            $salida[(int) $id] = $rol;
+        }
+    }
+    return $salida;
+}
+
+/** ¿Puede entrar este correo al cancionero? Si está permitido en CUALQUIER iglesia. */
+function pieb_can_email_permitido($email) {
+    return (bool) pieb_can_roles_por_correo($email);
+}
+
+/**
+ * Guarda el equipo de una iglesia. $equipo puede llevar solo algunas claves (las demás se conservan). Normaliza los
+ * correos y mete a administradores y responsables de escaleta también en «emails». Quien cambia de rol en esa iglesia
+ * (o sale) pierde su entrada antigua en la meta de usuario _pieb_iglesias, para que no quede un permiso que ya no toca.
+ */
+function pieb_can_equipo_guardar($iglesia_id, $equipo) {
+    $iglesia_id = (int) $iglesia_id;
+    $anterior = pieb_can_equipo($iglesia_id);
+    $nuevo = array_merge($anterior, array_intersect_key((array) $equipo, $anterior));
+
+    $unir = function ($lista) {
+        return pieb_can_normalizar_emails(implode(' ', array_filter((array) $lista, 'is_string')));
+    };
+    $nuevo['administradores'] = $unir($nuevo['administradores']);
+    $nuevo['responsablesEscaleta'] = $unir($nuevo['responsablesEscaleta']);
+    $nuevo['emails'] = array_values(array_unique(array_merge($unir($nuevo['emails']), $nuevo['administradores'], $nuevo['responsablesEscaleta'])));
+    $nuevo['dominio'] = strtolower(preg_replace('/[^a-z0-9.-]/i', '', (string) $nuevo['dominio']));
+
+    if (pieb_can_es_iglesia_defecto($iglesia_id)) {
+        $guardados = get_option('pieb_can_ajustes', array());
+        $guardados = is_array($guardados) ? $guardados : array();
+        update_option('pieb_can_ajustes', array_merge($guardados, $nuevo), false);
+    } else {
+        update_post_meta($iglesia_id, '_pieb_equipo', $nuevo);
+    }
+
+    // Meta de usuario obsoleta de quien ha cambiado de rol o ha salido de esta iglesia.
+    $todos = array_unique(array_merge($anterior['emails'], $anterior['administradores'], $anterior['responsablesEscaleta'], $nuevo['emails']));
+    foreach ($todos as $email) {
+        if (pieb_can_rol_en_equipo($anterior, $email) === pieb_can_rol_en_equipo($nuevo, $email)) {
+            continue;
+        }
+        $u = get_user_by('email', $email);
+        $meta = $u ? get_user_meta($u->ID, '_pieb_iglesias', true) : null;
+        if (is_array($meta) && isset($meta[$iglesia_id])) {
+            unset($meta[$iglesia_id]);
+            if ($meta) {
+                update_user_meta($u->ID, '_pieb_iglesias', $meta);
+            } else {
+                delete_user_meta($u->ID, '_pieb_iglesias');
+            }
+        }
+    }
+    pieb_can_iglesias_de(0, true);
+    return $nuevo;
+}
+
+/**
+ * Rol que dan las capacidades de WordPress ('admin', 'escaleta', 'equipo' o '' si no hay acceso). Con $solo_ajenos solo
+ * cuentan los roles que no son del plugin (administrador, editor…) y solo puede dar 'admin' o 'escaleta': así quien
+ * administra otra iglesia (cuyo rol de WordPress es solo un reflejo de esa lista) no hereda nada en esta.
+ */
+function pieb_can_rol_por_capacidades($user, $solo_ajenos = false) {
+    if (!$solo_ajenos) {
+        if (!user_can($user, PIEB_CAN_CAP_ACCESO)) {
+            return '';
+        }
+        return user_can($user, PIEB_CAN_CAP_GESTIONAR) ? 'admin' : (user_can($user, PIEB_CAN_CAP_ESCALETA) ? 'escaleta' : 'equipo');
+    }
+    $propios = array(PIEB_CAN_ROLE, PIEB_CAN_ROLE_ADMIN, PIEB_CAN_ROLE_ESCALETA);
+    $tiene = function ($cap) use ($user, $propios) {
+        if (user_can($user, 'manage_options')) {
+            return true;
+        }
+        foreach ((array) $user->roles as $r) {
+            $rol = in_array($r, $propios, true) ? null : get_role($r);
+            if ($rol && $rol->has_cap($cap)) {
+                return true;
+            }
+        }
+        return false;
+    };
+    return $tiene(PIEB_CAN_CAP_GESTIONAR) ? 'admin' : ($tiene(PIEB_CAN_CAP_ESCALETA) ? 'escaleta' : '');
+}
+
+/**
+ * Iglesias a las que pertenece un usuario: array( idIglesia => rol ), solo de iglesias que existen. Sale de:
+ *  - el CORREO del usuario en el equipo de cada iglesia (listas y dominio);
+ *  - la meta de usuario _pieb_iglesias (iglesias creadas en la 1.28);
+ *  - solo para la iglesia por defecto, la compatibilidad con los roles de WordPress: quien tiene acceso al cancionero y no
+ *    figura en ninguna otra iglesia pertenece a la de por defecto con el rol que dicen sus capacidades. Si figura en
+ *    otra, solo cuentan los roles que no son del plugin (ver pieb_can_rol_por_capacidades).
+ * Si figura por dos vías en la misma iglesia, gana el rol mayor. Se recuerda durante la petición; $reiniciar = true
+ * vacía lo recordado (al guardar un equipo, crear una iglesia o cambiar roles) y no devuelve nada útil.
+ */
+function pieb_can_iglesias_de($user_id, $reiniciar = false) {
+    static $cache = array();
+    if ($reiniciar) {
+        $cache = array();
+        return array();
+    }
     $user_id = (int) $user_id;
     if (!$user_id) {
         return array();
     }
-    $existentes = array();
-    foreach (pieb_can_iglesias() as $i) {
-        $existentes[$i['id']] = true;
+    if (isset($cache[$user_id])) {
+        return $cache[$user_id];
+    }
+    $user = get_userdata($user_id);
+    if (!$user) {
+        return array();
+    }
+    $email = strtolower($user->user_email);
+    $defecto = (int) pieb_can_iglesia_defecto();
+
+    $salida = array();
+    $en_otra = false; // figura (listas o meta) en una iglesia que no es la de por defecto
+    foreach (pieb_can_equipos_todos() as $id => $equipo) {
+        $rol = pieb_can_rol_en_equipo($equipo, $email);
+        if ($rol !== '') {
+            $salida[$id] = $rol;
+            $en_otra = $en_otra || $id !== $defecto;
+        }
     }
 
+    // Meta de la 1.28 (solo iglesias que existen).
     $meta = get_user_meta($user_id, '_pieb_iglesias', true);
-    $salida = array();
     if (is_array($meta)) {
+        $existentes = array();
+        foreach (pieb_can_iglesias() as $i) {
+            $existentes[$i['id']] = true;
+        }
         foreach ($meta as $id => $rol) {
             $id = (int) $id;
-            if (isset($existentes[$id]) && in_array($rol, array('equipo', 'escaleta', 'admin'), true)) {
-                $salida[$id] = $rol;
+            if (isset($existentes[$id]) && pieb_can_rol_rango($rol) > 0) {
+                $salida[$id] = pieb_can_rol_mayor(isset($salida[$id]) ? $salida[$id] : '', $rol);
+                    $en_otra = $en_otra || $id !== $defecto;
             }
         }
     }
-    if ($salida) {
-        return $salida;
+
+    // Compatibilidad con los roles de WordPress, solo en la iglesia por defecto.
+    if ($defecto) {
+        $rol_wp = pieb_can_rol_por_capacidades($user, $en_otra);
+        if ($rol_wp !== '') {
+            $salida[$defecto] = pieb_can_rol_mayor(isset($salida[$defecto]) ? $salida[$defecto] : '', $rol_wp);
+        }
     }
 
-    // Compatibilidad: los roles de WordPress siguen siendo la fuente de verdad.
-    if (user_can($user_id, PIEB_CAN_CAP_ACCESO)) {
-        $rol = user_can($user_id, PIEB_CAN_CAP_GESTIONAR) ? 'admin' : (user_can($user_id, PIEB_CAN_CAP_ESCALETA) ? 'escaleta' : 'equipo');
-        return array(pieb_can_iglesia_defecto() => $rol);
-    }
-    return array();
+    $cache[$user_id] = $salida;
+    return $salida;
 }
 
 /** Rol del usuario en una iglesia ('equipo', 'escaleta', 'admin') o '' si no pertenece a ella. */
@@ -261,6 +466,27 @@ function pieb_can_es_admin_iglesia($iglesia_id = 0, $user_id = 0) {
 }
 
 /**
+ * ¿Puede el usuario (0 = el actual) gestionar la iglesia ACTIVA (equipo, ajustes, borrar…)? El central o quien tiene rol
+ * 'admin' en ella. Con una sola iglesia equivale a la capacidad pieb_cancionero_gestionar de siempre.
+ */
+function pieb_can_puede_gestionar($user_id = 0) {
+    return pieb_can_es_admin_iglesia(0, $user_id);
+}
+
+/** ¿Puede preparar la escaleta en la iglesia activa? El central, o rol 'admin' o 'escaleta' en ella. */
+function pieb_can_puede_escaleta($user_id = 0) {
+    $user_id = $user_id ? (int) $user_id : get_current_user_id();
+    if (!$user_id) {
+        return false;
+    }
+    if (pieb_can_es_central($user_id)) {
+        return true;
+    }
+    $rol = pieb_can_rol_en($user_id, pieb_can_iglesia_activa($user_id));
+    return $rol === 'admin' || $rol === 'escaleta';
+}
+
+/**
  * ¿Está activa la protección de lo que añade cada persona a una canción? Solo cuando hay más de una iglesia (ver fase 3
  * del plan). Con una sola, todo el equipo edita cualquier cosa, como siempre. El resultado se recuerda durante la
  * petición; $reiniciar = true lo vuelve a calcular (al crear una iglesia).
@@ -290,6 +516,18 @@ function pieb_can_iglesias_lista_usuario($user_id = 0) {
         }
     }
     return $lista;
+}
+
+/**
+ * ¿Es este correo del equipo de esa iglesia? Por sus listas y dominio o, si tiene cuenta, por su pertenencia (que incluye
+ * la compatibilidad con los roles de WordPress en la iglesia por defecto).
+ */
+function pieb_can_correo_en_iglesia($email, $iglesia_id) {
+    if (pieb_can_rol_en_equipo(pieb_can_equipo($iglesia_id), $email) !== '') {
+        return true;
+    }
+    $u = get_user_by('email', $email);
+    return $u && pieb_can_rol_en($u->ID, $iglesia_id) !== '';
 }
 
 /** ¿Puede el usuario trabajar en esa iglesia? Si es miembro, o es administrador central y la iglesia existe. */
@@ -325,6 +563,21 @@ function pieb_can_migrar_iglesias() {
     }
     update_option('pieb_can_multi', 1);
 }
+
+/**
+ * Escritorio de WordPress con varias iglesias: las pantallas nativas de canciones, cultos, iglesias y etiquetas no conocen
+ * las reglas por iglesia (quién puede cambiar o borrar qué), así que solo las usa el administrador central. El resto
+ * trabaja desde el propio cancionero. Con una sola iglesia no cambia nada.
+ */
+add_action('current_screen', function ($pantalla) {
+    if (!$pantalla || !pieb_can_proteccion_activa() || current_user_can(PIEB_CAN_CAP_CENTRAL)) {
+        return;
+    }
+    $tipos = array(PIEB_CAN_CPT, PIEB_CAN_CULTO, PIEB_CAN_IGLESIA);
+    if (in_array((string) $pantalla->post_type, $tipos, true) || (string) $pantalla->taxonomy === PIEB_CAN_TAX) {
+        wp_die(esc_html__('Con varias iglesias, las canciones y los cultos se gestionan desde el propio cancionero.', 'pieb-cancionero'), '', array('response' => 403));
+    }
+});
 
 // ---------------------------------------------------------------- API
 
@@ -398,8 +651,6 @@ function pieb_can_rest_iglesia_crear(WP_REST_Request $request) {
     }
 
     $usuario = get_current_user_id();
-    // Antes de escribir la meta _pieb_iglesias hay que partir de lo que ya se deduce (iglesia por defecto), para no perderlo.
-    $pertenencia = pieb_can_iglesias_de($usuario);
     $id = wp_insert_post(array(
         'post_type'   => PIEB_CAN_IGLESIA,
         'post_status' => 'publish',
@@ -408,8 +659,18 @@ function pieb_can_rest_iglesia_crear(WP_REST_Request $request) {
     if (is_wp_error($id)) {
         return $id;
     }
+    // Quien la crea es su administrador: en la lista de la iglesia y, además, en su meta de usuario (la sola meta, sin
+    // lo deducido de las listas, para no convertir en permanente lo que hoy depende de ellas).
+    $correo = strtolower((string) wp_get_current_user()->user_email);
+    if ($correo !== '') {
+        pieb_can_equipo_guardar((int) $id, array('administradores' => array($correo)));
+    }
+    $pertenencia = get_user_meta($usuario, '_pieb_iglesias', true);
+    $pertenencia = is_array($pertenencia) ? $pertenencia : array();
     $pertenencia[(int) $id] = 'admin';
     update_user_meta($usuario, '_pieb_iglesias', $pertenencia);
+    pieb_can_iglesias_de(0, true);
+    pieb_can_sincronizar_administrador(wp_get_current_user());
     pieb_can_proteccion_activa(true); // con la segunda iglesia empieza la protección de lo ajeno
 
     $estado = pieb_can_iglesias_estado();

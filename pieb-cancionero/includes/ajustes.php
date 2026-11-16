@@ -349,12 +349,12 @@ add_action('rest_api_init', function () {
         array(
             'methods'             => WP_REST_Server::READABLE,
             'callback'            => 'pieb_can_rest_ajustes_ver',
-            'permission_callback' => function () { return current_user_can(PIEB_CAN_CAP_GESTIONAR); },
+            'permission_callback' => function () { return pieb_can_puede_gestionar(); },
         ),
         array(
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => 'pieb_can_rest_ajustes_guardar',
-            'permission_callback' => function () { return current_user_can(PIEB_CAN_CAP_GESTIONAR); },
+            'permission_callback' => function () { return pieb_can_puede_gestionar(); },
         ),
     ));
 
@@ -362,12 +362,12 @@ add_action('rest_api_init', function () {
         array(
             'methods'             => WP_REST_Server::READABLE,
             'callback'            => 'pieb_can_rest_huerfanos',
-            'permission_callback' => function () { return current_user_can(PIEB_CAN_CAP_GESTIONAR); },
+            'permission_callback' => function () { return pieb_can_es_central(); },
         ),
         array(
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => 'pieb_can_rest_huerfanos_borrar',
-            'permission_callback' => function () { return current_user_can(PIEB_CAN_CAP_GESTIONAR); },
+            'permission_callback' => function () { return pieb_can_es_central(); },
         ),
     ));
 });
@@ -419,10 +419,34 @@ function pieb_can_rest_preferencias(WP_REST_Request $request) {
     return rest_ensure_response($respuesta);
 }
 
-/** Miembros: correos de la lista más las cuentas que ya tienen el rol del equipo. */
-function pieb_can_miembros($ajustes) {
+/**
+ * Miembros de una iglesia (0 = la activa): los correos de sus listas, con o sin cuenta. En la iglesia por defecto, además,
+ * las cuentas con roles del cancionero que no figuran en ninguna lista de ninguna iglesia.
+ */
+function pieb_can_miembros($iglesia_id = 0) {
+    $iglesia_id = $iglesia_id ? (int) $iglesia_id : (int) pieb_can_iglesia_activa();
+    $defecto = pieb_can_es_iglesia_defecto($iglesia_id);
+    $equipos = pieb_can_equipos_todos();
+    $equipo = pieb_can_equipo($iglesia_id);
+
+    // Correos de las demás iglesias: sus roles de WordPress no cuentan como roles de esta (ver pieb_can_iglesias_de).
+    $en_otras = array();
+    foreach ($equipos as $id => $otro) {
+        if (!pieb_can_es_iglesia_defecto($id)) {
+            $en_otras = array_merge($en_otras, $otro['administradores'], $otro['responsablesEscaleta'], $otro['emails']);
+        }
+    }
+    $en_otras = array_flip($en_otras);
+    $flags = function ($email, $u) use ($equipo, $defecto, $en_otras) {
+        $por_rol = $defecto && $u && !isset($en_otras[$email]);
+        return array(
+            'esGestor'   => in_array($email, $equipo['administradores'], true) || ($por_rol && in_array(PIEB_CAN_ROLE_ADMIN, (array) $u->roles, true)),
+            'esEscaleta' => in_array($email, $equipo['responsablesEscaleta'], true) || ($por_rol && in_array(PIEB_CAN_ROLE_ESCALETA, (array) $u->roles, true)),
+        );
+    };
+
     $miembros = array();
-    foreach ($ajustes['emails'] as $email) {
+    foreach ($equipo['emails'] as $email) {
         $u = get_user_by('email', $email);
         $miembros[$email] = array(
             'email'     => $email,
@@ -431,21 +455,23 @@ function pieb_can_miembros($ajustes) {
             'enLista'   => true,
             // Las cuentas de administración no reciben enlaces por correo: entran con contraseña.
             'esAdmin'   => $u && user_can($u, 'manage_options'),
-            'esGestor'  => in_array($email, $ajustes['administradores'], true) || ($u && in_array(PIEB_CAN_ROLE_ADMIN, (array) $u->roles, true)),
-            'esEscaleta' => in_array($email, $ajustes['responsablesEscaleta'], true) || ($u && in_array(PIEB_CAN_ROLE_ESCALETA, (array) $u->roles, true)),
-        );
+        ) + $flags($email, $u);
     }
-    foreach (array_merge(get_users(array('role' => PIEB_CAN_ROLE)), get_users(array('role' => PIEB_CAN_ROLE_ADMIN)), get_users(array('role' => PIEB_CAN_ROLE_ESCALETA))) as $u) {
-        $email = strtolower($u->user_email);
-        $miembros[$email] = array(
-            'email'     => $email,
-            'nombre'    => $u->display_name,
-            'haEntrado' => pieb_can_usuario_ha_entrado($u),
-            'enLista'   => isset($miembros[$email]),
-            'esAdmin'   => user_can($u, 'manage_options'),
-            'esGestor'  => in_array($email, $ajustes['administradores'], true) || in_array(PIEB_CAN_ROLE_ADMIN, (array) $u->roles, true),
-            'esEscaleta' => in_array($email, $ajustes['responsablesEscaleta'], true) || in_array(PIEB_CAN_ROLE_ESCALETA, (array) $u->roles, true),
-        );
+    if ($defecto) {
+        foreach (array_merge(get_users(array('role' => PIEB_CAN_ROLE)), get_users(array('role' => PIEB_CAN_ROLE_ADMIN)), get_users(array('role' => PIEB_CAN_ROLE_ESCALETA))) as $u) {
+            $email = strtolower($u->user_email);
+            // Solo quien ya figura en la lista de esta iglesia o no figura en ninguna.
+            if (!isset($miembros[$email]) && pieb_can_roles_por_correo($email, $equipos)) {
+                continue;
+            }
+            $miembros[$email] = array(
+                'email'     => $email,
+                'nombre'    => $u->display_name,
+                'haEntrado' => pieb_can_usuario_ha_entrado($u),
+                'enLista'   => isset($miembros[$email]),
+                'esAdmin'   => user_can($u, 'manage_options'),
+            ) + $flags($email, $u);
+        }
     }
     // Bienvenida: cuándo se le envió por última vez (0 = nunca) y si se le puede enviar (las cuentas de administración
     // no entran con enlace, así que no tiene sentido explicárselo).
@@ -458,21 +484,26 @@ function pieb_can_miembros($ajustes) {
     return array_values($miembros);
 }
 
-/** Lo que devuelve GET /ajustes (y, ampliado, el guardado). */
+/**
+ * Lo que devuelve GET /ajustes (y, ampliado, el guardado). El equipo (emails, administradores, responsablesEscaleta,
+ * dominio, miembros) es el de la iglesia ACTIVA; lo demás es común a toda la instalación. Añade `central` e `iglesia`.
+ */
 function pieb_can_ajustes_datos() {
     $ajustes = pieb_can_ajustes();
+    $iglesia = (int) pieb_can_iglesia_activa();
+    $equipo = pieb_can_equipo($iglesia);
     return array(
         'nombre'         => $ajustes['nombre'],
         'subtitulo'      => $ajustes['subtitulo'],
         'papeleraDias'   => (int) $ajustes['papelera_dias'],
         'version'        => PIEB_CAN_VERSION,
-        'administradores' => $ajustes['administradores'],
-        'responsablesEscaleta' => $ajustes['responsablesEscaleta'],
+        'administradores' => $equipo['administradores'],
+        'responsablesEscaleta' => $equipo['responsablesEscaleta'],
         'temaDefecto'    => $ajustes['tema_defecto'],
         'googleClientId' => $ajustes['google_client_id'],
-        'dominio'        => $ajustes['dominio'],
-        'emails'         => $ajustes['emails'],
-        'miembros'       => pieb_can_miembros($ajustes),
+        'dominio'        => $equipo['dominio'],
+        'emails'         => $equipo['emails'],
+        'miembros'       => pieb_can_miembros($iglesia),
         'bienvenidaAuto'  => (bool) $ajustes['bienvenida_auto'],
         'bienvenidaTexto' => (string) $ajustes['bienvenida_texto'],
         'pagina'         => (string) $ajustes['pagina'],
@@ -482,6 +513,8 @@ function pieb_can_ajustes_datos() {
         'origen'         => untrailingslashit(home_url()),
         // Plantilla de la escaleta del culto (la guardada o la genérica; ver includes/escaleta.php).
         'escaleta'       => pieb_can_escaleta_plantilla(),
+        'central'        => pieb_can_es_central(),
+        'iglesia'        => array('id' => $iglesia, 'nombre' => pieb_can_iglesia_nombre($iglesia)),
     );
 }
 
@@ -489,106 +522,109 @@ function pieb_can_rest_ajustes_ver() {
     return rest_ensure_response(pieb_can_ajustes_datos());
 }
 
+/**
+ * Guarda los ajustes. El equipo (emails, administradores, responsablesEscaleta, dominio) se guarda en la iglesia activa
+ * (quien la gestione); todo lo demás es de la instalación y solo lo cambia el administrador central: si lo envía otra
+ * persona, se ignora en silencio.
+ */
 function pieb_can_rest_ajustes_guardar(WP_REST_Request $request) {
-    $anterior = pieb_can_ajustes();
-    $ajustes = $anterior;
-
-    if ($request->has_param('nombre')) {
-        $nombre = trim(sanitize_text_field((string) $request->get_param('nombre')));
-        $ajustes['nombre'] = mb_substr($nombre, 0, 40);
-    }
-    if ($request->has_param('subtitulo')) {
-        $ajustes['subtitulo'] = mb_substr(trim(sanitize_text_field((string) $request->get_param('subtitulo'))), 0, 60);
-    }
-    if ($request->has_param('papeleraDias')) {
-        $ajustes['papelera_dias'] = max(0, min(3650, (int) $request->get_param('papeleraDias')));
-    }
-    $tema = (string) $request->get_param('temaDefecto');
-    if (isset(pieb_can_temas()[$tema])) {
-        $ajustes['tema_defecto'] = $tema;
-    }
-    if ($request->has_param('googleClientId')) {
-        $client = trim((string) $request->get_param('googleClientId'));
-        if ($client !== '' && !preg_match('/^[0-9a-z-]+\.apps\.googleusercontent\.com$/i', $client)) {
-            return new WP_Error('pieb_client', __('El Client ID de Google no tiene el formato esperado (…apps.googleusercontent.com).', 'pieb-cancionero'), array('status' => 400));
-        }
-        $ajustes['google_client_id'] = $client;
-    }
-    // Plantilla de la escaleta (solo si llega; null = volver a la genérica). Se valida aquí, antes de guardar nada, y se
-    // guarda más abajo junto con el resto (ver includes/escaleta.php).
-    $con_escaleta = $request->has_param('escaleta');
+    $iglesia = (int) pieb_can_iglesia_activa();
+    $central = pieb_can_es_central();
+    $anterior_equipo = pieb_can_equipo($iglesia);
+    $ajustes = pieb_can_ajustes();
+    $con_escaleta = false;
     $escaleta = null;
-    if ($con_escaleta) {
-        $escaleta = pieb_can_escaleta_limpiar_plantilla($request->get_param('escaleta'), pieb_can_escaleta_guardada());
-        if (is_wp_error($escaleta)) {
-            return $escaleta;
+
+    if ($central) {
+        if ($request->has_param('nombre')) {
+            $nombre = trim(sanitize_text_field((string) $request->get_param('nombre')));
+            $ajustes['nombre'] = mb_substr($nombre, 0, 40);
+        }
+        if ($request->has_param('subtitulo')) {
+            $ajustes['subtitulo'] = mb_substr(trim(sanitize_text_field((string) $request->get_param('subtitulo'))), 0, 60);
+        }
+        if ($request->has_param('papeleraDias')) {
+            $ajustes['papelera_dias'] = max(0, min(3650, (int) $request->get_param('papeleraDias')));
+        }
+        $tema = (string) $request->get_param('temaDefecto');
+        if (isset(pieb_can_temas()[$tema])) {
+            $ajustes['tema_defecto'] = $tema;
+        }
+        if ($request->has_param('googleClientId')) {
+            $client = trim((string) $request->get_param('googleClientId'));
+            if ($client !== '' && !preg_match('/^[0-9a-z-]+\.apps\.googleusercontent\.com$/i', $client)) {
+                return new WP_Error('pieb_client', __('El Client ID de Google no tiene el formato esperado (…apps.googleusercontent.com).', 'pieb-cancionero'), array('status' => 400));
+            }
+            $ajustes['google_client_id'] = $client;
+        }
+        // Plantilla de la escaleta (solo si llega; null = volver a la genérica). Se valida aquí, antes de guardar nada, y se
+        // guarda más abajo junto con el resto (ver includes/escaleta.php).
+        $con_escaleta = $request->has_param('escaleta');
+        if ($con_escaleta) {
+            $escaleta = pieb_can_escaleta_limpiar_plantilla($request->get_param('escaleta'), pieb_can_escaleta_guardada());
+            if (is_wp_error($escaleta)) {
+                return $escaleta;
+            }
+        }
+        if ($request->has_param('bienvenidaAuto')) {
+            $ajustes['bienvenida_auto'] = rest_sanitize_boolean($request->get_param('bienvenidaAuto'));
+        }
+        if ($request->has_param('bienvenidaTexto')) {
+            $ajustes['bienvenida_texto'] = mb_substr(trim(sanitize_textarea_field((string) $request->get_param('bienvenidaTexto'))), 0, 1000);
+        }
+        if ($request->has_param('avisoBorrado')) {
+            $ajustes['aviso_borrado'] = rest_sanitize_boolean($request->get_param('avisoBorrado'));
+        }
+        if ($request->has_param('pagina')) {
+            // Solo se guarda si es una dirección válida de esta web; si no, se conserva la que hubiera.
+            $pagina = pieb_can_pagina_valida($request->get_param('pagina'));
+            if ($pagina !== '') {
+                $ajustes['pagina'] = $pagina;
+            }
+        }
+        pieb_can_guardar_ajustes($ajustes);
+        if ($con_escaleta) {
+            pieb_can_escaleta_guardar($escaleta);
         }
     }
-    if ($request->has_param('dominio')) {
-        $ajustes['dominio'] = strtolower(preg_replace('/[^a-z0-9.-]/i', '', (string) $request->get_param('dominio')));
-    }
-    if ($request->has_param('emails')) {
-        $ajustes['emails'] = pieb_can_normalizar_emails(implode(' ', (array) $request->get_param('emails')));
-    }
-    if ($request->has_param('bienvenidaAuto')) {
-        $ajustes['bienvenida_auto'] = rest_sanitize_boolean($request->get_param('bienvenidaAuto'));
-    }
-    if ($request->has_param('bienvenidaTexto')) {
-        $ajustes['bienvenida_texto'] = mb_substr(trim(sanitize_textarea_field((string) $request->get_param('bienvenidaTexto'))), 0, 1000);
-    }
-    if ($request->has_param('avisoBorrado')) {
-        $ajustes['aviso_borrado'] = rest_sanitize_boolean($request->get_param('avisoBorrado'));
-    }
-    if ($request->has_param('pagina')) {
-        // Solo se guarda si es una dirección válida de esta web; si no, se conserva la que hubiera.
-        $pagina = pieb_can_pagina_valida($request->get_param('pagina'));
-        if ($pagina !== '') {
-            $ajustes['pagina'] = $pagina;
+
+    // Equipo de la iglesia activa (pieb_can_equipo_guardar normaliza y añade administradores y responsables a «emails»).
+    $cambios = array();
+    foreach (array('dominio', 'emails', 'administradores', 'responsablesEscaleta') as $clave) {
+        if ($request->has_param($clave)) {
+            $valor = $request->get_param($clave);
+            $cambios[$clave] = $clave === 'dominio' ? (string) $valor : (array) $valor;
         }
     }
-
-    if ($request->has_param('administradores')) {
-        $ajustes['administradores'] = pieb_can_normalizar_emails(implode(' ', (array) $request->get_param('administradores')));
-        // Un administrador siempre tiene acceso: se añade también a la lista del equipo.
-        $ajustes['emails'] = array_values(array_unique(array_merge($ajustes['emails'], $ajustes['administradores'])));
-    }
-
-    if ($request->has_param('responsablesEscaleta')) {
-        $ajustes['responsablesEscaleta'] = pieb_can_normalizar_emails(implode(' ', (array) $request->get_param('responsablesEscaleta')));
-        // Un responsable de escaleta siempre tiene acceso: se añade también a la lista del equipo.
-        $ajustes['emails'] = array_values(array_unique(array_merge($ajustes['emails'], $ajustes['responsablesEscaleta'])));
-    }
-
-    pieb_can_guardar_ajustes($ajustes);
-    if ($con_escaleta) {
-        pieb_can_escaleta_guardar($escaleta);
-    }
+    $equipo = $cambios ? pieb_can_equipo_guardar($iglesia, $cambios) : $anterior_equipo;
 
     // Aplica ya los cambios de administradores y de responsables de escaleta a las cuentas existentes.
-    $afectados = array_unique(array_merge($anterior['administradores'], $ajustes['administradores'], $anterior['responsablesEscaleta'], $ajustes['responsablesEscaleta']));
+    $afectados = array_unique(array_merge($anterior_equipo['administradores'], $equipo['administradores'], $anterior_equipo['responsablesEscaleta'], $equipo['responsablesEscaleta']));
     foreach ($afectados as $email) {
         $u = get_user_by('email', $email);
         if ($u) {
-            pieb_can_sincronizar_administrador($u, $ajustes);
+            pieb_can_sincronizar_administrador($u);
         }
     }
 
-    // Quien sale de la lista pierde el acceso (salvo administradores y editores).
-    foreach (array_diff($anterior['emails'], $ajustes['emails']) as $email) {
+    // Quien sale de la lista pierde el acceso (salvo administradores y editores y quien sigue en otra iglesia).
+    foreach (array_diff($anterior_equipo['emails'], $equipo['emails']) as $email) {
         $u = get_user_by('email', $email);
-        if ($u && in_array(PIEB_CAN_ROLE, (array) $u->roles, true) && !user_can($u, PIEB_CAN_CAP_GESTIONAR)) {
+        if ($u && in_array(PIEB_CAN_ROLE, (array) $u->roles, true) && !user_can($u, PIEB_CAN_CAP_GESTIONAR)
+            && !array_diff_key(pieb_can_roles_por_correo($email), array($iglesia => true))) {
             $u->remove_role(PIEB_CAN_ROLE);
             if (!$u->roles) {
                 $u->add_role('subscriber');
             }
         }
     }
+    pieb_can_iglesias_de(0, true);
 
     // La bienvenida automática NO se envía aquí: el servidor solo calcula a quién le toca (los correos que entran en la
     // lista con este guardado y aún no la han recibido ni han entrado nunca) y la interfaz los envía después llamando a
     // POST /bienvenida por tandas y con barra de progreso, para no alargar este guardado si se pegan decenas de correos.
     $datos = pieb_can_ajustes_datos();
-    $datos['bienvenidaPendiente'] = pieb_can_bienvenida_pendientes($anterior, $ajustes);
+    $datos['bienvenidaPendiente'] = pieb_can_bienvenida_pendientes($anterior_equipo['emails'], $equipo['emails']);
     return rest_ensure_response($datos);
 }
 
@@ -682,7 +718,7 @@ function pieb_can_rest_huerfanos_borrar(WP_REST_Request $request) {
 // así funciona aunque el servidor tenga límites de subida o de tiempo bajos, y también en otra instalación.
 
 add_action('rest_api_init', function () {
-    $admin = function () { return current_user_can(PIEB_CAN_CAP_GESTIONAR); };
+    $admin = function () { return pieb_can_es_central(); };
     $rutas = array(
         '/copia'         => array(WP_REST_Server::READABLE, 'pieb_can_rest_copia_exportar'),
         '/copia/estado'  => array(WP_REST_Server::CREATABLE, 'pieb_can_rest_copia_estado'),
@@ -1159,7 +1195,7 @@ function pieb_can_rest_copia_ajustes(WP_REST_Request $request) {
     foreach ($ajustes['responsablesEscaleta'] as $email) {
         $u = get_user_by('email', $email);
         if ($u) {
-            pieb_can_sincronizar_administrador($u, $ajustes);
+            pieb_can_sincronizar_administrador($u);
         }
     }
     // La plantilla de la escaleta se restaura solo si la copia la trae. La copia no lleva las imágenes (sus ids no valen

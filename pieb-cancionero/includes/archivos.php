@@ -124,7 +124,7 @@ function pieb_can_servir_archivo() {
     }
     // Los archivos de canciones borradas solo los ve quien gestiona el cancionero.
     $padre = wp_get_post_parent_id($id);
-    if ($padre && get_post_status($padre) === 'trash' && !current_user_can(PIEB_CAN_CAP_GESTIONAR)) {
+    if ($padre && get_post_status($padre) === 'trash' && !pieb_can_es_central()) {
         pieb_can_error_archivo(404, __('Archivo no encontrado.', 'pieb-cancionero'));
     }
     // Un audio de ensayo es de la iglesia que lo subió (salvo que sea universal): se entrega como si no existiera a quien no puede verlo.
@@ -273,7 +273,7 @@ function pieb_can_error_archivo($codigo, $texto) {
 // ---------------------------------------------------------------- mover los archivos que ya existían
 
 add_action('rest_api_init', function () {
-    $gestionar = function () { return current_user_can(PIEB_CAN_CAP_GESTIONAR); };
+    $gestionar = function () { return pieb_can_es_central(); };
     register_rest_route('pieb/v1', '/archivos/estado', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'pieb_can_rest_archivos_estado',

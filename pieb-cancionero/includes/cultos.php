@@ -310,7 +310,7 @@ function pieb_can_rest_culto_guardar(WP_REST_Request $request) {
     // Escaleta: solo se toca si llega (null la borra); se valida antes de guardar nada. Solo la preparan los responsables
     // de escaleta y los administradores: si llega de quien no puede, se ignora (sin error, para que pueda seguir
     // cambiando el resto del culto) y la que hubiera se conserva.
-    $con_escaleta = array_key_exists('escaleta', $params) && current_user_can(PIEB_CAN_CAP_ESCALETA);
+    $con_escaleta = array_key_exists('escaleta', $params) && pieb_can_puede_escaleta();
     $escaleta = null;
     if ($con_escaleta) {
         $escaleta = pieb_can_escaleta_limpiar_culto($params['escaleta']);

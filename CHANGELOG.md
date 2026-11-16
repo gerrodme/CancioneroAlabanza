@@ -2,6 +2,17 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.32.0 · 2026-11-16
+
+Equipo por iglesia (fase 5a de `docs/plan-multi-iglesia.md`). Con más de una iglesia, cada una tiene su propia lista de
+personas, sus administradores, sus responsables de escaleta y su dominio; una persona puede estar en varias, con un rol
+distinto en cada una. Los permisos dependen del rol en la iglesia en la que se está trabajando: quien administra una iglesia
+gestiona su equipo, su registro de accesos, sus cultos y los fondos de las letras; lo común (nombre del cancionero, acceso
+con Google, archivos sin usar, papelera de canciones, copias de seguridad e iglesias) queda para el administrador central,
+y en «Ajustes y equipo» cada uno ve solo lo suyo. Un correo puede entrar si está en el equipo de cualquier iglesia. Las
+pantallas del escritorio de WordPress de canciones y cultos quedan reservadas al administrador central. Con una sola
+iglesia todo sigue igual.
+
 ## 1.31.0 · 2026-11-16
 
 Etiquetas por iglesia y etiquetas universales (fase 4b de `docs/plan-multi-iglesia.md`). Con más de una iglesia, cada una

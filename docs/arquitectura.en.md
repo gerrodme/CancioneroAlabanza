@@ -110,7 +110,7 @@ interface receives it in `PIEB_CANCIONERO.nonce`; the API base is in `PIEB_CANCI
 | `/etiquetas`, `/preferencias`, `/huerfanos` | various | **Visible** tags (the active church's and universal ones) with color as `{ name: color }`, user preferences (`tema`, `idioma` and `notacion`, all optional; empty = automatic), unused files. |
 | `/fondos` | GET, POST | `GET` (anyone on the team): `{ fondos: [{ id, url, miniatura }] }` (`url` full size, `miniatura` at the 'medium' size; skips attachments that no longer exist). `POST` (requires `pieb_cancionero_gestionar`): multipart `archivo`, JPG or PNG only, max. 5 MB and 40 backgrounds; uploads to the normal media library and replies `{ id, url, miniatura }`. See [Exporting lyrics](#exporting-lyrics). |
 | `/fondos/{id}` | DELETE | Removes the background from the list and deletes its attachment (requires `pieb_cancionero_gestionar`); replies `{ fondos: [...] }`. |
-| `/ajustes` | GET, POST | Songbook settings and the team list (requires `pieb_cancionero_gestionar`). The welcome fields are in [Welcome to the team](#welcome-to-the-team). The installation's order of service is just its images: `GET` returns `escaleta: { logo, cabecera }` and `POST` accepts `escaleta: { logo: {id}|null, cabecera: {id}|null }` only if present (the rest of the order of service is not touched); see [Order of service](#order-of-service). |
+| `/ajustes` | GET, POST | Songbook settings and the team of the **active church** (requires `pieb_can_puede_gestionar()`; everything that is not the team is changed only by the central admin; see [Churches](#churches), phase 5a). The welcome fields are in [Welcome to the team](#welcome-to-the-team). The installation's order of service is just its images: `GET` returns `escaleta: { logo, cabecera }` and `POST` accepts `escaleta: { logo: {id}|null, cabecera: {id}|null }` only if present (the rest of the order of service is not touched); see [Order of service](#order-of-service). |
 | `/bienvenida` | POST | Sends the welcome email to a batch of addresses (requires `pieb_cancionero_gestionar`). See [Welcome to the team](#welcome-to-the-team). |
 | `/accesos` | GET | Raw access log of every team member, for the statistics (requires `pieb_cancionero_gestionar`). See [Access log](#access-log). |
 | `/google`, `/enlace`, `/correo-prueba` | POST | Google sign-in, email link and a test email. |
@@ -266,6 +266,39 @@ single-church installation behaves exactly as before.
     (404 if it does not exist; if that church already had one, they are merged). `POST /canciones/etiquetar` keeps its format
     (each song in the result adds `etiquetasUniversales`); for non-central users adding or removing a universal tag is ignored.
   - **Backups.** Export gives the tags visible to the exporter; import uses `pieb_can_etiquetas_fijar()`.
+- **Per-church team and permissions by active church (phase 5a).** **With a single church everything behaves and is stored as
+  before.**
+  - **Team.** `pieb_can_equipo($iglesia_id)` returns `{ emails, administradores, responsablesEscaleta, dominio }`. The **default**
+    church keeps using those keys of the `pieb_can_ajustes` option (no migration); the others use the `_pieb_equipo` meta of their
+    post. `pieb_can_equipo_guardar($iglesia_id, $equipo)` normalizes the emails and also puts administrators and service-order
+    managers in `emails`. `pieb_can_equipo()` only reads options and metas (it does not depend on membership: avoids recursion).
+  - **Membership by email.** `pieb_can_iglesias_de($user_id)` (remembered per request; cleared with `pieb_can_iglesias_de(0, true)`)
+    adds up: the user's email in each team (`admin` in `administradores`, `escaleta` in `responsablesEscaleta`, `equipo` in `emails`
+    or with that church's domain); the user meta `_pieb_iglesias` (churches created in 1.28; its entry for a church is deleted when
+    that person's role in it changes); and, only in the default church, compatibility with WordPress roles
+    (`pieb_can_rol_por_capacidades()`): if the person is not in another church all their capabilities count; if they are, only roles
+    that do not belong to the plugin (administrator, editor...), so the WordPress role of someone who administers another church is not
+    inherited here. The higher role wins (`admin` > `escaleta` > `equipo`).
+  - **Access.** An email gets in if it is allowed in **any** church (`pieb_can_email_permitido($email)`, which no longer takes the
+    settings; used by Google, the email link and account creation). `pieb_can_sincronizar_administrador($user)` gives the WordPress
+    administrator role if they administer some church and the service-order manager role if they are one in some church; those roles
+    serve WordPress, the plugin no longer decides permissions with them. Someone removed from a list only loses the access role if
+    they are in no other church.
+  - **Permissions.** `pieb_can_puede_gestionar($user_id = 0)` = central or `admin` role in the **active** church
+    (`pieb_can_es_admin_iglesia()`); `pieb_can_puede_escaleta()` = central or `admin`/`escaleta` role in it. With a single church they
+    equal the usual `pieb_cancionero_gestionar` / `pieb_can_escaleta` capabilities. `window.PIEB_CANCIONERO.gestionar` and `.escaleta`
+    come from them.
+  - **What belongs to the church and what to the central admin.**
+    | Church (`pieb_can_puede_gestionar`; service order: `_escaleta`) | Central (`pieb_can_es_central`) |
+    |---|---|
+    | Team and domain (`/ajustes`), `/accesos` (only people of the active church), `/bienvenida` (only to emails of its team), `/fondos` (upload and delete; still shared until phase 5b), `/escaleta/imagen`, deleting a service (author or admin), saving a service's order sheet | The rest of `/ajustes` (name, subtitle, trash days, theme, Google, welcome, deletion alert, page, installation order-sheet), `/huerfanos`, backups (`/copia...`), song trash and its files, `/archivos/...`, viewing a deleted song, mail test, migration |
+  - **`/ajustes`.** `GET` (whoever manages the active church): same format, but `emails`, `administradores`,
+    `responsablesEscaleta`, `dominio` and `miembros` are those of the **active church**; adds `central` (bool) and
+    `iglesia: { id, nombre }`. `miembros` (`pieb_can_miembros($iglesia_id)`): the people on its lists and, only in the default church,
+    accounts with a songbook role that are on no list. `POST`: the four team fields are saved in the active church; everything else is
+    changed only by the central admin (anyone else's is silently ignored). Role sync and `bienvenidaPendiente` stay, now over the
+    active church's list. A church admin may add someone already in another church. When a church is created, its creator goes into the
+    new church's `administradores` (besides the meta).
 - **Pending (later phases).** Backups (`includes/ajustes.php`) still export and import the services of the whole
   installation, private ones included and without the church; phase 5 will adapt them.
 

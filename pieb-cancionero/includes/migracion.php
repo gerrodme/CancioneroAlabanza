@@ -75,7 +75,7 @@ function pieb_can_titulo_desde_archivo($base) {
 }
 
 add_action('admin_init', function () {
-    if (!get_option('pieb_can_migrado') && current_user_can(PIEB_CAN_CAP_GESTIONAR)) {
+    if (!get_option('pieb_can_migrado') && pieb_can_es_central()) {
         $n = pieb_can_migrar_recursos_antiguos();
         update_option('pieb_can_migrado', gmdate('c') . ' · ' . $n . ' canciones');
     }

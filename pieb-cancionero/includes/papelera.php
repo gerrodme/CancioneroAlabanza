@@ -99,7 +99,7 @@ function pieb_can_canciones_en_papelera() {
 // ---------------------------------------------------------------- API
 
 add_action('rest_api_init', function () {
-    $gestionar = function () { return current_user_can(PIEB_CAN_CAP_GESTIONAR); };
+    $gestionar = function () { return pieb_can_es_central(); };
     register_rest_route('pieb/v1', '/papelera', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'pieb_can_rest_papelera_listar',

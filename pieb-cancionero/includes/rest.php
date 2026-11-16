@@ -152,7 +152,7 @@ function pieb_can_rest_trozo(WP_REST_Request $request) {
 /** Canción publicada; con $con_papelera, quien gestiona el cancionero también puede ver las borradas. */
 function pieb_can_rest_cancion($id, $con_papelera = false) {
     $post = get_post((int) $id);
-    $estado_ok = $post && ($post->post_status === 'publish' || ($con_papelera && $post->post_status === 'trash' && current_user_can(PIEB_CAN_CAP_GESTIONAR)));
+    $estado_ok = $post && ($post->post_status === 'publish' || ($con_papelera && $post->post_status === 'trash' && pieb_can_es_central()));
     if (!$post || $post->post_type !== PIEB_CAN_CPT || !$estado_ok) {
         return new WP_Error('pieb_no_existe', __('La canción no existe.', 'pieb-cancionero'), array('status' => 404));
     }

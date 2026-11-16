@@ -33,13 +33,13 @@ add_action('rest_api_init', function () {
         array(
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => 'pieb_can_rest_fondos_subir',
-            'permission_callback' => function () { return current_user_can(PIEB_CAN_CAP_GESTIONAR); },
+            'permission_callback' => function () { return pieb_can_puede_gestionar(); },
         ),
     ));
     register_rest_route('pieb/v1', '/fondos/(?P<id>\d+)', array(
         'methods'             => WP_REST_Server::DELETABLE,
         'callback'            => 'pieb_can_rest_fondos_borrar',
-        'permission_callback' => function () { return current_user_can(PIEB_CAN_CAP_GESTIONAR); },
+        'permission_callback' => function () { return pieb_can_puede_gestionar(); },
     ));
 });
 
