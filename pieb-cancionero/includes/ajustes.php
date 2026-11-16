@@ -981,7 +981,7 @@ function pieb_can_rest_copia_cancion(WP_REST_Request $request) {
     update_post_meta($id, '_pieb_notas', sanitize_textarea_field(isset($c['notas']) ? (string) $c['notas'] : ''));
     update_post_meta($id, '_pieb_youtube', pieb_can_limpiar_youtube(isset($c['youtube']) ? $c['youtube'] : array(), pieb_can_get_youtube($id)));
     $etiquetas = array_filter(array_map('sanitize_text_field', (array) (isset($c['etiquetas']) ? $c['etiquetas'] : array())));
-    wp_set_object_terms($id, array_values(array_unique($etiquetas)), PIEB_CAN_TAX);
+    pieb_can_etiquetas_fijar($id, array_values(array_unique($etiquetas)));
 
     // Una copia con archivos manda: sus partituras, audios y editables sustituyen a los de esta web.
     // Una copia solo de datos conserva los archivos que ya hubiera aquí.

@@ -3138,6 +3138,45 @@ window.PIEB_I18N = {
   ],
   "Si subes la canción en varias tonalidades, indica la de cada partitura. Sin tonalidad, se entiende que está en la original de la canción.": [
    "If you upload the song in several keys, set the key of each score. With no key, it is assumed to be in the song's original key."
+  ],
+  "Etiqueta universal: la ven todas las iglesias": [
+   "Universal tag: all churches can see it"
+  ],
+  "Esa etiqueta es universal: solo la pone la administración central.": [
+   "That tag is universal: only the central administration can set it."
+  ],
+  "Las etiquetas son de tu iglesia. Las universales las pone la administración central.": [
+   "Tags belong to your church. Universal ones are set by the central administration."
+  ],
+  "Nombre de la etiqueta universal": [
+   "Name of the universal tag"
+  ],
+  "Crear etiqueta universal": [
+   "Create universal tag"
+  ],
+  "Etiqueta universal creada": [
+   "Universal tag created"
+  ],
+  "¿Que «%s» deje de ser universal? Pasará a ser una etiqueta solo de esta iglesia.": [
+   "Stop “%s” being universal? It will become a tag of this church only."
+  ],
+  "Dejar de ser universal": [
+   "Stop being universal"
+  ],
+  "La etiqueta ya no es universal": [
+   "The tag is no longer universal"
+  ],
+  "Etiquetas universales": [
+   "Universal tags"
+  ],
+  "Las ven todas las iglesias. Solo tú puedes ponerlas y quitarlas en las canciones.": [
+   "All churches can see them. Only you can add them to songs and remove them."
+  ],
+  "Si alguna iglesia ya tiene una etiqueta con ese nombre, se unen en la universal.": [
+   "If a church already has a tag with that name, they are merged into the universal one."
+  ],
+  "Escribe el nombre de la etiqueta.": [
+   "Enter the name of the tag."
   ]
  }
 };

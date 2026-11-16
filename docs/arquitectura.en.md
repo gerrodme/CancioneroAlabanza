@@ -10,6 +10,7 @@ A technical summary of the **Cancionero** plugin for anyone new to the code.
 |---|---|
 | `pieb-cancionero.php` | Plugin header, constants, roles and capabilities, the `[cancionero]` shortcode, loading of scripts and of the `PIEB_CANCIONERO` object that the interface reads; on the songbook page, the shortcut icons and manifest (`wp_head`). |
 | `includes/canciones.php` | The song content type, reading/writing metadata, file uploads, size limits. |
+| `includes/etiquetas.php` | Per-church and universal tags (visibility, creation, assignment, `GET/POST /etiquetas/universales`). See the Churches section. |
 | `includes/rest.php` | The `pieb/v1` REST API: list, view, create, update and delete songs; chunked file uploads. |
 | `includes/archivos.php` | The songbook's private files: the `cancionero-privado` folder, delivery with a session (`?pcan_archivo=ID`), protection and unused files. |
 | `includes/papelera.php` | The songbook trash: who deleted, retention period and automatic cleanup, restore and delete forever. |
@@ -106,7 +107,7 @@ interface receives it in `PIEB_CANCIONERO.nonce`; the API base is in `PIEB_CANCI
 | `/iglesias` | GET, POST | `GET`: the user's churches (all of them for the central admin): `{ activa, central, iglesias: [{id, nombre, rol, ajena}] }`. `POST` `{ nombre }`: creates a church (central only; 403 otherwise) and answers the same plus `creada: id`. See [Churches](#churches). |
 | `/iglesias/{id}` | POST | Body `{ nombre }`: renames the church (central only) and answers the state. |
 | `/iglesias/activa` | POST | Body `{ iglesia: id }`: sets the user's active church (saves `_pieb_iglesia_activa`) and answers like the `GET`; 403 if they do not belong to it (the central admin can pick any). |
-| `/etiquetas`, `/preferencias`, `/huerfanos` | various | Tags with color, user preferences (`tema`, `idioma` and `notacion`, all optional; empty = automatic), unused files. |
+| `/etiquetas`, `/preferencias`, `/huerfanos` | various | **Visible** tags (the active church's and universal ones) with color as `{ name: color }`, user preferences (`tema`, `idioma` and `notacion`, all optional; empty = automatic), unused files. |
 | `/fondos` | GET, POST | `GET` (anyone on the team): `{ fondos: [{ id, url, miniatura }] }` (`url` full size, `miniatura` at the 'medium' size; skips attachments that no longer exist). `POST` (requires `pieb_cancionero_gestionar`): multipart `archivo`, JPG or PNG only, max. 5 MB and 40 backgrounds; uploads to the normal media library and replies `{ id, url, miniatura }`. See [Exporting lyrics](#exporting-lyrics). |
 | `/fondos/{id}` | DELETE | Removes the background from the list and deletes its attachment (requires `pieb_cancionero_gestionar`); replies `{ fondos: [...] }`. |
 | `/ajustes` | GET, POST | Songbook settings and the team list (requires `pieb_cancionero_gestionar`). The welcome fields are in [Welcome to the team](#welcome-to-the-team). The installation's order of service is just its images: `GET` returns `escaleta: { logo, cabecera }` and `POST` accepts `escaleta: { logo: {id}|null, cabecera: {id}|null }` only if present (the rest of the order of service is not touched); see [Order of service](#order-of-service). |
@@ -193,7 +194,7 @@ single-church installation behaves exactly as before.
     only the creator or the central administrator.
   - `pieb_can_puede_borrar_cancion($post)`: with the protection active, the creator or the central administrator; otherwise
     `pieb_can_usuario_puede_borrar()` (author or `pieb_cancionero_gestionar`), which is also the **service** rule and does not change.
-  - Tags do not change in this phase (4b makes them per church). Notes, usual key, main score and audio: see "Per-church data (phase 4a)".
+  - Tags are per church (phase 4b, see "Per-church and universal tags"). Notes, usual key, main score and audio: see "Per-church data (phase 4a)".
 
   **The server merges, it does not reject.** `POST /canciones/{id}` is still a multipart that "replaces everything", but with
   the protection active it keeps whatever the saver cannot change, whatever the request says (an old client or a bulk load that
@@ -242,6 +243,29 @@ single-church installation behaves exactly as before.
   - **Other places that read audio.** The backup exports every audio only for the central administrator (others get the visible
     ones); "unused files" and the permanent deletion of a song count every audio (no other church's audio is considered an
     orphan); the deletion alert and the trash (for the central administrator) do not change.
+- **Per-church and universal tags (phase 4b).** `includes/etiquetas.php`. **With a single church nothing changes and nothing is
+  stored differently** (`pieb_can_proteccion_activa()` false: everything is visible, no meta is written and tags are assigned with
+  `wp_set_object_terms` by name, as always). With several churches each tag (a `pieb_etiqueta` term) belongs to one church or is
+  universal:
+  - **Term meta.** `_pieb_iglesia` (ID of the owning church; if missing, the default church, so existing tags need no migration;
+    it is not written for the default church) and `_pieb_universal` (`'1'`). The color stays in `pieb_color`.
+  - **Visibility.** One single function, `pieb_can_etiqueta_visible($term, $activa = 0)`: universal, or of the active church.
+  - **Repeated names.** Two churches may have a tag with the same name (distinct terms; a non-default church's term gets the
+    slug `name-ig{id}`). So with protection on everything is resolved by term ID within a scope
+    (`pieb_can_etiqueta_buscar()`, `pieb_can_etiqueta_universal_buscar()`, `pieb_can_etiqueta_obtener()`), never by name blindly.
+  - **Assigning** (`pieb_can_etiquetas_fijar($post_id, $nombres)`; used by saving a song, `POST /canciones/etiquetar` and
+    backup import). Result = the terms the song has that the saver cannot see (always kept) + universal ones (the central admin
+    sets those in the list; anyone else keeps the ones the song already had and can neither add nor remove them) + one term of
+    the active church per remaining name (created if missing; the central admin, for a name matching a universal tag, uses that).
+  - **API.** Summary and detail: `etiquetas` = visible names and `etiquetasUniversales` = those among them that are universal
+    (`[]` with none). `GET /etiquetas`: `{ name: color }` of the visible ones (on a clash the universal wins).
+    `GET /etiquetas/universales`: `{ etiquetas: [{ nombre, color }] }` by name. `POST /etiquetas/universales` with
+    `{ nombre, universal: bool }` (central admin only and with several churches; 403 otherwise; responds like the `GET`): `true`
+    makes the active church's tag of that name universal (or creates one) and **merges** into it the same-named tags of the other
+    churches (their songs are reassigned and those terms deleted); `false` hands the universal tag back to the active church
+    (404 if it does not exist; if that church already had one, they are merged). `POST /canciones/etiquetar` keeps its format
+    (each song in the result adds `etiquetasUniversales`); for non-central users adding or removing a universal tag is ignored.
+  - **Backups.** Export gives the tags visible to the exporter; import uses `pieb_can_etiquetas_fijar()`.
 - **Pending (later phases).** Backups (`includes/ajustes.php`) still export and import the services of the whole
   installation, private ones included and without the church; phase 5 will adapt them.
 

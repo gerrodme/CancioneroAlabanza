@@ -2,6 +2,14 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.31.0 · 2026-11-16
+
+Etiquetas por iglesia y etiquetas universales (fase 4b de `docs/plan-multi-iglesia.md`). Con más de una iglesia, cada una
+tiene sus propias etiquetas y no ve las de las demás; dos iglesias pueden usar el mismo nombre sin mezclarse. Las etiquetas
+que ya existían son de la primera iglesia. Las **etiquetas universales** las ven todas (van marcadas con ★) y solo el
+administrador central las crea, las pone y las quita en las canciones; se gestionan en Ajustes y equipo → Iglesias. Al
+crear una universal, las etiquetas del mismo nombre de las iglesias se unen en ella. Con una sola iglesia todo sigue igual.
+
 ## 1.30.0 · 2026-11-16
 
 Datos de cada iglesia en las canciones comunes (fase 4a de `docs/plan-multi-iglesia.md`). Con más de una iglesia, la ficha

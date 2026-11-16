@@ -334,21 +334,7 @@ function pieb_can_asignar_color_etiqueta($term_id) {
     return $elegido;
 }
 
-/** Nombre => color de todas las etiquetas; las que aún no tienen color (anteriores a esta función) lo reciben ahora. */
-function pieb_can_colores_etiquetas() {
-    $colores = array();
-    $terms = get_terms(array('taxonomy' => PIEB_CAN_TAX, 'hide_empty' => false));
-    foreach (is_array($terms) ? $terms : array() as $t) {
-        $color = get_term_meta($t->term_id, 'pieb_color', true);
-        $colores[html_entity_decode($t->name, ENT_QUOTES, 'UTF-8')] = $color ? $color : pieb_can_asignar_color_etiqueta($t->term_id);
-    }
-    return $colores;
-}
-
-function pieb_can_etiquetas($post_id) {
-    $terms = wp_get_object_terms($post_id, PIEB_CAN_TAX, array('fields' => 'names'));
-    return is_wp_error($terms) ? array() : array_values($terms);
-}
+// Lectura de etiquetas (visibles por iglesia, colores) y su escritura: includes/etiquetas.php.
 
 /** Regla de borrado de cultos (y la de canciones mientras haya una sola iglesia): su autor o quien gestiona. */
 function pieb_can_usuario_puede_borrar($post) {
@@ -663,6 +649,16 @@ function pieb_can_resumen($post, $activa = 0) {
         $thumb = pieb_can_url_miniatura($partituras[0]['id'], 'medium');
     }
 
+    $etiquetas = pieb_can_etiquetas_visibles($post->ID, $activa);
+    $universales = array();
+    if (pieb_can_proteccion_activa()) {
+        foreach ($etiquetas as $t) {
+            if (pieb_can_etiqueta_es_universal($t)) {
+                $universales[] = $t->name;
+            }
+        }
+    }
+
     return array(
         'id'          => $post->ID,
         'titulo'      => html_entity_decode(get_the_title($post), ENT_QUOTES, 'UTF-8'),
@@ -672,7 +668,9 @@ function pieb_can_resumen($post, $activa = 0) {
         'tonalidad'   => pieb_can_tono_habitual($post->ID, $activa, $todas),
         'tonalidadOriginal' => (string) get_post_meta($post->ID, '_pieb_tonalidad', true),
         'tempo'       => (string) get_post_meta($post->ID, '_pieb_tempo', true),
-        'etiquetas'   => pieb_can_etiquetas($post->ID),
+        'etiquetas'   => array_values(wp_list_pluck($etiquetas, 'name')),
+        // Las etiquetas universales (de todas las iglesias) entre las anteriores; vacío con una sola iglesia.
+        'etiquetasUniversales' => $universales,
         'letra'       => (string) get_post_meta($post->ID, '_pieb_letra', true),
         'partituras'  => count($partituras),
         'youtube'     => count(pieb_can_get_youtube($post->ID)),

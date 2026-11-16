@@ -2539,6 +2539,13 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 .pcan-iglesia-edicion, .pcan-iglesias-nueva { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; }
 .pcan-iglesia-edicion .pcan-input, .pcan-iglesias-nueva .pcan-input { flex: 1 1 200px; min-width: 0; }
 .pcan-iglesia.is-editando { display: block; }
+/* Etiquetas universales (varias iglesias): marca antes del nombre y bloque de Ajustes. */
+.pcan-uni { display: inline-block; margin-right: 3px; font-size: .8em; line-height: 1; opacity: .85; }
+.pcan-chip .pcan-uni { margin-right: 0; }
+.pcan-etiquetas-univ { display: grid; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--pc-line); }
+.pcan-etiquetas-univ .pcan-subtitulo { margin: 0; font-size: 15px; }
+.pcan-etiquetas-univ .pcan-help { margin: 0; }
+.pcan-etiquetas-univ .pcan-papelera-lista { margin: 0; }
 
 /* ================================================================== canción compartida por varias iglesias
  * Lo que añadió otra persona se ve atenuado pero legible y no se puede cambiar; el servidor lo hace cumplir igualmente.

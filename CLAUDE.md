@@ -22,7 +22,7 @@ renombrada completa exigiría una migración de datos.
 ## Estructura rápida
 
 - `pieb-cancionero/` plugin: `pieb-cancionero.php` (arranque, roles, shortcode, página sin caché con sesión),
-  `includes/` (PHP: `canciones`, `rest`, `archivos`, `papelera`, `cultos`, `iglesias` (varias iglesias, fase 1), `ajustes` (ajustes, equipo, preferencias,
+  `includes/` (PHP: `canciones`, `etiquetas` (por iglesia y universales), `rest`, `archivos`, `papelera`, `cultos`, `iglesias` (varias iglesias, fase 1), `ajustes` (ajustes, equipo, preferencias,
   copias de seguridad), `google` (Google y enlace mágico), `correo` (aspecto común de los correos), `bienvenida`,
   `accesos`, `avisos` (aviso de borrado), `escaleta` (hoja impresa del culto), `migracion`), `assets/` (`cancionero.js`
   interfaz principal sin dependencias, con Ajustes y equipo; `cultos.js` cultos, estadísticas, PDF del setlist y de la

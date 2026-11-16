@@ -582,7 +582,8 @@ function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
     $etiquetas = array_filter(array_map(function ($e) {
         return sanitize_text_field(trim($e));
     }, explode(',', (string) $request->get_param('etiquetas'))));
-    wp_set_object_terms($post_id, array_values(array_unique($etiquetas)), PIEB_CAN_TAX);
+    // Por iglesia: conserva las de otras iglesias y respeta las universales (ver includes/etiquetas.php).
+    pieb_can_etiquetas_fijar($post_id, array_values(array_unique($etiquetas)));
 
     return true;
 }
@@ -625,9 +626,9 @@ function pieb_can_rest_etiquetar(WP_REST_Request $request) {
             $finales[] = $e;
         }
         if ($finales !== $actuales) {
-            wp_set_object_terms($id, $finales, PIEB_CAN_TAX);
+            pieb_can_etiquetas_fijar($id, $finales);
         }
-        $resultado[] = array('id' => $id, 'etiquetas' => pieb_can_etiquetas($id));
+        $resultado[] = array('id' => $id, 'etiquetas' => pieb_can_etiquetas($id), 'etiquetasUniversales' => pieb_can_etiquetas_universales_de($id));
     }
     return rest_ensure_response(array('canciones' => $resultado));
 }

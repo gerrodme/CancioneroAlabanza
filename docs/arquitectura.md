@@ -10,6 +10,7 @@ Resumen técnico del plugin **Cancionero** para quien llegue nuevo al código.
 |---|---|
 | `pieb-cancionero.php` | Cabecera del plugin, constantes, roles y capacidades, shortcode `[cancionero]`, carga de scripts y del objeto `PIEB_CANCIONERO` que la interfaz lee; en la página del cancionero, iconos y manifiesto del acceso directo (`wp_head`). |
 | `includes/canciones.php` | Tipo de contenido de canción, lectura/escritura de metadatos, subida de archivos, límites de tamaño. |
+| `includes/etiquetas.php` | Etiquetas por iglesia y universales (visibilidad, creación, asignación, `GET/POST /etiquetas/universales`). Ver [Iglesias](#iglesias). |
 | `includes/rest.php` | API REST `pieb/v1`: listar, ver, crear, actualizar y borrar canciones; subida de archivos por trozos. |
 | `includes/archivos.php` | Archivos privados del cancionero: carpeta `cancionero-privado`, entrega con sesión (`?pcan_archivo=ID`), protección y archivos sin usar. |
 | `includes/papelera.php` | Papelera del cancionero: quién borró, plazo y limpieza automática, restaurar y eliminar para siempre. |
@@ -108,7 +109,7 @@ Todas las rutas exigen sesión iniciada con la capacidad `pieb_cancionero_acceso
 | `/iglesias` | GET, POST | `GET`: iglesias del usuario (al central, todas): `{ activa, central, iglesias: [{id, nombre, rol, ajena}] }`. `POST` `{ nombre }`: crea una iglesia (solo central; 403 si no) y responde igual más `creada: id`. Ver [Iglesias](#iglesias). |
 | `/iglesias/{id}` | POST | Cuerpo `{ nombre }`: renombra la iglesia (solo central) y responde el estado. |
 | `/iglesias/activa` | POST | Cuerpo `{ iglesia: id }`: elige la iglesia activa del usuario (guarda `_pieb_iglesia_activa`) y responde como el `GET`; 403 si no pertenece a ella (el central puede elegir cualquiera). |
-| `/etiquetas`, `/preferencias`, `/huerfanos` | varios | Etiquetas con color, preferencias del usuario (`tema`, `idioma` y `notacion`, todos opcionales; vacío = automático), archivos sin usar. |
+| `/etiquetas`, `/preferencias`, `/huerfanos` | varios | Etiquetas **visibles** (de la iglesia activa y universales) con color como `{ nombre: color }`, preferencias del usuario (`tema`, `idioma` y `notacion`, todos opcionales; vacío = automático), archivos sin usar. |
 | `/fondos` | GET, POST | `GET` (cualquiera del equipo): `{ fondos: [{ id, url, miniatura }] }` (`url` a tamaño completo, `miniatura` en tamaño «medium»; omite los adjuntos que ya no existen). `POST` (exige `pieb_cancionero_gestionar`): multipart `archivo`, solo JPG o PNG, máx. 5 MB y 40 fondos; sube a la biblioteca de medios normal y responde `{ id, url, miniatura }`. Ver [Exportar letras](#exportar-letras). |
 | `/fondos/{id}` | DELETE | Quita el fondo de la lista y borra su adjunto (exige `pieb_cancionero_gestionar`); responde `{ fondos: [...] }`. |
 | `/ajustes` | GET, POST | Ajustes del cancionero y lista del equipo (exige `pieb_cancionero_gestionar`). Los campos de la bienvenida, en [Bienvenida al equipo](#bienvenida-al-equipo). La escaleta de la instalación son solo sus imágenes: `GET` devuelve `escaleta: { logo, cabecera }` y `POST` acepta `escaleta: { logo: {id}|null, cabecera: {id}|null }` solo si llega (lo demás de la escaleta no se toca); ver [Escaleta del culto](#escaleta-del-culto). |
@@ -194,7 +195,7 @@ de una sola iglesia se comporta exactamente igual.
     creador o el central.
   - `pieb_can_puede_borrar_cancion($post)`: con la protección activa, el creador o el central; si no,
     `pieb_can_usuario_puede_borrar()` (autor o `pieb_cancionero_gestionar`), que es también la regla de los **cultos** y no cambia.
-  - Las etiquetas no cambian en esta fase (la 4b las hace por iglesia). Notas, tonalidad habitual, partitura principal y audios: ver «Datos por iglesia (fase 4a)».
+  - Las etiquetas son por iglesia (fase 4b, ver «Etiquetas por iglesia y universales»). Notas, tonalidad habitual, partitura principal y audios: ver «Datos por iglesia (fase 4a)».
 
   **El servidor fusiona, no rechaza.** `POST /canciones/{id}` sigue siendo un multipart que «reemplaza todo», pero con la
   protección activa conserva lo que quien guarda no puede cambiar, venga lo que venga en la petición (un cliente antiguo o una
@@ -242,6 +243,32 @@ de una sola iglesia se comporta exactamente igual.
   - **Otros sitios que leen audios.** La copia de seguridad exporta todos los audios solo al central (a los demás, los visibles);
     «archivos sin usar» y el borrado definitivo de una canción cuentan todos los audios (ninguno de otra iglesia se considera
     huérfano); el aviso de borrado y la papelera (para el central) no cambian.
+- **Etiquetas por iglesia y universales (fase 4b).** `includes/etiquetas.php`. **Con una sola iglesia nada cambia ni se guarda
+  distinto** (`pieb_can_proteccion_activa()` falso: todo es visible, no se escribe ninguna meta y se asigna con
+  `wp_set_object_terms` por nombre, como siempre). Con varias, cada etiqueta (término de `pieb_etiqueta`) es de una iglesia o
+  universal:
+  - **Metas del término.** `_pieb_iglesia` (ID de la iglesia dueña; si falta, la iglesia por defecto, así que las etiquetas
+    anteriores no se migran; para la iglesia por defecto no se escribe) y `_pieb_universal` (`'1'`). El color sigue en `pieb_color`.
+  - **Visibilidad.** Una única función, `pieb_can_etiqueta_visible($term, $activa = 0)`: universal, o de la iglesia activa.
+  - **Nombres repetidos.** Dos iglesias pueden tener una etiqueta con el mismo nombre (términos distintos; el de una iglesia que
+    no es la de por defecto lleva el slug `nombre-ig{id}`). Por eso con protección activa todo se resuelve por ID de término
+    dentro de un ámbito (`pieb_can_etiqueta_buscar()`, `pieb_can_etiqueta_universal_buscar()`, `pieb_can_etiqueta_obtener()`),
+    nunca por nombre a ciegas.
+  - **Asignar** (`pieb_can_etiquetas_fijar($post_id, $nombres)`; lo usan el guardado de la canción, `POST /canciones/etiquetar`
+    y la importación de copias). Resultado = los términos que la canción tiene y quien guarda no ve (se conservan siempre) +
+    las universales (el central pone las de la lista; quien no lo es conserva las que la canción ya tenía y no puede ponerlas
+    ni quitarlas) + un término de la iglesia activa por cada nombre restante (se crea si no existe; el central, con un nombre
+    que coincide con una universal, usa esa).
+  - **API.** Resumen y ficha: `etiquetas` = nombres visibles y `etiquetasUniversales` = los de ellas que son universales (`[]`
+    sin universales). `GET /etiquetas`: `{ nombre: color }` de las visibles (si coinciden, gana la universal).
+    `GET /etiquetas/universales`: `{ etiquetas: [{ nombre, color }] }` por nombre. `POST /etiquetas/universales` con
+    `{ nombre, universal: bool }` (solo el central y con varias iglesias; 403 si no; responde como el `GET`): `true` marca como
+    universal la etiqueta de la iglesia activa con ese nombre (o crea una) y **fusiona** en ella las del mismo nombre de las
+    demás iglesias (reasigna sus canciones y borra esos términos); `false` devuelve la universal a la iglesia activa (404 si no
+    existe; si esa iglesia ya tenía otra igual, las fusiona). `POST /canciones/etiquetar` mantiene su formato (cada canción
+    del resultado añade `etiquetasUniversales`); para quien no es central, poner o quitar una universal se ignora.
+  - **Copias de seguridad.** La exportación da las etiquetas visibles para quien exporta; la importación usa
+    `pieb_can_etiquetas_fijar()`.
 - **Pendiente (fases siguientes).** Las copias de seguridad (`includes/ajustes.php`) siguen exportando e importando los cultos
   de toda la instalación, privados incluidos y sin la iglesia; la fase 5 las adaptará.
 

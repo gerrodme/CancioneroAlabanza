@@ -110,6 +110,55 @@
     }
     else if (c.tonalidad) { c.tonalidades = [c.tonalidad]; }
   });
+  // Fase 4b: etiquetas por iglesia y universales (con ?iglesias=2). Las de la iglesia 1 viven en `c.etiquetas`; las de las demás en
+  // `etPropias[iglesia][idCancion]`; las universales en `universalesBanco` y `univDe[idCancion]`. Con una sola iglesia no hay universales.
+  var etPropias = {}, universalesBanco = [], univDe = {};
+  var COLORES_UNIV = ['#c2407a', '#2f6fd6', '#2e9e6b', '#d4890f'];
+  function igualEt(a, b) { return String(a).toLowerCase() === String(b).toLowerCase(); }
+  function tieneEt(lista, n) { return lista.some(function (x) { return igualEt(x, n); }); }
+  function esUnivBanco(n) { return universalesBanco.some(function (u) { return igualEt(u.nombre, n); }); }
+  function propiasEt(c, ig) {
+    if (ig === 1 || !protegidaBanco) { return c.etiquetas; }
+    var m = etPropias[ig] = etPropias[ig] || {};
+    return m[c.id] = m[c.id] || [];
+  }
+  function ponerPropiasEt(c, ig, lista) {
+    if (ig === 1 || !protegidaBanco) { c.etiquetas = lista; } else { (etPropias[ig] = etPropias[ig] || {})[c.id] = lista; }
+  }
+  /** Lo que ve la iglesia activa: sus etiquetas y las universales de la canción. */
+  function etiquetasVistas(c) { return propiasEt(c, igActual).concat(univDe[c.id] || []); }
+  /** Convierte en universal la etiqueta de ese nombre, fusionando las de las iglesias (como el servidor). */
+  function hacerUniversalBanco(nombre) {
+    if (esUnivBanco(nombre)) { return; }
+    universalesBanco.push({ nombre: nombre, color: COLORES_UNIV[universalesBanco.length % COLORES_UNIV.length] });
+    canciones.forEach(function (c) {
+      iglesiasBanco.forEach(function (i) {
+        var l = propiasEt(c, i.id);
+        if (!tieneEt(l, nombre)) { return; }
+        ponerPropiasEt(c, i.id, l.filter(function (e) { return !igualEt(e, nombre); }));
+        univDe[c.id] = univDe[c.id] || [];
+        if (!tieneEt(univDe[c.id], nombre)) { univDe[c.id].push(nombre); }
+      });
+    });
+  }
+  /** La universal vuelve a ser solo de la iglesia activa. */
+  function deshacerUniversalBanco(nombre) {
+    universalesBanco = universalesBanco.filter(function (u) { return !igualEt(u.nombre, nombre); });
+    canciones.forEach(function (c) {
+      var u = univDe[c.id] || [];
+      if (!tieneEt(u, nombre)) { return; }
+      univDe[c.id] = u.filter(function (e) { return !igualEt(e, nombre); });
+      var l = propiasEt(c, igActual);
+      if (!tieneEt(l, nombre)) { ponerPropiasEt(c, igActual, l.concat([nombre])); }
+    });
+  }
+  if (protegidaBanco) {
+    universalesBanco = [{ nombre: 'Navidad', color: COLORES_UNIV[0] }];
+    univDe = { 433: ['Navidad'], 440: ['Navidad'] };
+    canciones.forEach(function (c) { c.etiquetas = c.etiquetas.filter(function (e) { return e !== 'Navidad'; }); });
+    // La iglesia 2 tiene las suyas, alguna con el mismo nombre que las de la 1 («Alabanza», «Pascua»).
+    etPropias[2] = { 437: ['Alabanza'], 436: ['Adoración', 'Coro de jóvenes'], 441: ['Trinidad'], 432: ['Pascua'] };
+  }
   var cultos = [
     { id: 900, titulo: 'Culto dominical', fecha: dias(4), tipo: 'Culto dominical', notas: 'Predica: pastor', items: [{ cancion: 432, tonalidad: 'Mib', nota: 'Solo estrofas 1 y 3' }, { cancion: 440, tonalidad: '', nota: '' }, { cancion: 437, tonalidad: '', nota: '' }, { cancion: 435, tonalidad: '', nota: '' }], creadoPor: 'Ana', puedeBorrar: true },
     { id: 901, titulo: 'Culto de oración', fecha: dias(7), tipo: 'Culto de oración', notas: '', items: [{ cancion: 441, tonalidad: '', nota: '' }], creadoPor: 'Ana', puedeBorrar: true },
@@ -152,6 +201,7 @@
     var hab = habitualDe(c);
     var tonos = (c.tonalidades || []).slice().sort(function (a, b) { return (claveTono(b) === claveTono(hab) ? 1 : 0) - (claveTono(a) === claveTono(hab) ? 1 : 0); });
     var r = Object.assign({}, c, { tonalidadOriginal: c.tonalidad, tonalidad: hab, tonalidades: tonos });
+    r.etiquetas = etiquetasVistas(c); r.etiquetasUniversales = (univDe[c.id] || []).slice();
     if (c.id === 437 && protegidaBanco) { r.audios = audiosVisibles(c).length; }
     return r;
   }
@@ -524,20 +574,34 @@
       datos = p;
     }
     else if (ruta === 'canciones/etiquetar') {
-      var quitarEt = (cuerpo.quitar || []).map(function (e) { return e.toLowerCase(); });
+      // Quien no es central no puede poner ni quitar universales: se ignoran.
+      var puedeUnivEt = protegidaBanco && centralBanco;
+      var anadirEt = (cuerpo.anadir || []).filter(function (e) { return puedeUnivEt || !esUnivBanco(e); });
+      var quitarEt = (cuerpo.quitar || []).filter(function (e) { return puedeUnivEt || !esUnivBanco(e); });
       datos = { canciones: (cuerpo.ids || []).map(function (id) {
         var c = canciones.filter(function (x) { return x.id === id; })[0];
         if (!c) { return null; }
         var fin = [];
-        c.etiquetas.concat(cuerpo.anadir || []).forEach(function (e) {
-          if (quitarEt.indexOf(e.toLowerCase()) < 0 && fin.map(function (f) { return f.toLowerCase(); }).indexOf(e.toLowerCase()) < 0) { fin.push(e); }
+        propiasEt(c, igActual).concat(anadirEt.filter(function (e) { return !esUnivBanco(e); })).forEach(function (e) {
+          if (!tieneEt(quitarEt, e) && !tieneEt(fin, e)) { fin.push(e); }
         });
-        c.etiquetas = fin;
-        return { id: id, etiquetas: fin };
+        ponerPropiasEt(c, igActual, fin);
+        var u = (univDe[c.id] || []).filter(function (e) { return !tieneEt(quitarEt, e); });
+        anadirEt.filter(esUnivBanco).forEach(function (e) { if (!tieneEt(u, e)) { u.push(e); } });
+        univDe[c.id] = u;
+        return { id: id, etiquetas: etiquetasVistas(c), etiquetasUniversales: u.slice() };
       }).filter(Boolean) };
       espera = 300;
     }
-    else if (ruta === 'etiquetas') { datos = {}; }
+    else if (ruta === 'etiquetas/universales' && opts && opts.method === 'POST') {
+      if (!(protegidaBanco && centralBanco)) { estado = 403; datos = { code: 'pieb_prohibido', message: 'Solo la administración central puede hacerlo.' }; }
+      else {
+        if (cuerpo.universal) { hacerUniversalBanco(String(cuerpo.nombre || '').trim()); } else { deshacerUniversalBanco(String(cuerpo.nombre || '').trim()); }
+        datos = { etiquetas: universalesBanco.slice() };
+      }
+    }
+    else if (ruta === 'etiquetas/universales') { datos = { etiquetas: universalesBanco.slice() }; }
+    else if (ruta === 'etiquetas') { datos = {}; universalesBanco.forEach(function (u) { datos[u.nombre] = u.color; }); }
     else if (ruta === 'copia/cancion') { datos = { ok: true, estado: 'creada' }; }
     else if (ruta === 'copia/culto') { datos = { ok: true, estado: 'creado' }; }
     else if (ruta === 'copia/estado') { datos = { canciones: [5, 0, 7, 0, 0], cultos: [] }; }
@@ -583,6 +647,14 @@
       var vedada = restringidaBanco(cancion);
       if (!vedada) { cancion.titulo = fd.get('titulo'); cancion.numero = fd.get('numero'); cancion.tonalidad = fd.get('tonalidad'); }
       cancion.autor = fd.get('autor');
+      // Etiquetas: las de la iglesia activa. Las universales solo las cambia la administración central; para el resto se conservan.
+      if (fd.get('etiquetas') !== null) {
+        var enviadasEt = String(fd.get('etiquetas')).split(',').map(function (e) { return e.trim(); }).filter(Boolean);
+        var finEt = [];
+        enviadasEt.forEach(function (e) { if (!esUnivBanco(e) && !tieneEt(finEt, e)) { finEt.push(e); } });
+        ponerPropiasEt(cancion, igActual, finEt);
+        if (protegidaBanco && centralBanco) { univDe[cancion.id] = enviadasEt.filter(esUnivBanco); }
+      }
       // Las notas son de la iglesia activa.
       if (fd.get('notas') !== null) { dIg(igActual, cancion.id).notas = fd.get('notas'); }
       cancion.tempo = fd.get('tempo');

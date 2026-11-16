@@ -120,6 +120,7 @@
     orden: 'titulo',
     ordenInverso: false,
     coloresEtiquetas: {},
+    etiquetasUniversales: [], // nombres de las etiquetas universales (solo con varias iglesias)
     cargado: false,
     error: '',
     vista: 'inicio',
@@ -776,10 +777,45 @@
 
   // ---------------------------------------------------------------- datos
 
+  var TEXTO_UNIVERSAL = __('Etiqueta universal: la ven todas las iglesias');
+
+  /** Pide las etiquetas universales (solo con varias iglesias; con una la lista queda vacía y no se pide nada). */
+  function cargarUniversales() {
+    if (!hayVariasIglesias()) { state.etiquetasUniversales = []; return Promise.resolve(); }
+    return api('etiquetas/universales').then(function (r) {
+      var lista = r && r.etiquetas ? r.etiquetas : [];
+      state.etiquetasUniversales = lista.map(function (e) { return e.nombre; });
+      lista.forEach(function (e) { if (e.color) { state.coloresEtiquetas[e.nombre] = e.color; } });
+    }).catch(function () {});
+  }
+
+  /** ¿Es universal la etiqueta (la ven todas las iglesias)? Sin distinguir mayúsculas ni tildes. */
+  function esUniversal(nombre) {
+    var n = norm(nombre);
+    return state.etiquetasUniversales.some(function (u) { return norm(u) === n; });
+  }
+
+  /** Marca discreta que va antes del nombre de una etiqueta universal (nada si no lo es). */
+  function marcaEtiquetaUniversal(nombre) {
+    return esUniversal(nombre) ? h('span', { class: 'pcan-uni', 'aria-hidden': 'true', title: TEXTO_UNIVERSAL, text: '★' }) : null;
+  }
+
+  /** Recarga etiquetas (colores) y universales y repinta los filtros y la lista. */
+  function recargarEtiquetas() {
+    return Promise.all([api('etiquetas').then(function (colores) {
+      state.coloresEtiquetas = colores && typeof colores === 'object' ? colores : {};
+    }).catch(function () {}), cargarUniversales()]).then(function () {
+      if (ui.lista) { pintarChips(); pintarLista(); }
+    });
+  }
+
   function cargar() {
     // Los colores de las etiquetas llegan aparte; si fallan, cada etiqueta usa uno provisional (colorEtiqueta).
+    // Las universales se piden después para que sus colores no los pise la lista general.
     api('etiquetas').then(function (colores) {
       state.coloresEtiquetas = colores && typeof colores === 'object' ? colores : {};
+      return cargarUniversales();
+    }).then(function () {
       if (ui.lista) { pintarChips(); pintarLista(); }
     }).catch(function () {});
     return api('canciones').then(function (lista) {
@@ -819,10 +855,14 @@
     return '--tag: ' + colorEtiqueta(nombre);
   }
 
-  function etiquetasTodas() {
+  /** Etiquetas con su recuento. Con sinUniversales, quien no es central no las recibe (no puede ponerlas ni quitarlas). */
+  function etiquetasTodas(sinUniversales) {
     var cuenta = {};
     state.canciones.forEach(function (c) {
-      c.etiquetas.forEach(function (e) { cuenta[e] = (cuenta[e] || 0) + 1; });
+      c.etiquetas.forEach(function (e) {
+        if (sinUniversales && esUniversal(e)) { return; }
+        cuenta[e] = (cuenta[e] || 0) + 1;
+      });
     });
     return Object.keys(cuenta).sort(function (a, b) { return a.localeCompare(b, LOCALE); })
       .map(function (e) { return { nombre: e, n: cuenta[e] }; });
@@ -1498,7 +1538,7 @@
         type: 'button', class: 'pcan-chip' + (activo ? ' is-active' : ''), 'aria-pressed': activo ? 'true' : 'false',
         style: etiqueta ? estiloEtiqueta(etiqueta) : null,
         onclick: function () { state.etiqueta = activo && etiqueta ? '' : etiqueta; pintarChips(); pintarLista(); }
-      }, nombre, n !== undefined ? h('span', { class: 'pcan-chip-n', text: String(n) }) : null);
+      }, etiqueta ? marcaEtiquetaUniversal(etiqueta) : null, nombre, n !== undefined ? h('span', { class: 'pcan-chip-n', text: String(n) }) : null);
     };
     append(ui.chips, chip(_x('Todas', 'filtro de etiquetas: todas las canciones'), '', state.canciones.length));
     todas.forEach(function (e) { append(ui.chips, chip(e.nombre, e.nombre, e.n)); });
@@ -1665,7 +1705,7 @@
 
   /** Barra del modo etiquetar: elegir una etiqueta (nueva o existente) y añadirla o quitarla a las canciones marcadas. */
   function pintarBarraEtiquetar(barra, ids, visibles, todas) {
-    var listaDatos = h('datalist', { id: 'pcan-etiquetas-lote' }, etiquetasTodas().map(function (e) { return h('option', { value: e.nombre }); }));
+    var listaDatos = h('datalist', { id: 'pcan-etiquetas-lote' }, etiquetasTodas(!CFG.central).map(function (e) { return h('option', { value: e.nombre }); }));
     var campo = h('input', {
       type: 'text', class: 'pcan-input pcan-barra-etiqueta', list: 'pcan-etiquetas-lote', value: textoEtiqueta, autocomplete: 'off',
       placeholder: __('Etiqueta nueva o existente'), 'aria-label': __('Etiqueta'),
@@ -1678,6 +1718,8 @@
     var aplicar = function (anadir) {
       var lista = etiquetas();
       if (!lista.length) { campo.focus(); estado.textContent = __('Escribe o elige una etiqueta.'); return; }
+      // Las universales solo las pone y quita la administración central.
+      if (!CFG.central && lista.some(esUniversal)) { campo.focus(); estado.textContent = __('Esa etiqueta es universal: solo la pone la administración central.'); return; }
       botones.forEach(function (b) { b.disabled = true; });
       campo.disabled = true;
       etiquetarMarcadas(ids, anadir ? lista : [], anadir ? [] : lista, estado, avance);
@@ -1828,7 +1870,7 @@
         h('span', { class: 'pcan-row-meta' },
           h('span', { class: 'pcan-c-tono' }, c.tonalidad ? pastillaTono(c.tonalidad) : null),
           h('span', { class: 'pcan-c-tempo', title: c.tempo ? sprintf(/* translators: %s: tempo en pulsaciones por minuto */ __('%s pulsaciones por minuto'), c.tempo) : null, text: c.tempo ? '♩ ' + c.tempo : '' }),
-          h('span', { class: 'pcan-c-tags' }, c.etiquetas.map(function (e) { return h('span', { class: 'pcan-tag', style: estiloEtiqueta(e), text: e }); }))),
+          h('span', { class: 'pcan-c-tags' }, c.etiquetas.map(function (e) { return h('span', { class: 'pcan-tag', style: estiloEtiqueta(e) }, marcaEtiquetaUniversal(e), e); }))),
         h('span', { class: 'pcan-c-rec' },
           puntoRecurso(c.partituras, 'partitura', c.partituras ? sprintf(_n('%d partitura', '%d partituras', c.partituras), c.partituras) : __('Sin partitura')),
           puntoRecurso(c.letra ? 1 : 0, 'letra', c.letra ? __('1 letra') : __('Sin letra')),
@@ -2230,7 +2272,7 @@
           return h('button', {
             type: 'button', class: 'pcan-tag is-link', style: estiloEtiqueta(e), title: __('Ver canciones con esta etiqueta'),
             onclick: function () { state.etiqueta = e; state.query = ''; ui.buscador.value = ''; pintarChips(); pintarLista(); cerrarPanel(); mostrarVista('canciones'); }
-          }, e);
+          }, marcaEtiquetaUniversal(e), e);
         })),
       h('h2', { class: 'pcan-det-titulo', text: c.titulo }),
       h('p', { class: 'pcan-det-meta' },
@@ -2584,25 +2626,31 @@
 
     // Etiquetas tipo «chip».
     var tagBox = h('div', { class: 'pcan-taginput' });
-    var listaEtiquetas = h('datalist', { id: 'pcan-etiquetas' }, etiquetasTodas().map(function (e) { return h('option', { value: e.nombre }); }));
+    var listaEtiquetas = h('datalist', { id: 'pcan-etiquetas' }, etiquetasTodas(!CFG.central).map(function (e) { return h('option', { value: e.nombre }); }));
     var tagInput = h('input', { type: 'text', class: 'pcan-taginput-field', list: 'pcan-etiquetas', placeholder: __('Navidad, Santa Cena, alabanza…'), 'aria-label': __('Añadir etiqueta') });
     function addTag(v) {
       v = String(v || '').replace(/,/g, ' ').trim();
-      if (v && etiquetas.map(norm).indexOf(norm(v)) === -1) { etiquetas.push(v); }
+      // Quien no es de la administración central no puede poner una universal.
+      if (v && !CFG.central && esUniversal(v)) {
+        if (etiquetas.map(norm).indexOf(norm(v)) === -1) { aviso(__('Esa etiqueta es universal: solo la pone la administración central.'), 'error'); }
+      } else if (v && etiquetas.map(norm).indexOf(norm(v)) === -1) { etiquetas.push(v); }
       tagInput.value = '';
       pintarTags();
     }
+    // ¿Se puede quitar esta etiqueta? Las universales, solo la administración central.
+    function quitable(e) { return CFG.central || !esUniversal(e); }
     function pintarTags() {
       tagBox.innerHTML = '';
       etiquetas.forEach(function (e, i) {
-        append(tagBox, h('span', { class: 'pcan-tag', style: estiloEtiqueta(e) }, e,
-          h('button', { type: 'button', class: 'pcan-tag-x', 'aria-label': sprintf(/* translators: %s: nombre de la etiqueta */ __('Quitar %s'), e), onclick: function () { etiquetas.splice(i, 1); pintarTags(); } }, '×')));
+        var fija = !quitable(e);
+        append(tagBox, h('span', { class: 'pcan-tag', style: estiloEtiqueta(e), title: fija ? TEXTO_UNIVERSAL : null }, marcaEtiquetaUniversal(e), e,
+          fija ? null : h('button', { type: 'button', class: 'pcan-tag-x', 'aria-label': sprintf(/* translators: %s: nombre de la etiqueta */ __('Quitar %s'), e), onclick: function () { etiquetas.splice(i, 1); pintarTags(); } }, '×')));
       });
       append(tagBox, tagInput);
     }
     tagInput.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(tagInput.value); }
-      else if (e.key === 'Backspace' && !tagInput.value && etiquetas.length) { etiquetas.pop(); pintarTags(); }
+      else if (e.key === 'Backspace' && !tagInput.value && etiquetas.length && quitable(etiquetas[etiquetas.length - 1])) { etiquetas.pop(); pintarTags(); }
     });
     tagInput.addEventListener('change', function () { if (tagInput.value) { addTag(tagInput.value); } });
     tagInput.addEventListener('blur', function () { if (tagInput.value) { addTag(tagInput.value); } });
@@ -2816,7 +2864,8 @@
         h('fieldset', { class: 'pcan-fieldset pcan-form-etiquetas' },
           h('legend', { text: __('Etiquetas') }),
           tagBox, listaEtiquetas,
-          h('p', { class: 'pcan-help', text: __('Pulsa Intro o coma para añadir cada etiqueta.') })),
+          h('p', { class: 'pcan-help', text: __('Pulsa Intro o coma para añadir cada etiqueta.') }),
+          hayVariasIglesias() ? h('p', { class: 'pcan-help', text: __('Las etiquetas son de tu iglesia. Las universales las pone la administración central.') }) : null),
         h('fieldset', { class: 'pcan-fieldset pcan-form-videos' },
           h('legend', { text: __('Vídeos de YouTube') }),
           listaVideos)),
@@ -5400,9 +5449,64 @@
       append(cuerpo, [
         h('p', { class: 'pcan-help', text: __('Cada iglesia tiene sus propios cultos. Las canciones son comunes a todas.') }),
         h('ul', { class: 'pcan-papelera-lista' }, filas),
-        formNueva, error]);
+        formNueva, error,
+        hayVariasIglesias() ? bloqueEtiquetasUniversales() : null]);
     }
     pintar();
+  }
+
+  /** Bloque «Etiquetas universales» de la sección Iglesias: las ven todas las iglesias y solo la administración central las pone. */
+  function bloqueEtiquetasUniversales() {
+    var caja = h('div', { class: 'pcan-etiquetas-univ' });
+    // Tras cada cambio se recargan las etiquetas y las canciones para que el listado quede coherente.
+    function tras(mensaje) {
+      return Promise.all([recargarEtiquetas(), cargar()]).then(function () {
+        if (ui.lista) { pintarChips(); pintarLista(); }
+        aviso(mensaje);
+        pintar();
+      });
+    }
+    function pintar() {
+      caja.innerHTML = '';
+      var fNueva = h('input', { type: 'text', class: 'pcan-input', maxlength: '40', 'aria-label': __('Nombre de la etiqueta universal'), placeholder: __('Nombre de la etiqueta universal'), spellcheck: 'false' });
+      var error = h('p', { class: 'pcan-form-error', role: 'alert', hidden: true });
+      var bCrear = h('button', { type: 'submit', class: 'pcan-btn pcan-btn-primary' }, icono('mas'), __('Crear etiqueta universal'));
+      var form = h('form', { class: 'pcan-iglesias-nueva', novalidate: true }, fNueva, bCrear);
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var nombre = fNueva.value.replace(/,/g, ' ').trim();
+        if (!nombre) { error.textContent = __('Escribe el nombre de la etiqueta.'); error.hidden = false; fNueva.focus(); return; }
+        error.hidden = true;
+        bCrear.disabled = true;
+        api('etiquetas/universales', { json: { nombre: nombre, universal: true } }).then(function () {
+          return tras(__('Etiqueta universal creada'));
+        }).catch(function (err) { error.textContent = err.message; error.hidden = false; bCrear.disabled = false; });
+      });
+      var filas = state.etiquetasUniversales.map(function (nombre) {
+        return h('li', { class: 'pcan-papelera-item pcan-iglesia' },
+          h('div', { class: 'pcan-papelera-main' }, h('span', { class: 'pcan-tag', style: estiloEtiqueta(nombre) }, marcaEtiquetaUniversal(nombre), nombre)),
+          h('div', { class: 'pcan-papelera-acciones' },
+            h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', onclick: function (ev) {
+              var b = ev.currentTarget;
+              confirmar({ mensaje: sprintf(/* translators: %s: nombre de la etiqueta */ __('¿Que «%s» deje de ser universal? Pasará a ser una etiqueta solo de esta iglesia.'), nombre), aceptar: __('Dejar de ser universal'), peligro: true }).then(function (si) {
+                if (!si) { return; }
+                b.disabled = true;
+                api('etiquetas/universales', { json: { nombre: nombre, universal: false } }).then(function () {
+                  return tras(__('La etiqueta ya no es universal'));
+                }).catch(function (err) { aviso(err.message, 'error'); b.disabled = false; });
+              });
+            } }, __('Dejar de ser universal'))));
+      });
+      append(caja, [
+        h('h4', { class: 'pcan-subtitulo', text: __('Etiquetas universales') }),
+        h('p', { class: 'pcan-help', text: __('Las ven todas las iglesias. Solo tú puedes ponerlas y quitarlas en las canciones.') }),
+        filas.length ? h('ul', { class: 'pcan-papelera-lista' }, filas) : null,
+        form,
+        h('p', { class: 'pcan-help', text: __('Si alguna iglesia ya tiene una etiqueta con ese nombre, se unen en la universal.') }),
+        error]);
+    }
+    pintar();
+    return caja;
   }
 
   function pintarPapelera(cuerpo) {
