@@ -245,6 +245,19 @@ function pieb_can_es_central($user_id = 0) {
 }
 
 /**
+ * ¿Está activa la protección de lo que añade cada persona a una canción? Solo cuando hay más de una iglesia (ver fase 3
+ * del plan). Con una sola, todo el equipo edita cualquier cosa, como siempre. El resultado se recuerda durante la
+ * petición; $reiniciar = true lo vuelve a calcular (al crear una iglesia).
+ */
+function pieb_can_proteccion_activa($reiniciar = false) {
+    static $activa = null;
+    if ($reiniciar || $activa === null) {
+        $activa = count(pieb_can_iglesias()) > 1;
+    }
+    return $activa;
+}
+
+/**
  * Iglesias del usuario como lista para la interfaz: array( array('id', 'nombre', 'rol', 'ajena'), … ). Al administrador
  * central (capacidad pieb_cancionero_central) le salen todas: en las que no es miembro, rol 'admin' y ajena true.
  */
@@ -381,6 +394,7 @@ function pieb_can_rest_iglesia_crear(WP_REST_Request $request) {
     }
     $pertenencia[(int) $id] = 'admin';
     update_user_meta($usuario, '_pieb_iglesias', $pertenencia);
+    pieb_can_proteccion_activa(true); // con la segunda iglesia empieza la protección de lo ajeno
 
     $estado = pieb_can_iglesias_estado();
     $estado['creada'] = (int) $id;

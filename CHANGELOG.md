@@ -2,6 +2,16 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.29.0 · 2026-11-16
+
+En una canción se añade, no se destruye (fase 3 de `docs/plan-multi-iglesia.md`). Con más de una iglesia, cualquiera puede
+añadir partituras, audios, partituras editables, enlaces y datos que falten, pero lo que añadió otra persona solo lo cambia
+o lo quita ella o el administrador central. Un dato ya relleno (título, número, autor, tonalidad, tempo) lo cambia quien lo
+rellenó, quien creó la canción o el central; la letra, quien creó la canción o el central; el orden de las partituras (cuál
+es la principal), quien creó la canción o el central; y la canción solo la borra quien la creó o el central. El servidor
+conserva lo ajeno aunque se le envíe cambiado o no se le envíe (ya no se pierde nada por un guardado incompleto), y el
+formulario lo muestra bloqueado con «Añadida por…». Con una sola iglesia no se aplica nada de esto: todo sigue como antes.
+
 ## 1.28.0 · 2026-11-16
 
 Cultos por iglesia y cultos privados (fase 2 de `docs/plan-multi-iglesia.md`). Con varias iglesias, cada una ve solo sus

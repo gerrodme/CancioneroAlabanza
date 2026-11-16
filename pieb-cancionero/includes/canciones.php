@@ -211,8 +211,197 @@ function pieb_can_etiquetas($post_id) {
     return is_wp_error($terms) ? array() : array_values($terms);
 }
 
+/** Regla de borrado de cultos (y la de canciones mientras haya una sola iglesia): su autor o quien gestiona. */
 function pieb_can_usuario_puede_borrar($post) {
     return current_user_can(PIEB_CAN_CAP_GESTIONAR) || (int) $post->post_author === get_current_user_id();
+}
+
+// ---------------------------------------------------------------- permisos sobre lo ajeno en una canción
+// Con varias iglesias cualquiera puede AÑADIR a una canción, pero no cambiar ni quitar lo que añadió otra persona.
+// Con una sola iglesia (pieb_can_proteccion_activa() falso) estas funciones permiten todo, salvo borrar, que mantiene
+// su regla de siempre. Es el único sitio donde se decide cada permiso: el guardado y la API usan estas funciones.
+
+/** ¿Es el usuario (0 = el actual) quien subió la canción? */
+function pieb_can_es_creador($post, $user_id = 0) {
+    $user_id = $user_id ? (int) $user_id : get_current_user_id();
+    return $user_id && (int) $post->post_author === $user_id;
+}
+
+/** Quién rellenó cada campo: array( campo => user_id ) (meta _pieb_campos_autor). Lo que no figura lo rellenó el creador. */
+function pieb_can_campos_autor($post_id) {
+    $mapa = get_post_meta($post_id, '_pieb_campos_autor', true);
+    return is_array($mapa) ? $mapa : array();
+}
+
+/** Anota al usuario actual como autor de los campos que acaban de cambiar de valor. */
+function pieb_can_registrar_campos_autor($post_id, $campos) {
+    if (!$campos) {
+        return;
+    }
+    $mapa = pieb_can_campos_autor($post_id);
+    foreach ($campos as $campo) {
+        $mapa[$campo] = get_current_user_id();
+    }
+    update_post_meta($post_id, '_pieb_campos_autor', $mapa);
+}
+
+/** Valor actual guardado de un campo: 'titulo' o uno de pieb_can_campos_texto(). */
+function pieb_can_valor_actual_campo($campo, $post) {
+    if ($campo === 'titulo') {
+        return (string) $post->post_title;
+    }
+    $campos = pieb_can_campos_texto();
+    return isset($campos[$campo]) ? (string) get_post_meta($post->ID, $campos[$campo], true) : '';
+}
+
+/** ¿Puede el usuario cambiar o quitar este partitura, audio, editable o enlace? Su autor o el central. */
+function pieb_can_puede_elemento($elemento, $post) {
+    if (!pieb_can_proteccion_activa() || pieb_can_es_central()) {
+        return true;
+    }
+    $autor = !empty($elemento['autor']) ? (int) $elemento['autor'] : (int) $post->post_author;
+    return $autor === get_current_user_id();
+}
+
+/** ¿Puede el usuario cambiar el valor de un campo (titulo, numero, autor, tonalidad, tempo)? Uno vacío lo rellena cualquiera. */
+function pieb_can_puede_campo($campo, $post) {
+    if (!pieb_can_proteccion_activa() || pieb_can_es_central() || pieb_can_es_creador($post)) {
+        return true;
+    }
+    if (trim(pieb_can_valor_actual_campo($campo, $post)) === '') {
+        return true;
+    }
+    $mapa = pieb_can_campos_autor($post->ID);
+    return isset($mapa[$campo]) && (int) $mapa[$campo] === get_current_user_id();
+}
+
+/** ¿Tiene la canción alguna letra (plana o con formato)? */
+function pieb_can_tiene_letra($post) {
+    return trim((string) get_post_meta($post->ID, '_pieb_letra', true)) !== ''
+        || trim((string) get_post_meta($post->ID, '_pieb_letra_html', true)) !== '';
+}
+
+/** ¿Puede el usuario cambiar la letra? Si no hay, cualquiera la añade; si ya hay, el creador o el central. */
+function pieb_can_puede_letra($post) {
+    if (!pieb_can_proteccion_activa() || pieb_can_es_central() || pieb_can_es_creador($post)) {
+        return true;
+    }
+    return !pieb_can_tiene_letra($post);
+}
+
+/** ¿Puede el usuario cambiar el orden de las partituras (la primera es la principal)? El creador o el central. */
+function pieb_can_puede_ordenar($post) {
+    return !pieb_can_proteccion_activa() || pieb_can_es_central() || pieb_can_es_creador($post);
+}
+
+/** ¿Puede el usuario borrar la canción? Con varias iglesias, su creador o el central; con una, la regla de siempre. */
+function pieb_can_puede_borrar_cancion($post) {
+    if (!pieb_can_proteccion_activa()) {
+        return pieb_can_usuario_puede_borrar($post);
+    }
+    return pieb_can_es_central() || pieb_can_es_creador($post);
+}
+
+/** Permisos del usuario sobre una canción, para la interfaz (campo vacío = siempre permitido). */
+function pieb_can_permisos_cancion($post) {
+    $campos = array();
+    foreach (array('titulo', 'numero', 'autor', 'tonalidad', 'tempo') as $campo) {
+        $campos[$campo] = pieb_can_puede_campo($campo, $post);
+    }
+    $campos['letra'] = pieb_can_puede_letra($post);
+    return array(
+        'campos'  => $campos,
+        'ordenar' => pieb_can_puede_ordenar($post),
+        'borrar'  => pieb_can_puede_borrar_cancion($post),
+    );
+}
+
+/** Valores finales de los campos de texto al guardar: el recibido si puede cambiarlo; si no, el que ya tiene. */
+function pieb_can_valores_campos($post, WP_REST_Request $request) {
+    $valores = array();
+    foreach (array_keys(pieb_can_campos_texto()) as $campo) {
+        $valores[$campo] = pieb_can_puede_campo($campo, $post)
+            ? pieb_can_valor_campo($campo, $request->get_param($campo))
+            : pieb_can_valor_actual_campo($campo, $post);
+    }
+    return $valores;
+}
+
+/**
+ * Fusiona los elementos que propone quien guarda con los que ya hay, conservando los que no puede cambiar.
+ * $actuales: lo guardado; $propuestos: lo que llega ya limpio (puede traer elementos nuevos); $clave: función que da la
+ * identidad de un elemento (id del adjunto o URL). Un elemento ajeno se conserva tal cual esté o no en lo recibido y
+ * venga como venga. $orden_libre = false: los que ya existían mantienen su orden y los nuevos van al final.
+ * Sin la protección activa devuelve $propuestos sin tocar.
+ */
+function pieb_can_fusionar_elementos($actuales, $propuestos, $clave, $post, $orden_libre = true) {
+    if (!pieb_can_proteccion_activa()) {
+        return $propuestos;
+    }
+    $existentes = array();
+    foreach ($actuales as $a) {
+        $k = $clave($a);
+        if (!isset($existentes[$k])) {
+            $existentes[$k] = $a;
+        }
+    }
+
+    $resultado = array();
+    $vistos = array();
+    foreach ($propuestos as $p) {
+        $k = $clave($p);
+        if (!isset($existentes[$k])) {
+            $resultado[] = $p; // nuevo
+        } elseif (!isset($vistos[$k])) {
+            $vistos[$k] = true;
+            $resultado[] = pieb_can_puede_elemento($existentes[$k], $post) ? $p : $existentes[$k];
+        }
+    }
+
+    // Los ajenos que no venían en lo recibido se conservan, en su posición de origen en la medida de lo posible.
+    foreach ($actuales as $i => $a) {
+        $k = $clave($a);
+        if (!isset($vistos[$k]) && $existentes[$k] === $a && !pieb_can_puede_elemento($a, $post)) {
+            $vistos[$k] = true;
+            array_splice($resultado, min($i, count($resultado)), 0, array($a));
+        }
+    }
+
+    if (!$orden_libre) {
+        $por_clave = array();
+        $nuevos = array();
+        foreach ($resultado as $r) {
+            $k = $clave($r);
+            if (isset($existentes[$k])) {
+                $por_clave[$k] = $r;
+            } else {
+                $nuevos[] = $r;
+            }
+        }
+        $resultado = array();
+        foreach ($actuales as $a) {
+            $k = $clave($a);
+            if (isset($por_clave[$k])) {
+                $resultado[] = $por_clave[$k];
+                unset($por_clave[$k]);
+            }
+        }
+        $resultado = array_merge($resultado, $nuevos);
+    }
+    return $resultado;
+}
+
+/** Nombre para mostrar de un usuario ('' si ya no existe). */
+function pieb_can_nombre_usuario($user_id) {
+    $u = $user_id ? get_userdata((int) $user_id) : false;
+    return $u ? (string) $u->display_name : '';
+}
+
+/** Añade 'mio' y 'autorNombre' a un elemento que se devuelve por la API. */
+function pieb_can_marcar_elemento($salida, $elemento, $post) {
+    $salida['mio'] = pieb_can_puede_elemento($elemento, $post);
+    $salida['autorNombre'] = pieb_can_nombre_usuario(isset($elemento['autor']) ? $elemento['autor'] : 0);
+    return $salida;
 }
 
 /**
@@ -334,7 +523,7 @@ function pieb_can_detalle($post) {
             continue;
         }
         $url = pieb_can_url_archivo($p['id']);
-        $datos['partituras'][] = array(
+        $datos['partituras'][] = pieb_can_marcar_elemento(array(
             'id'        => (int) $p['id'],
             'label'     => (string) $p['label'],
             'tonalidad' => (string) $p['tonalidad'],
@@ -344,7 +533,7 @@ function pieb_can_detalle($post) {
             'miniatura' => pieb_can_url_miniatura($p['id'], 'large'),
             'autor'     => (int) $p['autor'],
             'iglesia'   => (int) $p['iglesia'],
-        );
+        ), $p, $post);
     }
 
     $datos['audios'] = array();
@@ -355,7 +544,7 @@ function pieb_can_detalle($post) {
         }
         $url = pieb_can_url_archivo($a['id']);
         $meta = wp_get_attachment_metadata($a['id']);
-        $datos['audios'][] = array(
+        $datos['audios'][] = pieb_can_marcar_elemento(array(
             'id'          => (int) $a['id'],
             'nombre'      => (string) $a['nombre'],
             'descripcion' => (string) $a['descripcion'],
@@ -364,7 +553,7 @@ function pieb_can_detalle($post) {
             'duracion'    => is_array($meta) && !empty($meta['length_formatted']) ? $meta['length_formatted'] : '',
             'autor'       => (int) $a['autor'],
             'iglesia'     => (int) $a['iglesia'],
-        );
+        ), $a, $post);
     }
 
     $datos['editables'] = array();
@@ -374,7 +563,7 @@ function pieb_can_detalle($post) {
             continue;
         }
         $url = pieb_can_url_archivo($e['id']);
-        $datos['editables'][] = array(
+        $datos['editables'][] = pieb_can_marcar_elemento(array(
             'id'          => (int) $e['id'],
             'descripcion' => (string) $e['descripcion'],
             'url'         => $url,
@@ -382,23 +571,25 @@ function pieb_can_detalle($post) {
             'tamano'      => file_exists($file) ? (int) filesize($file) : 0,
             'autor'       => (int) $e['autor'],
             'iglesia'     => (int) $e['iglesia'],
-        );
+        ), $e, $post);
     }
 
     $datos['youtube'] = array();
     foreach (pieb_can_get_youtube($post->ID) as $y) {
-        $datos['youtube'][] = array(
+        $datos['youtube'][] = pieb_can_marcar_elemento(array(
             'url'     => $y['url'],
             'label'   => (string) $y['label'],
             'videoId' => pieb_can_youtube_id($y['url']),
             'autor'   => (int) $y['autor'],
             'iglesia' => (int) $y['iglesia'],
-        );
+        ), $y, $post);
     }
 
     $author = get_userdata($post->post_author);
     $datos['subidaPor']   = $author ? $author->display_name : '';
-    $datos['puedeBorrar'] = pieb_can_usuario_puede_borrar($post);
+    $datos['protegida']   = pieb_can_proteccion_activa();
+    $datos['permisos']    = pieb_can_permisos_cancion($post);
+    $datos['puedeBorrar'] = $datos['permisos']['borrar'];
     $datos['enPapelera']  = $post->post_status === 'trash';
     if ($datos['enPapelera']) {
         $datos['papelera'] = pieb_can_papelera_item($post);

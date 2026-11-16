@@ -66,6 +66,7 @@ La interfaz es una aplicación de una sola página dentro de la página de WordP
   | `_pieb_youtube` | Lista de `{url, label}`; solo se aceptan enlaces de YouTube válidos. |
   | `_pieb_audios` | Lista de `{id, nombre, descripcion}`. MP3/M4A/OGG/WAV/AAC, máx. 10 MB. |
   | `_pieb_editables` | Lista de `{id, descripcion}`: MuseScore, MusicXML… máx. 10 MB. |
+  | `_pieb_campos_autor` | `{ campo: idUsuario }`: quién rellenó `titulo`, `numero`, `autor`, `tonalidad` y `tempo`. Solo pesa con varias iglesias (ver [Iglesias](#iglesias)); lo que falta cuenta como rellenado por el creador de la canción. |
   | `autor`, `iglesia` (en cada elemento de las cuatro listas anteriores) | `autor`: ID del usuario que lo añadió; `iglesia`: ID de la iglesia desde la que se añadió. Si faltan, los getters (`pieb_can_get_partituras/audios/editables/youtube`) los completan al leer con el autor de la canción y la iglesia por defecto, sin escribir nada. Al guardar, los elementos nuevos llevan el usuario actual y su iglesia activa; los que se conservan mantienen los suyos (nunca se aceptan del cliente; un enlace de YouTube es «el mismo» si coincide su URL). La API los devuelve en cada partitura, audio, editable y enlace. |
 
 - Metadatos de **culto**: `_pieb_iglesia` (ID de la iglesia; se guarda al crearlo y no cambia al editar; `pieb_can_culto_iglesia()` devuelve la de por defecto si falta; el resumen del culto la trae como `iglesia`), `_pieb_privado` (`'1'` = culto privado, solo lo ve su autor; el resumen trae `privado` y `mio`; **la visibilidad la decide solo `pieb_can_culto_visible()`**, ver [Iglesias](#iglesias)), `_pieb_fecha`, `_pieb_tipo`, `_pieb_notas`, `_pieb_items` (lista de
@@ -114,7 +115,7 @@ Todas las rutas exigen sesión iniciada con la capacidad `pieb_cancionero_acceso
 
 ### Actualizar una canción (`POST /canciones/{id}`)
 
-Cuerpo `multipart/form-data` con todos estos campos (los ausentes se **vacían**):
+Cuerpo `multipart/form-data` con todos estos campos (los ausentes se **vacían**; con varias iglesias el servidor conserva además lo que añadió otra persona y no puedes cambiar, ver [Iglesias](#iglesias)):
 
 `titulo, numero, autor, tonalidad, tempo, etiquetas` (separadas por comas), `letra, letraHtml, notas`,
 `youtube` (JSON `[{url,label}]`), `partituras` (JSON `[{id,label,tonalidad}]` de las que se conservan; la `tonalidad` de cada una hay que reenviarla o se pierde),
@@ -172,6 +173,38 @@ de una sola iglesia se comporta exactamente igual.
   (`pieb_can_escaleta_ultima()` solo mira cultos visibles). Quien añada una vía nueva que lea cultos debe usarla.
   Al crear, cualquiera puede marcar `privado`; al editar solo lo cambia el autor (de otra persona se ignora). Borrar un culto
   nunca envía aviso (los avisos son de canciones). `pieb_can_culto_resumen()` añade `privado` y `mio` (el autor es el usuario).
+- **En una canción se añade, no se destruye (fase 3).** Las canciones siguen siendo comunes, pero **solo con más de una
+  iglesia** (`pieb_can_proteccion_activa()`, en `includes/iglesias.php`): cualquiera puede **añadir** a una canción, y nadie
+  cambia ni quita lo que añadió otra persona. **Con una sola iglesia la protección no se aplica y todo funciona como siempre**
+  (cualquiera del equipo edita cualquier cosa; borra la canción quien la subió o quien gestiona). «Central» =
+  `pieb_can_es_central()`; «creador» = `post_author` de la canción. Cada permiso se decide en **una única función**
+  (`includes/canciones.php`), que usan el guardado y la API:
+  - `pieb_can_puede_elemento($elemento, $post)`: partituras, audios, editables y enlaces de YouTube. Añadir, cualquiera;
+    cambiar sus datos o quitarlos, su `autor` (el de la canción si falta) o el central.
+  - `pieb_can_puede_ordenar($post)`: el orden de las partituras (la primera es la principal), solo el creador o el central.
+    Para los demás se conserva el orden actual y sus partituras nuevas van al final.
+  - `pieb_can_puede_campo($campo, $post)`: `titulo`, `numero`, `autor`, `tonalidad`, `tempo`. Un campo **vacío** lo rellena
+    cualquiera; uno con valor lo cambia quien lo rellenó, el creador o el central. Quién rellenó cada campo se guarda en la
+    meta `_pieb_campos_autor` = `{ campo: idUsuario }` (se actualiza cada vez que un campo cambia de valor, también con una
+    sola iglesia; un campo que no figura cuenta como rellenado por el creador).
+  - `pieb_can_puede_letra($post)`: sin letra (ni `_pieb_letra` ni `_pieb_letra_html`), cualquiera la añade; con letra, solo el
+    creador o el central.
+  - `pieb_can_puede_borrar_cancion($post)`: con la protección activa, el creador o el central; si no,
+    `pieb_can_usuario_puede_borrar()` (autor o `pieb_cancionero_gestionar`), que es también la regla de los **cultos** y no cambia.
+  - Notas y etiquetas no cambian en esta fase (la fase 4 las hace por iglesia).
+
+  **El servidor fusiona, no rechaza.** `POST /canciones/{id}` sigue siendo un multipart que «reemplaza todo», pero con la
+  protección activa conserva lo que quien guarda no puede cambiar, venga lo que venga en la petición (un cliente antiguo o una
+  carga masiva que omita datos ya no los destruye): un elemento ajeno se conserva tal cual está guardado
+  (`pieb_can_fusionar_elementos()`), un campo o la letra ajenos conservan su valor y el título ajeno no se cambia. Nada de esto
+  es un error. «El título es obligatorio» y «al menos una partitura» (que cuenta también las ajenas conservadas) siguen igual.
+  La importación de copias de seguridad y la Subida múltiple no cambian de formato.
+
+  **API.** `GET /canciones/{id}` devuelve siempre (con o sin protección): `protegida` (bool); en cada elemento de `partituras`,
+  `audios`, `editables` y `youtube`, `mio` (quien pregunta puede cambiarlo o quitarlo; siempre `true` sin protección) y
+  `autorNombre` (nombre del autor, `''` si el usuario ya no existe); y `permisos`:
+  `{ campos: { titulo, numero, autor, tonalidad, tempo, letra }, ordenar, borrar }` (booleanos; un campo vacío es siempre
+  `true`). `puedeBorrar` es `permisos.borrar`. `DELETE /canciones/{id}` aplica la regla nueva (403 si no).
 - **Pendiente (fases siguientes).** Las copias de seguridad (`includes/ajustes.php`) siguen exportando e importando los cultos
   de toda la instalación, privados incluidos y sin la iglesia; la fase 5 las adaptará.
 

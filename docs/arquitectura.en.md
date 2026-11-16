@@ -66,6 +66,7 @@ The interface is a single-page application inside the WordPress page; it navigat
   | `_pieb_youtube` | List of `{url, label}`; only valid YouTube links are accepted. |
   | `_pieb_audios` | List of `{id, nombre, descripcion}`. MP3/M4A/OGG/WAV/AAC, max. 10 MB. |
   | `_pieb_editables` | List of `{id, descripcion}`: MuseScore, MusicXML… max. 10 MB. |
+  | `_pieb_campos_autor` | `{ field: userId }`: who filled `titulo`, `numero`, `autor`, `tonalidad` and `tempo`. Only matters with several churches (see [Churches](#churches)); a missing field counts as filled by the song's creator. |
   | `autor`, `iglesia` (on each item of the four lists above) | `autor`: ID of the user who added it; `iglesia`: ID of the church it was added from. If missing, the getters (`pieb_can_get_partituras/audios/editables/youtube`) fill them in on read with the song's author and the default church, writing nothing. On save, new items carry the current user and their active church; kept items keep theirs (they are never accepted from the client; a YouTube link is "the same" if its URL matches). The API returns them on every score, audio, editable and link. |
 
 - **Service** metadata: `_pieb_iglesia` (church ID; saved on creation and unchanged on edit; `pieb_can_culto_iglesia()` returns the default church if missing; the service summary carries it as `iglesia`), `_pieb_privado` (`'1'` = private service, visible only to its author; the summary carries `privado` and `mio`; **visibility is decided only by `pieb_can_culto_visible()`**, see [Churches](#churches)), `_pieb_fecha`, `_pieb_tipo`, `_pieb_notas`, `_pieb_items` (ordered list of
@@ -112,7 +113,7 @@ interface receives it in `PIEB_CANCIONERO.nonce`; the API base is in `PIEB_CANCI
 
 ### Updating a song (`POST /canciones/{id}`)
 
-A `multipart/form-data` body with all of these fields (missing ones are **emptied**):
+A `multipart/form-data` body with all of these fields (missing ones are **emptied**; with several churches the server also keeps what someone else added and you cannot change, see [Churches](#churches)):
 
 `titulo, numero, autor, tonalidad, tempo, etiquetas` (comma-separated), `letra, letraHtml, notas`,
 `youtube` (JSON `[{url,label}]`), `partituras` (JSON `[{id,label,tonalidad}]` of the ones that are kept; resend each one's `tonalidad` or it is lost),
@@ -171,6 +172,38 @@ single-church installation behaves exactly as before.
   new route that reads services must use it. When creating, anyone can set `privado`; when editing, only the author changes
   it (ignored from anyone else). Deleting a service never sends a notice (notices are for songs). `pieb_can_culto_resumen()`
   adds `privado` and `mio` (the author is the user).
+- **In a song you add, you do not destroy (phase 3).** Songs are still shared, but **only with more than one church**
+  (`pieb_can_proteccion_activa()`, in `includes/iglesias.php`): anyone can **add** to a song, and nobody changes or removes
+  what someone else added. **With a single church the protection is not applied and everything works as always** (anyone on
+  the team edits anything; whoever uploaded the song or manages the songbook deletes it). "Central" = `pieb_can_es_central()`;
+  "creator" = the song's `post_author`. Each permission is decided in **one single function** (`includes/canciones.php`),
+  used by both saving and the API:
+  - `pieb_can_puede_elemento($elemento, $post)`: scores, audio, editable files and YouTube links. Anyone adds; changing their
+    data or removing them is for their `autor` (the song's if missing) or the central administrator.
+  - `pieb_can_puede_ordenar($post)`: the order of the scores (the first is the main one), only the creator or the central
+    administrator. For everyone else the current order is kept and their new scores go last.
+  - `pieb_can_puede_campo($campo, $post)`: `titulo`, `numero`, `autor`, `tonalidad`, `tempo`. Anyone fills an **empty** field;
+    one with a value is changed by whoever filled it, the creator or the central administrator. Who filled each field is stored
+    in the meta `_pieb_campos_autor` = `{ field: userId }` (updated whenever a field changes value, also with one church; a
+    field not listed counts as filled by the creator).
+  - `pieb_can_puede_letra($post)`: with no lyrics (neither `_pieb_letra` nor `_pieb_letra_html`) anyone adds them; with lyrics,
+    only the creator or the central administrator.
+  - `pieb_can_puede_borrar_cancion($post)`: with the protection active, the creator or the central administrator; otherwise
+    `pieb_can_usuario_puede_borrar()` (author or `pieb_cancionero_gestionar`), which is also the **service** rule and does not change.
+  - Notes and tags do not change in this phase (phase 4 makes them per church).
+
+  **The server merges, it does not reject.** `POST /canciones/{id}` is still a multipart that "replaces everything", but with
+  the protection active it keeps whatever the saver cannot change, whatever the request says (an old client or a bulk load that
+  omits data no longer destroys it): someone else's element is kept as stored (`pieb_can_fusionar_elementos()`), someone else's
+  field or lyrics keep their value and someone else's title is not changed. None of this is an error. "The title is required"
+  and "at least one score" (which also counts the kept scores of others) are unchanged. Backup import and Bulk upload keep
+  their format.
+
+  **API.** `GET /canciones/{id}` always returns (with or without protection): `protegida` (bool); on each item of `partituras`,
+  `audios`, `editables` and `youtube`, `mio` (the asker can change or remove it; always `true` without protection) and
+  `autorNombre` (author's display name, `''` if the user no longer exists); and `permisos`:
+  `{ campos: { titulo, numero, autor, tonalidad, tempo, letra }, ordenar, borrar }` (booleans; an empty field is always `true`).
+  `puedeBorrar` is `permisos.borrar`. `DELETE /canciones/{id}` applies the new rule (403 otherwise).
 - **Pending (later phases).** Backups (`includes/ajustes.php`) still export and import the services of the whole
   installation, private ones included and without the church; phase 5 will adapt them.
 

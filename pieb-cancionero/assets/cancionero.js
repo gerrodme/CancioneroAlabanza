@@ -345,11 +345,13 @@
      * Editor de letras: barra de botones y área editable. Devuelve { el, valor() }, donde valor() es
      * { letraHtml, letra }: letraHtml queda vacío si la letra no tiene formato (se guarda solo como texto plano).
      */
-    function editor(c) {
+    function editor(c, opciones) {
+      // Con soloLectura la letra se ve pero no se puede tocar (barra deshabilitada); valor() sigue devolviendo la letra tal cual.
+      var soloLectura = !!(opciones && opciones.soloLectura);
       var inicial = c && c.letraHtml ? normalizar(c.letraHtml) : desdeTexto(c && c.letra);
       var area = h('div', {
-        class: 'pcan-input pcan-editor-area', contenteditable: 'true', role: 'textbox', 'aria-multiline': 'true',
-        'aria-label': __('Letra'), spellcheck: 'true'
+        class: 'pcan-input pcan-editor-area', contenteditable: soloLectura ? 'false' : 'true', role: 'textbox', 'aria-multiline': 'true',
+        'aria-label': __('Letra'), spellcheck: 'true', 'aria-readonly': soloLectura ? 'true' : null
       });
       area.innerHTML = (inicial || '<p></p>').replace(/<p><\/p>/g, '<p><br></p>');
       var botones = [];
@@ -472,7 +474,7 @@
       defs.forEach(function (d) {
         var b = h('button', {
           type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-sec pcan-editor-btn is-' + d.id, title: d.titulo, 'aria-label': d.titulo,
-          'aria-pressed': d.activo ? 'false' : null, text: d.texto,
+          'aria-pressed': d.activo ? 'false' : null, text: d.texto, disabled: soloLectura,
           // mousedown no debe quitar el foco (y con él la selección) del área.
           onmousedown: function (e) { e.preventDefault(); },
           onclick: function () { d.fn(); }
@@ -516,7 +518,7 @@
       });
 
       return {
-        el: h('div', { class: 'pcan-editor' }, barra, area),
+        el: h('div', { class: 'pcan-editor' + (soloLectura ? ' is-readonly' : '') }, barra, area),
         valor: function () {
           var html = normalizar(area.innerHTML);
           return { letraHtml: tieneFormato(html) ? html : '', letra: aTexto(html) };
@@ -2441,14 +2443,30 @@
     var editando = !!c;
     c = c || { titulo: '', numero: '', autor: '', tonalidad: '', tempo: '', etiquetas: [], letra: '', notas: '', partituras: [], audios: [], editables: [], youtube: [] };
 
-    var existentes = c.partituras.map(function (p) { return { id: p.id, label: p.label, tonalidad: p.tonalidad || '', archivo: p.archivo, url: p.url }; });
+    // Canción compartida por varias iglesias (solo al editar: una nueva no tiene nada ajeno): lo que añadió otra persona se ve
+    // pero no se toca. El servidor lo hace cumplir igualmente; aquí solo se muestra. Con una sola iglesia nada de esto aparece.
+    var protegida = editando && !!c.protegida;
+    var permisos = (protegida && c.permisos) || {};
+    var permCampos = permisos.campos || {};
+    function puedeCampo(clave) { return !protegida || permCampos[clave] !== false; }
+    var puedeOrdenar = !protegida || permisos.ordenar !== false;
+    function esAjeno(x) { return protegida && x.mio === false; }
+    var AYUDA_CAMPO = __('Lo rellenó otra persona: solo ella o la administración central pueden cambiarlo.');
+    /** Línea pequeña «Añadida por…» de un elemento ajeno (femenino para la partitura). */
+    function textoAutoria(x, femenino) {
+      var nombre = x.autorNombre;
+      return femenino
+        ? (nombre ? sprintf(/* translators: %s: nombre de quien añadió la partitura */ __('Añadida por %s'), nombre) : __('Añadida por otra persona'))
+        : (nombre ? sprintf(/* translators: %s: nombre de quien añadió el audio, el archivo editable o el enlace */ __('Añadido por %s'), nombre) : __('Añadido por otra persona'));
+    }
+    var existentes = c.partituras.map(function (p) { return { id: p.id, label: p.label, tonalidad: p.tonalidad || '', archivo: p.archivo, url: p.url, mio: p.mio, autorNombre: p.autorNombre }; });
     var nuevas = [];
-    var audiosExistentes = c.audios.map(function (a) { return { id: a.id, nombre: a.nombre, descripcion: a.descripcion, archivo: a.archivo, url: a.url }; });
+    var audiosExistentes = c.audios.map(function (a) { return { id: a.id, nombre: a.nombre, descripcion: a.descripcion, archivo: a.archivo, url: a.url, mio: a.mio, autorNombre: a.autorNombre }; });
     var audiosNuevos = [];
-    var editablesExistentes = (c.editables || []).map(function (e) { return { id: e.id, descripcion: e.descripcion, archivo: e.archivo, url: e.url }; });
+    var editablesExistentes = (c.editables || []).map(function (e) { return { id: e.id, descripcion: e.descripcion, archivo: e.archivo, url: e.url, mio: e.mio, autorNombre: e.autorNombre }; });
     var editablesNuevos = [];
     var etiquetas = c.etiquetas.slice();
-    var videos = c.youtube.map(function (y) { return { url: y.url, label: y.label }; });
+    var videos = c.youtube.map(function (y) { return { url: y.url, label: y.label, mio: y.mio, autorNombre: y.autorNombre }; });
 
     var fTitulo = h('input', { type: 'text', class: 'pcan-input', value: c.titulo, required: true, maxlength: '200' });
     var duplicados = h('div', { class: 'pcan-dupes', hidden: true });
@@ -2470,7 +2488,13 @@
     var fAutor = h('input', { type: 'text', class: 'pcan-input', value: c.autor, maxlength: '200' });
     var listaTonos = h('datalist', { id: 'pcan-tonos' }, TONALIDADES.map(function (t) { return h('option', { value: tonoVer(t) }); }));
     var fTono = h('input', { type: 'text', class: 'pcan-input', value: tonoVer(c.tonalidad), list: 'pcan-tonos', maxlength: '20' });
-    var fLetra = Letra.editor(c);
+    var fLetra = Letra.editor(c, { soloLectura: !puedeCampo('letra') });
+    // Datos bloqueados: deshabilitados (su valor actual se sigue enviando) y con la explicación en el title.
+    var bloqueados = [[fTitulo, 'titulo'], [fNumero, 'numero'], [fAutor, 'autor'], [fTono, 'tonalidad'], [fTempo, 'tempo']].filter(function (x) { return !puedeCampo(x[1]); });
+    bloqueados.forEach(function (x) { x[0].disabled = true; x[0].title = AYUDA_CAMPO; x[0].classList.add('is-bloqueado'); });
+    // Con un solo dato bloqueado, la ayuda va bajo el campo; con varios, una nota al principio del bloque (sin repetir la frase).
+    function ayudaBloqueo(input) { return bloqueados.length === 1 && bloqueados[0][0] === input ? AYUDA_CAMPO : null; }
+    var notaDatos = bloqueados.length > 1 ? h('p', { class: 'pcan-nota-compartida pcan-nota-bloqueo', text: __('Algunos datos los rellenó otra persona y no se pueden cambiar aquí.') }) : null;
     var fNotas = h('textarea', { class: 'pcan-input pcan-textarea', rows: '3' });
     fNotas.value = c.notas || '';
 
@@ -2508,7 +2532,7 @@
 
     function campoTexto(item, clave, placeholder, etiqueta) {
       return h('input', {
-        type: 'text', class: 'pcan-input pcan-input-sm', value: item[clave], placeholder: placeholder, 'aria-label': etiqueta,
+        type: 'text', class: 'pcan-input pcan-input-sm', value: item[clave], placeholder: placeholder, 'aria-label': etiqueta, disabled: esAjeno(item),
         oninput: function (e) { item[clave] = e.target.value; }
       });
     }
@@ -2518,17 +2542,18 @@
       var placeholder = function () { return tonoGuardar(fTono.value) ? tonoVer(tonoGuardar(fTono.value)) : __('Tonalidad'); };
       return h('input', {
         type: 'text', class: 'pcan-input pcan-input-sm pcan-file-tono', list: 'pcan-tonos', maxlength: '20',
-        value: tonoVer(item.tonalidad), placeholder: placeholder(),
+        value: tonoVer(item.tonalidad), placeholder: placeholder(), disabled: esAjeno(item),
         'aria-label': sprintf(/* translators: %s: nombre del archivo */ __('Tonalidad de %s'), nombreArchivo),
         oninput: function (e) { item.tonalidad = tonoGuardar(e.target.value); }
       });
     }
 
-    function filaArchivo(icon, nombre, extra, campos, quitar) {
-      return h('div', { class: 'pcan-file' },
+    // «ajeno» (opcional): el elemento lo añadió otra persona; no lleva botón de quitar y dice de quién es.
+    function filaArchivo(icon, nombre, extra, campos, quitar, ajeno, femenino) {
+      return h('div', { class: 'pcan-file' + (ajeno ? ' is-ajeno' : '') },
         icono(icon),
-        h('div', { class: 'pcan-file-main' }, h('span', { class: 'pcan-file-name' }, nombre, extra), campos),
-        h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': sprintf(/* translators: %s: nombre del archivo */ __('Quitar %s'), nombre), title: sprintf(/* translators: %s: nombre del archivo */ __('Quitar %s'), nombre), onclick: quitar }, icono('cerrar')));
+        h('div', { class: 'pcan-file-main' }, h('span', { class: 'pcan-file-name' }, nombre, extra), campos, ajeno ? h('span', { class: 'pcan-file-autor', text: textoAutoria(ajeno, femenino) }) : null),
+        ajeno ? null : h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': sprintf(/* translators: %s: nombre del archivo */ __('Quitar %s'), nombre), title: sprintf(/* translators: %s: nombre del archivo */ __('Quitar %s'), nombre), onclick: quitar }, icono('cerrar')));
     }
 
     // Partituras.
@@ -2548,7 +2573,7 @@
       function marca(esPrincipal, puedeSerlo, hacer) {
         if (total < 2) { return null; }
         if (esPrincipal) { return h('span', { class: 'pcan-file-principal', text: __('Principal') }); }
-        return puedeSerlo ? h('button', { type: 'button', class: 'pcan-btn pcan-btn-sec pcan-btn-sm', onclick: hacer }, __('Hacer principal')) : null;
+        return puedeSerlo && puedeOrdenar ? h('button', { type: 'button', class: 'pcan-btn pcan-btn-sec pcan-btn-sm', onclick: hacer }, __('Hacer principal')) : null;
       }
       existentes.forEach(function (p, i) {
         var extra = h('span', { class: 'pcan-file-extra' },
@@ -2557,7 +2582,7 @@
         append(listaPartituras, filaArchivo('partitura', p.archivo || __('Partitura'), extra,
           [campoTexto(p, 'label', __('Descripción (p. ej. «Original», «En Sol», «Acordes»)'), sprintf(/* translators: %s: nombre del archivo */ __('Descripción de %s'), p.archivo)),
             campoTonoPartitura(p, p.archivo)],
-          function () { existentes.splice(i, 1); pintarPartituras(); }));
+          function () { existentes.splice(i, 1); pintarPartituras(); }, esAjeno(p) ? p : null, true));
       });
       nuevas.forEach(function (n, i) {
         // Una partitura nueva solo puede ser la principal si no hay otras ya guardadas.
@@ -2599,7 +2624,7 @@
       listaAudios.innerHTML = '';
       audiosExistentes.forEach(function (a, i) {
         append(listaAudios, filaArchivo('audio', a.archivo || __('Audio'), h('a', { href: a.url, target: '_blank', rel: 'noopener', class: 'pcan-file-ver', text: __('escuchar') }),
-          camposAudio(a), function () { audiosExistentes.splice(i, 1); pintarAudios(); }));
+          camposAudio(a), function () { audiosExistentes.splice(i, 1); pintarAudios(); }, esAjeno(a) ? a : null));
       });
       audiosNuevos.forEach(function (a, i) {
         append(listaAudios, filaArchivo('audio', a.file.name, h('span', { class: 'pcan-file-new', text: sprintf(/* translators: %s: tamaño del archivo */ __('nuevo · %s'), tamano(a.file.size)) }),
@@ -2626,7 +2651,7 @@
       editablesExistentes.forEach(function (e, i) {
         append(listaEditables, filaArchivo('editable', e.archivo || __('Archivo'), h('a', { href: e.url, download: e.archivo || true, class: 'pcan-file-ver', text: __('descargar') }),
           campoTexto(e, 'descripcion', __('Descripción (p. ej. «Arreglo coro», «En Sol»)'), sprintf(/* translators: %s: nombre del archivo */ __('Descripción de %s'), e.archivo)),
-          function () { editablesExistentes.splice(i, 1); pintarEditables(); }));
+          function () { editablesExistentes.splice(i, 1); pintarEditables(); }, esAjeno(e) ? e : null));
       });
       editablesNuevos.forEach(function (e, i) {
         append(listaEditables, filaArchivo('editable', e.file.name, h('span', { class: 'pcan-file-new', text: sprintf(/* translators: %s: tamaño del archivo */ __('nuevo · %s'), tamano(e.file.size)) }),
@@ -2641,14 +2666,18 @@
     function pintarVideos() {
       listaVideos.innerHTML = '';
       videos.forEach(function (v, i) {
+        var ajeno = esAjeno(v);
         var url = h('input', {
-          type: 'url', class: 'pcan-input', value: v.url, placeholder: 'https://www.youtube.com/watch?v=…', 'aria-label': __('Enlace de YouTube'),
+          type: 'url', class: 'pcan-input', value: v.url, placeholder: 'https://www.youtube.com/watch?v=…', 'aria-label': __('Enlace de YouTube'), disabled: ajeno,
           oninput: function (e) { v.url = e.target.value; url.classList.toggle('is-invalid', !!v.url && !youtubeId(v.url)); }
         });
         append(listaVideos, h('div', { class: 'pcan-yt-row' },
           url,
-          h('input', { type: 'text', class: 'pcan-input', value: v.label, placeholder: __('Descripción (coro, piano…)'), 'aria-label': __('Descripción del vídeo'), oninput: function (e) { v.label = e.target.value; } }),
-          h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': __('Quitar enlace'), title: __('Quitar enlace'), onclick: function () { videos.splice(i, 1); pintarVideos(); } }, icono('cerrar'))));
+          h('input', { type: 'text', class: 'pcan-input', value: v.label, placeholder: __('Descripción (coro, piano…)'), 'aria-label': __('Descripción del vídeo'), disabled: ajeno, oninput: function (e) { v.label = e.target.value; } }),
+          // Un enlace ajeno no se quita: un hueco mantiene la columna del botón.
+          ajeno ? h('span', { class: 'pcan-yt-hueco', 'aria-hidden': 'true' }) : h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': __('Quitar enlace'), title: __('Quitar enlace'), onclick: function () { videos.splice(i, 1); pintarVideos(); } }, icono('cerrar'))));
+        // La nota es un <p> (no un div) para que «la última fila» de más abajo siga siendo la última fila de verdad.
+        if (ajeno) { append(listaVideos, h('p', { class: 'pcan-file-autor pcan-yt-autor', text: textoAutoria(v) })); }
       });
       append(listaVideos, h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () { videos.push({ url: '', label: '' }); pintarVideos(); listaVideos.querySelector('.pcan-yt-row:last-of-type input').focus(); } }, icono('mas'), __('Añadir enlace')));
     }
@@ -2659,17 +2688,23 @@
     var guardar = h('button', { type: 'submit', class: 'pcan-btn pcan-btn-primary' }, editando ? __('Guardar cambios') : __('Guardar canción'));
 
     // Dos columnas en pantallas anchas (datos y letra | archivos y enlaces); en móvil, una sola en el orden de siempre.
+    // Nota general: solo si hay algo que no se puede tocar.
+    var algoBloqueado = protegida && (bloqueados.length || !puedeCampo('letra') || !puedeOrdenar
+      || existentes.concat(audiosExistentes, editablesExistentes, videos).some(esAjeno));
     var form = h('form', { class: 'pcan-form pcan-form-cancion', novalidate: true },
+      algoBloqueado ? h('p', { class: 'pcan-nota-compartida', text: __('Esta canción la comparten varias iglesias: puedes añadir partituras, audios y datos, pero no cambiar lo que añadió otra persona.') }) : null,
       h('div', { class: 'pcan-form-col pcan-form-col-main' },
+        notaDatos,
         h('div', { class: 'pcan-grid-2 pcan-form-datos' },
-          h('div', { class: 'pcan-span-2' }, campo(__('Título'), fTitulo, null, true), duplicados),
-          campo(__('Número de himnario'), fNumero),
-          campo(__('Tonalidad'), h('span', null, fTono, listaTonos)),
-          campo(__('Tempo (BPM)'), fTempo),
-          campo(__('Autor / compositor'), fAutor)),
+          h('div', { class: 'pcan-span-2' }, campo(__('Título'), fTitulo, ayudaBloqueo(fTitulo), true), duplicados),
+          campo(__('Número de himnario'), fNumero, ayudaBloqueo(fNumero)),
+          campo(__('Tonalidad'), h('span', null, fTono, listaTonos), ayudaBloqueo(fTono)),
+          campo(__('Tempo (BPM)'), fTempo, ayudaBloqueo(fTempo)),
+          campo(__('Autor / compositor'), fAutor, ayudaBloqueo(fAutor))),
         h('fieldset', { class: 'pcan-fieldset pcan-form-letra' },
           h('legend', { text: __('Letra') }),
           fLetra.el,
+          !puedeCampo('letra') ? h('p', { class: 'pcan-help', text: __('La letra solo la pueden corregir quien creó la canción o la administración central.') }) : null,
           h('p', { class: 'pcan-help', text: __('Opcional. Separa las estrofas con una línea en blanco. Marca con Sección los títulos como Coro o Verso, y con Estribillo las líneas que se repiten. La letra también se usa en la búsqueda.') })),
         h('fieldset', { class: 'pcan-fieldset pcan-form-notas' },
           h('legend', { text: __('Notas para el equipo') }),
@@ -2678,7 +2713,9 @@
         h('fieldset', { class: 'pcan-fieldset pcan-form-partituras' },
           h('legend', null, __('Partitura'), h('abbr', { title: __('obligatorio'), text: ' *' })),
           h('p', { class: 'pcan-help', text: __('Puedes subir varias: la original, en otra tonalidad, con acordes…') }),
-          listaPartituras, zonaPartituras,
+          listaPartituras,
+          !puedeOrdenar ? h('p', { class: 'pcan-help', text: __('La partitura principal la elige quien creó la canción.') }) : null,
+          zonaPartituras,
           h('p', { class: 'pcan-help', text: __('Si subes la canción en varias tonalidades, indica la de cada partitura. Sin tonalidad, se entiende que está en la habitual de la canción.') }),
           !editando ? h('p', { class: 'pcan-help' }, conNodo(/* translators: %s: enlace «Súbelas de golpe» */ __('¿Son varias canciones distintas? %s.'), h('a', { href: '#/subir', text: __('Súbelas de golpe') }))) : null),
         h('fieldset', { class: 'pcan-fieldset pcan-form-audios' },
@@ -5377,6 +5414,35 @@
     return __('Copia de seguridad del Cancionero (plugin Cancionero).\n\ncopia.json  canciones, cultos y ajustes\narchivos/   partituras, audios y partituras editables de cada canción\n\nPara restaurarla: instala el plugin en WordPress, entra como administrador en el cancionero\ny abre Ajustes y equipo → Copias de seguridad → Restaurar desde una copia.\n');
   }
 
+  /**
+   * Descarga un archivo de la copia. Una copia son cientos de descargas seguidas: si una se corta (conexión, límite del
+   * alojamiento) o el servidor responde 429/5xx, se reintenta hasta tres veces con una espera creciente antes de rendirse.
+   */
+  function descargarArchivoCopia(f) {
+    var ESPERAS = [1000, 3000, 7000];
+    function intento(n) {
+      var reintentar = function (error) {
+        // Agotados los intentos, el error es definitivo (así los intentos anteriores de la cadena no vuelven a empezar).
+        if (n >= ESPERAS.length) { error.definitivo = true; throw error; }
+        return new Promise(function (resolve) { setTimeout(resolve, ESPERAS[n]); }).then(function () { return intento(n + 1); });
+      };
+      return fetch(f.url, { credentials: 'same-origin' }).then(function (res) {
+        if (!res.ok) {
+          var error = new Error(sprintf(/* translators: 1: nombre del archivo, 2: código de error HTTP */ __('No se pudo descargar «%1$s» (error %2$d).'), f.nombre, res.status));
+          if (res.status === 429 || res.status >= 500) { return reintentar(error); }
+          error.definitivo = true;
+          throw error;
+        }
+        return res.blob();
+      }).catch(function (e) {
+        if (e && e.definitivo) { throw e; }
+        // Error de red («Failed to fetch») o respuesta cortada a medias.
+        return reintentar(e && e.message && e.name !== 'TypeError' ? e : new Error(sprintf(/* translators: %s: nombre del archivo */ __('No se pudo descargar «%s»: se cortó la conexión. Vuelve a intentarlo.'), f.nombre)));
+      });
+    }
+    return intento(0);
+  }
+
   /** Monta la copia en el navegador: datos del servidor + cada archivo descargado, en un ZIP. */
   function crearCopia(opc, estado, avance) {
     return Promise.all([cargarJSZip(), api('copia')]).then(function (r) {
@@ -5410,10 +5476,7 @@
       return descargas.reduce(function (cadena, f, i) {
         return cadena.then(function () {
           estado(sprintf(/* translators: 1: número de archivo, 2: total de archivos, 3: nombre del archivo */ __('Descargando archivo %1$d de %2$d: %3$s'), i + 1, descargas.length, f.nombre));
-          return fetch(f.url, { credentials: 'same-origin' }).then(function (res) {
-            if (!res.ok) { throw new Error(sprintf(/* translators: 1: nombre del archivo, 2: código de error HTTP */ __('No se pudo descargar «%1$s» (error %2$d).'), f.nombre, res.status)); }
-            return res.blob();
-          }).then(function (b) {
+          return descargarArchivoCopia(f).then(function (b) {
             zip.file(f.ruta, b);
             hecho += f.tamano;
             avance(hecho / total * 0.92);

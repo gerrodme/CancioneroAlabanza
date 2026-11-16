@@ -216,7 +216,13 @@ function pieb_can_rest_actualizar(WP_REST_Request $request) {
         return $resultado;
     }
 
-    wp_update_post(array('ID' => $post->ID, 'post_title' => $titulo));
+    // Con varias iglesias, el título solo lo cambia quien puede (ver pieb_can_puede_campo): si no, se conserva el actual.
+    if (pieb_can_puede_campo('titulo', $post)) {
+        if (html_entity_decode($titulo, ENT_QUOTES, 'UTF-8') !== html_entity_decode((string) $post->post_title, ENT_QUOTES, 'UTF-8')) {
+            pieb_can_registrar_campos_autor($post->ID, array('titulo'));
+        }
+        wp_update_post(array('ID' => $post->ID, 'post_title' => $titulo));
+    }
 
     return rest_ensure_response(pieb_can_detalle(get_post($post->ID)));
 }
@@ -226,8 +232,11 @@ function pieb_can_rest_borrar(WP_REST_Request $request) {
     if (is_wp_error($post)) {
         return $post;
     }
-    if (!pieb_can_usuario_puede_borrar($post)) {
-        return new WP_Error('pieb_permiso', __('Solo quien subió la canción o un administrador puede borrarla.', 'pieb-cancionero'), array('status' => 403));
+    if (!pieb_can_puede_borrar_cancion($post)) {
+        $mensaje = pieb_can_proteccion_activa()
+            ? __('Solo quien subió la canción o el administrador central puede borrarla.', 'pieb-cancionero')
+            : __('Solo quien subió la canción o un administrador puede borrarla.', 'pieb-cancionero');
+        return new WP_Error('pieb_permiso', $mensaje, array('status' => 403));
     }
 
     // A la papelera del cancionero: un administrador puede verla, restaurarla o eliminarla para siempre.
@@ -249,6 +258,13 @@ function pieb_can_rest_borrar(WP_REST_Request $request) {
  */
 function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
     $titulo = sanitize_text_field((string) $request->get_param('titulo'));
+    $post = get_post($post_id);
+    // Con varias iglesias, el título ajeno no se cambia (ver pieb_can_puede_campo): los archivos nuevos usan el actual.
+    if (!$es_nueva && !pieb_can_puede_campo('titulo', $post)) {
+        $titulo = sanitize_text_field((string) $post->post_title);
+    }
+    // Valores finales de los campos de texto: el recibido si quien guarda puede cambiarlo; si no, el que ya tiene.
+    $valores_campos = pieb_can_valores_campos($post, $request);
 
     // Partituras existentes que se conservan (solo se aceptan las que ya pertenecen a esta canción).
     $actuales = array();
@@ -257,7 +273,7 @@ function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
     }
 
     // Tonalidad de la canción que llega en esta misma petición: una partitura en esa misma tonalidad sigue a la habitual.
-    $tono_cancion_clave = pieb_can_tono_clave(pieb_can_valor_campo('tonalidad', $request->get_param('tonalidad')));
+    $tono_cancion_clave = pieb_can_tono_clave($valores_campos['tonalidad']);
     $limpiar_tono = function ($tono) use ($tono_cancion_clave) {
         $tono = sanitize_text_field((string) $tono);
         return pieb_can_tono_clave($tono) === $tono_cancion_clave ? '' : $tono;
@@ -292,6 +308,12 @@ function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
             }
         }
     }
+
+    // Con varias iglesias se conservan tal cual las partituras ajenas y, si quien guarda no es el creador ni el central,
+    // también su orden (ver pieb_can_fusionar_elementos).
+    $conservar = pieb_can_fusionar_elementos(array_values($actuales), $conservar, function ($e) {
+        return (int) $e['id'];
+    }, $post, pieb_can_puede_ordenar($post));
 
     $files = $request->get_file_params();
     // Partituras nuevas subidas por trozos (o, como antes, dentro de esta misma petición).
@@ -352,6 +374,10 @@ function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
             $audios[] = pieb_can_limpiar_audio($id, $a, pieb_can_origen_de($audios_actuales[$id]));
         }
     }
+    // Con varias iglesias, los audios ajenos se conservan tal cual (los nuevos se añaden después).
+    $audios = pieb_can_fusionar_elementos(array_values($audios_actuales), $audios, function ($e) {
+        return (int) $e['id'];
+    }, $post);
     if (!empty($files['audiosNuevos']['name'][0])) {
         $metas = json_decode((string) $request->get_param('audiosNuevosMeta'), true);
         $metas = is_array($metas) ? $metas : array();
@@ -395,6 +421,10 @@ function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
             $editables[] = pieb_can_limpiar_editable($id, $e, pieb_can_origen_de($editables_actuales[$id]));
         }
     }
+    // Con varias iglesias, los editables ajenos se conservan tal cual.
+    $editables = pieb_can_fusionar_elementos(array_values($editables_actuales), $editables, function ($e) {
+        return (int) $e['id'];
+    }, $post);
     foreach ((array) json_decode((string) $request->get_param('editablesSubidos'), true) as $s) {
         $file = pieb_can_archivo_subido(isset($s['id']) ? $s['id'] : '', isset($s['archivo']) ? (string) $s['archivo'] : '');
         $attachment_id = is_wp_error($file) ? $file : pieb_can_adjuntar($file, $post_id, $titulo, 'editable');
@@ -406,14 +436,29 @@ function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
     }
     update_post_meta($post_id, '_pieb_editables', $editables);
 
+    // Campos de texto: se anota quién cambió cada uno (meta _pieb_campos_autor) antes de sobrescribirlo.
+    $cambiados = array();
     foreach (pieb_can_campos_texto() as $campo => $meta_key) {
-        update_post_meta($post_id, $meta_key, pieb_can_valor_campo($campo, $request->get_param($campo)));
+        if ((string) get_post_meta($post_id, $meta_key, true) !== $valores_campos[$campo]) {
+            $cambiados[] = $campo;
+        }
+        update_post_meta($post_id, $meta_key, $valores_campos[$campo]);
     }
-    pieb_can_guardar_letra($post_id, $request->get_param('letra'), $request->has_param('letraHtml') ? (string) $request->get_param('letraHtml') : null);
+    pieb_can_registrar_campos_autor($post_id, $cambiados);
+    // La letra ajena (si ya hay una y quien guarda no es el creador ni el central) se conserva.
+    if (pieb_can_puede_letra($post)) {
+        pieb_can_guardar_letra($post_id, $request->get_param('letra'), $request->has_param('letraHtml') ? (string) $request->get_param('letraHtml') : null);
+    }
     update_post_meta($post_id, '_pieb_notas', sanitize_textarea_field((string) $request->get_param('notas')));
 
+    $youtube_actuales = pieb_can_get_youtube($post_id);
     $youtube = json_decode((string) $request->get_param('youtube'), true);
-    update_post_meta($post_id, '_pieb_youtube', pieb_can_limpiar_youtube($youtube, pieb_can_get_youtube($post_id)));
+    $youtube = pieb_can_limpiar_youtube($youtube, $youtube_actuales);
+    // Con varias iglesias, los enlaces ajenos se conservan tal cual (identidad: la URL).
+    $youtube = pieb_can_fusionar_elementos($youtube_actuales, $youtube, function ($e) {
+        return (string) $e['url'];
+    }, $post);
+    update_post_meta($post_id, '_pieb_youtube', $youtube);
 
     $etiquetas = array_filter(array_map(function ($e) {
         return sanitize_text_field(trim($e));

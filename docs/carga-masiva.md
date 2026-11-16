@@ -28,7 +28,9 @@ const ficha = await (await fetch(c.api + 'canciones/' + id, { headers: H, creden
 
 ## Cambiar un dato de una canción (sin perder el resto)
 
-`POST /canciones/{id}` reemplaza **todos** los campos. Patrón seguro:
+`POST /canciones/{id}` reemplaza **todos** los campos. Patrón seguro (con **varias iglesias**, el servidor conserva por su cuenta lo que
+aportó otra persona y quien guarda no puede cambiar, aunque no se reenvíe; con **una sola** iglesia sigue reemplazando todo, así que
+hay que reenviarlo todo igualmente; ver [Iglesias](arquitectura.md#iglesias)):
 
 ```js
 const fd = new FormData();

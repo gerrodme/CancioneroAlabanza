@@ -3057,6 +3057,36 @@ window.PIEB_I18N = {
   ],
   "No aparece para el resto del equipo ni cuenta en las estadísticas. Puedes publicarlo después.": [
    "It is not shown to the rest of the team and does not count in the statistics. You can publish it later."
+  ],
+  "Lo rellenó otra persona: solo ella o la administración central pueden cambiarlo.": [
+   "Someone else filled this in: only they or the central administration can change it."
+  ],
+  "Añadida por %s": [
+   "Added by %s"
+  ],
+  "Añadida por otra persona": [
+   "Added by someone else"
+  ],
+  "Añadido por %s": [
+   "Added by %s"
+  ],
+  "Añadido por otra persona": [
+   "Added by someone else"
+  ],
+  "Algunos datos los rellenó otra persona y no se pueden cambiar aquí.": [
+   "Some details were filled in by someone else and cannot be changed here."
+  ],
+  "Esta canción la comparten varias iglesias: puedes añadir partituras, audios y datos, pero no cambiar lo que añadió otra persona.": [
+   "This song is shared by several churches: you can add scores, audio and details, but not change what someone else added."
+  ],
+  "La letra solo la pueden corregir quien creó la canción o la administración central.": [
+   "Only whoever created the song or the central administration can correct the lyrics."
+  ],
+  "La partitura principal la elige quien creó la canción.": [
+   "The main score is chosen by whoever created the song."
+  ],
+  "No se pudo descargar «%s»: se cortó la conexión. Vuelve a intentarlo.": [
+   "Could not download “%s”: the connection was cut. Try again."
   ]
  }
 };

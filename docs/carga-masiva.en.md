@@ -28,7 +28,9 @@ const ficha = await (await fetch(c.api + 'canciones/' + id, { headers: H, creden
 
 ## Changing one value of a song (without losing the rest)
 
-`POST /canciones/{id}` replaces **all** the fields. Safe pattern:
+`POST /canciones/{id}` replaces **all** the fields. Safe pattern (with **several churches** the server by itself keeps what someone
+else added and the saver cannot change, even if it is not resent; with **a single** church it still replaces everything, so resend
+everything anyway; see [Churches](arquitectura.en.md#churches)):
 
 ```js
 const fd = new FormData();
