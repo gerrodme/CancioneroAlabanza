@@ -2749,14 +2749,8 @@ window.PIEB_I18N = {
   "Sección": [
    "Section"
   ],
-  "Marca la línea como título de sección (Coro, Verso 1, Puente…)": [
-   "Marks the line as a section title (Chorus, Verse 1, Bridge…)"
-  ],
   "Estribillo": [
    "Refrain"
-  ],
-  "Sangra las líneas seleccionadas como estribillo": [
-   "Indents the selected lines as a refrain"
   ],
   "Quitar formato": [
    "Clear formatting"
@@ -3334,6 +3328,33 @@ window.PIEB_I18N = {
   ],
   "Listo": [
    "Done"
+  ],
+  "Verso": [
+   "Verse"
+  ],
+  "Coro": [
+   "Chorus"
+  ],
+  "Puente": [
+   "Bridge"
+  ],
+  "Intro": [
+   "Intro"
+  ],
+  "Final": [
+   "Ending"
+  ],
+  "Añade el título «%s» en la letra": [
+   "Adds the title “%s” to the lyrics"
+  ],
+  "Marca la línea como título de sección (Coro, Verso 1, Puente…). Atajo: Ctrl+Mayús+1": [
+   "Marks the line as a section title (Chorus, Verse 1, Bridge…). Shortcut: Ctrl+Shift+1"
+  ],
+  "Sangra las líneas seleccionadas como estribillo. Atajo: Ctrl+Mayús+2": [
+   "Indents the selected lines as a chorus. Shortcut: Ctrl+Shift+2"
+  ],
+  "Escribe «Verso 1», «Coro»… y pulsa Intro: la línea se marca como sección.": [
+   "Type “Verse 1”, “Chorus”… and press Enter: the line is marked as a section."
   ]
  }
 };

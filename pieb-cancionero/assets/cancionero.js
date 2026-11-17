@@ -463,13 +463,96 @@
         estados();
       }
 
+      // ---- Secciones al escribir: autoformato con Intro, inserciones rápidas y atajos ----
+      var NOMBRE_SECCION = /^\s*(verso|estrofa|coro|estribillo|pre-?\s?coro|puente|intro|introducci[oó]n|final|instrumental|interludio|outro|verse|chorus|pre-?\s?chorus|bridge|ending|interlude|tag)\s*\d*\s*[:.]?\s*$/i;
+      function esNombreSeccion(t) { return NOMBRE_SECCION.test(String(t || '').replace(/ /g, ' ')); }
+      // Bloque de primer nivel del área donde está un nodo (o null).
+      function bloqueDe(nodo) {
+        var b = nodo;
+        while (b && b.parentNode !== area) { b = b.parentNode; }
+        return b && b.parentNode === area ? b : null;
+      }
+      function alFinalDelBloque(r, b) {
+        var resto = document.createRange();
+        resto.setStart(r.endContainer, r.endOffset);
+        resto.setEnd(b, b.childNodes.length);
+        return resto.toString() === '';
+      }
+      // Al pulsar Intro tras una línea que es solo el nombre de una sección (Verso 1, Coro…), la línea pasa a ser título.
+      function autoSeccionAlIntro(e) {
+        if (e.key !== 'Enter' || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey || e.isComposing) { return; }
+        var r = rango();
+        if (!r || !r.collapsed) { return; }
+        var b = bloqueDe(r.startContainer);
+        if (!b || b.nodeName !== 'P' || !esNombreSeccion(b.textContent) || !alFinalDelBloque(r, b)) { return; }
+        e.preventDefault();
+        // execCommand mantiene el historial de deshacer (Ctrl+Z) del navegador.
+        var ok = false;
+        try { ok = document.execCommand('formatBlock', false, 'h4') && document.execCommand('insertParagraph', false, null); } catch (err) { ok = false; }
+        if (!ok) { document.execCommand('insertParagraph', false, null); }
+        avisarCambio();
+        estados();
+      }
+      // Al pegar varias líneas, las que son solo el nombre de una sección se marcan como título.
+      function seccionesEnPegado(html) {
+        if ((html.match(/<(p|h4)>/g) || []).length < 2) { return html; }
+        return html.replace(/<p>([^<]*)<\/p>/g, function (m, t) { return esNombreSeccion(t.replace(/&nbsp;/g, ' ')) ? '<h4>' + t.trim() + '</h4>' : m; });
+      }
+      // Inserta un título de sección tras la línea actual (o en su lugar, si está vacía) y deja el cursor en la línea siguiente.
+      function insertarSeccion(base, numerar) {
+        area.focus();
+        var nombre = base;
+        if (numerar) {
+          // El siguiente número: el mayor ya usado (Verso 4 → Verso 5) o, si ninguno lleva número, cuántos hay.
+          var cuantos = 0, mayor = 0;
+          Array.prototype.forEach.call(area.querySelectorAll('h4'), function (h4) {
+            var t = h4.textContent.trim();
+            if (esNombreSeccion(t) && t.toLowerCase().indexOf(base.toLowerCase()) === 0) { cuantos++; mayor = Math.max(mayor, parseInt(t.replace(/\D+/g, ''), 10) || 0); }
+          });
+          nombre = base + ' ' + (Math.max(cuantos, mayor) + 1);
+        }
+        var r = rango();
+        var b = r ? bloqueDe(r.endContainer) : null;
+        var titulo = document.createElement('h4');
+        titulo.textContent = nombre;
+        var linea = document.createElement('p');
+        linea.appendChild(document.createElement('br'));
+        if (!b) {
+          area.appendChild(titulo);
+        } else if (b.nodeName === 'P' && b.textContent.replace(/\s+/g, '') === '') {
+          area.replaceChild(titulo, b);
+        } else {
+          var sep = document.createElement('p');
+          sep.appendChild(document.createElement('br'));
+          area.insertBefore(sep, b.nextSibling);
+          area.insertBefore(titulo, sep.nextSibling);
+        }
+        area.insertBefore(linea, titulo.nextSibling);
+        var nr = document.createRange();
+        nr.setStart(linea, 0);
+        nr.collapse(true);
+        sel().removeAllRanges();
+        sel().addRange(nr);
+        if (linea.scrollIntoView) { linea.scrollIntoView({ block: 'nearest' }); }
+        avisarCambio();
+        estados();
+      }
+      var insertar = h('div', { class: 'pcan-editor-insertar', role: 'group', 'aria-label': __('Añadir sección') });
+      [[__('Verso'), true], [__('Coro'), false], [__('Puente'), false], [__('Intro'), false], [__('Final'), false]].forEach(function (d) {
+        insertar.appendChild(h('button', {
+          type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-sec', title: sprintf(/* translators: %s: nombre de la sección (Verso, Coro…) */ __('Añade el título «%s» en la letra'), d[0]),
+          onmousedown: function (e) { e.preventDefault(); },
+          onclick: function () { insertarSeccion(d[0], d[1]); }
+        }, icono('mas'), d[0]));
+      });
+
       var defs = [
         { id: 'b', texto: __('Negrita'), titulo: __('Negrita (Ctrl+B)'), fn: function () { cmd('bold'); }, activo: function () { return document.queryCommandState('bold'); } },
         { id: 'i', texto: __('Cursiva'), titulo: __('Cursiva (Ctrl+I)'), fn: function () { cmd('italic'); }, activo: function () { return document.queryCommandState('italic'); } },
         { id: 'u', texto: __('Subrayado'), titulo: __('Subrayado (Ctrl+U)'), fn: function () { cmd('underline'); }, activo: function () { return document.queryCommandState('underline'); } },
-        { id: 's', texto: __('Sección'), titulo: __('Marca la línea como título de sección (Coro, Verso 1, Puente…)'), fn: alternarSeccion,
+        { id: 's', texto: __('Sección'), titulo: __('Marca la línea como título de sección (Coro, Verso 1, Puente…). Atajo: Ctrl+Mayús+1'), fn: alternarSeccion,
           activo: function () { var l = hojas(); return l.length > 0 && l.every(function (el) { return el.nodeName === 'H4'; }); } },
-        { id: 'e', texto: __('Estribillo'), titulo: __('Sangra las líneas seleccionadas como estribillo'), fn: alternarEstribillo,
+        { id: 'e', texto: __('Estribillo'), titulo: __('Sangra las líneas seleccionadas como estribillo. Atajo: Ctrl+Mayús+2'), fn: alternarEstribillo,
           activo: function () { var l = hijosSeleccionados(); return l.length > 0 && l.every(function (el) { return el.nodeName === 'BLOCKQUOTE'; }); } },
         { id: 'q', texto: __('Quitar formato'), titulo: __('Quita negrita, cursiva, sección y estribillo de la selección'), fn: quitarFormato }
       ];
@@ -501,6 +584,13 @@
       document.addEventListener('selectionchange', estados);
 
       area.addEventListener('focus', function () { try { document.execCommand('defaultParagraphSeparator', false, 'p'); } catch (e) { /* no soportado */ } });
+      area.addEventListener('keydown', autoSeccionAlIntro);
+      // Atajos de formato de bloque: Ctrl+Mayús+1 (sección) y Ctrl+Mayús+2 (estribillo).
+      area.addEventListener('keydown', function (e) {
+        if (!(e.ctrlKey || e.metaKey) || !e.shiftKey || e.altKey) { return; }
+        if (e.code === 'Digit1') { e.preventDefault(); alternarSeccion(); }
+        else if (e.code === 'Digit2') { e.preventDefault(); alternarEstribillo(); }
+      });
       area.addEventListener('keydown', function (e) {
         if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) { return; }
         var k = String(e.key).toLowerCase();
@@ -514,6 +604,7 @@
         var html = cd.getData('text/html');
         var limpio = html ? normalizar(html) : desdeTexto(cd.getData('text/plain'));
         if (!limpio) { return; }
+        limpio = seccionesEnPegado(limpio);
         // Una sola línea sin formato de bloque se inserta dentro de la línea actual, sin partirla.
         var una = limpio.match(/^<p>(.*)<\/p>$/);
         if (una && !/<\/?(p|h4|blockquote)>/.test(una[1])) { limpio = una[1]; }
@@ -525,7 +616,8 @@
       var cab = h('div', { class: 'pcan-editor-cab' },
         h('strong', { text: __('Letra') }),
         h('button', { type: 'button', class: 'pcan-btn pcan-btn-primary', onclick: function () { minimizar(true); } }, icono('check'), __('Listo')));
-      var cont = h('div', { class: 'pcan-editor' + (soloLectura ? ' is-readonly' : '') }, cab, barra, area);
+      var pista = h('p', { class: 'pcan-editor-pista', text: __('Escribe «Verso 1», «Coro»… y pulsa Intro: la línea se marca como sección.') });
+      var cont = h('div', { class: 'pcan-editor' + (soloLectura ? ' is-readonly' : '') }, cab, barra, insertar, pista, area);
       var capa = null, hueco = null;
 
       // Un Range vivo se desplaza al sacar el editor del documento: se guardan los puntos y se rehace después.

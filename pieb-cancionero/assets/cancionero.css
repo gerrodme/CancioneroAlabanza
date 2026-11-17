@@ -2599,3 +2599,9 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
   [data-pcan-theme] .pcan-editor.is-max .pcan-editor-btn { min-height: 36px; padding: 4px 8px; }
   [data-pcan-theme] .pcan-editor.is-max .pcan-editor-area { font-size: 17px; padding: 10px 12px; }
 }
+
+/* Secciones al escribir: fila de inserciones rápidas y pista (solo con el editor maximizado). */
+.pcan-editor-insertar, .pcan-editor-pista { display: none; }
+.pcan-editor.is-max .pcan-editor-insertar { display: flex; flex-wrap: wrap; gap: 6px; }
+.pcan-editor.is-max .pcan-editor-pista { display: block; margin: 0; color: var(--pc-muted); font-size: 13px; }
+@media (max-width: 600px) { .pcan-editor.is-max .pcan-editor-pista { display: none; } }
