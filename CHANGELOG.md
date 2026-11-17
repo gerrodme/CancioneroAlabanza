@@ -2,6 +2,10 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.34.2 · 2026-11-17
+
+Los botones «Subida múltiple» y «Seleccionar» de la lista de canciones también usan las esquinas de 8 px del resto.
+
 ## 1.34.1 · 2026-11-17
 
 Los botones pasan a tener la forma del tema «Escenario» (rectángulo con esquinas redondeadas) en todos los temas, en lugar
