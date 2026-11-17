@@ -2,6 +2,10 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.35.0 · 2026-11-17
+
+Nuevo botón **Cantar** en la ficha de la canción, junto a «Tocar» (solo si la canción tiene letra): abre el lector de letras a pantalla completa, como «Cantar el culto», en la tonalidad elegida en la ficha.
+
 ## 1.34.2 · 2026-11-17
 
 Los botones «Subida múltiple» y «Seleccionar» de la lista de canciones también usan las esquinas de 8 px del resto.

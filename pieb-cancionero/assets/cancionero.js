@@ -2258,6 +2258,15 @@
     });
   }
 
+  /** Abre el lector de letras a pantalla completa («Cantar») con esta canción; en la tonalidad elegida en la ficha. */
+  function cantorDeCancion(c) {
+    if (!P.Visor || !c.letra) { return; }
+    P.Visor.abrirCantor({
+      titulo: c.titulo,
+      canciones: [{ id: c.id, titulo: c.titulo, numero: c.numero, tono: tonoDeFicha(c) || c.tonalidad, tempo: c.tempo, nota: '', letra: c.letra, letraHtml: c.letraHtml || '' }]
+    });
+  }
+
   function seccion(titulo, icon, contenido, accion) {
     return h('section', { class: 'pcan-det-sec' },
       h('header', { class: 'pcan-det-sec-head' }, h('h3', null, icono(icon), titulo), accion || null),
@@ -2297,8 +2306,10 @@
 
     var avisoPap = c.enPapelera ? bannerPapelera(c) : null;
     var acciones = c.enPapelera ? h('div', { class: 'pcan-det-actions' },
-      c.partituras.length ? h('button', { type: 'button', class: 'pcan-btn pcan-btn-primary pcan-btn-lg', onclick: function () { lectorDeCancion(c); } }, icono('play'), __('Tocar')) : null) : h('div', { class: 'pcan-det-actions' },
       c.partituras.length ? h('button', { type: 'button', class: 'pcan-btn pcan-btn-primary pcan-btn-lg', onclick: function () { lectorDeCancion(c); } }, icono('play'), __('Tocar')) : null,
+      c.letra ? h('button', { type: 'button', class: 'pcan-btn pcan-btn-lg', onclick: function () { cantorDeCancion(c); } }, icono('micro'), __('Cantar')) : null) : h('div', { class: 'pcan-det-actions' },
+      c.partituras.length ? h('button', { type: 'button', class: 'pcan-btn pcan-btn-primary pcan-btn-lg', onclick: function () { lectorDeCancion(c); } }, icono('play'), __('Tocar')) : null,
+      c.letra ? h('button', { type: 'button', class: 'pcan-btn pcan-btn-lg', onclick: function () { cantorDeCancion(c); } }, icono('micro'), __('Cantar')) : null,
       h('a', { class: 'pcan-btn', href: '#/editar/' + c.id }, icono('editar'), h('span', { class: 'pcan-btn-label', text: __('Editar') })),
       accionesSecundarias([
         c.partituras[0] ? { texto: __('Descargar partitura'), icono: 'descargar', href: c.partituras[0].url, descargar: c.partituras[0].archivo || true } : null
