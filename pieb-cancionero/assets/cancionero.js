@@ -1074,7 +1074,7 @@
     }) : null;
     ui.menuNotacion = h('div', { class: 'pcan-menu-segmento', role: 'radiogroup', 'aria-labelledby': 'pcan-menu-notacion-t' });
     // Iglesia activa: solo si la persona tiene acceso a más de una. Al cambiarla se guarda y se recarga la página.
-    ui.menuIglesia = hayVariasIglesias() ? h('select', {
+    ui.menuIglesia = tengoVariasIglesias() ? h('select', {
       class: 'pcan-menu-select', id: 'pcan-menu-iglesia',
       onchange: function (e) { cambiarIglesia(e.target); }
     }) : null;
@@ -1265,7 +1265,10 @@
   // ---------------------------------------------------------------- iglesias (selector del menú)
 
   /** ¿La persona tiene acceso a más de una iglesia? Con una sola no se muestra nada nuevo. */
-  function hayVariasIglesias() { return !!(CFG.iglesias && CFG.iglesias.length > 1); }
+  /** ¿Hay varias iglesias en la INSTALACIÓN? (el servidor lo dice en CFG.multi; quien pertenece a una sola también está en una instalación con varias). */
+  function hayVariasIglesias() { return CFG.multi !== undefined ? !!CFG.multi : !!(CFG.iglesias && CFG.iglesias.length > 1); }
+  /** ¿Puede el usuario elegir entre varias iglesias? (para el selector del menú). */
+  function tengoVariasIglesias() { return !!(CFG.iglesias && CFG.iglesias.length > 1); }
 
   /** Con varias iglesias: ¿gestiona la iglesia activa pero no es de la administración central? Solo ve lo de su iglesia. */
   function soloDeIglesia() { return hayVariasIglesias() && !CFG.central; }

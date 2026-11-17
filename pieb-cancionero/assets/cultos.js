@@ -1441,7 +1441,7 @@
    *  con una sola, el nombre del cancionero y su línea, como siempre. */
   function marcaDocumento() {
     var c = P.cfg || {};
-    if (c.iglesias && c.iglesias.length > 1 && c.iglesia && c.iglesia.nombre) { return { nombre: c.iglesia.nombre, sitio: '' }; }
+    if ((c.multi !== undefined ? c.multi : c.iglesias && c.iglesias.length > 1) && c.iglesia && c.iglesia.nombre) { return { nombre: c.iglesia.nombre, sitio: '' }; }
     return { nombre: c.nombre || 'Cancionero', sitio: c.sitio || '' };
   }
 

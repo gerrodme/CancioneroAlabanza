@@ -2,6 +2,14 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.33.1 · 2026-11-17
+
+Arreglo de la interfaz con varias iglesias: quien pertenece a una sola iglesia de una instalación con varias se trataba
+como si la instalación tuviera una sola. Así, quien administra solo una iglesia veía en «Ajustes y equipo» las secciones
+comunes (General, Google, Archivos, Papelera, Copias), que luego fallaban, no veía las etiquetas universales marcadas y la
+escaleta impresa llevaba el nombre del cancionero en vez del de su iglesia. Ahora el servidor dice si la instalación tiene
+varias iglesias; el selector de iglesia sigue saliendo solo a quien pertenece a más de una.
+
 ## 1.33.0 · 2026-11-16
 
 Ajustes por iglesia (fase 5b de `docs/plan-multi-iglesia.md`). Con más de una iglesia, cada una tiene su escaleta (logo,
