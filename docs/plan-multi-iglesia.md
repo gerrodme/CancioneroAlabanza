@@ -166,9 +166,9 @@ quien administra una iglesia sin ser central; `&rol=equipo` para el equipo).
 
 ## Estado y siguiente paso
 
-Hecho y probado en el WordPress de pruebas: fases 1 a 5b (hasta la 1.33.1). La fase 5c (1.34.0) está programada y
-empaquetada; falta probarla en el WordPress de pruebas. Rama `multi-iglesia`, sin fusionar ni publicar (la última Release
-es la 1.26.0).
+Hecho y publicado (Release 1.34.0, fusionado en `main`): las cinco fases, la 5c incluida. Probada la 5c en el WordPress de
+pruebas con la administración central (archivar, papelera de cultos, copia con iglesias); sin probar aún con cuentas sin
+rol central ni restaurando una copia antigua entera desde la interfaz.
 
 **Fase 5c (1.34.0):**
 
@@ -187,8 +187,7 @@ es la 1.26.0).
    datos), con confirmación en rojo. La iglesia por defecto no se puede archivar. En el WordPress de pruebas hay una
    iglesia sobrante, vacía, «Prueba Claude (sobra, borrar)», que servirá para probarlo.
 
-Después de la 5c: actualizar el manual (`../Cancionero - Landing Page`, página nueva sobre varias iglesias) y, cuando el
-usuario lo diga, fusionar y publicar.
+Manual: página «Varias iglesias» publicada en `../Cancionero - Landing Page` (sin capturas).
 
 ## Riesgos
 
