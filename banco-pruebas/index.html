@@ -43,7 +43,16 @@
   // Lo guardado manda (también con ?iglesias=2: la interfaz recarga la página con la misma dirección al cambiar de iglesia).
   try { var guardadasIg = JSON.parse(sessionStorage.getItem('banco-iglesias') || 'null'); if (guardadasIg && guardadasIg.length >= iglesiasBanco.length) { iglesiasBanco = guardadasIg; } } catch (e) {}
   try { var activaIg = +sessionStorage.getItem('banco-iglesia'); if (activaIg && iglesiasBanco.some(function (i) { return i.id === activaIg; })) { iglesiaActiva = activaIg; } } catch (e) {}
-  function guardarIglesiasBanco() { try { sessionStorage.setItem('banco-iglesias', JSON.stringify(iglesiasBanco)); } catch (e) {} }
+  // La iglesia 1 es la de por defecto (no se puede archivar ni borrar).
+  iglesiasBanco.forEach(function (i) { i.defecto = i.id === 1; });
+  // Iglesias archivadas (solo las ve la administración central). Con ?iglesias=2 parten dos de ejemplo: una vacía (se puede eliminar del todo)
+  // y otra con contenido (la retiene). Se recuerdan en esta pestaña igual que las demás.
+  var archivadasBanco = params.get('iglesias') === '2' ? [
+    { id: 3, nombre: 'Iglesia del Sur', cultos: 0, etiquetas: 0, audios: 0, datos: 0, vacia: true },
+    { id: 4, nombre: 'Misión del Este', cultos: 2, etiquetas: 1, audios: 0, datos: 3, vacia: false }
+  ] : [];
+  try { var guardadasArch = JSON.parse(sessionStorage.getItem('banco-archivadas') || 'null'); if (guardadasArch) { archivadasBanco = guardadasArch; } } catch (e) {}
+  function guardarIglesiasBanco() { try { sessionStorage.setItem('banco-iglesias', JSON.stringify(iglesiasBanco)); sessionStorage.setItem('banco-archivadas', JSON.stringify(archivadasBanco)); } catch (e) {} }
   // Canciones compartidas: con ?iglesias=2 hay más de una iglesia (`protegida`). Por defecto el usuario es administrador central (todo
   // permitido); con &central=0 es una persona del equipo que no creó la canción «A Cristo coronad» (id 437): parte de lo que tiene
   // es de «Marta» (`mio: false`) y varios datos, el orden y el borrado le están vedados. El resto de canciones son suyas.
@@ -58,7 +67,7 @@
     puedeEscaleta = puedeEscaleta && rolActivo === 'admin';
   }
   function restringidaBanco(c) { return protegidaBanco && !centralBanco && c.id === 437; }
-  function datosIglesias() { return { activa: iglesiaActiva, central: centralBanco, iglesias: iglesiasBanco }; }
+  function datosIglesias() { return Object.assign({ activa: iglesiaActiva, central: centralBanco, iglesias: iglesiasBanco }, centralBanco ? { archivadas: archivadasBanco } : {}); }
   function nombreActiva() { return iglesiasBanco.filter(function (i) { return i.id === iglesiaActiva; })[0].nombre; }
   window.PIEB_CANCIONERO = {
     api: '/api/', nonce: 'x', userId: 1, userName: 'Ana Pérez', userEmail: 'ana@example.com', gestionar: puedeGestionar, escaleta: puedeEscaleta,
@@ -180,6 +189,23 @@
     cultos.push({ id: 904, titulo: 'Ensayo privado', fecha: dias(2), tipo: 'Ensayo', notas: 'Borrador del setlist', items: [{ cancion: 432, tonalidad: '', nota: '' }, { cancion: 441, tonalidad: '', nota: '' }], creadoPor: 'Ana', puedeBorrar: true, iglesia: 1, privado: true, mio: true });
     cultos.push({ id: 905, titulo: 'Culto privado de otra persona', fecha: dias(5), tipo: 'Culto especial', notas: '', items: [{ cancion: 436, tonalidad: '', nota: '' }], creadoPor: 'Sara', puedeBorrar: false, iglesia: 1, privado: true, mio: false });
     cultos.push({ id: 906, titulo: 'Culto del norte', fecha: dias(6), tipo: 'Culto dominical', notas: '', items: [{ cancion: 437, tonalidad: '', nota: '' }], creadoPor: 'Luis', puedeBorrar: false, iglesia: 2, privado: false, mio: false });
+  }
+  // Papelera de cultos (fase 5c): cada culto borrado guarda quién y cuándo. Se ve el de la iglesia activa si es privado y mío, o si no es
+  // privado y quien pregunta gestiona la iglesia (el central NO ve los privados ajenos).
+  function haceDias(n) { return new Date(Date.now() - n * 86400000).toISOString(); }
+  var cultosPapelera = [
+    { id: 920, titulo: 'Culto de Navidad', fecha: dias(-100), tipo: 'Culto especial', items: [{ cancion: 432 }, { cancion: 440 }, { cancion: 437 }], iglesia: 1, privado: false, mio: false, borradoEl: haceDias(3), borradoPor: 'Luis' },
+    { id: 921, titulo: 'Ensayo de prueba', fecha: dias(-20), tipo: 'Ensayo', items: [{ cancion: 441 }], iglesia: 1, privado: true, mio: true, borradoEl: haceDias(20), borradoPor: 'Ana' },
+    { id: 922, titulo: 'Borrador privado de otra persona', fecha: dias(-9), tipo: 'Ensayo', items: [], iglesia: 1, privado: true, mio: false, borradoEl: haceDias(2), borradoPor: 'Sara' },
+    { id: 923, titulo: 'Culto del norte antiguo', fecha: dias(-60), tipo: 'Culto dominical', items: [{ cancion: 437 }, { cancion: 436 }], iglesia: 2, privado: false, mio: false, borradoEl: haceDias(8), borradoPor: '' }
+  ];
+  var PAPELERA_DIAS = 30;
+  function papeleraVisible(c, opts) { return c.iglesia === iglesiaDePeticion(opts) && (c.privado ? c.mio : puedeGestionar); }
+  function papeleraFila(c) {
+    var pasados = Math.floor((Date.now() - new Date(c.borradoEl).getTime()) / 86400000);
+    return { id: c.id, titulo: c.titulo, fecha: c.fecha, tipo: c.tipo, canciones: (c.items || []).length, privado: c.privado, mio: c.mio,
+      borradoEl: c.borradoEl, borradoPor: c.borradoPor, caduca: PAPELERA_DIAS ? new Date(new Date(c.borradoEl).getTime() + PAPELERA_DIAS * 86400000).toISOString() : '',
+      diasRestantes: PAPELERA_DIAS ? Math.max(0, PAPELERA_DIAS - pasados) : null };
   }
   // Lo que ve quien pregunta: los de la iglesia activa (la cabecera X-PCAN-Iglesia o la guardada) que no sean privados de otra persona.
   function iglesiaDePeticion(opts) {
@@ -540,7 +566,7 @@
     var vacio404 = { code: 'pieb_no_encontrado', message: 'Culto no encontrado.' };
     cargarEquipoBanco();
     // Solo la administración central: archivos sin usar, protección, copias, papelera de canciones, prueba de correo y alta o cambio de iglesias.
-    var soloCentral = /^(huerfanos|archivos\/|papelera|correo-prueba|copia\/)/.test(ruta) || (/^iglesias(\/\d+)?$/.test(ruta) && opts && opts.method === 'POST');
+    var soloCentral = /^(huerfanos|archivos\/|papelera|correo-prueba|copia\/?)/.test(ruta) || (/^iglesias(\/\d+(\/(archivar|recuperar))?)?$/.test(ruta) && opts && opts.method && opts.method !== 'GET');
     if (protegidaBanco && !centralBanco && soloCentral) { estado = 403; datos = { code: 'pieb_prohibido', message: 'Solo la administración central puede hacerlo.' }; }
     else if (ruta === 'iglesias' && opts && opts.method === 'POST') {
       var nuevaIg = { id: Math.max.apply(null, iglesiasBanco.map(function (i) { return i.id; })) + 1, nombre: String(cuerpo.nombre || '').trim(), rol: 'admin' };
@@ -563,6 +589,80 @@
       iglesiasBanco.forEach(function (i) { if (i.id === +mc[1]) { i.nombre = String(cuerpo.nombre || '').trim(); } });
       guardarIglesiasBanco();
       datos = datosIglesias();
+    }
+    // Fase 5c: archivar, recuperar y eliminar iglesias (solo la administración central; la de por defecto no se toca).
+    else if ((mc = ruta.match(/^iglesias\/(\d+)\/archivar$/)) && opts && opts.method === 'POST') {
+      var igA = iglesiasBanco.filter(function (i) { return i.id === +mc[1]; })[0];
+      if (!igA) { estado = 404; datos = { code: 'pieb_no_encontrada', message: 'Iglesia no encontrada.' }; }
+      else if (igA.defecto) { estado = 400; datos = { code: 'pieb_defecto', message: 'La iglesia por defecto no se puede archivar.' }; }
+      else {
+        var nCultosA = cultos.filter(function (c) { return c.iglesia === igA.id; }).length + cultosPapelera.filter(function (c) { return c.iglesia === igA.id; }).length;
+        var nEtA = Object.keys(etPropias[igA.id] || {}).reduce(function (n, k) { return n + (etPropias[igA.id][k] || []).length; }, 0);
+        iglesiasBanco = iglesiasBanco.filter(function (i) { return i.id !== igA.id; });
+        archivadasBanco.push({ id: igA.id, nombre: igA.nombre, cultos: nCultosA, etiquetas: nEtA, audios: 0, datos: 0, vacia: !nCultosA && !nEtA });
+        if (iglesiaActiva === igA.id) { iglesiaActiva = 1; try { sessionStorage.setItem('banco-iglesia', '1'); } catch (e) {} }
+        guardarIglesiasBanco();
+        datos = datosIglesias();
+      }
+      espera = 200;
+    }
+    else if ((mc = ruta.match(/^iglesias\/(\d+)\/recuperar$/)) && opts && opts.method === 'POST') {
+      var arR = archivadasBanco.filter(function (a) { return a.id === +mc[1]; })[0];
+      if (!arR) { estado = 404; datos = { code: 'pieb_no_encontrada', message: 'Iglesia archivada no encontrada.' }; }
+      else {
+        archivadasBanco = archivadasBanco.filter(function (a) { return a !== arR; });
+        iglesiasBanco.push({ id: arR.id, nombre: arR.nombre, rol: centralBanco ? '' : 'admin', ajena: centralBanco });
+        guardarIglesiasBanco();
+        datos = datosIglesias();
+      }
+      espera = 200;
+    }
+    else if ((mc = ruta.match(/^iglesias\/(\d+)$/)) && opts && opts.method === 'DELETE') {
+      var arD = archivadasBanco.filter(function (a) { return a.id === +mc[1]; })[0];
+      if (!arD) { estado = 404; datos = { code: 'pieb_no_encontrada', message: 'Iglesia archivada no encontrada.' }; }
+      else if (!arD.vacia) { estado = 409; datos = { code: 'pieb_no_vacia', message: 'No se puede eliminar: la iglesia aún tiene contenido.', data: { status: 409, contenido: { cultos: arD.cultos, etiquetas: arD.etiquetas, audios: arD.audios, datos: arD.datos } } }; }
+      else { archivadasBanco = archivadasBanco.filter(function (a) { return a !== arD; }); guardarIglesiasBanco(); datos = datosIglesias(); }
+      espera = 200;
+    }
+    // Fase 5c: papelera de cultos de la iglesia activa.
+    else if (ruta === 'cultos/papelera' && (!opts || !opts.method || opts.method === 'GET')) {
+      datos = { cultos: cultosPapelera.filter(function (c) { return papeleraVisible(c, opts); }).sort(function (x, y) { return x.borradoEl < y.borradoEl ? 1 : -1; }).map(papeleraFila), dias: PAPELERA_DIAS };
+      espera = 150;
+    }
+    else if (ruta === 'cultos/papelera/vaciar' && opts && opts.method === 'POST') {
+      var antesP = cultosPapelera.length;
+      cultosPapelera = cultosPapelera.filter(function (c) { return !papeleraVisible(c, opts); });
+      datos = { eliminados: antesP - cultosPapelera.length };
+    }
+    else if ((mc = ruta.match(/^cultos\/papelera\/(\d+)(\/restaurar)?$/)) && opts && (opts.method === 'POST' || opts.method === 'DELETE')) {
+      var cP = cultosPapelera.filter(function (c) { return c.id === +mc[1] && papeleraVisible(c, opts); })[0];
+      if (!cP) { estado = 404; datos = vacio404; }
+      else {
+        cultosPapelera = cultosPapelera.filter(function (c) { return c !== cP; });
+        if (mc[2]) {
+          var rest = Object.assign({}, cP, { puedeBorrar: true }); delete rest.borradoEl; delete rest.borradoPor;
+          cultos.push(rest);
+          datos = { restaurado: true, id: cP.id };
+        } else { datos = { eliminado: true, id: cP.id }; }
+      }
+    }
+    // Copia de seguridad versión 2: iglesias con su equipo, cultos con iglesia y privado (sin los privados de otras personas).
+    else if (ruta === 'copia' && (!opts || !opts.method || opts.method === 'GET')) {
+      datos = { formato: 'pieb-cancionero', version: 2, plugin: 'banco', sitio: 'http://banco.local', fecha: new Date().toISOString(), canciones: [],
+        cultos: cultos.filter(function (c) { return !c.privado || c.mio; }).map(function (c) { return { uid: 'culto-' + c.id, titulo: c.titulo, fecha: c.fecha, tipo: c.tipo, notas: c.notas || '', items: c.items, creadoPor: c.creadoPor, iglesia: 'ig-' + c.iglesia, privado: !!c.privado }; }),
+        iglesias: iglesiasBanco.map(function (i) { return { uid: 'ig-' + i.id, nombre: i.nombre, defecto: !!i.defecto, equipo: { emails: ['ana@example.com'], administradores: ['ana@example.com'], responsablesEscaleta: [], dominio: '' }, bienvenida: { auto: false, texto: '' }, escaleta: null, fondos: null }; }),
+        ajustes: { temaDefecto: 'claro', googleClientId: '', avisoBorrado: true, papeleraDias: PAPELERA_DIAS } };
+    }
+    else if (ruta === 'copia/iglesias' && opts && opts.method === 'POST') {
+      var mapaC = {}, crC = 0, emC = 0;
+      (cuerpo.iglesias || []).forEach(function (g) {
+        var ex = iglesiasBanco.filter(function (i) { return i.nombre.toLowerCase() === String(g.nombre).toLowerCase(); })[0] || (g.defecto ? iglesiasBanco[0] : null);
+        if (ex) { mapaC[g.uid] = ex.id; emC++; return; }
+        var nueva = { id: Math.max.apply(null, iglesiasBanco.map(function (i) { return i.id; }).concat(archivadasBanco.map(function (a) { return a.id; }))) + 1, nombre: g.nombre, rol: '', ajena: true };
+        iglesiasBanco.push(nueva); guardarIglesiasBanco(); mapaC[g.uid] = nueva.id; crC++;
+      });
+      datos = { mapa: mapaC, creadas: crC, emparejadas: emC };
+      espera = 200;
     }
     else if (ruta === 'canciones') { datos = canciones.map(resumenCancion); }
     // Fase 4a: tonalidad habitual y partitura principal de la iglesia activa (solo su administración).
@@ -604,6 +704,11 @@
     else if ((mc = ruta.match(/^cultos\/(\d+)$/))) {
       var culto = cultos.filter(function (c) { return c.id === +mc[1]; })[0];
       if (!cultoVisible(culto, opts)) { estado = 404; datos = vacio404; }
+      else if (opts && opts.method === 'DELETE') {
+        cultos = cultos.filter(function (c) { return c !== culto; });
+        cultosPapelera.push(Object.assign({}, culto, { borradoEl: new Date().toISOString(), borradoPor: 'Ana' }));
+        datos = { borrado: true, id: culto.id };
+      }
       else {
         if (opts && opts.method === 'POST') { guardarCultoMock(culto, cuerpo); }
         datos = detalleCulto(culto);
@@ -649,7 +754,7 @@
     else if (ruta === 'etiquetas') { datos = {}; universalesBanco.forEach(function (u) { datos[u.nombre] = u.color; }); }
     else if (ruta === 'copia/cancion') { datos = { ok: true, estado: 'creada' }; }
     else if (ruta === 'copia/culto') { datos = { ok: true, estado: 'creado' }; }
-    else if (ruta === 'copia/estado') { datos = { canciones: [5, 0, 7, 0, 0], cultos: [] }; }
+    else if (ruta === 'copia/estado') { datos = { canciones: [5, 0, 7, 0, 0], cultos: (cuerpo.cultos || []).map(function () { return 0; }) }; }
     else if (ruta === 'papelera') { datos = { dias: 30, canciones: [
       { id: 301, titulo: 'Cantad al Señor', numero: '10', tonalidad: 'Sol', archivos: 2, borradaEl: dias(-3) + 'T10:00:00Z', borradaPor: 'Ana', caduca: '', diasRestantes: 27 },
       { id: 302, titulo: 'Cuán dulce es el amor', numero: '', tonalidad: '', archivos: 1, borradaEl: dias(-20) + 'T10:00:00Z', borradaPor: '', caduca: '', diasRestantes: 10 }] }; }

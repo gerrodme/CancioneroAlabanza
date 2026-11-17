@@ -99,6 +99,9 @@
     return mapa;
   }
 
+  // La papelera de cultos (Ajustes) avisa de que la lista cambió: la próxima vez se vuelve a pedir.
+  P.invalidarCultos = function () { cargados = null; };
+
   function cargar(forzar) {
     if (cargados && !forzar) { return cargados; }
     cargados = api('cultos').then(function (lista) { cultos = lista; P.actualizarUso(usoDeCanciones()); return lista; })
@@ -433,7 +436,7 @@
   }
 
   function borrar(c) {
-    P.confirmar({ mensaje: sprintf(/* translators: %s: título del culto */ __('¿Borrar el culto «%s»? Un administrador podrá recuperarlo desde la papelera.'), c.titulo), aceptar: __('Borrar culto'), peligro: true }).then(function (si) {
+    P.confirmar({ mensaje: sprintf(/* translators: %s: título del culto */ __('¿Borrar el culto «%s»? La administración de la iglesia podrá recuperarlo desde la papelera (Ajustes).'), c.titulo), aceptar: __('Borrar culto'), peligro: true }).then(function (si) {
       if (!si) { return; }
       api('cultos/' + c.id, { method: 'DELETE' }).then(function () {
         aviso(__('Culto borrado'));

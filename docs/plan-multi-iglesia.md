@@ -159,17 +159,18 @@ Notas:
    - **5a (1.32.0).** Equipo por iglesia y permisos según el rol en la iglesia activa.
    - **5b (1.33.0 y 1.33.1).** Escaleta, fondos y correo de bienvenida por iglesia; nombres por iglesia; aviso de borrado
      a los centrales. La 1.33.1 añade `CFG.multi` (varias iglesias en la instalación, no solo las del usuario).
-   - **5c (pendiente).** Ver «Estado y siguiente paso».
+   - **5c (1.34.0).** Copias con iglesias, papelera de cultos por iglesia y archivar iglesias. Ver «Estado y siguiente paso».
 
 Cada fase añade su simulación al banco de pruebas (parámetro `?iglesias=2` para ver el modo con varias; `&central=0` para
 quien administra una iglesia sin ser central; `&rol=equipo` para el equipo).
 
 ## Estado y siguiente paso
 
-Hecho y probado en el WordPress de pruebas por el usuario y con cuentas de prueba: fases 1 a 5b (hasta la 1.33.1), en la
-rama `multi-iglesia`, sin fusionar ni publicar (la última Release es la 1.26.0).
+Hecho y probado en el WordPress de pruebas: fases 1 a 5b (hasta la 1.33.1). La fase 5c (1.34.0) está programada y
+empaquetada; falta probarla en el WordPress de pruebas. Rama `multi-iglesia`, sin fusionar ni publicar (la última Release
+es la 1.26.0).
 
-**Fase 5c (siguiente versión, 1.34.0):**
+**Fase 5c (1.34.0):**
 
 1. **Copias de seguridad con varias iglesias** (solo el central). Exportar: las iglesias (nombre), el equipo y los datos
    de cada una (`pieb_can_equipo`, escaleta, fondos, bienvenida, `_pieb_ig_{id}` de cada canción), y cada culto con su

@@ -137,6 +137,38 @@ function pieb_can_etiqueta_obtener($nombre, $iglesia_id) {
     return $id;
 }
 
+/**
+ * ID de la etiqueta universal con ese nombre; si no existe se crea (sin _pieb_iglesia y con _pieb_universal = 1). Para las copias
+ * de seguridad: no mira la iglesia activa ni los permisos. Devuelve 0 si no se pudo crear.
+ */
+function pieb_can_etiqueta_universal_obtener($nombre) {
+    $nombre = trim((string) $nombre);
+    if ($nombre === '') {
+        return 0;
+    }
+    $existente = pieb_can_etiqueta_universal_buscar($nombre);
+    if ($existente) {
+        return (int) $existente->term_id;
+    }
+    $base = sanitize_title($nombre);
+    if ($base === '') {
+        $base = 'e' . substr(md5($nombre), 0, 8);
+    }
+    $slug = $base . '-universal';
+    $r = null;
+    for ($i = 0; $i < 20; $i++) {
+        $r = wp_insert_term($nombre, PIEB_CAN_TAX, array('slug' => $i ? $slug . '-' . ($i + 1) : $slug));
+        if (!is_wp_error($r) || !in_array($r->get_error_code(), array('term_exists', 'duplicate_term_slug'), true)) {
+            break;
+        }
+    }
+    if (is_wp_error($r) || empty($r['term_id'])) {
+        return 0;
+    }
+    update_term_meta((int) $r['term_id'], '_pieb_universal', '1');
+    return (int) $r['term_id'];
+}
+
 /** Términos de la canción que ve el usuario (objetos), por nombre; si hay dos con el mismo nombre, la universal. */
 function pieb_can_etiquetas_visibles($post_id, $activa = 0) {
     $terms = wp_get_object_terms($post_id, PIEB_CAN_TAX);

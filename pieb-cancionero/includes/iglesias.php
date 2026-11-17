@@ -13,6 +13,8 @@
  *                         (ver pieb_can_dato_iglesia).
  *  _pieb_iglesia_activa   Meta de usuario: la última iglesia elegida.
  *  pieb_can_multi         Opción: versión de la migración a varias iglesias (1 = hecha).
+ *  post_status 'draft'    Una iglesia ARCHIVADA (fase 5c): deja de verse en todas partes porque pieb_can_iglesias() solo cuenta las
+ *                         publicadas. Recuperarla = volver a 'publish'. La de por defecto no se archiva ni se borra.
  */
 
 if (!defined('ABSPATH')) {
@@ -591,9 +593,9 @@ function pieb_can_iglesias_lista_usuario($user_id = 0) {
     $lista = array();
     foreach (pieb_can_iglesias() as $i) {
         if (isset($mias[$i['id']])) {
-            $lista[] = array('id' => $i['id'], 'nombre' => $i['nombre'], 'rol' => $mias[$i['id']], 'ajena' => false);
+            $lista[] = array('id' => $i['id'], 'nombre' => $i['nombre'], 'rol' => $mias[$i['id']], 'ajena' => false, 'defecto' => pieb_can_es_iglesia_defecto($i['id']));
         } elseif ($todas) {
-            $lista[] = array('id' => $i['id'], 'nombre' => $i['nombre'], 'rol' => 'admin', 'ajena' => true);
+            $lista[] = array('id' => $i['id'], 'nombre' => $i['nombre'], 'rol' => 'admin', 'ajena' => true, 'defecto' => pieb_can_es_iglesia_defecto($i['id']));
         }
     }
     return $lista;
@@ -680,20 +682,43 @@ add_action('rest_api_init', function () {
         'callback'            => 'pieb_can_rest_iglesia_activa',
         'permission_callback' => 'pieb_can_rest_acceso',
     ));
-    // Renombrar: solo el administrador central (crear es POST /iglesias).
+    // Renombrar y borrar del todo (solo archivada y vacía): solo el administrador central (crear es POST /iglesias).
     register_rest_route('pieb/v1', '/iglesias/(?P<id>\d+)', array(
+        array(
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => 'pieb_can_rest_iglesia_renombrar',
+            'permission_callback' => 'pieb_can_rest_acceso',
+        ),
+        array(
+            'methods'             => WP_REST_Server::DELETABLE,
+            'callback'            => 'pieb_can_rest_iglesia_borrar',
+            'permission_callback' => 'pieb_can_rest_acceso',
+        ),
+    ));
+    register_rest_route('pieb/v1', '/iglesias/(?P<id>\d+)/archivar', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'callback'            => 'pieb_can_rest_iglesia_renombrar',
+        'callback'            => 'pieb_can_rest_iglesia_archivar',
+        'permission_callback' => 'pieb_can_rest_acceso',
+    ));
+    register_rest_route('pieb/v1', '/iglesias/(?P<id>\d+)/recuperar', array(
+        'methods'             => WP_REST_Server::CREATABLE,
+        'callback'            => 'pieb_can_rest_iglesia_recuperar',
         'permission_callback' => 'pieb_can_rest_acceso',
     ));
 });
 
 function pieb_can_iglesias_estado() {
-    return array(
-        'activa'    => pieb_can_iglesia_activa(),
-        'central'   => pieb_can_es_central(),
-        'iglesias'  => pieb_can_iglesias_lista_usuario(),
+    $estado = array(
+        'activa'     => pieb_can_iglesia_activa(),
+        'central'    => pieb_can_es_central(),
+        'iglesias'   => pieb_can_iglesias_lista_usuario(),
+        'archivadas' => array(),
     );
+    // Las archivadas (con lo que tiene cada una) solo las ve el administrador central.
+    if (current_user_can(PIEB_CAN_CAP_CENTRAL)) {
+        $estado['archivadas'] = pieb_can_iglesias_archivadas();
+    }
+    return $estado;
 }
 
 function pieb_can_rest_iglesias() {
@@ -731,6 +756,18 @@ function pieb_can_rest_iglesia_crear(WP_REST_Request $request) {
         return new WP_Error('pieb_nombre', __('El nombre de la iglesia es obligatorio.', 'pieb-cancionero'), array('status' => 400));
     }
 
+    $id = pieb_can_iglesia_crear($nombre);
+    if (is_wp_error($id)) {
+        return $id;
+    }
+
+    $estado = pieb_can_iglesias_estado();
+    $estado['creada'] = (int) $id;
+    return rest_ensure_response($estado);
+}
+
+/** Crea la iglesia (también la usa la restauración de copias) y añade a quien la crea como su administrador. Devuelve el ID o un WP_Error. */
+function pieb_can_iglesia_crear($nombre) {
     $usuario = get_current_user_id();
     $id = wp_insert_post(array(
         'post_type'   => PIEB_CAN_IGLESIA,
@@ -753,10 +790,7 @@ function pieb_can_rest_iglesia_crear(WP_REST_Request $request) {
     pieb_can_iglesias_de(0, true);
     pieb_can_sincronizar_administrador(wp_get_current_user());
     pieb_can_proteccion_activa(true); // con la segunda iglesia empieza la protección de lo ajeno
-
-    $estado = pieb_can_iglesias_estado();
-    $estado['creada'] = (int) $id;
-    return rest_ensure_response($estado);
+    return (int) $id;
 }
 
 /** Cambia el nombre de una iglesia (solo el administrador central). */
@@ -778,6 +812,174 @@ function pieb_can_rest_iglesia_renombrar(WP_REST_Request $request) {
     if (is_wp_error($r)) {
         return $r;
     }
+    return rest_ensure_response(pieb_can_iglesias_estado());
+}
+
+// ---------------------------------------------------------------- archivar iglesias (fase 5c)
+
+/** Iglesias archivadas (post_status 'draft'): array( array('id' => int, 'nombre' => string), … ) por orden de título. */
+function pieb_can_iglesias_archivadas_basico() {
+    $posts = get_posts(array(
+        'post_type'      => PIEB_CAN_IGLESIA,
+        'post_status'    => 'draft',
+        'posts_per_page' => -1,
+        'orderby'        => 'title',
+        'order'          => 'ASC',
+    ));
+    $salida = array();
+    foreach ($posts as $p) {
+        $salida[] = array('id' => (int) $p->ID, 'nombre' => html_entity_decode(get_the_title($p), ENT_QUOTES, 'UTF-8'));
+    }
+    return $salida;
+}
+
+/**
+ * Lo que tiene cada iglesia dada y que impide borrarla: array( idIglesia => array('cultos', 'etiquetas', 'audios', 'datos') ).
+ * Cultos: en cualquier estado (papelera incluida). Etiquetas: propias (meta _pieb_iglesia del término). Audios: con 'iglesia'
+ * igual a ella en cualquier canción. Datos: un _pieb_ig_{id} con tonalidad, notas o partitura principal. Las canciones se
+ * recorren una sola vez.
+ */
+function pieb_can_iglesias_contenido($ids) {
+    $ids = array_values(array_unique(array_map('intval', (array) $ids)));
+    $cuenta = array();
+    foreach ($ids as $id) {
+        $cultos = get_posts(array(
+            'post_type'      => PIEB_CAN_CULTO,
+            'post_status'    => array_values(get_post_stati()),
+            'posts_per_page' => -1,
+            'fields'         => 'ids',
+            'meta_query'     => array(array('key' => '_pieb_iglesia', 'value' => $id, 'compare' => '=')),
+        ));
+        $etiquetas = get_terms(array(
+            'taxonomy'   => PIEB_CAN_TAX,
+            'hide_empty' => false,
+            'fields'     => 'ids',
+            'meta_query' => array(array('key' => '_pieb_iglesia', 'value' => $id, 'compare' => '=')),
+        ));
+        $cuenta[$id] = array(
+            'cultos'    => count($cultos),
+            'etiquetas' => is_array($etiquetas) ? count($etiquetas) : 0,
+            'audios'    => 0,
+            'datos'     => 0,
+        );
+    }
+    if (!$ids) {
+        return $cuenta;
+    }
+    $canciones = get_posts(array(
+        'post_type'      => PIEB_CAN_CPT,
+        'post_status'    => array('publish', 'draft', 'pending', 'private', 'future', 'trash'),
+        'posts_per_page' => -1,
+        'fields'         => 'ids',
+    ));
+    foreach ($canciones as $pid) {
+        $audios = get_post_meta($pid, '_pieb_audios', true);
+        foreach (is_array($audios) ? $audios : array() as $a) {
+            $ig = is_array($a) && !empty($a['iglesia']) ? (int) $a['iglesia'] : 0;
+            if ($ig && isset($cuenta[$ig])) {
+                $cuenta[$ig]['audios']++;
+            }
+        }
+        foreach ($ids as $id) {
+            $d = pieb_can_cancion_iglesia($pid, $id);
+            if (trim($d['tonalidad']) !== '' || $d['principal'] || trim($d['notas']) !== '') {
+                $cuenta[$id]['datos']++;
+            }
+        }
+    }
+    return $cuenta;
+}
+
+/** Iglesias archivadas para la interfaz: array( array('id', 'nombre', 'cultos', 'etiquetas', 'audios', 'datos', 'vacia'), … ). */
+function pieb_can_iglesias_archivadas() {
+    $basico = pieb_can_iglesias_archivadas_basico();
+    $contenido = pieb_can_iglesias_contenido(wp_list_pluck($basico, 'id'));
+    $lista = array();
+    foreach ($basico as $i) {
+        $c = $contenido[$i['id']];
+        $lista[] = array(
+            'id'        => $i['id'],
+            'nombre'    => $i['nombre'],
+            'cultos'    => $c['cultos'],
+            'etiquetas' => $c['etiquetas'],
+            'audios'    => $c['audios'],
+            'datos'     => $c['datos'],
+            'vacia'     => !($c['cultos'] || $c['etiquetas'] || $c['audios'] || $c['datos']),
+        );
+    }
+    return $lista;
+}
+
+/** Olvida lo recordado durante la petición (pertenencias y protección) tras archivar, recuperar o borrar una iglesia. */
+function pieb_can_iglesias_reiniciar() {
+    pieb_can_iglesias_de(0, true);
+    pieb_can_proteccion_activa(true);
+}
+
+/** Archiva una iglesia (solo el administrador central): pasa a borrador y desaparece de todo. La de por defecto no se puede. */
+function pieb_can_rest_iglesia_archivar(WP_REST_Request $request) {
+    if (!current_user_can(PIEB_CAN_CAP_CENTRAL)) {
+        return new WP_Error('pieb_permiso', __('Solo el administrador central puede archivar iglesias.', 'pieb-cancionero'), array('status' => 403));
+    }
+    $id = (int) $request['id'];
+    if (pieb_can_iglesia_nombre($id) === '') {
+        return new WP_Error('pieb_no_existe', __('La iglesia no existe o ya está archivada.', 'pieb-cancionero'), array('status' => 404));
+    }
+    if (pieb_can_es_iglesia_defecto($id)) {
+        return new WP_Error('pieb_defecto', __('La iglesia por defecto no se puede archivar.', 'pieb-cancionero'), array('status' => 400));
+    }
+    $r = wp_update_post(array('ID' => $id, 'post_status' => 'draft'), true);
+    if (is_wp_error($r)) {
+        return $r;
+    }
+    pieb_can_iglesias_reiniciar();
+    return rest_ensure_response(pieb_can_iglesias_estado());
+}
+
+/** Recupera una iglesia archivada (solo el administrador central): vuelve a publicarse. */
+function pieb_can_rest_iglesia_recuperar(WP_REST_Request $request) {
+    if (!current_user_can(PIEB_CAN_CAP_CENTRAL)) {
+        return new WP_Error('pieb_permiso', __('Solo el administrador central puede recuperar iglesias.', 'pieb-cancionero'), array('status' => 403));
+    }
+    $id = (int) $request['id'];
+    $post = get_post($id);
+    if (!$post || $post->post_type !== PIEB_CAN_IGLESIA || $post->post_status !== 'draft') {
+        return new WP_Error('pieb_no_existe', __('Esa iglesia no está archivada.', 'pieb-cancionero'), array('status' => 404));
+    }
+    $r = wp_update_post(array('ID' => $id, 'post_status' => 'publish'), true);
+    if (is_wp_error($r)) {
+        return $r;
+    }
+    pieb_can_iglesias_reiniciar();
+    return rest_ensure_response(pieb_can_iglesias_estado());
+}
+
+/**
+ * Borra del todo una iglesia (solo el administrador central), y solo si está archivada y vacía (sin cultos, etiquetas propias,
+ * audios ni datos por canción). Su equipo, escaleta, fondos y bienvenida se van con ella. 409 con el detalle si no está vacía.
+ */
+function pieb_can_rest_iglesia_borrar(WP_REST_Request $request) {
+    if (!current_user_can(PIEB_CAN_CAP_CENTRAL)) {
+        return new WP_Error('pieb_permiso', __('Solo el administrador central puede borrar iglesias.', 'pieb-cancionero'), array('status' => 403));
+    }
+    $id = (int) $request['id'];
+    if (pieb_can_es_iglesia_defecto($id)) {
+        return new WP_Error('pieb_defecto', __('La iglesia por defecto no se puede borrar.', 'pieb-cancionero'), array('status' => 400));
+    }
+    $post = get_post($id);
+    if (!$post || $post->post_type !== PIEB_CAN_IGLESIA || $post->post_status !== 'draft') {
+        return new WP_Error('pieb_no_existe', __('Esa iglesia no está entre las archivadas.', 'pieb-cancionero'), array('status' => 404));
+    }
+    $contenido = pieb_can_iglesias_contenido(array($id));
+    $c = $contenido[$id];
+    if ($c['cultos'] || $c['etiquetas'] || $c['audios'] || $c['datos']) {
+        return new WP_Error('pieb_no_vacia', __('La iglesia no está vacía: tiene cultos, etiquetas, audios o datos de canciones.', 'pieb-cancionero'), array('status' => 409, 'contenido' => $c));
+    }
+    wp_delete_post($id, true);
+    // Restos vacíos: el dato por iglesia de las canciones y quien la tenía como iglesia activa.
+    delete_post_meta_by_key('_pieb_ig_' . $id);
+    delete_metadata('user', 0, '_pieb_iglesia_activa', $id, true);
+    pieb_can_iglesias_reiniciar();
     return rest_ensure_response(pieb_can_iglesias_estado());
 }
 

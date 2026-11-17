@@ -1051,9 +1051,6 @@ window.PIEB_I18N = {
   "Ajustes y lista del equipo": [
    "Settings and team list"
   ],
-  "Tema por defecto, correos con acceso y acceso con Google.": [
-   "Default theme, emails with access and Google sign-in."
-  ],
   "Descargar copia": [
    "Download backup"
   ],
@@ -1418,9 +1415,6 @@ window.PIEB_I18N = {
   "(nº %s)": [
    "(No. %s)"
   ],
-  "¿Borrar el culto «%s»? Un administrador podrá recuperarlo desde la papelera.": [
-   "Delete the service “%s”? An administrator will be able to restore it from the trash."
-  ],
   "Culto borrado": [
    "Service deleted"
   ],
@@ -1769,9 +1763,6 @@ window.PIEB_I18N = {
   "Protección y archivos sin usar": [
    "Protection and unused files"
   ],
-  "Restaurar o eliminar canciones borradas": [
-   "Restore or delete removed songs"
-  ],
   "Descargar o restaurar una copia": [
    "Download or restore a backup"
   ],
@@ -1790,9 +1781,6 @@ window.PIEB_I18N = {
   ],
   "Cambiar el plazo": [
    "Change the period"
-  ],
-  "Copia de seguridad del Cancionero (plugin Cancionero).\n\ncopia.json  canciones, cultos y ajustes\narchivos/   partituras, audios y partituras editables de cada canción\n\nPara restaurarla: instala el plugin en WordPress, entra como administrador en el cancionero\ny abre Ajustes y equipo → Copias de seguridad → Restaurar desde una copia.\n": [
-   "Songbook backup (Cancionero plugin).\n\ncopia.json  songs, services and settings\narchivos/   scores, audio and editable scores for each song\n\nTo restore it: install the plugin in WordPress, sign in as an administrator, open the songbook\nand go to Settings and team → Backups → Restore from a backup.\n"
   ],
   "Leyendo la copia…": [
    "Reading the backup…"
@@ -3192,6 +3180,157 @@ window.PIEB_I18N = {
   ],
   "De %s: cada iglesia tiene los suyos.": [
    "From %s: each church has its own."
+  ],
+  "Restaurar o eliminar cultos y canciones borrados": [
+   "Restore or delete deleted services and songs"
+  ],
+  "Restaurar o eliminar cultos borrados": [
+   "Restore or delete deleted services"
+  ],
+  "Iglesia por defecto": [
+   "Default church"
+  ],
+  "Archivar": [
+   "Archive"
+  ],
+  "¿Archivar «%s»? Deja de verse y nadie podrá entrar en ella ni ver sus cultos, pero no se borra nada: podrás recuperarla desde «Iglesias archivadas».": [
+   "Archive “%s”? It will disappear and nobody will be able to enter it or see its services, but nothing is deleted: you can recover it from “Archived churches”."
+  ],
+  "Es la iglesia en la que estás: la página se recargará.": [
+   "This is the church you are in: the page will reload."
+  ],
+  "Archivar iglesia": [
+   "Archive church"
+  ],
+  "Iglesia archivada": [
+   "Church archived"
+  ],
+  "Vacía": [
+   "Empty"
+  ],
+  "%d etiqueta": [
+   "%d tag",
+   "%d tags"
+  ],
+  "%d dato de canción": [
+   "%d song entry",
+   "%d song entries"
+  ],
+  "Iglesia recuperada": [
+   "Church recovered"
+  ],
+  "Recuperar": [
+   "Recover"
+  ],
+  "¿Eliminar «%s» del todo? Se borran también su equipo, su escaleta y sus ajustes. No se puede deshacer.": [
+   "Delete “%s” completely? Its team, run sheet and settings are deleted too. This cannot be undone."
+  ],
+  "Eliminar del todo": [
+   "Delete completely"
+  ],
+  "Iglesia eliminada": [
+   "Church deleted"
+  ],
+  "No se puede eliminar mientras tenga contenido: vacíala antes, o déjala archivada.": [
+   "It cannot be deleted while it has content: empty it first, or leave it archived."
+  ],
+  "Iglesias archivadas": [
+   "Archived churches"
+  ],
+  "No salen en el selector y nadie puede entrar en ellas. Se pueden recuperar; solo una iglesia vacía se puede eliminar del todo.": [
+   "They do not appear in the selector and nobody can enter them. They can be recovered; only an empty church can be deleted completely."
+  ],
+  "Cargando las iglesias…": [
+   "Loading churches…"
+  ],
+  "Se conserva hasta que la administración lo elimine": [
+   "Kept until the administration deletes it"
+  ],
+  "Borrado el %1$s por %2$s": [
+   "Deleted on %1$s by %2$s"
+  ],
+  "Borrado el %s": [
+   "Deleted on %s"
+  ],
+  "Cultos borrados de %s": [
+   "Deleted services of %s"
+  ],
+  "Cultos borrados": [
+   "Deleted services"
+  ],
+  "Cargando la papelera de cultos…": [
+   "Loading the services trash…"
+  ],
+  "Los cultos borrados se conservan %d día y después se eliminan solos. Los recupera la administración de la iglesia.": [
+   "Deleted services are kept for %d day and then deleted automatically. The church administration can recover them.",
+   "Deleted services are kept for %d days and then deleted automatically. The church administration can recover them."
+  ],
+  "Los cultos borrados se conservan hasta que la administración de la iglesia los elimine (el borrado automático está desactivado).": [
+   "Deleted services are kept until the church administration deletes them (automatic deletion is off)."
+  ],
+  "No hay cultos borrados.": [
+   "There are no deleted services."
+  ],
+  "«%s» restaurado": [
+   "“%s” restored"
+  ],
+  "¿Eliminar el culto «%s» para siempre? No se puede deshacer.": [
+   "Delete the service “%s” forever? This cannot be undone."
+  ],
+  "«%s» eliminado para siempre": [
+   "“%s” deleted forever"
+  ],
+  "¿Vaciar la papelera de cultos? Se elimina para siempre %d culto. No se puede deshacer.": [
+   "Empty the services trash? %d service will be deleted forever. This cannot be undone.",
+   "Empty the services trash? %d services will be deleted forever. This cannot be undone."
+  ],
+  "Vaciar papelera de cultos": [
+   "Empty services trash"
+  ],
+  "Vaciando…": [
+   "Emptying…"
+  ],
+  "%d culto eliminado para siempre": [
+   "%d service deleted forever",
+   "%d services deleted forever"
+  ],
+  "Canciones borradas": [
+   "Deleted songs"
+  ],
+  "Copia de seguridad del Cancionero (plugin Cancionero).\n\ncopia.json  canciones, cultos, iglesias y ajustes\narchivos/   partituras, audios y partituras editables de cada canción\n\nPara restaurarla: instala el plugin en WordPress, entra como administrador en el cancionero\ny abre Ajustes y equipo → Copias de seguridad → Restaurar desde una copia.\n": [
+   "Cancionero backup (Cancionero plugin).\n\ncopia.json  songs, services, churches and settings\narchivos/   sheet music, audio and editable scores of each song\n\nTo restore it: install the plugin in WordPress, sign in as an administrator in the songbook\nand open Settings and team → Backups → Restore from a backup.\n"
+  ],
+  "Tema por defecto, acceso con Google y, de cada iglesia, su equipo, bienvenida, escaleta y fondos.": [
+   "Default theme, Google sign-in and, for each church, its team, welcome, run sheet and backgrounds."
+  ],
+  "La copia trae %d iglesia": [
+   "The backup has %d church",
+   "The backup has %d churches"
+  ],
+  "%d no existe aún en esta web y se creará.": [
+   "%d does not exist on this site yet and will be created.",
+   "%d do not exist on this site yet and will be created."
+  ],
+  "todas existen ya en esta web.": [
+   "all of them already exist on this site."
+  ],
+  "Copia antigua: se restaura entera en la iglesia por defecto.": [
+   "Old backup: it is restored entirely into the default church."
+  ],
+  "Iglesias: %1$d creadas, %2$d ya existían": [
+   "Churches: %1$d created, %2$d already existed"
+  ],
+  "Iglesias: %s. Se detiene la restauración para no mezclar iglesias.": [
+   "Churches: %s. The restore is stopped so churches are not mixed up."
+  ],
+  "Ajustes restaurados": [
+   "Settings restored"
+  ],
+  "La copia incluye todas las iglesias. Los cultos privados de otras personas no se incluyen.": [
+   "The backup includes all churches. Other people’s private services are not included."
+  ],
+  "¿Borrar el culto «%s»? La administración de la iglesia podrá recuperarlo desde la papelera (Ajustes).": [
+   "Delete the service “%s”? The church administration can recover it from the trash (Settings)."
   ]
  }
 };

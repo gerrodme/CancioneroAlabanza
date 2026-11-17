@@ -2,6 +2,17 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.34.0 · 2026-11-17
+
+Copias, papelera de cultos y archivar iglesias (fase 5c de `docs/plan-multi-iglesia.md`). Las copias de seguridad llevan
+ahora las iglesias (nombre, equipo, bienvenida y escaleta), los datos de cada canción por iglesia, las etiquetas con su
+iglesia o universales, los audios con su iglesia y los cultos con su iglesia y su privacidad (los cultos privados de otras
+personas no se incluyen); al restaurar se emparejan o se crean las iglesias y cada culto se busca solo dentro de la suya.
+Una copia antigua se restaura entera en la iglesia por defecto. Cada iglesia tiene su papelera de cultos (la administración
+los restaura o elimina; los privados, solo su autor) con el mismo plazo que las canciones. El administrador central puede
+archivar iglesias desde Ajustes → Iglesias (desaparecen y se pueden recuperar) y borrarlas del todo solo si están vacías;
+la iglesia por defecto no se puede archivar.
+
 ## 1.33.1 · 2026-11-17
 
 Arreglo de la interfaz con varias iglesias: quien pertenece a una sola iglesia de una instalación con varias se trataba

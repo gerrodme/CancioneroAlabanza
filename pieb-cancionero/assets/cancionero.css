@@ -2536,7 +2536,7 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 .pcan-culto-privado { padding: 2px 0 6px; }
 .pcan-menu-iglesia { margin-top: 6px; }
 .pcan-iglesias { display: grid; gap: 12px; }
-.pcan-iglesia .pcan-papelera-main { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pcan-iglesia .pcan-papelera-main { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: flex-start; align-items: center; gap: 8px; }
 .pcan-iglesia-edicion, .pcan-iglesias-nueva { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; }
 .pcan-iglesia-edicion .pcan-input, .pcan-iglesias-nueva .pcan-input { flex: 1 1 200px; min-width: 0; }
 .pcan-iglesia.is-editando { display: block; }
@@ -2575,3 +2575,15 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 .pcan-en-iglesia .pcan-select { width: 100%; max-width: 100%; height: 40px; }
 .pcan-audio-text > strong > .pcan-universal { margin-left: 8px; }
 .pcan-audio-acc { margin-top: 6px; }
+
+/* Papelera por bloques (cultos de la iglesia y canciones) e iglesias archivadas (fase 5c). */
+.pcan-papelera-bloque { display: grid; gap: 10px; }
+.pcan-papelera-bloque + .pcan-papelera-bloque { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--pc-line); }
+.pcan-papelera-bloque .pcan-subtitulo, .pcan-iglesias-archivadas .pcan-subtitulo { margin: 0; font-size: 15px; }
+.pcan-papelera-bloque .pcan-help, .pcan-iglesias-archivadas .pcan-help { margin: 0; }
+.pcan-papelera-main strong .pcan-privado { margin-left: 8px; }
+.pcan-iglesias-archivadas { display: grid; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--pc-line); }
+.pcan-iglesia.pcan-iglesia-archivada .pcan-papelera-main { flex-direction: column; flex-wrap: nowrap; align-items: flex-start; gap: 2px; }
+.pcan-iglesia-retiene { color: var(--pc-warn); }
+.pcan-copia-antigua { padding: 8px 10px; border-radius: var(--pc-radius-sm); background: color-mix(in srgb, var(--pc-warn) 12%, var(--pc-surface)); color: var(--pc-warn); font-weight: 600; }
+[data-pcan-theme] .pcan-iglesia-archivada .pcan-btn:disabled { cursor: not-allowed; }

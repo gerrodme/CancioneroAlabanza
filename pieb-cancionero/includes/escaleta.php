@@ -142,8 +142,8 @@ function pieb_can_escaleta_generica() {
  * la genérica), o null si esa iglesia no tiene nada guardado (la iglesia por defecto la guarda en la opción
  * «pieb_can_escaleta»; las demás, en su meta: ver pieb_can_dato_iglesia).
  */
-function pieb_can_escaleta_guardada() {
-    $guardada = pieb_can_dato_iglesia('escaleta', 0, null);
+function pieb_can_escaleta_guardada($iglesia_id = 0) {
+    $guardada = pieb_can_dato_iglesia('escaleta', $iglesia_id, null);
     if (!is_array($guardada)) {
         return null;
     }
@@ -154,9 +154,9 @@ function pieb_can_escaleta_guardada() {
     return $guardada;
 }
 
-/** Guarda la plantilla ya saneada de la iglesia activa; null borra la propia y la iglesia vuelve a la genérica. */
-function pieb_can_escaleta_guardar($plantilla) {
-    pieb_can_dato_iglesia_guardar('escaleta', 0, $plantilla);
+/** Guarda la plantilla ya saneada de la iglesia activa (o de $iglesia_id); null borra la propia y la iglesia vuelve a la genérica. */
+function pieb_can_escaleta_guardar($plantilla, $iglesia_id = 0) {
+    pieb_can_dato_iglesia_guardar('escaleta', $iglesia_id, $plantilla);
 }
 
 /** {id, url} de una imagen de la biblioteca de medios, o null si no hay (o se borró de la biblioteca). */
@@ -536,8 +536,8 @@ function pieb_can_escaleta_mapear_canciones($escaleta, $funcion) {
  * Plantilla para la copia de seguridad: solo si la instalación tiene una propia (la genérica no se exporta: en otra web
  * quedaría fija en el idioma de quien exportó). Sin las imágenes: sus ids no valen en otra web (van a null).
  */
-function pieb_can_escaleta_para_copia() {
-    $plantilla = pieb_can_escaleta_guardada();
+function pieb_can_escaleta_para_copia($iglesia_id = 0) {
+    $plantilla = pieb_can_escaleta_guardada($iglesia_id);
     if ($plantilla === null) {
         return null;
     }

@@ -13,7 +13,7 @@ Resumen técnico del plugin **Cancionero** para quien llegue nuevo al código.
 | `includes/etiquetas.php` | Etiquetas por iglesia y universales (visibilidad, creación, asignación, `GET/POST /etiquetas/universales`). Ver [Iglesias](#iglesias). |
 | `includes/rest.php` | API REST `pieb/v1`: listar, ver, crear, actualizar y borrar canciones; subida de archivos por trozos. |
 | `includes/archivos.php` | Archivos privados del cancionero: carpeta `cancionero-privado`, entrega con sesión (`?pcan_archivo=ID`), protección y archivos sin usar. |
-| `includes/papelera.php` | Papelera del cancionero: quién borró, plazo y limpieza automática, restaurar y eliminar para siempre. |
+| `includes/papelera.php` | Papelera del cancionero: quién borró, plazo y limpieza automática, restaurar y eliminar para siempre; también la papelera de cultos por iglesia (`/cultos/papelera…`). |
 | `includes/iglesias.php` | Iglesias (tipo `pieb_iglesia`), pertenencia de cada usuario, iglesia activa, administrador central, migración y `GET /iglesias`, `POST /iglesias/activa`. Ver [Iglesias](#iglesias). |
 | `includes/cultos.php` | Cultos y setlists (tipo de contenido y API). |
 | `includes/ajustes.php` | Temas, ajustes, lista del equipo, preferencias por usuario, copias de seguridad (exportar/importar). |
@@ -71,7 +71,7 @@ La interfaz es una aplicación de una sola página dentro de la página de WordP
   | `_pieb_campos_autor` | `{ campo: idUsuario }`: quién rellenó `titulo`, `numero`, `autor`, `tonalidad` y `tempo`. Solo pesa con varias iglesias (ver [Iglesias](#iglesias)); lo que falta cuenta como rellenado por el creador de la canción. |
   | `autor`, `iglesia` (en cada elemento de las cuatro listas anteriores) | `autor`: ID del usuario que lo añadió; `iglesia`: ID de la iglesia desde la que se añadió. Si faltan, los getters (`pieb_can_get_partituras/audios/editables/youtube`) los completan al leer con el autor de la canción y la iglesia por defecto, sin escribir nada. Al guardar, los elementos nuevos llevan el usuario actual y su iglesia activa; los que se conservan mantienen los suyos (nunca se aceptan del cliente; un enlace de YouTube es «el mismo» si coincide su URL). La API los devuelve en cada partitura, audio, editable y enlace. |
 
-- Metadatos de **culto**: `_pieb_iglesia` (ID de la iglesia; se guarda al crearlo y no cambia al editar; `pieb_can_culto_iglesia()` devuelve la de por defecto si falta; el resumen del culto la trae como `iglesia`), `_pieb_privado` (`'1'` = culto privado, solo lo ve su autor; el resumen trae `privado` y `mio`; **la visibilidad la decide solo `pieb_can_culto_visible()`**, ver [Iglesias](#iglesias)), `_pieb_fecha`, `_pieb_tipo`, `_pieb_notas`, `_pieb_items` (lista de
+- Metadatos de **culto**: `_pieb_iglesia` (ID de la iglesia; se guarda al crearlo y no cambia al editar; `pieb_can_culto_iglesia()` devuelve la de por defecto si falta; el resumen del culto la trae como `iglesia`), `_pieb_borrada_por` (ID del usuario que lo mandó a la papelera, como en las canciones; ver [Papelera](#papelera)), `_pieb_privado` (`'1'` = culto privado, solo lo ve su autor; el resumen trae `privado` y `mio`; **la visibilidad la decide solo `pieb_can_culto_visible()`**, ver [Iglesias](#iglesias)), `_pieb_fecha`, `_pieb_tipo`, `_pieb_notas`, `_pieb_items` (lista de
   `{cancion, tonalidad, nota, partitura}` en orden; `partitura` es el ID del adjunto elegido para ese culto, 0 = la principal (la primera de la canción). Al
   servir el culto, `datos.partituras` lleva solo las partituras cuya tonalidad efectiva coincide con la del item (la suya o, si
   está vacía, la de la canción), con la elegida la primera; si ninguna coincide (tonalidad antigua escrita a mano) o la elegida
@@ -104,10 +104,19 @@ Todas las rutas exigen sesión iniciada con la capacidad `pieb_cancionero_acceso
 | `/canciones/{id}/audios/{audio}/universal` | POST | Cuerpo `{ universal: bool }`: publica un audio en todas las iglesias o lo devuelve a la suya. Solo el central y con varias iglesias (403 si no); 404 si la canción no tiene ese audio. Responde la ficha. |
 | `/cultos/{id}/privacidad` | POST | Cuerpo `{ privado: bool }`: hace privado un culto o lo devuelve al equipo. Solo su autor (403 para los demás que lo ven); responde el resumen del culto. |
 | `/cultos`, `/cultos/{id}` | GET, POST, DELETE | Cultos y setlists. **Solo los de la iglesia activa y, si son privados, los propios; el resto responde 404.** `POST` acepta `privado` (al crear, cualquiera; al editar, solo el autor). `GET /cultos/{id}` devuelve además `escaleta` (objeto o `null`; no va en el listado) y `POST` la acepta solo si llega (`null` la borra) **y solo de quien tiene `pieb_can_escaleta`**: de cualquier otro se ignora, sin error (el resto del culto sí se guarda y la escaleta que hubiera se conserva). Ver [Escaleta del culto](#escaleta-del-culto). |
+| `/cultos/papelera` | GET | Cultos borrados que ve quien pregunta (de su iglesia activa; los privados, solo su autor; el resto, quien gestiona la iglesia o su autor): `{ cultos: [{id, titulo, fecha, tipo, canciones, privado, mio, borradoEl, borradoPor, caduca, diasRestantes}], dias }`, el más recientemente borrado primero (`dias` = `papelera_dias`; 0 = nunca caduca). Ver [Papelera](#papelera). |
+| `/cultos/papelera/{id}/restaurar` | POST | Restaura un culto de la papelera (vuelve publicado) → `{ restaurado: true, id }`. 404 si no está en la papelera o no es visible para quien pide. |
+| `/cultos/papelera/{id}` | DELETE | Elimina para siempre un culto de la papelera → `{ eliminado: true, id }` (404 igual). |
+| `/cultos/papelera/vaciar` | POST | Elimina para siempre los cultos de la papelera **visibles para quien pide** → `{ eliminados: n }`. |
+| `/copia` | GET | Datos de la copia de seguridad, formato `version: 2` (solo central). Ver [Copias de seguridad](#copias-de-seguridad). |
+| `/copia/iglesias` | POST | Restaura las iglesias de una copia `version 2` (solo central): cuerpo `{ iglesias: [...], modo: 'saltar'\|'sobrescribir' }` → `{ mapa: { uidCopia: idEnEstaWeb }, creadas, emparejadas }`. |
+| `/copia/estado`, `/copia/cancion`, `/copia/culto`, `/copia/ajustes` | POST | Restauración de una copia (solo central), de uno en uno; las tres primeras aceptan `mapa` (el de `/copia/iglesias`). `/copia/estado` recibe cultos con su `iglesia` y busca solo dentro de ella. Ver [Copias de seguridad](#copias-de-seguridad). |
 | `/escaleta` | GET | **Base de la escaleta de un culto nuevo**: la estructura (sin valores) y la fila de títulos de la última escaleta guardada en cualquier culto, con el logo y la cabecera de la instalación y `desde: {id, titulo}` (el culto de origen; `null` si sale de la plantilla genérica). La lee todo el equipo, porque preparar la escaleta de un culto la necesita. |
 | `/escaleta/imagen` | POST | Sube el logo o la imagen de cabecera de la escaleta (JPG o PNG, máx. 2 MB) a la biblioteca de medios normal; responde `{ id, url }` (exige `pieb_cancionero_gestionar`). |
-| `/iglesias` | GET, POST | `GET`: iglesias del usuario (al central, todas): `{ activa, central, iglesias: [{id, nombre, rol, ajena}] }`. `POST` `{ nombre }`: crea una iglesia (solo central; 403 si no) y responde igual más `creada: id`. Ver [Iglesias](#iglesias). |
-| `/iglesias/{id}` | POST | Cuerpo `{ nombre }`: renombra la iglesia (solo central) y responde el estado. |
+| `/iglesias` | GET, POST | `GET`: iglesias del usuario (al central, todas las publicadas): `{ activa, central, iglesias: [{id, nombre, rol, ajena, defecto}], archivadas }`; `archivadas` (solo para el central; `[]` para los demás) = `[{id, nombre, cultos, etiquetas, audios, datos, vacia}]`. `POST` `{ nombre }`: crea una iglesia (solo central; 403 si no) y responde igual más `creada: id`. Ver [Iglesias](#iglesias). |
+| `/iglesias/{id}` | POST, DELETE | `POST` `{ nombre }`: renombra la iglesia (solo central) y responde el estado. `DELETE`: la borra del todo (solo central), **solo si está archivada y vacía**; 403 si no es central, 404 si no está entre las archivadas, 400 `pieb_defecto` si es la de por defecto, 409 `pieb_no_vacia` (con `data.contenido` = `{cultos, etiquetas, audios, datos}`) si no está vacía. Responde el estado completo. |
+| `/iglesias/{id}/archivar` | POST | Archiva la iglesia (solo central): pasa a `post_status = 'draft'` y deja de verse en el selector, la pertenencia y los cultos. 403 si no es central; 404 si no existe o ya está archivada; 400 `pieb_defecto` si es la de por defecto. Responde el estado completo (`activa`, `central`, `iglesias`, `archivadas`). |
+| `/iglesias/{id}/recuperar` | POST | Vuelve a publicar una iglesia archivada (solo central; 404 si no está archivada). Responde el estado completo. |
 | `/iglesias/activa` | POST | Cuerpo `{ iglesia: id }`: elige la iglesia activa del usuario (guarda `_pieb_iglesia_activa`) y responde como el `GET`; 403 si no pertenece a ella (el central puede elegir cualquiera). |
 | `/etiquetas`, `/preferencias`, `/huerfanos` | varios | Etiquetas **visibles** (de la iglesia activa y universales) con color como `{ nombre: color }`, preferencias del usuario (`tema`, `idioma` y `notacion`, todos opcionales; vacío = automático), archivos sin usar. |
 | `/fondos` | GET, POST | `GET` (cualquiera del equipo): `{ fondos: [{ id, url, miniatura }] }` (`url` a tamaño completo, `miniatura` en tamaño «medium»; omite los adjuntos que ya no existen). `POST` (exige `pieb_cancionero_gestionar`): multipart `archivo`, solo JPG o PNG, máx. 5 MB y 40 fondos; sube a la biblioteca de medios normal y responde `{ id, url, miniatura }`. Ver [Exportar letras](#exportar-letras). |
@@ -137,7 +146,7 @@ Para cambiar un solo dato: `GET` la ficha, reconstruir todos los campos con ella
 [plan-multi-iglesia.md](plan-multi-iglesia.md)). La fase 1 deja los cimientos **sin ningún cambio visible**: una instalación
 de una sola iglesia se comporta exactamente igual.
 
-- **Entidad.** Tipo de contenido `pieb_iglesia` (no público, sin interfaz, sin REST nativo); el nombre es el título. Siempre
+- **Entidad.** Tipo de contenido `pieb_iglesia` (no público, sin interfaz, sin REST nativo; `post_status = 'draft'` = archivada, ver más abajo); el nombre es el título. Siempre
   hay una, la **por defecto** (opción `pieb_can_iglesia_defecto`), que `pieb_can_iglesia_defecto()` crea sola la primera vez
   con el nombre que tenía el cancionero (la línea bajo el nombre o, si está vacía, el nombre del sitio). `pieb_can_iglesias()`
   lista las publicadas por orden de título.
@@ -226,7 +235,8 @@ de una sola iglesia se comporta exactamente igual.
     canción no usa esta función, así que no altera el orden que fijó quien la creó. En un culto manda la partitura elegida para él.
   - **Notas.** `notas` de la API son las de la iglesia activa (`pieb_can_notas()`/`pieb_can_notas_guardar()`); las edita cualquier
     miembro con el `notas` de `POST /canciones/{id}`. La iglesia por defecto usa `_pieb_notas`; las demás, `notas` de
-    `_pieb_ig_{id}`. La copia de seguridad sigue exportando e importando `_pieb_notas` (las de la iglesia por defecto).
+    `_pieb_ig_{id}`. La copia de seguridad exporta `_pieb_notas` en `notas` (las de la iglesia por defecto) y, además, `iglesias`
+    con el `_pieb_ig_{id}` de cada una (ver [Copias de seguridad](#copias-de-seguridad)).
   - **Ficha.** `iglesiaDatos` = `{ tonalidad (cruda, '' = la original), principal, puedeEditar }` (`puedeEditar` =
     `pieb_can_es_admin_iglesia()`: central o rol `admin` en la iglesia activa) y, en la raíz, `puedeUniversal`.
   - **Audios por iglesia y universales.** Cada audio lleva `iglesia`; con `universal: 1` lo ven todas. **Una sola función decide
@@ -240,7 +250,7 @@ de una sola iglesia se comporta exactamente igual.
     es central o si **pertenece** a la iglesia del audio (`pieb_can_rol_en`; es una dirección directa, sin cabecera de iglesia
     activa); si no, responde 404 «Archivo no encontrado». Un audio que ninguna canción lista (huérfano) solo lo recibe el central.
     Partituras y editables no cambian.
-  - **Otros sitios que leen audios.** La copia de seguridad exporta todos los audios solo al central (a los demás, los visibles);
+  - **Otros sitios que leen audios.** La copia de seguridad (solo del central) exporta todos los audios, cada uno con su `iglesia` y `universal`;
     «archivos sin usar» y el borrado definitivo de una canción cuentan todos los audios (ninguno de otra iglesia se considera
     huérfano); el aviso de borrado y la papelera (para el central) no cambian.
 - **Etiquetas por iglesia y universales (fase 4b).** `includes/etiquetas.php`. **Con una sola iglesia nada cambia ni se guarda
@@ -267,8 +277,9 @@ de una sola iglesia se comporta exactamente igual.
     demás iglesias (reasigna sus canciones y borra esos términos); `false` devuelve la universal a la iglesia activa (404 si no
     existe; si esa iglesia ya tenía otra igual, las fusiona). `POST /canciones/etiquetar` mantiene su formato (cada canción
     del resultado añade `etiquetasUniversales`); para quien no es central, poner o quitar una universal se ignora.
-  - **Copias de seguridad.** La exportación da las etiquetas visibles para quien exporta; la importación usa
-    `pieb_can_etiquetas_fijar()`.
+  - **Copias de seguridad.** La exportación da TODAS las etiquetas de cada canción como `{ nombre, iglesia: uid|null }`
+    (`null` = universal); la importación las crea en la iglesia que diga el mapa (`pieb_can_etiqueta_obtener()`) o como universales
+    (`pieb_can_etiqueta_universal_obtener()`), nunca en la iglesia activa. Las cadenas sueltas de copias antiguas van a la iglesia por defecto.
 - **Equipo por iglesia y permisos según la iglesia activa (fase 5a).** **Con una sola iglesia todo se comporta y se guarda
   como siempre.**
   - **Equipo.** `pieb_can_equipo($iglesia_id)` devuelve `{ emails, administradores, responsablesEscaleta, dominio }`. La iglesia
@@ -331,9 +342,18 @@ de una sola iglesia se comporta exactamente igual.
   - **Aviso de borrado.** Con la protección activa, los destinatarios son los administradores **centrales** (cuentas con
     `pieb_cancionero_central` y el correo de administración del sitio), no la lista de la iglesia por defecto; con una sola iglesia,
     los de siempre. El interruptor `aviso_borrado` es global.
-- **Pendiente (fase 5c).** Las copias de seguridad (`includes/ajustes.php`) siguen exportando e importando los cultos
-  de toda la instalación, privados incluidos y sin la iglesia; los ajustes que exportan (bienvenida, equipo) son los de la iglesia
-  por defecto y la plantilla de la escaleta es la de la iglesia activa. Se adaptarán en la fase 5c.
+- **Archivar iglesias (fase 5c).** Una iglesia archivada pasa a `post_status = 'draft'`: como `pieb_can_iglesias()`, la
+  pertenencia (`pieb_can_iglesias_de()`), el selector, `pieb_can_puede_entrar_en()`, `pieb_can_equipos_todos()` y la visibilidad de
+  sus cultos solo cuentan las **publicadas**, desaparece de todo sin más cambios; recuperarla es volver a `publish`. Solo el
+  central (`POST /iglesias/{id}/archivar` y `/recuperar`). **La iglesia por defecto no se puede archivar ni borrar** (400
+  `pieb_defecto`). Quien la tenía como activa cae sola en otra (`pieb_can_iglesia_activa()`). Borrarla del todo
+  (`DELETE /iglesias/{id}`) exige que esté archivada **y vacía**: ningún culto en ningún estado (papelera incluida), ninguna
+  etiqueta propia (término con meta `_pieb_iglesia` = id), ningún audio con su `iglesia` y ningún `_pieb_ig_{id}` con datos
+  (tonalidad, notas o principal) en ninguna canción (`pieb_can_iglesias_contenido()`); su equipo, escaleta, fondos y bienvenida
+  se van con ella. `GET /iglesias` y el resto de respuestas de estado (`pieb_can_iglesias_estado()`) añaden `defecto` a cada
+  iglesia y, solo para el central, `archivadas` con el recuento de lo que tiene cada una (`vacia` = todo a 0).
+- **Copias de seguridad.** Con la fase 5c llevan las iglesias y lo propio de cada una; ver
+  [Copias de seguridad](#copias-de-seguridad).
 
 ## Bienvenida al equipo
 
@@ -360,8 +380,8 @@ entra en la lista), `bienvenida_texto` (texto opcional del administrador que se 
 location.pathname + location.search` en cada guardado y en cada envío, y solo se guarda si es una dirección válida de
 esta web; se le quitan el fragmento y la consulta, salvo `page_id` o `p`, que con enlaces permanentes simples son la
 propia página). Para los correos se usa la `pagina` de la petición si es válida, si no la guardada y, si tampoco, la portada
-(`home_url('/')`). La restauración de una copia de seguridad incluye `bienvenidaAuto` y `bienvenidaTexto` (solo si la
-copia los trae) y **nunca envía bienvenidas**.
+(`home_url('/')`). La restauración de una copia de seguridad incluye la bienvenida de cada iglesia (`iglesias[].bienvenida`; en copias antiguas,
+`bienvenidaAuto` y `bienvenidaTexto`, que van a la iglesia por defecto; solo si la copia los trae) y **nunca envía bienvenidas**.
 
 **`GET /ajustes`** devuelve además `bienvenidaAuto` (bool), `bienvenidaTexto` (string), `pagina` (string, la guardada;
 vacía si aún no se conoce) y, en cada elemento de `miembros`: `bienvenida` (marca de tiempo Unix del último envío a ese
@@ -546,7 +566,7 @@ privada del cancionero: son el logo de la iglesia, no partituras, y pueden ser p
 `archivos.php` solo está activo dentro de `pieb_can_adjuntar`, que esta ruta no usa). Responde `{ id, url }`; la interfaz
 guarda el `id` con «Guardar ajustes».
 
-**Copias de seguridad.** La plantilla va en `ajustes.escaleta` solo si la instalación tiene una propia (la genérica no se
+**Copias de seguridad.** La plantilla (desde la 1.34, en `iglesias[].escaleta`; antes en `ajustes.escaleta`) va solo si la iglesia tiene una propia (la genérica no se
 exporta: en otra web quedaría fija en el idioma de quien exportó) y **sin las imágenes** (`logo` y `cabecera` a `null`: sus ids
 no valen en otra web). Al restaurar solo se aplica si la copia la trae y se conservan el logo y la cabecera que ya tuviera esta
 web. La escaleta de cada culto va en `cultos[].escaleta` (solo si el culto tiene) con sus canciones identificadas por `uid`
@@ -596,6 +616,50 @@ usuarios.
 Limpieza: el ajuste `papelera_dias` (30 por defecto; 0 = nunca) manda sobre la limpieza de WordPress (filtro
 `pre_delete_post` durante `wp_scheduled_delete`) y hay una tarea diaria propia (`pieb_can_limpiar_papelera`). Al eliminar
 una canción para siempre, por cualquier vía, `before_delete_post` borra también sus partituras, audios y editables.
+
+**Papelera de cultos (fase 5c).** Borrar un culto (`DELETE /cultos/{id}`) también lo manda a la papelera de WordPress y el gancho
+`wp_trash_post` guarda quién lo borró en `_pieb_borrada_por` (como en las canciones; se limpia al restaurar). Cada iglesia ve y
+restaura los suyos: `GET /cultos/papelera`, `POST /cultos/papelera/{id}/restaurar`, `DELETE /cultos/papelera/{id}` y
+`POST /cultos/papelera/vaciar` (permiso `pieb_can_rest_acceso`; la visibilidad la decide **solo**
+`pieb_can_culto_papelera_visible($post)`: culto de la iglesia activa y, si es privado, su autor; si no, quien gestiona la iglesia
+(`pieb_can_puede_gestionar()`) o su autor; el central **no** ve los privados ajenos). Lo que no se ve responde 404 y `vaciar` solo
+elimina lo visible. Un culto restaurado vuelve publicado (filtro `wp_untrash_post_status`). La limpieza automática (filtro
+`pre_delete_post` y `pieb_can_limpiar_papelera`) cubre también los cultos con el mismo plazo `papelera_dias`. `GET /cultos/{id}` de
+un culto en la papelera sigue dando 404. La papelera de **canciones** (`/papelera…`) sigue siendo solo del central.
+
+## Copias de seguridad
+
+`includes/ajustes.php` (rutas `/copia…`, solo central). La copia la monta el navegador: pide `GET /copia`, descarga cada archivo y
+lo guarda todo en un ZIP; para restaurar sube los archivos por trozos y crea canciones y cultos de uno en uno. Formato
+**`version: 2`** (fase 5c, varias iglesias; la restauración no depende de la iglesia en la que esté mirando el central):
+
+- `iglesias`: una por iglesia **publicada** (las archivadas no salen): `{ uid, nombre, defecto, equipo: { emails, administradores,
+  responsablesEscaleta, dominio }, bienvenida: { auto, texto }, escaleta (plantilla sin logo ni cabecera, o null), fondos }`.
+  `uid` = `pieb_can_uid($id)` (`_pieb_uid`). Los datos de cada una se leen con `pieb_can_equipo($id)` y `pieb_can_dato_iglesia()`,
+  no de la activa. `fondos` va siempre `null`: son imágenes de la biblioteca de medios y sus ids no valen en otra web.
+- `ajustes`: solo lo global (`temaDefecto`, `googleClientId`, `avisoBorrado`, `papeleraDias` y `nombre`/`subtitulo` si son propios).
+- Cada canción añade `iglesias: { uidIglesia: { tonalidad, notas, principal } }` con su `_pieb_ig_{id}` (se omiten las iglesias sin
+  datos; `principal` = posición de la partitura entre las exportadas, -1 si no hay). El `notas` de primer nivel sigue siendo
+  `_pieb_notas`. `etiquetas` es la lista de `{ nombre, iglesia: uid|null }` con todas las de la canción. Cada audio añade `iglesia`
+  (uid) y `universal`.
+- Cada culto añade `iglesia` (uid) y `privado`. Salen los cultos de todas las iglesias publicadas, **excepto los privados de otras
+  personas** (no se vuelcan al fichero del central; los propios sí).
+
+**Restaurar.** Para una copia `version >= 2` el navegador llama primero a `POST /copia/iglesias` con `{ iglesias, modo }`: cada una
+se empareja por `uid`, si no por nombre (sin distinguir mayúsculas), si no, siendo la de por defecto, con la de por defecto de esta
+web, y si nada coincide **se crea** (`pieb_can_iglesia_crear()`, igual que `POST /iglesias`). Se fija el `uid` de la copia si la iglesia no
+tenía. Con `modo: 'saltar'` las que ya existían no se tocan; si no (y siempre en las nuevas) se restauran el equipo (**se une** al
+actual: nunca deja a nadie sin acceso), la bienvenida y la escaleta (conservando logo y cabecera de la web). **Nunca envía
+correos de bienvenida.** Responde `{ mapa, creadas, emparejadas }`. Ese `mapa` (`uid` de la copia → id aquí) viaja en `/copia/estado`,
+`/copia/cancion` y `/copia/culto`:
+
+- Cultos: se buscan **dentro de su iglesia** (`pieb_can_copia_buscar('culto', …, $iglesia_id)`); su iglesia es `mapa[culto.iglesia]` y,
+  si la copia no la trae o no está en el mapa, la **iglesia por defecto** (nunca la activa). Se guardan `_pieb_iglesia` y `_pieb_privado`.
+- Canciones: tras los datos comunes se restaura `_pieb_ig_{id}` de cada iglesia del mapa (`principal`, de posición a id), las
+  etiquetas en su iglesia o universales y cada audio con su `iglesia` y `universal` (por defecto, la iglesia por defecto).
+- Una **copia antigua** (sin `iglesias`) no llama a `/copia/iglesias`: todo cae en la iglesia por defecto y `POST /copia/ajustes` con
+  sus campos antiguos (`emails`, `dominio`, `bienvenidaAuto`, `bienvenidaTexto`, `responsablesEscaleta`, `escaleta`) los aplica a
+  la iglesia por defecto, explícitamente. Con la copia nueva, `/copia/ajustes` solo toca lo global.
 
 ## Aviso de canciones borradas
 

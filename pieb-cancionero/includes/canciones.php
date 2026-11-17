@@ -945,9 +945,10 @@ function pieb_can_archivo_subido($id, $nombre) {
 
 /**
  * Normaliza la lista de enlaces de YouTube recibida del formulario. $actuales son los enlaces que ya tiene la canción:
- * un enlace con la misma URL conserva su autor e iglesia; los demás son nuevos (usuario actual e iglesia activa).
+ * un enlace con la misma URL conserva su autor e iglesia; los demás son nuevos (usuario actual e iglesia activa, o el
+ * $origen_nuevo que se pase: ver pieb_can_origen_nuevo).
  */
-function pieb_can_limpiar_youtube($items, $actuales = array()) {
+function pieb_can_limpiar_youtube($items, $actuales = array(), $origen_nuevo = null) {
     $limpio = array();
     foreach ((array) $items as $item) {
         $url = isset($item['url']) ? esc_url_raw(trim($item['url'])) : '';
@@ -964,7 +965,7 @@ function pieb_can_limpiar_youtube($items, $actuales = array()) {
         $limpio[] = array(
             'url'   => $url,
             'label' => isset($item['label']) ? sanitize_text_field($item['label']) : '',
-        ) + ($origen ? $origen : pieb_can_origen_nuevo());
+        ) + ($origen ? $origen : ($origen_nuevo ? $origen_nuevo : pieb_can_origen_nuevo()));
     }
     return $limpio;
 }

@@ -13,7 +13,7 @@ A technical summary of the **Cancionero** plugin for anyone new to the code.
 | `includes/etiquetas.php` | Per-church and universal tags (visibility, creation, assignment, `GET/POST /etiquetas/universales`). See the Churches section. |
 | `includes/rest.php` | The `pieb/v1` REST API: list, view, create, update and delete songs; chunked file uploads. |
 | `includes/archivos.php` | The songbook's private files: the `cancionero-privado` folder, delivery with a session (`?pcan_archivo=ID`), protection and unused files. |
-| `includes/papelera.php` | The songbook trash: who deleted, retention period and automatic cleanup, restore and delete forever. |
+| `includes/papelera.php` | The songbook trash: who deleted, retention period and automatic cleanup, restore and delete forever; also the per-church service trash (`/cultos/papelera...`). |
 | `includes/iglesias.php` | Churches (`pieb_iglesia` type), each user's membership, active church, central administrator, migration and `GET /iglesias`, `POST /iglesias/activa`. See [Churches](#churches). |
 | `includes/cultos.php` | Services and setlists (content type and API). |
 | `includes/ajustes.php` | Themes, settings, the team list, per-user preferences (theme, language, notation), backups (export/import). |
@@ -71,7 +71,7 @@ The interface is a single-page application inside the WordPress page; it navigat
   | `_pieb_campos_autor` | `{ field: userId }`: who filled `titulo`, `numero`, `autor`, `tonalidad` and `tempo`. Only matters with several churches (see [Churches](#churches)); a missing field counts as filled by the song's creator. |
   | `autor`, `iglesia` (on each item of the four lists above) | `autor`: ID of the user who added it; `iglesia`: ID of the church it was added from. If missing, the getters (`pieb_can_get_partituras/audios/editables/youtube`) fill them in on read with the song's author and the default church, writing nothing. On save, new items carry the current user and their active church; kept items keep theirs (they are never accepted from the client; a YouTube link is "the same" if its URL matches). The API returns them on every score, audio, editable and link. |
 
-- **Service** metadata: `_pieb_iglesia` (church ID; saved on creation and unchanged on edit; `pieb_can_culto_iglesia()` returns the default church if missing; the service summary carries it as `iglesia`), `_pieb_privado` (`'1'` = private service, visible only to its author; the summary carries `privado` and `mio`; **visibility is decided only by `pieb_can_culto_visible()`**, see [Churches](#churches)), `_pieb_fecha`, `_pieb_tipo`, `_pieb_notas`, `_pieb_items` (ordered list of
+- **Service** metadata: `_pieb_iglesia` (church ID; saved on creation and unchanged on edit; `pieb_can_culto_iglesia()` returns the default church if missing; the service summary carries it as `iglesia`), `_pieb_borrada_por` (ID of the user who trashed it, as with songs; see [Trash](#trash)), `_pieb_privado` (`'1'` = private service, visible only to its author; the summary carries `privado` and `mio`; **visibility is decided only by `pieb_can_culto_visible()`**, see [Churches](#churches)), `_pieb_fecha`, `_pieb_tipo`, `_pieb_notas`, `_pieb_items` (ordered list of
   `{cancion, tonalidad, nota, partitura}`; `partitura` is the ID of the attachment chosen for that service, 0 = the main
   one (the first of the song). When the service is served, `datos.partituras` holds only the scores whose effective key matches
   the item's (its own or, if empty, the song's), with the chosen one first; if none matches (old hand-typed key) or the chosen
@@ -102,10 +102,19 @@ interface receives it in `PIEB_CANCIONERO.nonce`; the API base is in `PIEB_CANCI
 | `/canciones/{id}/audios/{audio}/universal` | POST | Body `{ universal: bool }`: publishes an audio to every church or returns it to its own. Central administrator only and with several churches (403 otherwise); 404 if the song has no such audio. Answers the record. |
 | `/cultos/{id}/privacidad` | POST | Body `{ privado: bool }`: makes a service private or returns it to the team. Author only (403 for others who can see it); answers the service summary. |
 | `/cultos`, `/cultos/{id}` | GET, POST, DELETE | Services and setlists. **Only those of the active church and, if private, your own; anything else answers 404.** `POST` accepts `privado` (anyone when creating; only the author when editing). `GET /cultos/{id}` also returns `escaleta` (an object or `null`; it is not in the list) and `POST` accepts it only if present (`null` deletes it) **and only from someone with `pieb_can_escaleta`**: from anyone else it is ignored, without an error (the rest of the service is saved and any existing order of service is kept). See [Order of service](#order-of-service). |
+| `/cultos/papelera` | GET | Deleted services the asker can see (from their active church; private ones only their author; the rest, whoever manages the church or its author): `{ cultos: [{id, titulo, fecha, tipo, canciones, privado, mio, borradoEl, borradoPor, caduca, diasRestantes}], dias }`, most recently deleted first (`dias` = `papelera_dias`; 0 = never expires). See [Trash](#trash). |
+| `/cultos/papelera/{id}/restaurar` | POST | Restores a service from the trash (back to published) -> `{ restaurado: true, id }`. 404 if it is not in the trash or not visible to the asker. |
+| `/cultos/papelera/{id}` | DELETE | Deletes a service from the trash for good -> `{ eliminado: true, id }` (same 404). |
+| `/cultos/papelera/vaciar` | POST | Deletes for good the trashed services **visible to the asker** -> `{ eliminados: n }`. |
+| `/copia` | GET | Backup data, format `version: 2` (central only). See [Backups](#backups). |
+| `/copia/iglesias` | POST | Restores the churches of a `version 2` backup (central only): body `{ iglesias: [...], modo: 'saltar'\|'sobrescribir' }` -> `{ mapa: { backupUid: idOnThisSite }, creadas, emparejadas }`. |
+| `/copia/estado`, `/copia/cancion`, `/copia/culto`, `/copia/ajustes` | POST | Restoring a backup (central only), one item at a time; the first three accept `mapa` (the one from `/copia/iglesias`). `/copia/estado` receives services with their `iglesia` and looks only inside it. See [Backups](#backups). |
 | `/escaleta` | GET | The **base for a new service's order of service**: the structure (without values) and the row of titles of the last order of service saved in any service, with the installation's logo and header and `desde: {id, titulo}` (the source service; `null` if it comes from the generic template). The whole team reads it, because preparing a service's order of service needs it. |
 | `/escaleta/imagen` | POST | Uploads the logo or header image of the order of service (JPG or PNG, max. 2 MB) to the normal media library; replies `{ id, url }` (requires `pieb_cancionero_gestionar`). |
-| `/iglesias` | GET, POST | `GET`: the user's churches (all of them for the central admin): `{ activa, central, iglesias: [{id, nombre, rol, ajena}] }`. `POST` `{ nombre }`: creates a church (central only; 403 otherwise) and answers the same plus `creada: id`. See [Churches](#churches). |
-| `/iglesias/{id}` | POST | Body `{ nombre }`: renames the church (central only) and answers the state. |
+| `/iglesias` | GET, POST | `GET`: the user's churches (all published ones for the central admin): `{ activa, central, iglesias: [{id, nombre, rol, ajena, defecto}], archivadas }`; `archivadas` (central only; `[]` for everyone else) = `[{id, nombre, cultos, etiquetas, audios, datos, vacia}]`. `POST` `{ nombre }`: creates a church (central only; 403 otherwise) and answers the same plus `creada: id`. See [Churches](#churches). |
+| `/iglesias/{id}` | POST, DELETE | `POST` `{ nombre }`: renames the church (central only) and answers the state. `DELETE`: deletes it for good (central only), **only if it is archived and empty**; 403 if not central, 404 if it is not among the archived, 400 `pieb_defecto` for the default church, 409 `pieb_no_vacia` (with `data.contenido` = `{cultos, etiquetas, audios, datos}`) if not empty. Answers the full state. |
+| `/iglesias/{id}/archivar` | POST | Archives the church (central only): it becomes `post_status = 'draft'` and disappears from the selector, membership and services. 403 if not central; 404 if missing or already archived; 400 `pieb_defecto` for the default church. Answers the full state (`activa`, `central`, `iglesias`, `archivadas`). |
+| `/iglesias/{id}/recuperar` | POST | Publishes an archived church again (central only; 404 if it is not archived). Answers the full state. |
 | `/iglesias/activa` | POST | Body `{ iglesia: id }`: sets the user's active church (saves `_pieb_iglesia_activa`) and answers like the `GET`; 403 if they do not belong to it (the central admin can pick any). |
 | `/etiquetas`, `/preferencias`, `/huerfanos` | various | **Visible** tags (the active church's and universal ones) with color as `{ name: color }`, user preferences (`tema`, `idioma` and `notacion`, all optional; empty = automatic), unused files. |
 | `/fondos` | GET, POST | `GET` (anyone on the team): `{ fondos: [{ id, url, miniatura }] }` (`url` full size, `miniatura` at the 'medium' size; skips attachments that no longer exist). `POST` (requires `pieb_cancionero_gestionar`): multipart `archivo`, JPG or PNG only, max. 5 MB and 40 backgrounds; uploads to the normal media library and replies `{ id, url, miniatura }`. See [Exporting lyrics](#exporting-lyrics). |
@@ -135,7 +144,7 @@ To change a single value: `GET` the record, rebuild all the fields from it and m
 [plan-multi-iglesia.md](plan-multi-iglesia.md), in Spanish). Phase 1 lays the foundations with **no visible change**: a
 single-church installation behaves exactly as before.
 
-- **Entity.** Content type `pieb_iglesia` (not public, no UI, no native REST); the name is the title. There is always one,
+- **Entity.** Content type `pieb_iglesia` (not public, no UI, no native REST; `post_status = 'draft'` = archived, see below); the name is the title. There is always one,
   the **default** (option `pieb_can_iglesia_defecto`), which `pieb_can_iglesia_defecto()` creates by itself the first time
   with the name the songbook had (the line under the name or, if empty, the site name). `pieb_can_iglesias()` lists the
   published ones ordered by title.
@@ -225,7 +234,8 @@ single-church installation behaves exactly as before.
     alter the order set by whoever created it. In a service, the score chosen for it wins.
   - **Notes.** The API's `notas` are the active church's (`pieb_can_notas()`/`pieb_can_notas_guardar()`); any member edits them
     with the `notas` of `POST /canciones/{id}`. The default church uses `_pieb_notas`; the others use `notas` of `_pieb_ig_{id}`.
-    The backup still exports and imports `_pieb_notas` (the default church's).
+    The backup exports `_pieb_notas` as `notas` (the default church's) and, besides, `iglesias` with each church's
+    `_pieb_ig_{id}` (see [Backups](#backups)).
   - **Record.** `iglesiaDatos` = `{ tonalidad (raw, '' = the original), principal, puedeEditar }` (`puedeEditar` =
     `pieb_can_es_admin_iglesia()`: central or `admin` role in the active church) and, at the root, `puedeUniversal`.
   - **Per-church and universal audio.** Each audio carries `iglesia`; with `universal: 1` every church sees it. **One function
@@ -240,7 +250,7 @@ single-church installation behaves exactly as before.
     central, or **belongs** to the audio's church (`pieb_can_rol_en`; it is a direct URL, with no active-church header);
     otherwise it answers 404 "File not found". An audio that no song lists (orphan) is delivered only to the central
     administrator. Scores and editable files do not change.
-  - **Other places that read audio.** The backup exports every audio only for the central administrator (others get the visible
+  - **Other places that read audio.** The backup (central only) exports every audio, each with its `iglesia` and `universal` (formerly: others got the visible
     ones); "unused files" and the permanent deletion of a song count every audio (no other church's audio is considered an
     orphan); the deletion alert and the trash (for the central administrator) do not change.
 - **Per-church and universal tags (phase 4b).** `includes/etiquetas.php`. **With a single church nothing changes and nothing is
@@ -265,7 +275,9 @@ single-church installation behaves exactly as before.
     churches (their songs are reassigned and those terms deleted); `false` hands the universal tag back to the active church
     (404 if it does not exist; if that church already had one, they are merged). `POST /canciones/etiquetar` keeps its format
     (each song in the result adds `etiquetasUniversales`); for non-central users adding or removing a universal tag is ignored.
-  - **Backups.** Export gives the tags visible to the exporter; import uses `pieb_can_etiquetas_fijar()`.
+  - **Backups.** Export gives ALL of each song's tags as `{ nombre, iglesia: uid|null }` (`null` = universal); import creates them
+    in the church the map says (`pieb_can_etiqueta_obtener()`) or as universal (`pieb_can_etiqueta_universal_obtener()`), never in the
+    active church. Plain strings from old backups go to the default church.
 - **Per-church team and permissions by active church (phase 5a).** **With a single church everything behaves and is stored as
   before.**
   - **Team.** `pieb_can_equipo($iglesia_id)` returns `{ emails, administradores, responsablesEscaleta, dominio }`. The **default**
@@ -327,9 +339,17 @@ single-church installation behaves exactly as before.
     **service** name (`pieb_can_nombre()`); the interface shows the church name (`PIEB_CANCIONERO.iglesia.nombre`) where it applies.
   - **Deletion alert.** With protection on, recipients are the **central** administrators (accounts with `pieb_cancionero_central`
     and the site admin email), not the default church's list; with a single church, the usual ones. The `aviso_borrado` switch is global.
-- **Pending (phase 5c).** Backups (`includes/ajustes.php`) still export and import the services of the whole
-  installation, private ones included and without the church; the settings they export (welcome, team) are the default church's
-  and the order-sheet template is the active church's. They will be adapted in phase 5c.
+- **Archiving churches (phase 5c).** An archived church becomes `post_status = 'draft'`: since `pieb_can_iglesias()`, membership
+  (`pieb_can_iglesias_de()`), the selector, `pieb_can_puede_entrar_en()`, `pieb_can_equipos_todos()` and the visibility of its
+  services only count **published** churches, it vanishes everywhere with no further changes; recovering it means going back to
+  `publish`. Central only (`POST /iglesias/{id}/archivar` and `/recuperar`). **The default church can be neither archived nor
+  deleted** (400 `pieb_defecto`). Whoever had it as active falls back to another by themselves (`pieb_can_iglesia_activa()`).
+  Deleting it for good (`DELETE /iglesias/{id}`) requires it to be archived **and empty**: no service in any state (trash
+  included), no own tag (term with meta `_pieb_iglesia` = id), no audio with its `iglesia` and no `_pieb_ig_{id}` with data
+  (key, notes or main score) in any song (`pieb_can_iglesias_contenido()`); its team, order-sheet template, backgrounds and welcome
+  go with it. `GET /iglesias` and the other state responses (`pieb_can_iglesias_estado()`) add `defecto` to each church and,
+  for the central admin only, `archivadas` with the counts of what each one holds (`vacia` = all zero).
+- **Backups.** Since phase 5c they carry the churches and what is specific to each; see [Backups](#backups).
 
 ## Welcome to the team
 
@@ -356,7 +376,8 @@ enters the list), `bienvenida_texto` (optional text from the administrator added
 location.search` with every save and every send, and it is only stored if it is a valid address of this site; the
 fragment and the query are removed, except `page_id` or `p`, which with plain permalinks are the page itself). The
 emails use the request's `pagina` if valid, otherwise the stored one and, failing that, the home page (`home_url('/')`).
-Restoring a backup includes `bienvenidaAuto` and `bienvenidaTexto` (only if the backup carries them) and **never sends
+Restoring a backup includes each church's welcome (`iglesias[].bienvenida`; in old backups, `bienvenidaAuto` and `bienvenidaTexto`,
+which go to the default church; only if the backup carries them) and **never sends
 welcome emails**.
 
 **`GET /ajustes`** also returns `bienvenidaAuto` (bool), `bienvenidaTexto` (string), `pagina` (string, the stored one;
@@ -546,7 +567,7 @@ private folder: they are the church's logo, not scores, and may be public (the `
 active inside `pieb_can_adjuntar`, which this route does not use). It replies `{ id, url }`; the interface stores the `id` with
 "Save settings".
 
-**Backups.** The template goes in `ajustes.escaleta` only if the installation has its own (the generic one is not exported: on
+**Backups.** The template (since 1.34 in `iglesias[].escaleta`; before, in `ajustes.escaleta`) goes only if the installation has its own (the generic one is not exported: on
 another site it would stay fixed in the language of whoever exported) and **without the images** (`logo` and `cabecera` set
 to `null`: their ids are not valid on another site). When restoring it is only applied if the backup has it, and the logo and
 header this site already has are kept. Each service's order of service goes in `cultos[].escaleta` (only if the service has
@@ -594,6 +615,51 @@ with date, who deleted it and days left), `POST /papelera/{id}/restaurar` (back 
 Cleanup: the `papelera_dias` setting (30 by default; 0 = never) overrides WordPress's cleanup (filter `pre_delete_post`
 during `wp_scheduled_delete`), and there is a daily task of its own (`pieb_can_limpiar_papelera`). When a song is deleted
 for good, by any route, `before_delete_post` also deletes its scores, audio and editable files.
+
+**Service trash (phase 5c).** Deleting a service (`DELETE /cultos/{id}`) also sends it to the WordPress trash and the
+`wp_trash_post` hook records who deleted it in `_pieb_borrada_por` (as with songs; cleared on restore). Each church sees and
+restores its own: `GET /cultos/papelera`, `POST /cultos/papelera/{id}/restaurar`, `DELETE /cultos/papelera/{id}` and
+`POST /cultos/papelera/vaciar` (permission `pieb_can_rest_acceso`; visibility is decided **only** by
+`pieb_can_culto_papelera_visible($post)`: a service of the active church and, if private, only its author; otherwise whoever
+manages the church (`pieb_can_puede_gestionar()`) or its author; the central admin does **not** see other people's private ones).
+What is not visible answers 404 and `vaciar` only deletes what is visible. A restored service comes back published (filter
+`wp_untrash_post_status`). Automatic cleanup (filter `pre_delete_post` and `pieb_can_limpiar_papelera`) also covers services with
+the same `papelera_dias` period. `GET /cultos/{id}` for a trashed service still answers 404. The **song** trash (`/papelera...`)
+remains central-only.
+
+## Backups
+
+`includes/ajustes.php` (`/copia...` routes, central only). The browser builds the backup: it asks `GET /copia`, downloads each file
+and saves everything in a ZIP; to restore it uploads the files in chunks and creates songs and services one by one. Format
+**`version: 2`** (phase 5c, several churches; restoring does not depend on the church the central admin is looking at):
+
+- `iglesias`: one per **published** church (archived ones are left out): `{ uid, nombre, defecto, equipo: { emails, administradores,
+  responsablesEscaleta, dominio }, bienvenida: { auto, texto }, escaleta (template without logo or header, or null), fondos }`.
+  `uid` = `pieb_can_uid($id)` (`_pieb_uid`). Each one's data is read with `pieb_can_equipo($id)` and `pieb_can_dato_iglesia()`,
+  not from the active church. `fondos` is always `null`: they are media-library images and their ids are not valid elsewhere.
+- `ajustes`: only global things (`temaDefecto`, `googleClientId`, `avisoBorrado`, `papeleraDias` and `nombre`/`subtitulo` if custom).
+- Each song adds `iglesias: { churchUid: { tonalidad, notas, principal } }` with its `_pieb_ig_{id}` (churches with no data are
+  omitted; `principal` = position of the score among the exported ones, -1 if none). The top-level `notas` is still `_pieb_notas`.
+  `etiquetas` is the list of `{ nombre, iglesia: uid|null }` with all the song's tags. Each audio adds `iglesia` (uid) and `universal`.
+- Each service adds `iglesia` (uid) and `privado`. Services of all published churches are exported, **except other people's
+  private ones** (they are not dumped into the central admin's file; their own are).
+
+**Restoring.** For a backup with `version >= 2` the browser first calls `POST /copia/iglesias` with `{ iglesias, modo }`: each
+church is matched by `uid`, else by name (case-insensitive), else, being the default one, with this site's default church, and
+if nothing matches it is **created** (`pieb_can_iglesia_crear()`, like `POST /iglesias`). The backup's `uid` is set if the church had none.
+With `modo: 'saltar'` those that already existed are left alone; otherwise (and always for new ones) their team (**merged** into the
+current one: never leaves anyone without access), welcome text and order-sheet template (keeping the site's logo and header)
+are restored. **It never sends welcome emails.** It answers `{ mapa, creadas, emparejadas }`. That `mapa` (backup `uid` -> id here)
+travels in `/copia/estado`, `/copia/cancion` and `/copia/culto`:
+
+- Services: looked up **inside their church** (`pieb_can_copia_buscar('culto', ..., $iglesia_id)`); their church is `mapa[culto.iglesia]`
+  and, if the backup has none or it is not in the map, the **default church** (never the active one). `_pieb_iglesia` and
+  `_pieb_privado` are saved.
+- Songs: after the common data, each mapped church's `_pieb_ig_{id}` is restored (`principal`, from position to id), tags in their
+  church or as universal, and each audio with its `iglesia` and `universal` (default church if missing).
+- An **old backup** (no `iglesias`) does not call `/copia/iglesias`: everything goes to the default church and `POST /copia/ajustes`
+  with its old fields (`emails`, `dominio`, `bienvenidaAuto`, `bienvenidaTexto`, `responsablesEscaleta`, `escaleta`) applies them to the
+  default church explicitly. With a new backup, `/copia/ajustes` only touches global settings.
 
 ## Deleted-song alert
 

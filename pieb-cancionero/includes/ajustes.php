@@ -728,6 +728,13 @@ function pieb_can_rest_huerfanos_borrar(WP_REST_Request $request) {
 // La copia la monta el navegador: pide aquí los datos (/copia), descarga cada archivo y lo guarda todo en un ZIP.
 // Para restaurar, el navegador sube cada archivo por trozos (/subidas) y crea las canciones y los cultos de uno en uno,
 // así funciona aunque el servidor tenga límites de subida o de tiempo bajos, y también en otra instalación.
+//
+// Formato «version: 2» (fase 5c, varias iglesias): además de canciones, cultos y ajustes globales, la copia lleva las
+// iglesias publicadas (nombre, equipo, bienvenida y plantilla de la escaleta), los datos de cada canción por iglesia, las
+// etiquetas con su iglesia (o universales), los audios con su iglesia y los cultos con su iglesia y privacidad. Restaurar
+// no depende de la iglesia en la que esté mirando el administrador central: la iglesia de cada cosa sale de la copia y de
+// un «mapa» uid de iglesia → id en esta web, que devuelve POST /copia/iglesias. Una copia antigua (sin iglesias) se
+// restaura entera en la iglesia por defecto.
 
 add_action('rest_api_init', function () {
     $admin = function () { return pieb_can_es_central(); };
@@ -737,6 +744,7 @@ add_action('rest_api_init', function () {
         '/copia/cancion' => array(WP_REST_Server::CREATABLE, 'pieb_can_rest_copia_cancion'),
         '/copia/culto'   => array(WP_REST_Server::CREATABLE, 'pieb_can_rest_copia_culto'),
         '/copia/ajustes' => array(WP_REST_Server::CREATABLE, 'pieb_can_rest_copia_ajustes'),
+        '/copia/iglesias' => array(WP_REST_Server::CREATABLE, 'pieb_can_rest_copia_iglesias'),
     );
     foreach ($rutas as $ruta => $def) {
         register_rest_route('pieb/v1', $ruta, array(
@@ -774,27 +782,61 @@ function pieb_can_copia_email($user_id) {
     return $user ? $user->user_email : '';
 }
 
+/** uid con el que se exporta una iglesia por su ID; una que ya no existe se exporta como la de por defecto. */
+function pieb_can_copia_uid_iglesia($iglesia_id) {
+    $iglesia_id = (int) $iglesia_id;
+    if (!$iglesia_id || get_post_type($iglesia_id) !== PIEB_CAN_IGLESIA) {
+        $iglesia_id = (int) pieb_can_iglesia_defecto();
+    }
+    return pieb_can_uid($iglesia_id);
+}
+
+/** Las iglesias publicadas para la copia: nombre, equipo, bienvenida, plantilla de la escaleta (sin imágenes) y fondos. */
+function pieb_can_copia_iglesias_exportar() {
+    $salida = array();
+    foreach (pieb_can_iglesias() as $i) {
+        $equipo = pieb_can_equipo($i['id']);
+        $salida[] = array(
+            'uid'        => pieb_can_uid($i['id']),
+            'nombre'     => $i['nombre'],
+            'defecto'    => pieb_can_es_iglesia_defecto($i['id']),
+            'equipo'     => $equipo,
+            'bienvenida' => pieb_can_dato_iglesia('bienvenida', $i['id']),
+            'escaleta'   => pieb_can_escaleta_para_copia($i['id']),
+            // Los fondos son imágenes de la biblioteca de medios: sus ids no valen en otra web y la copia no las lleva.
+            'fondos'     => null,
+        );
+    }
+    return $salida;
+}
+
 function pieb_can_rest_copia_exportar() {
     $canciones = array();
     $uids = array();
+    $iglesias_pub = pieb_can_iglesias();
+    $yo = get_current_user_id();
     $posts = get_posts(array('post_type' => PIEB_CAN_CPT, 'post_status' => 'publish', 'posts_per_page' => -1, 'orderby' => 'title', 'order' => 'ASC'));
+    // Posición de cada partitura dentro de las de su canción (solo las que tienen archivo, como en la copia), para recordar
+    // cuál se eligió en cada culto y cuál es la principal de cada iglesia: los ids de los archivos no valen en otra web,
+    // la posición sí.
+    $posiciones = array();
     foreach ($posts as $post) {
         $partituras = array();
         foreach (pieb_can_get_partituras($post->ID) as $p) {
             $f = pieb_can_copia_archivo((int) $p['id'], array('label' => isset($p['label']) ? (string) $p['label'] : '', 'tonalidad' => isset($p['tonalidad']) ? (string) $p['tonalidad'] : ''));
             if ($f) {
+                $posiciones[(int) $p['id']] = count($partituras);
                 $partituras[] = $f;
             }
         }
         $audios = array();
         foreach (pieb_can_get_audios($post->ID) as $a) {
-            // Con varias iglesias, quien no es central no se lleva los audios de otras iglesias en la copia.
-            if (!pieb_can_es_central() && !pieb_can_audio_visible($a)) {
-                continue;
-            }
+            // La copia es solo del administrador central: salen todos los audios, con su iglesia y si son universales.
             $f = pieb_can_copia_archivo((int) $a['id'], array(
                 'nombre'      => isset($a['nombre']) ? (string) $a['nombre'] : '',
                 'descripcion' => isset($a['descripcion']) ? (string) $a['descripcion'] : '',
+                'iglesia'     => pieb_can_copia_uid_iglesia(isset($a['iglesia']) ? $a['iglesia'] : 0),
+                'universal'   => !empty($a['universal']),
             ));
             if ($f) {
                 $audios[] = $f;
@@ -815,11 +857,35 @@ function pieb_can_rest_copia_exportar() {
         foreach (pieb_can_campos_texto() as $campo => $meta_key) {
             $cancion[$campo] = (string) get_post_meta($post->ID, $meta_key, true);
         }
+        // Etiquetas: TODAS las de la canción (de cualquier iglesia y universales), cada una con su iglesia (null = universal).
+        $etiquetas = array();
+        $terminos = wp_get_object_terms($post->ID, PIEB_CAN_TAX);
+        foreach (is_array($terminos) ? $terminos : array() as $t) {
+            $etiquetas[] = array(
+                'nombre'  => html_entity_decode($t->name, ENT_QUOTES, 'UTF-8'),
+                'iglesia' => pieb_can_etiqueta_es_universal($t) ? null : pieb_can_copia_uid_iglesia(pieb_can_etiqueta_iglesia($t)),
+            );
+        }
+        // Datos propios de cada iglesia (tonalidad habitual, notas y partitura principal); se omiten las iglesias sin datos.
+        $por_iglesia = array();
+        foreach ($iglesias_pub as $i) {
+            $d = pieb_can_cancion_iglesia($post->ID, $i['id']);
+            if (trim($d['tonalidad']) === '' && !$d['principal'] && trim($d['notas']) === '') {
+                continue;
+            }
+            $por_iglesia[pieb_can_uid($i['id'])] = array(
+                'tonalidad' => $d['tonalidad'],
+                'notas'     => $d['notas'],
+                'principal' => $d['principal'] && isset($posiciones[$d['principal']]) ? $posiciones[$d['principal']] : -1,
+            );
+        }
         $canciones[] = array_merge($cancion, array(
             'letra'      => (string) get_post_meta($post->ID, '_pieb_letra', true),
             'letraHtml'  => (string) get_post_meta($post->ID, '_pieb_letra_html', true),
+            // Las notas de primer nivel son las de la iglesia por defecto (_pieb_notas), como siempre (copias antiguas).
             'notas'      => (string) get_post_meta($post->ID, '_pieb_notas', true),
-            'etiquetas'  => pieb_can_etiquetas($post->ID),
+            'iglesias'   => (object) $por_iglesia,
+            'etiquetas'  => $etiquetas,
             'youtube'    => array_map(function ($y) {
                 return array('url' => (string) $y['url'], 'label' => (string) (isset($y['label']) ? $y['label'] : ''));
             }, pieb_can_get_youtube($post->ID)),
@@ -831,22 +897,19 @@ function pieb_can_rest_copia_exportar() {
         ));
     }
 
-    // Posición de cada partitura dentro de las de su canción (solo las que tienen archivo, como en la copia), para
-    // recordar cuál se eligió en cada culto: los ids de los archivos no valen en otra web, la posición sí.
-    $posiciones = array();
-    foreach ($posts as $post) {
-        $n = 0;
-        foreach (pieb_can_get_partituras($post->ID) as $p) {
-            $ruta = get_attached_file((int) $p['id']);
-            if ($ruta && file_exists($ruta)) {
-                $posiciones[(int) $p['id']] = $n++;
-            }
-        }
-    }
-
+    // Cultos de todas las iglesias publicadas (los de una iglesia archivada no se exportan). Los privados de otras personas
+    // no salen: no se vuelcan al fichero del administrador central; los propios sí.
+    $publicadas = array_map('intval', wp_list_pluck($iglesias_pub, 'id'));
     $cultos = array();
     $posts = get_posts(array('post_type' => PIEB_CAN_CULTO, 'post_status' => 'publish', 'posts_per_page' => -1, 'meta_key' => '_pieb_fecha', 'orderby' => 'meta_value', 'order' => 'DESC'));
     foreach ($posts as $post) {
+        $iglesia_culto = pieb_can_culto_iglesia($post->ID);
+        if (!in_array($iglesia_culto, $publicadas, true)) {
+            continue;
+        }
+        if (pieb_can_culto_privado($post->ID) && (int) $post->post_author !== $yo) {
+            continue;
+        }
         $items = array();
         foreach (pieb_can_culto_items($post->ID) as $item) {
             $id = (int) $item['cancion'];
@@ -870,6 +933,8 @@ function pieb_can_rest_copia_exportar() {
             'tipo'      => (string) get_post_meta($post->ID, '_pieb_tipo', true),
             'notas'     => (string) get_post_meta($post->ID, '_pieb_notas', true),
             'creadoPor' => pieb_can_copia_email($post->post_author),
+            'iglesia'   => pieb_can_uid($iglesia_culto),
+            'privado'   => pieb_can_culto_privado($post->ID),
             'items'     => $items,
         );
         // Escaleta del culto (solo si tiene; sus canciones van por uid, como las del setlist).
@@ -881,16 +946,12 @@ function pieb_can_rest_copia_exportar() {
     }
 
     $ajustes = pieb_can_ajustes();
+    // Solo lo global: el equipo, la bienvenida y la escaleta de cada iglesia van en «iglesias».
     $ajustes_copia = array(
         'temaDefecto'    => $ajustes['tema_defecto'],
-        'emails'         => $ajustes['emails'],
-        'dominio'        => $ajustes['dominio'],
         'googleClientId' => $ajustes['google_client_id'],
-        'bienvenidaAuto'  => (bool) $ajustes['bienvenida_auto'],
-        'bienvenidaTexto' => (string) $ajustes['bienvenida_texto'],
-        'avisoBorrado'    => (bool) $ajustes['aviso_borrado'],
-        'papeleraDias'    => (int) $ajustes['papelera_dias'],
-        'responsablesEscaleta' => $ajustes['responsablesEscaleta'],
+        'avisoBorrado'   => (bool) $ajustes['aviso_borrado'],
+        'papeleraDias'   => (int) $ajustes['papelera_dias'],
     );
     // Nombre y subtítulo solo si la instalación les puso uno propio (lo guardado, no el valor por defecto).
     $guardados = get_option('pieb_can_ajustes', array());
@@ -901,17 +962,13 @@ function pieb_can_rest_copia_exportar() {
     if (isset($guardados['subtitulo']) && $guardados['subtitulo'] !== null) {
         $ajustes_copia['subtitulo'] = (string) $guardados['subtitulo'];
     }
-    // Plantilla de la escaleta, solo si la instalación tiene una propia y sin las imágenes (sus ids no valen en otra web).
-    $escaleta = pieb_can_escaleta_para_copia();
-    if ($escaleta !== null) {
-        $ajustes_copia['escaleta'] = $escaleta;
-    }
     return rest_ensure_response(array(
         'formato'   => 'pieb-cancionero',
-        'version'   => 1,
+        'version'   => 2,
         'plugin'    => PIEB_CAN_VERSION,
         'sitio'     => home_url('/'),
         'fecha'     => current_time('mysql'),
+        'iglesias'  => pieb_can_copia_iglesias_exportar(),
         'canciones' => $canciones,
         'cultos'    => $cultos,
         'ajustes'   => $ajustes_copia,
@@ -922,11 +979,13 @@ function pieb_can_rest_copia_exportar() {
  * Busca en esta web la canción o el culto de la copia: primero por su identificador;
  * si no lo hay (una web que aún no tenía copias), por título y número, o título y fecha.
  */
-function pieb_can_copia_buscar($tipo, $datos) {
+function pieb_can_copia_buscar($tipo, $datos, $iglesia_id = 0) {
     $cpt = $tipo === 'culto' ? PIEB_CAN_CULTO : PIEB_CAN_CPT;
+    // Un culto se busca solo DENTRO de su iglesia (no se pisa el de otra con el mismo uid, título y fecha).
+    $en_iglesia = $tipo === 'culto' && $iglesia_id ? array('meta_query' => array(pieb_can_cultos_meta_iglesia($iglesia_id))) : array();
     $uid = isset($datos['uid']) ? (string) $datos['uid'] : '';
     if (preg_match('/^[a-f0-9-]{36}$/', $uid)) {
-        $ids = get_posts(array('post_type' => $cpt, 'post_status' => 'publish', 'posts_per_page' => 1, 'fields' => 'ids', 'meta_key' => '_pieb_uid', 'meta_value' => $uid));
+        $ids = get_posts(array('post_type' => $cpt, 'post_status' => 'publish', 'posts_per_page' => 1, 'fields' => 'ids', 'meta_key' => '_pieb_uid', 'meta_value' => $uid) + $en_iglesia);
         if ($ids) {
             return (int) $ids[0];
         }
@@ -935,7 +994,7 @@ function pieb_can_copia_buscar($tipo, $datos) {
     if ($titulo === '') {
         return 0;
     }
-    $ids = get_posts(array('post_type' => $cpt, 'post_status' => 'publish', 'posts_per_page' => -1, 'fields' => 'ids', 'title' => $titulo));
+    $ids = get_posts(array('post_type' => $cpt, 'post_status' => 'publish', 'posts_per_page' => -1, 'fields' => 'ids', 'title' => $titulo) + $en_iglesia);
     $uid_valido = (bool) preg_match('/^[a-f0-9-]{36}$/', $uid);
     foreach ($ids as $id) {
         // Un elemento que ya tiene otro identificador es otra canción (o culto) con el mismo título, no el mismo.
@@ -953,17 +1012,71 @@ function pieb_can_copia_buscar($tipo, $datos) {
     return 0;
 }
 
-/** Qué canciones y cultos de la copia ya existen en esta web (0 = no existe). */
+/** Mapa de la petición (uid de iglesia de la copia => id en esta web) con solo ids de iglesias publicadas. */
+function pieb_can_copia_mapa($p) {
+    $mapa = array();
+    foreach ((array) (isset($p['mapa']) ? $p['mapa'] : array()) as $uid => $id) {
+        if (is_string($uid) && preg_match('/^[a-f0-9-]{36}$/', $uid) && pieb_can_iglesia_nombre((int) $id) !== '') {
+            $mapa[$uid] = (int) $id;
+        }
+    }
+    return $mapa;
+}
+
+/**
+ * Iglesia de esta web donde va algo de la copia: la que dice su uid según el mapa o, si la copia no la trae (copia antigua) o
+ * no está en el mapa, la iglesia por defecto. Nunca la iglesia en la que esté mirando quien restaura.
+ */
+function pieb_can_copia_iglesia_destino($uid, $mapa) {
+    return is_string($uid) && isset($mapa[$uid]) ? (int) $mapa[$uid] : (int) pieb_can_iglesia_defecto();
+}
+
+/** Qué canciones y cultos de la copia ya existen en esta web (0 = no existe). Los cultos, solo dentro de su iglesia. */
 function pieb_can_rest_copia_estado(WP_REST_Request $request) {
     $p = (array) $request->get_json_params();
+    $mapa = pieb_can_copia_mapa($p);
     $res = array('canciones' => array(), 'cultos' => array());
     foreach ((array) (isset($p['canciones']) ? $p['canciones'] : array()) as $c) {
         $res['canciones'][] = pieb_can_copia_buscar('cancion', (array) $c);
     }
     foreach ((array) (isset($p['cultos']) ? $p['cultos'] : array()) as $c) {
-        $res['cultos'][] = pieb_can_copia_buscar('culto', (array) $c);
+        $c = (array) $c;
+        $res['cultos'][] = pieb_can_copia_buscar('culto', $c, pieb_can_copia_iglesia_destino(isset($c['iglesia']) ? $c['iglesia'] : null, $mapa));
     }
     return rest_ensure_response($res);
+}
+
+/** Origen (autor e iglesia) de un elemento restaurado: quien restaura y la iglesia destino, no la activa. */
+function pieb_can_copia_origen($iglesia_id) {
+    return array('autor' => get_current_user_id(), 'iglesia' => (int) $iglesia_id);
+}
+
+/**
+ * Restaura las etiquetas de una canción (reemplaza las que tenía). Cada una es un objeto {nombre, iglesia} (iglesia = uid de
+ * la copia, o null = universal) o, en copias antiguas, una cadena = etiqueta de la iglesia por defecto. La etiqueta se crea en
+ * la iglesia que diga el mapa (o la de por defecto si no está), nunca en la activa.
+ */
+function pieb_can_copia_etiquetas($post_id, $lista, $mapa) {
+    $ids = array();
+    foreach ((array) $lista as $e) {
+        if (is_array($e)) {
+            $nombre = sanitize_text_field(isset($e['nombre']) ? (string) $e['nombre'] : '');
+            $universal = array_key_exists('iglesia', $e) && ($e['iglesia'] === null || $e['iglesia'] === '');
+            $iglesia = pieb_can_copia_iglesia_destino(isset($e['iglesia']) ? $e['iglesia'] : null, $mapa);
+        } else {
+            $nombre = sanitize_text_field((string) $e);
+            $universal = false;
+            $iglesia = (int) pieb_can_iglesia_defecto();
+        }
+        if ($nombre === '') {
+            continue;
+        }
+        $id = $universal ? pieb_can_etiqueta_universal_obtener($nombre) : pieb_can_etiqueta_obtener($nombre, $iglesia);
+        if ($id) {
+            $ids[] = (int) $id;
+        }
+    }
+    wp_set_object_terms($post_id, array_values(array_unique($ids)), PIEB_CAN_TAX);
 }
 
 function pieb_can_rest_copia_cancion(WP_REST_Request $request) {
@@ -971,6 +1084,8 @@ function pieb_can_rest_copia_cancion(WP_REST_Request $request) {
     $c = isset($p['cancion']) ? (array) $p['cancion'] : array();
     $sobrescribir = isset($p['modo']) && $p['modo'] === 'sobrescribir';
     $con_archivos = !empty($p['conArchivos']);
+    $mapa = pieb_can_copia_mapa($p);
+    $defecto = (int) pieb_can_iglesia_defecto();
     $titulo = sanitize_text_field(isset($c['titulo']) ? (string) $c['titulo'] : '');
     if ($titulo === '') {
         return new WP_Error('pieb_titulo', __('Hay una canción sin título en la copia.', 'pieb-cancionero'), array('status' => 400));
@@ -1027,9 +1142,8 @@ function pieb_can_rest_copia_cancion(WP_REST_Request $request) {
     // Con letraHtml (copias nuevas) la letra plana se deriva de él; las copias antiguas solo traen letra.
     pieb_can_guardar_letra($id, isset($c['letra']) ? (string) $c['letra'] : '', isset($c['letraHtml']) ? (string) $c['letraHtml'] : '');
     update_post_meta($id, '_pieb_notas', sanitize_textarea_field(isset($c['notas']) ? (string) $c['notas'] : ''));
-    update_post_meta($id, '_pieb_youtube', pieb_can_limpiar_youtube(isset($c['youtube']) ? $c['youtube'] : array(), pieb_can_get_youtube($id)));
-    $etiquetas = array_filter(array_map('sanitize_text_field', (array) (isset($c['etiquetas']) ? $c['etiquetas'] : array())));
-    pieb_can_etiquetas_fijar($id, array_values(array_unique($etiquetas)));
+    update_post_meta($id, '_pieb_youtube', pieb_can_limpiar_youtube(isset($c['youtube']) ? $c['youtube'] : array(), pieb_can_get_youtube($id), pieb_can_copia_origen($defecto)));
+    pieb_can_copia_etiquetas($id, isset($c['etiquetas']) ? $c['etiquetas'] : array(), $mapa);
 
     // Una copia con archivos manda: sus partituras, audios y editables sustituyen a los de esta web.
     // Una copia solo de datos conserva los archivos que ya hubiera aquí.
@@ -1046,7 +1160,7 @@ function pieb_can_rest_copia_cancion(WP_REST_Request $request) {
             if (pieb_can_tono_clave($tono) === pieb_can_tono_clave(pieb_can_valor_campo('tonalidad', isset($c['tonalidad']) ? $c['tonalidad'] : ''))) {
                 $tono = '';
             }
-            $partituras[] = array('id' => (int) $adjunto, 'label' => sanitize_text_field(isset($par[1]['label']) ? (string) $par[1]['label'] : ''), 'tonalidad' => $tono) + pieb_can_origen_nuevo();
+            $partituras[] = array('id' => (int) $adjunto, 'label' => sanitize_text_field(isset($par[1]['label']) ? (string) $par[1]['label'] : ''), 'tonalidad' => $tono) + pieb_can_copia_origen($defecto);
         }
         $audios = array();
         foreach ($archivos['audio'] as $par) {
@@ -1055,7 +1169,13 @@ function pieb_can_rest_copia_cancion(WP_REST_Request $request) {
                 $adjunto->add_data(array('status' => 400));
                 return $adjunto;
             }
-            $audios[] = pieb_can_limpiar_audio($adjunto, $par[1]);
+            // Cada audio vuelve a su iglesia (la de por defecto si la copia no la trae o no está en el mapa) y, si era
+            // universal, sigue siéndolo.
+            $audio = pieb_can_limpiar_audio($adjunto, $par[1], pieb_can_copia_origen(pieb_can_copia_iglesia_destino(isset($par[1]['iglesia']) ? $par[1]['iglesia'] : null, $mapa)));
+            if (!empty($par[1]['universal'])) {
+                $audio['universal'] = 1;
+            }
+            $audios[] = $audio;
         }
         $editables = array();
         foreach ($archivos['editable'] as $par) {
@@ -1064,11 +1184,34 @@ function pieb_can_rest_copia_cancion(WP_REST_Request $request) {
                 $adjunto->add_data(array('status' => 400));
                 return $adjunto;
             }
-            $editables[] = pieb_can_limpiar_editable($adjunto, $par[1]);
+            $editables[] = pieb_can_limpiar_editable($adjunto, $par[1], pieb_can_copia_origen($defecto));
         }
         update_post_meta($id, '_pieb_partituras', $partituras);
         update_post_meta($id, '_pieb_audios', $audios);
         update_post_meta($id, '_pieb_editables', $editables);
+    }
+
+    // Datos de la canción por iglesia (tonalidad habitual, notas y partitura principal). La principal llega como posición
+    // entre las partituras exportadas (-1 = ninguna) y se convierte aquí en el id de la partitura restaurada. Las notas de la
+    // iglesia por defecto no van en _pieb_ig_{id} sino en _pieb_notas (ya restauradas arriba).
+    $por_iglesia = isset($c['iglesias']) && is_array($c['iglesias']) ? $c['iglesias'] : array();
+    if ($por_iglesia) {
+        $actuales = array_values(pieb_can_get_partituras($id));
+        foreach ($por_iglesia as $uid_iglesia => $d) {
+            if (!is_string($uid_iglesia) || !isset($mapa[$uid_iglesia]) || !is_array($d)) {
+                continue;
+            }
+            $ig = (int) $mapa[$uid_iglesia];
+            $pos = isset($d['principal']) ? (int) $d['principal'] : -1;
+            $cambios = array(
+                'tonalidad' => sanitize_text_field(isset($d['tonalidad']) ? (string) $d['tonalidad'] : ''),
+                'principal' => $pos >= 0 && isset($actuales[$pos]['id']) ? (int) $actuales[$pos]['id'] : 0,
+            );
+            if ($ig !== $defecto) {
+                $cambios['notas'] = sanitize_textarea_field(isset($d['notas']) ? (string) $d['notas'] : '');
+            }
+            pieb_can_cancion_iglesia_guardar($id, $ig, $cambios);
+        }
     }
 
     return rest_ensure_response(array('estado' => $estado, 'id' => (int) $id));
@@ -1085,7 +1228,10 @@ function pieb_can_rest_copia_culto(WP_REST_Request $request) {
         return new WP_Error('pieb_culto', __('Hay un culto sin título o con una fecha no válida en la copia.', 'pieb-cancionero'), array('status' => 400));
     }
 
-    $id = pieb_can_copia_buscar('culto', $c);
+    // Iglesia del culto: la del mapa o, si la copia no la trae (copia antigua), la de por defecto; nunca la activa. Se busca
+    // el culto existente solo dentro de esa iglesia.
+    $iglesia = pieb_can_copia_iglesia_destino(isset($c['iglesia']) ? $c['iglesia'] : null, pieb_can_copia_mapa($p));
+    $id = pieb_can_copia_buscar('culto', $c, $iglesia);
     if ($id && !$sobrescribir) {
         return rest_ensure_response(array('estado' => 'saltado', 'id' => $id, 'faltan' => 0));
     }
@@ -1135,8 +1281,12 @@ function pieb_can_rest_copia_culto(WP_REST_Request $request) {
         if (is_wp_error($id)) {
             return $id;
         }
-        update_post_meta($id, '_pieb_iglesia', pieb_can_iglesia_activa());
         $estado = 'creado';
+    }
+    update_post_meta($id, '_pieb_iglesia', $iglesia);
+    // Privacidad: solo si la copia la trae (las antiguas no); privado = solo su autor, que se resuelve por «creadoPor».
+    if (array_key_exists('privado', $c)) {
+        pieb_can_culto_fijar_privado($id, !empty($c['privado']));
     }
 
     $uid = isset($c['uid']) ? (string) $c['uid'] : '';
@@ -1158,7 +1308,133 @@ function pieb_can_rest_copia_culto(WP_REST_Request $request) {
 }
 
 /**
- * Ajustes de la copia. La lista del equipo se une a la actual: restaurar nunca deja a nadie sin acceso.
+ * Restaura lo propio de una iglesia (equipo, bienvenida y plantilla de la escaleta), sea de una copia con iglesias o de una
+ * antigua aplicada a la de por defecto. $d lleva solo lo que la copia trae: 'equipo' (emails, administradores,
+ * responsablesEscaleta, dominio), 'bienvenida' (auto, texto) y 'escaleta'. El equipo se UNE al actual: restaurar nunca deja a
+ * nadie sin acceso. NUNCA envía correos de bienvenida (esta función no calcula «bienvenidaPendiente»).
+ */
+function pieb_can_copia_restaurar_iglesia($iglesia_id, $d) {
+    $iglesia_id = (int) $iglesia_id;
+    if (isset($d['equipo']) && is_array($d['equipo'])) {
+        $actual = pieb_can_equipo($iglesia_id);
+        $copia = $d['equipo'];
+        $nuevo = array();
+        foreach (array('emails', 'administradores', 'responsablesEscaleta') as $clave) {
+            $nuevo[$clave] = array_merge($actual[$clave], pieb_can_equipo_lista(isset($copia[$clave]) ? $copia[$clave] : array()));
+        }
+        $nuevo['dominio'] = !empty($copia['dominio']) && is_string($copia['dominio']) ? $copia['dominio'] : $actual['dominio'];
+        $guardado = pieb_can_equipo_guardar($iglesia_id, $nuevo);
+        // Quien pasa a administrar o a preparar la escaleta recibe el rol de WordPress que lo refleja.
+        foreach (array_merge($guardado['administradores'], $guardado['responsablesEscaleta']) as $email) {
+            $u = get_user_by('email', $email);
+            if ($u) {
+                pieb_can_sincronizar_administrador($u);
+            }
+        }
+    }
+    // La bienvenida se restaura solo si la copia la trae (las copias antiguas no la incluyen).
+    if (isset($d['bienvenida']) && is_array($d['bienvenida'])) {
+        $b = $d['bienvenida'];
+        $bienvenida = pieb_can_dato_iglesia('bienvenida', $iglesia_id);
+        if (isset($b['auto'])) {
+            $bienvenida['auto'] = rest_sanitize_boolean($b['auto']);
+        }
+        if (isset($b['texto'])) {
+            $bienvenida['texto'] = mb_substr(trim(sanitize_textarea_field((string) $b['texto'])), 0, 1000);
+        }
+        pieb_can_dato_iglesia_guardar('bienvenida', $iglesia_id, $bienvenida);
+    }
+    // La plantilla de la escaleta se restaura solo si la copia la trae. La copia no lleva las imágenes (sus ids no valen
+    // en otra web): se quitan las que pudieran venir y se conservan el logo y la cabecera que ya tenga esta iglesia.
+    if (isset($d['escaleta']) && is_array($d['escaleta'])) {
+        $plantilla = $d['escaleta'];
+        unset($plantilla['logo'], $plantilla['cabecera']);
+        $plantilla = pieb_can_escaleta_limpiar_plantilla($plantilla, pieb_can_escaleta_guardada($iglesia_id));
+        if (is_array($plantilla)) {
+            pieb_can_escaleta_guardar($plantilla, $iglesia_id);
+        }
+    }
+}
+
+/**
+ * Restaura las iglesias de una copia con iglesias (version 2) y devuelve el mapa uid de la copia => id en esta web. Cada una se
+ * empareja por uid, si no por nombre (sin distinguir mayúsculas), si no, siendo la de por defecto de la copia, con la de por
+ * defecto de esta web; si nada coincide se CREA. Con modo «saltar» las que ya existían no se tocan; con «sobrescribir» se les
+ * une el equipo y se restauran su bienvenida y su escaleta. Una iglesia archivada aquí no cuenta para emparejar.
+ */
+function pieb_can_rest_copia_iglesias(WP_REST_Request $request) {
+    @set_time_limit(120);
+    $p = (array) $request->get_json_params();
+    $sobrescribir = isset($p['modo']) && $p['modo'] === 'sobrescribir';
+    $defecto = (int) pieb_can_iglesia_defecto();
+
+    $existentes = pieb_can_iglesias(); // array( array('id', 'nombre'), … )
+    $mapa = array();
+    $creadas = 0;
+    $emparejadas = 0;
+    foreach ((array) (isset($p['iglesias']) ? $p['iglesias'] : array()) as $d) {
+        $d = (array) $d;
+        $uid = isset($d['uid']) ? (string) $d['uid'] : '';
+        if (!preg_match('/^[a-f0-9-]{36}$/', $uid)) {
+            continue;
+        }
+        $nombre = mb_substr(trim(sanitize_text_field(isset($d['nombre']) ? (string) $d['nombre'] : '')), 0, 80);
+        $es_defecto = !empty($d['defecto']);
+
+        $id = 0;
+        foreach ($existentes as $e) {
+            if ((string) get_post_meta($e['id'], '_pieb_uid', true) === $uid) {
+                $id = (int) $e['id'];
+                break;
+            }
+        }
+        if (!$id && $nombre !== '') {
+            foreach ($existentes as $e) {
+                if (pieb_can_etiqueta_clave($e['nombre']) === pieb_can_etiqueta_clave($nombre)) {
+                    $id = (int) $e['id'];
+                    break;
+                }
+            }
+        }
+        if (!$id && $es_defecto) {
+            $id = $defecto;
+        }
+
+        if ($id) {
+            $emparejadas++;
+            // Si la de esta web aún no tenía identificador propio, se queda con el de la copia.
+            if (!preg_match('/^[a-f0-9-]{36}$/', (string) get_post_meta($id, '_pieb_uid', true))) {
+                update_post_meta($id, '_pieb_uid', $uid);
+            }
+            $restaurar = $sobrescribir;
+        } else {
+            if ($nombre === '') {
+                continue;
+            }
+            $id = pieb_can_iglesia_crear($nombre);
+            if (is_wp_error($id)) {
+                return $id;
+            }
+            update_post_meta($id, '_pieb_uid', $uid);
+            $existentes[] = array('id' => (int) $id, 'nombre' => $nombre);
+            $creadas++;
+            $restaurar = true;
+        }
+        $mapa[$uid] = (int) $id;
+        if ($restaurar) {
+            pieb_can_copia_restaurar_iglesia($id, $d);
+        }
+    }
+    pieb_can_iglesias_reiniciar();
+
+    return rest_ensure_response(array('mapa' => (object) $mapa, 'creadas' => $creadas, 'emparejadas' => $emparejadas));
+}
+
+/**
+ * Ajustes GLOBALES de la copia (tema, Google, aviso de borrado, papelera, nombre y subtítulo). Lo de cada iglesia (equipo,
+ * bienvenida, escaleta) llega por /copia/iglesias en las copias nuevas; una copia antigua, que lo traía aquí dentro (emails,
+ * dominio, bienvenidaAuto, bienvenidaTexto, responsablesEscaleta, escaleta), lo aplica a la iglesia POR DEFECTO (no a la
+ * activa). El equipo se une al actual: restaurar nunca deja a nadie sin acceso.
  * Restaurar NUNCA envía correos de bienvenida (esta ruta no calcula «bienvenidaPendiente»).
  */
 function pieb_can_rest_copia_ajustes(WP_REST_Request $request) {
@@ -1170,21 +1446,11 @@ function pieb_can_rest_copia_ajustes(WP_REST_Request $request) {
     if (isset(pieb_can_temas()[$tema])) {
         $ajustes['tema_defecto'] = $tema;
     }
-    if (!empty($a['dominio'])) {
-        $ajustes['dominio'] = strtolower(preg_replace('/[^a-z0-9.-]/i', '', (string) $a['dominio']));
-    }
     $client = isset($a['googleClientId']) ? trim((string) $a['googleClientId']) : '';
     if ($client !== '' && preg_match('/^[0-9a-z-]+\.apps\.googleusercontent\.com$/i', $client)) {
         $ajustes['google_client_id'] = $client;
     }
-    // Los ajustes de la bienvenida se restauran solo si la copia los trae (las copias antiguas no los incluyen).
-    if (isset($a['bienvenidaAuto'])) {
-        $ajustes['bienvenida_auto'] = rest_sanitize_boolean($a['bienvenidaAuto']);
-    }
-    if (isset($a['bienvenidaTexto'])) {
-        $ajustes['bienvenida_texto'] = mb_substr(trim(sanitize_textarea_field((string) $a['bienvenidaTexto'])), 0, 1000);
-    }
-    // Igual con el aviso de borrado: solo si la copia lo trae.
+    // El aviso de borrado: solo si la copia lo trae.
     if (isset($a['avisoBorrado'])) {
         $ajustes['aviso_borrado'] = rest_sanitize_boolean($a['avisoBorrado']);
     }
@@ -1198,28 +1464,34 @@ function pieb_can_rest_copia_ajustes(WP_REST_Request $request) {
     if (isset($a['papeleraDias'])) {
         $ajustes['papelera_dias'] = max(0, min(3650, (int) $a['papeleraDias']));
     }
-    $emails = isset($a['emails']) ? (array) $a['emails'] : array();
-    // Los responsables de escaleta se unen a los actuales, como la lista del equipo, y también tienen acceso.
-    $responsables = isset($a['responsablesEscaleta']) ? (array) $a['responsablesEscaleta'] : array();
-    $ajustes['responsablesEscaleta'] = pieb_can_normalizar_emails(implode(' ', array_merge($ajustes['responsablesEscaleta'], $responsables)));
-    $ajustes['emails'] = pieb_can_normalizar_emails(implode(' ', array_merge($ajustes['emails'], $emails, $ajustes['responsablesEscaleta'])));
     pieb_can_guardar_ajustes($ajustes);
-    foreach ($ajustes['responsablesEscaleta'] as $email) {
-        $u = get_user_by('email', $email);
-        if ($u) {
-            pieb_can_sincronizar_administrador($u);
+
+    // Copia antigua: lo de la iglesia venía aquí dentro. Se aplica a la iglesia por defecto, explícitamente (después de guardar
+    // lo global, porque el equipo de la de por defecto vive en esa misma opción y se lee de nuevo).
+    $defecto = (int) pieb_can_iglesia_defecto();
+    $antiguo = array();
+    if (isset($a['emails']) || isset($a['dominio']) || isset($a['responsablesEscaleta'])) {
+        $antiguo['equipo'] = array(
+            'emails'               => isset($a['emails']) ? (array) $a['emails'] : array(),
+            'responsablesEscaleta' => isset($a['responsablesEscaleta']) ? (array) $a['responsablesEscaleta'] : array(),
+            'dominio'              => isset($a['dominio']) ? (string) $a['dominio'] : '',
+        );
+    }
+    if (isset($a['bienvenidaAuto']) || isset($a['bienvenidaTexto'])) {
+        $antiguo['bienvenida'] = array();
+        if (isset($a['bienvenidaAuto'])) {
+            $antiguo['bienvenida']['auto'] = $a['bienvenidaAuto'];
+        }
+        if (isset($a['bienvenidaTexto'])) {
+            $antiguo['bienvenida']['texto'] = $a['bienvenidaTexto'];
         }
     }
-    // La plantilla de la escaleta se restaura solo si la copia la trae. La copia no lleva las imágenes (sus ids no valen
-    // en otra web): se quitan las que pudieran venir y se conservan el logo y la cabecera que ya tenga esta web.
     if (isset($a['escaleta']) && is_array($a['escaleta'])) {
-        $plantilla = $a['escaleta'];
-        unset($plantilla['logo'], $plantilla['cabecera']);
-        $plantilla = pieb_can_escaleta_limpiar_plantilla($plantilla, pieb_can_escaleta_guardada());
-        if (is_array($plantilla)) {
-            pieb_can_escaleta_guardar($plantilla);
-        }
+        $antiguo['escaleta'] = $a['escaleta'];
+    }
+    if ($antiguo) {
+        pieb_can_copia_restaurar_iglesia($defecto, $antiguo);
     }
 
-    return rest_ensure_response(array('estado' => 'actualizados', 'emails' => count($ajustes['emails'])));
+    return rest_ensure_response(array('estado' => 'actualizados', 'emails' => count(pieb_can_equipo($defecto)['emails'])));
 }

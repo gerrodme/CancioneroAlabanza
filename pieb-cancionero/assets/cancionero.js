@@ -1388,11 +1388,12 @@
       { titulo: __('Equipo'), sub: __('Correos con acceso, administradores, responsables de escaleta y dominio'), icono: 'equipo', href: '#/ajustes/equipo' },
       { titulo: __('Accesos'), sub: __('Quién entra y cuánto se usa'), icono: 'grafica', href: '#/ajustes/accesos' },
       { titulo: __('Escaleta'), sub: __('Logo e imagen de cabecera de la hoja impresa del culto'), icono: 'lista', href: '#/ajustes/escaleta' },
-      { titulo: __('Fondos de las letras'), sub: __('Imágenes de fondo para las presentaciones de letras'), icono: 'letra', href: '#/ajustes/fondos' }] : [])
+      { titulo: __('Fondos de las letras'), sub: __('Imágenes de fondo para las presentaciones de letras'), icono: 'letra', href: '#/ajustes/fondos' },
+      // La papelera de cultos es de cada iglesia: la ve quien la gestiona; la de canciones, solo la administración común.
+      { titulo: __('Papelera'), sub: puedeComun() ? __('Restaurar o eliminar cultos y canciones borrados') : __('Restaurar o eliminar cultos borrados'), icono: 'borrar', href: '#/ajustes/papelera' }] : [])
       .concat(CFG.gestionar && !soloDeIglesia() ? [
       { titulo: __('Acceso con Google'), sub: __('Client ID de Google'), icono: 'acceso', href: '#/ajustes/google' },
       { titulo: __('Archivos'), sub: __('Protección y archivos sin usar'), icono: 'partitura', href: '#/ajustes/archivos' },
-      { titulo: __('Papelera'), sub: __('Restaurar o eliminar canciones borradas'), icono: 'borrar', href: '#/ajustes/papelera' },
       { titulo: __('Copias de seguridad'), sub: __('Descargar o restaurar una copia'), icono: 'descargar', href: '#/ajustes/copias' }] : [])
       .concat(Object.keys(CFG.temas || {}).map(function (k) {
         return { titulo: sprintf(/* translators: %s: nombre del tema visual */ __('Tema: %s'), CFG.temas[k]), sub: __('Cambiar la apariencia'), icono: 'tema', fn: function () { aplicarTema(k, true); } };
@@ -3206,7 +3207,7 @@
   // La sección Iglesias solo la ve el administrador central.
   if (CFG.central) { SECCIONES_AJUSTES.push('iglesias'); }
   // Con varias iglesias, quien gestiona la suya sin ser central solo ve lo de su iglesia.
-  if (soloDeIglesia()) { SECCIONES_AJUSTES = ['equipo', 'accesos', 'escaleta', 'fondos']; }
+  if (soloDeIglesia()) { SECCIONES_AJUSTES = ['equipo', 'accesos', 'escaleta', 'fondos', 'papelera']; }
   var RUTA_AJUSTES = /^#\/(ajustes|papelera|copias)(\/|$)/;
 
   /** Abre «Ajustes y equipo» en una sección (general, equipo, accesos, escaleta, fondos, google, archivos, papelera, copias o iglesias).
@@ -4816,7 +4817,7 @@
         h('fieldset', { class: 'pcan-fieldset' },
           h('legend', { text: __('Archivos sin usar') }),
           cajaHuerfanos)],
-      papelera: [notaComun(), h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: __('Papelera') }), cuerpoPapelera)],
+      papelera: [puedeComun() ? notaComun() : null, h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: __('Papelera') }), cuerpoPapelera)],
       copias: [notaComun(), cuerpoCopias],
       iglesias: [h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: __('Iglesias') }), cuerpoIglesias)]
     };
@@ -5419,7 +5420,8 @@
   /** Pinta la papelera dentro de `cuerpo` (la sección «Papelera» de los ajustes). */
   /** Aplica a la configuración lo que responde el servidor sobre las iglesias (activa y lista). */
   function aplicarIglesias(r) {
-    if (r.iglesias) { CFG.iglesias = r.iglesias; }
+    if (r.iglesias) { CFG.iglesias = r.iglesias; CFG.multi = r.iglesias.length > 1; }
+    if (r.archivadas) { CFG.iglesiasArchivadas = r.archivadas; }
     if (r.activa != null) {
       var a = typeof r.activa === 'object' ? r.activa : null;
       if (!a) { (CFG.iglesias || []).forEach(function (i) { if (+i.id === +r.activa) { a = i; } }); }
@@ -5482,17 +5484,89 @@
         }
         return h('li', { class: 'pcan-papelera-item pcan-iglesia' },
           h('div', { class: 'pcan-papelera-main' }, h('strong', { text: i.nombre }),
-            activa ? h('span', { class: 'pcan-estado is-ok', text: __('la activa') }) : null),
+            activa ? h('span', { class: 'pcan-estado is-ok', text: __('la activa') }) : null,
+            i.defecto ? h('span', { class: 'pcan-estado', text: __('Iglesia por defecto') }) : null),
           h('div', { class: 'pcan-papelera-acciones' },
-            h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () { editando = +i.id; pintar(); } }, icono('editar'), __('Cambiar nombre'))));
+            h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function () { editando = +i.id; pintar(); } }, icono('editar'), __('Cambiar nombre')),
+            i.defecto ? null : h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm', onclick: function (e) { archivarIglesia(i, !!activa, e.currentTarget); } }, icono('borrar'), __('Archivar'))));
       });
+      var archivadas = CFG.iglesiasArchivadas || [];
       append(cuerpo, [
         h('p', { class: 'pcan-help', text: __('Cada iglesia tiene sus propios cultos. Las canciones son comunes a todas.') }),
         h('ul', { class: 'pcan-papelera-lista' }, filas),
         formNueva, error,
+        archivadas.length ? bloqueIglesiasArchivadas(archivadas) : null,
         hayVariasIglesias() ? bloqueEtiquetasUniversales() : null]);
     }
-    pintar();
+
+    /** Tras archivar, recuperar o eliminar: aplica el estado que devuelve el servidor y repinta (o recarga si cambia lo que se construye al abrir). */
+    function trasCambio(r, eran, mensaje, recargar) {
+      aplicarIglesias(r);
+      aviso(mensaje);
+      var ahora = CFG.iglesias ? CFG.iglesias.length : 1;
+      // El selector del menú y la cabecera se construyen al abrir la página: si pasa de una a varias iglesias (o al revés) o la activa cambia, se recarga.
+      if (recargar || (eran < 2) !== (ahora < 2)) { location.reload(); return; }
+      pintarMenuIglesia();
+      pintar();
+    }
+
+    function archivarIglesia(i, eraActiva, btn) {
+      var eran = CFG.iglesias ? CFG.iglesias.length : 1;
+      var mensaje = sprintf(/* translators: %s: nombre de la iglesia */ __('¿Archivar «%s»? Deja de verse y nadie podrá entrar en ella ni ver sus cultos, pero no se borra nada: podrás recuperarla desde «Iglesias archivadas».'), i.nombre)
+        + (eraActiva ? ' ' + __('Es la iglesia en la que estás: la página se recargará.') : '');
+      confirmar({ mensaje: mensaje, aceptar: __('Archivar iglesia'), peligro: true }).then(function (si) {
+        if (!si) { return; }
+        btn.disabled = true;
+        api('iglesias/' + i.id + '/archivar', { json: {} }).then(function (r) {
+          trasCambio(r, eran, __('Iglesia archivada'), eraActiva);
+        }).catch(function (err) { aviso(err.message, 'error'); btn.disabled = false; });
+      });
+    }
+
+    function textoContenido(a) {
+      if (a.vacia) { return __('Vacía'); }
+      return [
+        a.cultos ? sprintf(_n('%d culto', '%d cultos', a.cultos), a.cultos) : '',
+        a.etiquetas ? sprintf(_n('%d etiqueta', '%d etiquetas', a.etiquetas), a.etiquetas) : '',
+        a.audios ? sprintf(_n('%d audio', '%d audios', a.audios), a.audios) : '',
+        a.datos ? sprintf(_n('%d dato de canción', '%d datos de canciones', a.datos), a.datos) : ''
+      ].filter(Boolean).join(', ');
+    }
+
+    /** Bloque «Iglesias archivadas»: recuperar, o eliminar del todo si está vacía. */
+    function bloqueIglesiasArchivadas(archivadas) {
+      var eran = CFG.iglesias ? CFG.iglesias.length : 1;
+      var filas = archivadas.map(function (a) {
+        var bRec = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-primary', onclick: function () {
+          bRec.disabled = true; bEli.disabled = true;
+          api('iglesias/' + a.id + '/recuperar', { json: {} }).then(function (r) {
+            trasCambio(r, eran, __('Iglesia recuperada'), false);
+          }).catch(function (err) { aviso(err.message, 'error'); bRec.disabled = false; bEli.disabled = !a.vacia; });
+        } }, icono('subir'), __('Recuperar'));
+        var bEli = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', disabled: !a.vacia, onclick: function () {
+          confirmar({ mensaje: sprintf(/* translators: %s: nombre de la iglesia */ __('¿Eliminar «%s» del todo? Se borran también su equipo, su escaleta y sus ajustes. No se puede deshacer.'), a.nombre), aceptar: __('Eliminar del todo'), peligro: true }).then(function (si) {
+            if (!si) { return; }
+            bRec.disabled = true; bEli.disabled = true;
+            api('iglesias/' + a.id, { method: 'DELETE' }).then(function (r) {
+              trasCambio(r, eran, __('Iglesia eliminada'), false);
+            }).catch(function (err) { aviso(err.message, 'error'); bRec.disabled = false; bEli.disabled = false; });
+          });
+        } }, icono('borrar'), __('Eliminar del todo'));
+        return h('li', { class: 'pcan-papelera-item pcan-iglesia pcan-iglesia-archivada' },
+          h('div', { class: 'pcan-papelera-main' }, h('strong', { text: a.nombre }),
+            h('small', { text: textoContenido(a) }),
+            a.vacia ? null : h('small', { class: 'pcan-iglesia-retiene', text: __('No se puede eliminar mientras tenga contenido: vacíala antes, o déjala archivada.') })),
+          h('div', { class: 'pcan-papelera-acciones' }, bRec, bEli));
+      });
+      return h('div', { class: 'pcan-iglesias-archivadas' },
+        h('h4', { class: 'pcan-subtitulo', text: __('Iglesias archivadas') }),
+        h('p', { class: 'pcan-help', text: __('No salen en el selector y nadie puede entrar en ellas. Se pueden recuperar; solo una iglesia vacía se puede eliminar del todo.') }),
+        h('ul', { class: 'pcan-papelera-lista' }, filas));
+    }
+
+    // La configuración inicial solo trae las iglesias activas: las archivadas se piden al abrir la sección.
+    append(cuerpo, h('p', { class: 'pcan-help', text: __('Cargando las iglesias…') }));
+    api('iglesias').then(function (r) { aplicarIglesias(r); pintar(); }, function () { pintar(); });
   }
 
   /** Bloque «Etiquetas universales» de la sección Iglesias: las ven todas las iglesias y solo la administración central las pone. */
@@ -5549,11 +5623,102 @@
     return caja;
   }
 
+  /** Sección «Papelera» de Ajustes: «Cultos borrados» (de la iglesia activa; quien gestiona su iglesia) y «Canciones borradas» (administración común). */
   function pintarPapelera(cuerpo) {
     cuerpo.innerHTML = '';
+    var cajaCultos = h('div', { class: 'pcan-papelera-bloque' });
+    append(cuerpo, cajaCultos);
+    pintarPapeleraCultos(cajaCultos);
+    if (puedeComun()) {
+      var cajaCanciones = h('div', { class: 'pcan-papelera-bloque' });
+      append(cuerpo, cajaCanciones);
+      pintarPapeleraCanciones(cajaCanciones);
+    }
+  }
+
+  function textoCaducidadCulto(it) {
+    if (it.diasRestantes === null || it.diasRestantes === undefined) { return __('Se conserva hasta que la administración lo elimine'); }
+    if (it.diasRestantes === 0) { return __('Se eliminará hoy'); }
+    return sprintf(_n('Se eliminará en %d día', 'Se eliminará en %d días', it.diasRestantes), it.diasRestantes);
+  }
+
+  function textoBorradoCulto(it) {
+    return it.borradoPor
+      ? sprintf(/* translators: 1: fecha, 2: nombre de quien lo borró */ __('Borrado el %1$s por %2$s'), fechaCompleta(it.borradoEl), it.borradoPor)
+      : sprintf(/* translators: %s: fecha */ __('Borrado el %s'), fechaCompleta(it.borradoEl));
+  }
+
+  /** Bloque «Cultos borrados de <iglesia>»: restaurar, eliminar para siempre o vaciar. La lista es siempre de la iglesia activa. */
+  function pintarPapeleraCultos(caja) {
+    caja.innerHTML = '';
+    var titulo = hayVariasIglesias() && CFG.iglesia
+      ? sprintf(/* translators: %s: nombre de la iglesia */ __('Cultos borrados de %s'), CFG.iglesia.nombre)
+      : __('Cultos borrados');
+    append(caja, [h('h4', { class: 'pcan-subtitulo', text: titulo }), h('p', { class: 'pcan-help', text: __('Cargando la papelera de cultos…') })]);
+    api('cultos/papelera').then(function (r) {
+      caja.innerHTML = '';
+      var ayuda = r.dias
+        ? sprintf(_n('Los cultos borrados se conservan %d día y después se eliminan solos. Los recupera la administración de la iglesia.', 'Los cultos borrados se conservan %d días y después se eliminan solos. Los recupera la administración de la iglesia.', r.dias), r.dias)
+        : __('Los cultos borrados se conservan hasta que la administración de la iglesia los elimine (el borrado automático está desactivado).');
+      append(caja, [h('h4', { class: 'pcan-subtitulo', text: titulo }), h('p', { class: 'pcan-help', text: ayuda })]);
+      var lista = r.cultos || [];
+      if (!lista.length) { append(caja, h('p', { class: 'pcan-help', text: __('No hay cultos borrados.') })); return; }
+      // Restaurar o eliminar cambia lo que ve el módulo de cultos: se le dice que vuelva a pedir su lista.
+      function tras(mensaje) {
+        if (P.invalidarCultos) { P.invalidarCultos(); }
+        aviso(mensaje);
+        pintarPapeleraCultos(caja);
+      }
+      append(caja, h('ul', { class: 'pcan-papelera-lista' }, lista.map(function (it) {
+        var datos = [it.fecha ? fechaCompleta(it.fecha) : '', it.tipo || '', sprintf(_n('%d canción', '%d canciones', it.canciones || 0), it.canciones || 0)].filter(Boolean).join(' · ');
+        var bRest = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-primary', onclick: function () {
+          ocupado(bRest, __('Restaurando…')); bElim.disabled = true;
+          api('cultos/papelera/' + it.id + '/restaurar', { json: {} }).then(function () {
+            tras(sprintf(/* translators: %s: título del culto */ __('«%s» restaurado'), it.titulo));
+          }).catch(function (e) { aviso(e.message, 'error'); pintarPapeleraCultos(caja); });
+        } }, icono('subir'), __('Restaurar'));
+        var bElim = h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', onclick: function () {
+          confirmar({ mensaje: sprintf(/* translators: %s: título del culto */ __('¿Eliminar el culto «%s» para siempre? No se puede deshacer.'), it.titulo), aceptar: __('Eliminar para siempre'), peligro: true }).then(function (si) {
+            if (!si) { return; }
+            ocupado(bElim, __('Eliminando…')); bRest.disabled = true;
+            api('cultos/papelera/' + it.id, { method: 'DELETE' }).then(function () {
+              tras(sprintf(/* translators: %s: título del culto */ __('«%s» eliminado para siempre'), it.titulo));
+            }).catch(function (e) { aviso(e.message, 'error'); pintarPapeleraCultos(caja); });
+          });
+        } }, icono('borrar'), __('Eliminar para siempre'));
+        return h('li', { class: 'pcan-papelera-item' },
+          h('div', { class: 'pcan-papelera-main' },
+            h('strong', null, it.titulo, it.privado ? h('span', { class: 'pcan-privado', title: __('Solo lo ve quien lo creó'), text: __('Privado') }) : null),
+            h('small', { text: datos }),
+            h('small', { text: [textoBorradoCulto(it), textoCaducidadCulto(it)].join(' · ') })),
+          h('div', { class: 'pcan-papelera-acciones' }, bRest, bElim));
+      })));
+      append(caja, h('div', { class: 'pcan-actions' },
+        h('button', { type: 'button', class: 'pcan-btn pcan-btn-sm pcan-btn-danger', onclick: function (e) {
+          var b = e.currentTarget;
+          confirmar({ mensaje: sprintf(_n('¿Vaciar la papelera de cultos? Se elimina para siempre %d culto. No se puede deshacer.', '¿Vaciar la papelera de cultos? Se eliminan para siempre %d cultos. No se puede deshacer.', lista.length), lista.length), aceptar: __('Vaciar papelera de cultos'), peligro: true }).then(function (si) {
+            if (!si) { return; }
+            ocupado(b, __('Vaciando…'));
+            api('cultos/papelera/vaciar', { json: {} }).then(function (res) {
+              var n = res && res.eliminados != null ? res.eliminados : lista.length;
+              tras(sprintf(_n('%d culto eliminado para siempre', '%d cultos eliminados para siempre', n), n));
+            }).catch(function (err) { aviso(err.message, 'error'); pintarPapeleraCultos(caja); });
+          });
+        } }, icono('borrar'), __('Vaciar papelera de cultos'))));
+    }).catch(function (e) {
+      caja.innerHTML = '';
+      append(caja, [h('h4', { class: 'pcan-subtitulo', text: titulo }), h('p', { class: 'pcan-form-error', text: e.message })]);
+    });
+  }
+
+  /** Bloque «Canciones borradas» (administración común). */
+  function pintarPapeleraCanciones(cuerpo) {
+    cuerpo.innerHTML = '';
+    append(cuerpo, h('h4', { class: 'pcan-subtitulo', text: __('Canciones borradas') }));
     append(cuerpo, h('p', { class: 'pcan-help', text: __('Cargando la papelera…') }));
     api('papelera').then(function (r) {
       cuerpo.innerHTML = '';
+      append(cuerpo, h('h4', { class: 'pcan-subtitulo', text: __('Canciones borradas') }));
       var ayuda = r.dias
         ? sprintf(_n('Las canciones borradas se conservan %d día y después se eliminan solas, con sus partituras y audios.', 'Las canciones borradas se conservan %d días y después se eliminan solas, con sus partituras y audios.', r.dias), r.dias)
         : __('Las canciones borradas se conservan hasta que un administrador las elimine (el borrado automático está desactivado).');
@@ -5596,14 +5761,14 @@
               }, Promise.resolve()).then(function () {
                 var ok = ids.length - fallos;
                 aviso(sprintf(_n('%d canción eliminada para siempre', '%d canciones eliminadas para siempre', ok), ok) + (fallos ? ' · ' + sprintf(_n('%d no se pudo eliminar', '%d no se pudieron eliminar', fallos), fallos) : ''), fallos ? 'error' : undefined);
-                pintarPapelera(cuerpo);
+                pintarPapeleraCanciones(cuerpo);
               });
             });
           } }, icono('borrar'), __('Vaciar la papelera'))));
       }
     }).catch(function (e) {
       cuerpo.innerHTML = '';
-      append(cuerpo, h('p', { class: 'pcan-form-error', text: e.message }));
+      append(cuerpo, [h('h4', { class: 'pcan-subtitulo', text: __('Canciones borradas') }), h('p', { class: 'pcan-form-error', text: e.message })]);
     });
   }
 
@@ -5642,7 +5807,7 @@
   }
 
   function leeme() {
-    return __('Copia de seguridad del Cancionero (plugin Cancionero).\n\ncopia.json  canciones, cultos y ajustes\narchivos/   partituras, audios y partituras editables de cada canción\n\nPara restaurarla: instala el plugin en WordPress, entra como administrador en el cancionero\ny abre Ajustes y equipo → Copias de seguridad → Restaurar desde una copia.\n');
+    return __('Copia de seguridad del Cancionero (plugin Cancionero).\n\ncopia.json  canciones, cultos, iglesias y ajustes\narchivos/   partituras, audios y partituras editables de cada canción\n\nPara restaurarla: instala el plugin en WordPress, entra como administrador en el cancionero\ny abre Ajustes y equipo → Copias de seguridad → Restaurar desde una copia.\n');
   }
 
   /**
@@ -5682,6 +5847,8 @@
         formato: d.formato, version: d.version, plugin: d.plugin, sitio: d.sitio, fecha: d.fecha,
         conArchivos: !!(opc.canciones && opc.archivos), canciones: [], cultos: [], ajustes: null
       };
+      // Versión 2: las iglesias (con su equipo, bienvenida, escaleta y fondos) van siempre; canciones y cultos las nombran por su uid.
+      if (d.iglesias) { copia.iglesias = d.iglesias; }
       var descargas = [];
       if (opc.canciones) {
         copia.canciones = d.canciones.map(function (c) {
@@ -5736,6 +5903,8 @@
         if (copia.formato !== 'pieb-cancionero') { throw new Error(__('Este archivo no es una copia del cancionero.')); }
         copia.canciones = copia.canciones || [];
         copia.cultos = copia.cultos || [];
+        // Una copia antigua (sin «iglesias») se restaura entera en la iglesia por defecto.
+        copia.iglesias = copia.iglesias && copia.iglesias.length ? copia.iglesias : null;
         return { zip: zip, copia: copia };
       });
     }, function (e) {
@@ -5744,7 +5913,7 @@
   }
 
   /** Sube los archivos de una canción de la copia (por trozos) y la crea o actualiza en el servidor. */
-  function restaurarCancion(zip, c, modo, conArchivos) {
+  function restaurarCancion(zip, c, modo, conArchivos, mapa) {
     function subir(lista, tipo) {
       return (lista || []).reduce(function (cadena, f) {
         return cadena.then(function (acc) {
@@ -5765,7 +5934,10 @@
       return subir(c.editables, 'editable');
     }).then(function (e) {
       datos.editables = e;
-      return api('copia/cancion', { json: { cancion: datos, modo: modo, conArchivos: conArchivos } });
+      // Los campos de iglesias (iglesias, iglesia y universal de los audios, etiquetas con iglesia) viajan tal cual dentro de `datos`.
+      var cuerpo = { cancion: datos, modo: modo, conArchivos: conArchivos };
+      if (mapa) { cuerpo.mapa = mapa; }
+      return api('copia/cancion', { json: cuerpo });
     });
   }
 
@@ -5788,7 +5960,7 @@
     var oCanciones = casilla(__('Canciones'), true, sprintf(_n('%d canción con sus datos, letra, etiquetas y enlaces de YouTube.', '%d canciones con sus datos, letras, etiquetas y enlaces de YouTube.', state.canciones.length), state.canciones.length));
     var oArchivos = casilla(__('Partituras, audios y editables'), true, __('Los archivos de cada canción. Sin ellos la copia ocupa muy poco, pero no sirve para empezar en otra web.'));
     var oCultos = casilla(__('Cultos y setlists'), true, __('Todos los cultos con el orden de sus canciones (de ahí salen las estadísticas).'));
-    var oAjustes = casilla(__('Ajustes y lista del equipo'), true, __('Tema por defecto, correos con acceso y acceso con Google.'));
+    var oAjustes = casilla(__('Ajustes y lista del equipo'), true, __('Tema por defecto, acceso con Google y, de cada iglesia, su equipo, bienvenida, escaleta y fondos.'));
     oCanciones.input.addEventListener('change', function () { oArchivos.input.disabled = !oCanciones.input.checked; });
     var estadoCrear = h('p', { class: 'pcan-help', role: 'status' });
     var barraCrear = progresoNuevo();
@@ -5823,7 +5995,7 @@
       leerCopia(archivo).then(function (r) {
         return api('copia/estado', { json: {
           canciones: r.copia.canciones.map(function (c) { return { uid: c.uid, titulo: c.titulo, numero: c.numero }; }),
-          cultos: r.copia.cultos.map(function (c) { return { uid: c.uid, titulo: c.titulo, fecha: c.fecha }; })
+          cultos: r.copia.cultos.map(function (c) { return { uid: c.uid, titulo: c.titulo, fecha: c.fecha, iglesia: c.iglesia }; })
         } }).then(function (existen) {
           zonaRestaurar.innerHTML = '';
           leyendo = false;
@@ -5906,8 +6078,11 @@
         return [h('label', { class: 'pcan-copia-todas' }, todas, h('span', { text: _x('Todas', 'casilla para marcar todas las filas de la lista') })), ul];
       }
 
+      var correosCopia = copia.iglesias
+        ? copia.iglesias.reduce(function (n, g) { return n + ((g.equipo && g.equipo.emails) || []).length; }, 0)
+        : (copia.ajustes && copia.ajustes.emails || []).length;
       var oAjustesR = casilla(__('Ajustes y lista del equipo'), !!copia.ajustes,
-        copia.ajustes ? sprintf(_n('%d correo: se añade a la lista actual, nadie pierde el acceso.', '%d correos: se añaden a la lista actual, nadie pierde el acceso.', (copia.ajustes.emails || []).length), (copia.ajustes.emails || []).length) : __('Esta copia no los incluye.'));
+        copia.ajustes ? sprintf(_n('%d correo: se añade a la lista actual, nadie pierde el acceso.', '%d correos: se añaden a la lista actual, nadie pierde el acceso.', correosCopia), correosCopia) : __('Esta copia no los incluye.'));
       oAjustesR.input.disabled = !copia.ajustes;
 
       var modos = h('div', { class: 'pcan-copia-modos', role: 'radiogroup', 'aria-label': __('Si ya existe') },
@@ -5920,6 +6095,13 @@
           return h('label', null, h('input', { type: 'radio', name: 'pcan-filtro-copia', checked: m[0] === soloNuevas, onchange: function () { soloNuevas = m[0]; filtros.forEach(function (f) { f(); }); } }), h('span', { text: m[1] }));
         }));
 
+      // Iglesias de la copia (versión 2): cuántas hay y cuántas no existen aún (se compara por nombre; el servidor empareja por uid, nombre o iglesia por defecto).
+      var iglesiasCopia = copia.iglesias || [];
+      var conocidas = (CFG.iglesias || []).concat(CFG.iglesiasArchivadas || []).map(function (i) { return norm(i.nombre); });
+      var nuevasIg = iglesiasCopia.filter(function (g) { return !g.defecto && conocidas.indexOf(norm(g.nombre)) === -1; }).length;
+      var notaIglesias = copia.iglesias
+        ? h('p', { class: 'pcan-help', text: sprintf(_n('La copia trae %d iglesia', 'La copia trae %d iglesias', iglesiasCopia.length), iglesiasCopia.length) + (nuevasIg ? ' · ' + sprintf(_n('%d no existe aún en esta web y se creará.', '%d no existen aún en esta web y se crearán.', nuevasIg), nuevasIg) : ' · ' + __('todas existen ya en esta web.')) })
+        : h('p', { class: 'pcan-help pcan-copia-antigua', text: __('Copia antigua: se restaura entera en la iglesia por defecto.') });
       var aviso2 = h('p', { class: 'pcan-help' });
       var barra = progresoNuevo();
       var estadoRestaurar = h('p', { class: 'pcan-help', role: 'status', hidden: true });
@@ -5991,11 +6173,27 @@
         registro.innerHTML = '';
         ventana.ventana.focus({ preventScroll: true });
         var tareas = [];
+        // Con una copia versión 2 se restauran primero las iglesias: devuelven el mapa uid de la copia → id en esta web que usan canciones y cultos.
+        var mapa = null, abortado = false;
+        if (copia.iglesias) {
+          tareas.push(function () {
+            // Sin «Ajustes» marcado, las iglesias que ya existen no se tocan (solo se crean o emparejan las que falten).
+            var modoIg = oAjustesR.input.checked ? modo : 'saltar';
+            return api('copia/iglesias', { json: { iglesias: copia.iglesias, modo: modoIg } }).then(function (r) {
+              mapa = r.mapa || {};
+              anotar(sprintf(/* translators: 1: iglesias creadas, 2: iglesias emparejadas con las que ya había */ __('Iglesias: %1$d creadas, %2$d ya existían'), r.creadas || 0, r.emparejadas || 0));
+            }, function (e) {
+              // Sin el mapa, lo demás acabaría en la iglesia por defecto: se detiene la restauración.
+              abortado = true;
+              anotar(sprintf(/* translators: %s: motivo del error */ __('Iglesias: %s. Se detiene la restauración para no mezclar iglesias.'), e.message), true);
+            });
+          });
+        }
         copia.canciones.forEach(function (c, i) {
           if (!elegidas[i]) { return; }
           if (existen.canciones[i] && modo === 'saltar') { tareas.push(function () { cuenta.iguales++; anotar(sprintf(/* translators: %s: título de la canción */ __('«%s»: ya estaba, sin cambios'), c.titulo)); return Promise.resolve(); }); return; }
           tareas.push(function () {
-            return restaurarCancion(zip, c, modo, !!copia.conArchivos).then(function (r) {
+            return restaurarCancion(zip, c, modo, !!copia.conArchivos, mapa).then(function (r) {
               if (r.estado === 'creada') { cuenta.creados++; } else if (r.estado === 'actualizada') { cuenta.sustituidos++; } else { cuenta.iguales++; }
               anotar(r.estado === 'creada' ? sprintf(/* translators: %s: título de la canción */ __('«%s»: añadida'), c.titulo)
                 : r.estado === 'actualizada' ? sprintf(/* translators: %s: título de la canción */ __('«%s»: sustituida'), c.titulo)
@@ -6006,7 +6204,7 @@
         copia.cultos.forEach(function (c, i) {
           if (!elegidos[i]) { return; }
           tareas.push(function () {
-            return api('copia/culto', { json: { culto: c, modo: modo } }).then(function (r) {
+            return api('copia/culto', { json: mapa ? { culto: c, modo: modo, mapa: mapa } : { culto: c, modo: modo } }).then(function (r) {
               if (r.estado === 'creado') { cuenta.creados++; } else if (r.estado === 'actualizado') { cuenta.sustituidos++; } else { cuenta.iguales++; }
               var fCulto = fechaCorta(c.fecha);
               anotar((r.estado === 'creado' ? sprintf(/* translators: 1: título del culto, 2: fecha */ __('Culto «%1$s» (%2$s): añadido'), c.titulo, fCulto)
@@ -6020,7 +6218,7 @@
           tareas.push(function () {
             return api('copia/ajustes', { json: { ajustes: copia.ajustes } }).then(function (r) {
               cuenta.sustituidos++;
-              anotar(sprintf(_n('Ajustes restaurados · %d correo en la lista del equipo', 'Ajustes restaurados · %d correos en la lista del equipo', r.emails), r.emails));
+              anotar(r.emails !== undefined ? sprintf(_n('Ajustes restaurados · %d correo en la lista del equipo', 'Ajustes restaurados · %d correos en la lista del equipo', r.emails), r.emails) : __('Ajustes restaurados'));
             }, function (e) { anotar(sprintf(/* translators: %s: motivo del error */ __('Ajustes: %s'), e.message), true); });
           });
         }
@@ -6028,7 +6226,7 @@
         function marcador() { estadoRestaurar.textContent = sprintf(/* translators: 1: paso actual, 2: total de pasos */ __('Restaurando %1$d de %2$d…'), Math.min(hechas + 1, tareas.length), tareas.length); }
         marcador();
         tareas.reduce(function (cadena, t) {
-          return cadena.then(t).then(function () { hechas++; barra.firstChild.style.width = Math.round(hechas / tareas.length * 100) + '%'; marcador(); });
+          return cadena.then(function () { return abortado ? null : t(); }).then(function () { hechas++; barra.firstChild.style.width = Math.round(hechas / tareas.length * 100) + '%'; marcador(); });
         }, Promise.resolve()).then(terminar);
       }
 
@@ -6055,7 +6253,7 @@
           lista(copia.cultos, elegidos, existen.cultos, function (c) { return fechaCompleta(c.fecha) + ' · ' + c.titulo + ' · ' + sprintf(_n('%d canción', '%d canciones', (c.items || []).length), (c.items || []).length); })) : null,
         h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: __('Ajustes') }), oAjustesR.el),
         nExisten ? h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: __('Si una canción o un culto ya existe') }), modos) : null]);
-      append(ventana.cuerpo, [resultado, opciones, registro]);
+      append(ventana.cuerpo, [resultado, notaIglesias, opciones, registro]);
       append(ventana.pie, [aviso2, confirmar, h('div', { class: 'pcan-modal-progreso' }, barra, estadoRestaurar), acciones]);
       resumen();
     }
@@ -6064,6 +6262,7 @@
       h('fieldset', { class: 'pcan-fieldset' },
         h('legend', { text: __('Crear una copia') }),
         h('p', { class: 'pcan-help', text: __('Se descarga un .zip con todo lo que marques. Con él puedes recuperar el cancionero aquí o continuar en otra web con WordPress y este plugin.') }),
+        hayVariasIglesias() ? h('p', { class: 'pcan-help', text: __('La copia incluye todas las iglesias. Los cultos privados de otras personas no se incluyen.') }) : null,
         oCanciones.el, oArchivos.el, oCultos.el, oAjustes.el,
         barraCrear, estadoCrear,
         h('div', { class: 'pcan-actions' }, bCrear)),
