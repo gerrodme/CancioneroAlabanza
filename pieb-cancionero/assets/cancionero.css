@@ -2587,3 +2587,15 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 .pcan-iglesia-retiene { color: var(--pc-warn); }
 .pcan-copia-antigua { padding: 8px 10px; border-radius: var(--pc-radius-sm); background: color-mix(in srgb, var(--pc-warn) 12%, var(--pc-surface)); color: var(--pc-warn); font-weight: 600; }
 [data-pcan-theme] .pcan-iglesia-archivada .pcan-btn:disabled { cursor: not-allowed; }
+
+/* Editor de la letra maximizado: una capa que ocupa toda la pantalla al hacer clic en el área editable. */
+.pcan-editor-cab { display: none; }
+.pcan-editor-capa { position: fixed; inset: 0; z-index: 99996; display: flex; flex-direction: column; background: var(--pc-bg); color: var(--pc-text); font-family: var(--pc-font, inherit); }
+[data-pcan-theme] .pcan-editor.is-max { flex: 1 1 auto; min-height: 0; gap: 10px; width: 100%; max-width: 920px; margin: 0 auto; padding: 12px clamp(12px, 3vw, 24px) calc(12px + env(safe-area-inset-bottom, 0px)); box-sizing: border-box; }
+.pcan-editor.is-max .pcan-editor-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+[data-pcan-theme] .pcan-editor.is-max .pcan-editor-area { flex: 1 1 auto; min-height: 0; max-height: none; font-size: 18px; }
+@media (max-width: 600px) {
+  .pcan-editor.is-max .pcan-editor-barra { display: flex; flex-wrap: wrap; }
+  [data-pcan-theme] .pcan-editor.is-max .pcan-editor-btn { min-height: 36px; padding: 4px 8px; }
+  [data-pcan-theme] .pcan-editor.is-max .pcan-editor-area { font-size: 17px; padding: 10px 12px; }
+}

@@ -520,8 +520,62 @@
         document.execCommand('insertHTML', false, limpio);
       });
 
+      // Al hacer clic en la letra, el editor se maximiza: pasa a una capa que ocupa toda la pantalla (con su barra de
+      // formato y un botón «Listo» para volver). Se vuelve también con Escape o al cambiar de pantalla.
+      var cab = h('div', { class: 'pcan-editor-cab' },
+        h('strong', { text: __('Letra') }),
+        h('button', { type: 'button', class: 'pcan-btn pcan-btn-primary', onclick: function () { minimizar(true); } }, icono('check'), __('Listo')));
+      var cont = h('div', { class: 'pcan-editor' + (soloLectura ? ' is-readonly' : '') }, cab, barra, area);
+      var capa = null, hueco = null;
+
+      // Un Range vivo se desplaza al sacar el editor del documento: se guardan los puntos y se rehace después.
+      function guardarSeleccion() {
+        var r = rango();
+        return { pts: r ? { sc: r.startContainer, so: r.startOffset, ec: r.endContainer, eo: r.endOffset } : null, scroll: area.scrollTop };
+      }
+      function restaurarSeleccion(g) {
+        area.focus();
+        area.scrollTop = g.scroll;
+        if (g.pts && area.contains(g.pts.sc) && area.contains(g.pts.ec)) {
+          try {
+            var nr = document.createRange();
+            nr.setStart(g.pts.sc, g.pts.so);
+            nr.setEnd(g.pts.ec, g.pts.eo);
+            sel().removeAllRanges();
+            sel().addRange(nr);
+          } catch (e) { /* sin selección que restaurar */ }
+        }
+      }
+      function maximizar() {
+        if (soloLectura || capa || !cont.parentNode) { return; }
+        var g = guardarSeleccion();
+        hueco = h('div', { class: 'pcan-editor-hueco', style: 'height:' + cont.offsetHeight + 'px' });
+        cont.parentNode.replaceChild(hueco, cont);
+        capa = h('div', { class: 'pcan-editor-capa', role: 'dialog', 'aria-modal': 'true', 'aria-label': __('Letra') });
+        temaEn(capa);
+        capa.appendChild(cont);
+        document.body.appendChild(capa);
+        cont.classList.add('is-max');
+        window.addEventListener('hashchange', cerrarAlNavegar);
+        restaurarSeleccion(g);
+      }
+      function minimizar(conFoco) {
+        if (!capa) { return; }
+        var g = guardarSeleccion();
+        window.removeEventListener('hashchange', cerrarAlNavegar);
+        cont.classList.remove('is-max');
+        if (hueco && hueco.parentNode) { hueco.parentNode.replaceChild(cont, hueco); } else { cont.remove(); }
+        capa.remove();
+        capa = null; hueco = null;
+        if (conFoco) { restaurarSeleccion(g); }
+        estados();
+      }
+      function cerrarAlNavegar() { minimizar(false); }
+      area.addEventListener('click', maximizar);
+      area.addEventListener('keydown', function (e) { if (e.key === 'Escape' && capa) { e.preventDefault(); e.stopPropagation(); minimizar(true); } });
+
       return {
-        el: h('div', { class: 'pcan-editor' + (soloLectura ? ' is-readonly' : '') }, barra, area),
+        el: cont,
         valor: function () {
           var html = normalizar(area.innerHTML);
           return { letraHtml: tieneFormato(html) ? html : '', letra: aTexto(html) };

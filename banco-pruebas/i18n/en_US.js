@@ -3331,6 +3331,9 @@ window.PIEB_I18N = {
   ],
   "¿Borrar el culto «%s»? La administración de la iglesia podrá recuperarlo desde la papelera (Ajustes).": [
    "Delete the service “%s”? The church administration can recover it from the trash (Settings)."
+  ],
+  "Listo": [
+   "Done"
   ]
  }
 };

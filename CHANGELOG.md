@@ -2,6 +2,10 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.36.0 · 2026-11-17
+
+El editor de la letra se **maximiza** al hacer clic dentro: ocupa toda la pantalla, con su barra de formato y un botón «Listo» para volver (también con Escape o al cambiar de pantalla). El cursor y el desplazamiento se conservan al entrar y salir.
+
 ## 1.35.0 · 2026-11-17
 
 Nuevo botón **Cantar** en la ficha de la canción, junto a «Tocar» (solo si la canción tiene letra): abre el lector de letras a pantalla completa, como «Cantar el culto», en la tonalidad elegida en la ficha. «Editar» pasa a la fila de «Descargar partitura» y los demás botones pequeños, para que «Tocar» y «Cantar» queden solos y del mismo tamaño.
