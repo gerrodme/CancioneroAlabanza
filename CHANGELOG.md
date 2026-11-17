@@ -2,6 +2,10 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.37.1 · 2026-11-17
+
+En la ficha del culto, «Editar» pasa a la fila de «Copiar como texto» y «Más acciones», como en la ficha de la canción, para que «Tocar el culto» y «Cantar el culto» queden solos y del mismo tamaño.
+
 ## 1.37.0 · 2026-11-17
 
 Secciones de la letra más fáciles al escribir. Si escribes solo el nombre de una sección (Verso 1, Coro, Estribillo, Puente, Intro, Final…) y pulsas Intro, la línea pasa a ser título de sección; lo mismo al pegar varias líneas. Con el editor maximizado hay una fila de botones «+ Verso, + Coro, + Puente, + Intro, + Final» que añaden el título en el cursor (Verso numera solo). Atajos: Ctrl+Mayús+1 para sección y Ctrl+Mayús+2 para estribillo.

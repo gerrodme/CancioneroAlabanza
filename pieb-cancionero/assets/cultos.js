@@ -382,8 +382,8 @@
         h('div', { class: 'pcan-det-actions' },
           validos.length ? h('a', { class: 'pcan-btn pcan-btn-primary pcan-btn-lg', href: '#/culto/' + c.id + '/tocar/1' }, icono('play'), __('Tocar el culto')) : null,
           validos.length ? h('a', { class: 'pcan-btn pcan-btn-lg', href: '#/culto/' + c.id + '/cantar/1' }, icono('micro'), __('Cantar el culto')) : null,
-          h('a', { class: 'pcan-btn', href: '#/culto/editar/' + c.id }, icono('editar'), h('span', { class: 'pcan-btn-label', text: __('Editar') })),
           P.accionesSecundarias([
+            { texto: __('Editar'), icono: 'editar', href: '#/culto/editar/' + c.id },
             { texto: __('Copiar como texto'), icono: 'copiar', fn: function () { P.copiar(textoSetlist(c), __('Setlist copiado (para WhatsApp)')); } }
           ], [
             validos.length ? pdfItem : null,
