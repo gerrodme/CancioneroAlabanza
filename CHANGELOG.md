@@ -2,6 +2,12 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.34.1 · 2026-11-17
+
+Los botones pasan a tener la forma del tema «Escenario» (rectángulo con esquinas redondeadas) en todos los temas, en lugar
+de la forma de píldora; «Partitura» y «Escenario» conservan la suya. En Ajustes → Papelera desaparece la nota «Esto es
+común a todas las iglesias», que ya no era cierta (los cultos borrados son de cada iglesia).
+
 ## 1.34.0 · 2026-11-17
 
 Copias, papelera de cultos y archivar iglesias (fase 5c de `docs/plan-multi-iglesia.md`). Las copias de seguridad llevan

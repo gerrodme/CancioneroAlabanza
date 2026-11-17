@@ -4817,7 +4817,7 @@
         h('fieldset', { class: 'pcan-fieldset' },
           h('legend', { text: __('Archivos sin usar') }),
           cajaHuerfanos)],
-      papelera: [puedeComun() ? notaComun() : null, h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: __('Papelera') }), cuerpoPapelera)],
+      papelera: [h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: __('Papelera') }), cuerpoPapelera)],
       copias: [notaComun(), cuerpoCopias],
       iglesias: [h('fieldset', { class: 'pcan-fieldset' }, h('legend', { text: __('Iglesias') }), cuerpoIglesias)]
     };
