@@ -155,10 +155,39 @@ Notas:
 4. **Datos por iglesia**, en dos versiones:
    - **4a.** Tonalidad habitual, partitura principal y notas por iglesia; audios por iglesia y audios universales.
    - **4b.** Etiquetas por iglesia y etiquetas universales.
-5. **Ajustes, equipo y administración central.** Ajustes divididos, equipo por iglesia, alta de iglesias, copias de
-   seguridad con iglesias y pertenencias, papelera (canciones para el central, cultos para cada iglesia).
+5. **Ajustes, equipo y administración central**, en tres versiones:
+   - **5a (1.32.0).** Equipo por iglesia y permisos según el rol en la iglesia activa.
+   - **5b (1.33.0 y 1.33.1).** Escaleta, fondos y correo de bienvenida por iglesia; nombres por iglesia; aviso de borrado
+     a los centrales. La 1.33.1 añade `CFG.multi` (varias iglesias en la instalación, no solo las del usuario).
+   - **5c (pendiente).** Ver «Estado y siguiente paso».
 
-Cada fase añade su simulación al banco de pruebas (parámetro `?iglesias=2` para ver el modo con varias).
+Cada fase añade su simulación al banco de pruebas (parámetro `?iglesias=2` para ver el modo con varias; `&central=0` para
+quien administra una iglesia sin ser central; `&rol=equipo` para el equipo).
+
+## Estado y siguiente paso
+
+Hecho y probado en el WordPress de pruebas por el usuario y con cuentas de prueba: fases 1 a 5b (hasta la 1.33.1), en la
+rama `multi-iglesia`, sin fusionar ni publicar (la última Release es la 1.26.0).
+
+**Fase 5c (siguiente versión, 1.34.0):**
+
+1. **Copias de seguridad con varias iglesias** (solo el central). Exportar: las iglesias (nombre), el equipo y los datos
+   de cada una (`pieb_can_equipo`, escaleta, fondos, bienvenida, `_pieb_ig_{id}` de cada canción), y cada culto con su
+   iglesia y su privacidad (`_pieb_iglesia`, `_pieb_privado`); cada etiqueta con su iglesia o universal; cada audio con
+   su iglesia y `universal`. Importar: recrear o emparejar las iglesias por nombre y restaurar todo en su iglesia; buscar
+   el culto existente dentro de su iglesia (hoy `pieb_can_copia_buscar` no mira la iglesia y puede pisar un culto de
+   otra). Una copia antigua (sin iglesias) se restaura entera en la iglesia por defecto. Hoy la exportación mezcla: la
+   plantilla de la escaleta sale de la iglesia activa y el equipo y la bienvenida de la de por defecto.
+2. **Papelera de cultos por iglesia.** Hoy los cultos borrados quedan en la papelera de WordPress sin pantalla propia.
+   Cada iglesia ve y restaura los suyos (su administración); los privados, solo su autor. La papelera de canciones sigue
+   siendo del central.
+3. **Archivar iglesias** (solo el central, en Ajustes → Iglesias). Una iglesia archivada desaparece del selector y de la
+   pertenencia, sus cultos dejan de verse, y se puede recuperar. Borrarla del todo solo si está vacía (sin cultos ni
+   datos), con confirmación en rojo. La iglesia por defecto no se puede archivar. En el WordPress de pruebas hay una
+   iglesia sobrante, vacía, «Prueba Claude (sobra, borrar)», que servirá para probarlo.
+
+Después de la 5c: actualizar el manual (`../Cancionero - Landing Page`, página nueva sobre varias iglesias) y, cuando el
+usuario lo diga, fusionar y publicar.
 
 ## Riesgos
 
