@@ -2310,8 +2310,8 @@
       c.letra ? h('button', { type: 'button', class: 'pcan-btn pcan-btn-lg', onclick: function () { cantorDeCancion(c); } }, icono('micro'), __('Cantar')) : null) : h('div', { class: 'pcan-det-actions' },
       c.partituras.length ? h('button', { type: 'button', class: 'pcan-btn pcan-btn-primary pcan-btn-lg', onclick: function () { lectorDeCancion(c); } }, icono('play'), __('Tocar')) : null,
       c.letra ? h('button', { type: 'button', class: 'pcan-btn pcan-btn-lg', onclick: function () { cantorDeCancion(c); } }, icono('micro'), __('Cantar')) : null,
-      h('a', { class: 'pcan-btn', href: '#/editar/' + c.id }, icono('editar'), h('span', { class: 'pcan-btn-label', text: __('Editar') })),
       accionesSecundarias([
+        { texto: __('Editar'), icono: 'editar', href: '#/editar/' + c.id },
         c.partituras[0] ? { texto: __('Descargar partitura'), icono: 'descargar', href: c.partituras[0].url, descargar: c.partituras[0].archivo || true } : null
       ], [
         { texto: __('Copiar enlace'), icono: 'enlace', fn: function () { copiar(enlaceCancion(c.id), __('Enlace copiado')); } },

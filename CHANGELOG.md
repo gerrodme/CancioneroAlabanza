@@ -4,7 +4,7 @@ Formato: versión · resumen. El detalle está en `git log`. La versión vive en
 
 ## 1.35.0 · 2026-11-17
 
-Nuevo botón **Cantar** en la ficha de la canción, junto a «Tocar» (solo si la canción tiene letra): abre el lector de letras a pantalla completa, como «Cantar el culto», en la tonalidad elegida en la ficha.
+Nuevo botón **Cantar** en la ficha de la canción, junto a «Tocar» (solo si la canción tiene letra): abre el lector de letras a pantalla completa, como «Cantar el culto», en la tonalidad elegida en la ficha. «Editar» pasa a la fila de «Descargar partitura» y los demás botones pequeños, para que «Tocar» y «Cantar» queden solos y del mismo tamaño.
 
 ## 1.34.2 · 2026-11-17
 
