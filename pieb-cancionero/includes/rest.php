@@ -185,6 +185,13 @@ function pieb_can_rest_ver(WP_REST_Request $request) {
     return rest_ensure_response(pieb_can_detalle($post));
 }
 
+/** ¿Trae el pedido una letra con texto (plana o con formato)? Permite guardar una canción sin partitura. */
+function pieb_can_pedido_con_letra(WP_REST_Request $request) {
+    $letra = trim((string) $request->get_param('letra'));
+    $html = $request->has_param('letraHtml') ? trim(wp_strip_all_tags((string) $request->get_param('letraHtml'))) : '';
+    return $letra !== '' || $html !== '';
+}
+
 function pieb_can_rest_crear(WP_REST_Request $request) {
     $titulo = sanitize_text_field((string) $request->get_param('titulo'));
     if ($titulo === '') {
@@ -193,8 +200,8 @@ function pieb_can_rest_crear(WP_REST_Request $request) {
 
     $files = $request->get_file_params();
     $subidas = json_decode((string) $request->get_param('nuevasSubidas'), true);
-    if (empty($files['nuevas']['name'][0]) && empty($subidas)) {
-        return new WP_Error('pieb_partitura', __('Toda canción necesita al menos una partitura.', 'pieb-cancionero'), array('status' => 400));
+    if (empty($files['nuevas']['name'][0]) && empty($subidas) && !pieb_can_pedido_con_letra($request)) {
+        return new WP_Error('pieb_partitura', __('Toda canción necesita al menos una partitura o una letra.', 'pieb-cancionero'), array('status' => 400));
     }
 
     $post_id = wp_insert_post(array(
@@ -431,8 +438,9 @@ function pieb_can_guardar($post_id, WP_REST_Request $request, $es_nueva) {
     $subidas = is_array($subidas) ? $subidas : array();
     $hay_nuevas = !empty($files['nuevas']['name'][0]) || $subidas;
 
-    if (!$conservar && !$hay_nuevas) {
-        return new WP_Error('pieb_partitura', __('Toda canción necesita al menos una partitura.', 'pieb-cancionero'), array('status' => 400));
+    // Sin partitura solo se admite una canción que tenga letra (la que llega o, si el pedido no trae el campo, la que ya tenía).
+    if (!$conservar && !$hay_nuevas && !pieb_can_pedido_con_letra($request) && ($request->has_param('letra') || trim((string) get_post_meta($post_id, '_pieb_letra', true)) === '')) {
+        return new WP_Error('pieb_partitura', __('Toda canción necesita al menos una partitura o una letra.', 'pieb-cancionero'), array('status' => 400));
     }
 
     $nuevas = array();

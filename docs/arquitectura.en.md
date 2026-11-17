@@ -131,7 +131,7 @@ A `multipart/form-data` body with all of these fields (missing ones are **emptie
 `titulo, numero, autor, tonalidad, tempo, etiquetas` (comma-separated), `letra, letraHtml, notas`,
 `youtube` (JSON `[{url,label}]`), `partituras` (JSON `[{id,label,tonalidad}]` of the ones that are kept; resend each one's `tonalidad` or it is lost),
 `nuevasSubidas` (JSON `[{id,nombre,label,tonalidad}]`, files already uploaded in chunks; the old `nuevas[]` route has parallel JSON `nuevasLabels` and `nuevasTonalidades`), `audios`, `audiosSubidos`, `editables`,
-`editablesSubidos`. A song needs **at least one score**.
+`editablesSubidos`. A song needs **at least one score or some lyrics** (since 1.39; before, always a score).
 
 `letraHtml` (formatted lyrics, see `_pieb_letra_html`): when it arrives non-empty it is sanitized and wins: `letra` is derived from it (each `p`/`h4` is a line, `br` a line break, `<p></p>` an empty line). When it arrives empty, the formatting is deleted and `letra` is stored as plain text. When it is **not sent** (scripts that only send `letra`), the formatting is kept only if its text still matches `letra`; otherwise it is deleted. `GET /canciones/{id}` returns `letraHtml` (`''` if none); the list does not. The `datos` of each song in a service also carry `autor` and `letraHtml`, and the backup exports `letraHtml` and each score's `tonalidad` (an old backup without it imports with `''`). `GET /canciones/{id}` returns the raw `tonalidad` on each score.
 

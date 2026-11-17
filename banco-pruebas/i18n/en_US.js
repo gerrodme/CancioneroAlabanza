@@ -645,9 +645,6 @@ window.PIEB_I18N = {
   "Escribe el título.": [
    "Enter the title."
   ],
-  "Añade al menos una partitura.": [
-   "Add at least one score."
-  ],
   "Hay enlaces que no son de YouTube.": [
    "Some links are not YouTube links."
   ],
@@ -3361,6 +3358,9 @@ window.PIEB_I18N = {
   ],
   "Partituras en varias tonalidades": [
    "Scores in several keys"
+  ],
+  "Añade al menos una partitura o una letra.": [
+   "Add at least one score or some lyrics."
   ]
  }
 };

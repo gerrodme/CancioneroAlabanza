@@ -13,7 +13,7 @@
  *  _pieb_letra      Letra completa (texto plano; si hay _pieb_letra_html, se deriva de él)
  *  _pieb_letra_html Letra con formato (HTML saneado: solo p, h4, blockquote y, dentro, br, strong, em, u), opcional
  *  _pieb_notas      Notas internas
- *  _pieb_partituras array( array('id' => attachment_id, 'label' => 'Original', 'tonalidad' => 'Sol'), ... )  (mínimo 1)
+ *  _pieb_partituras array( array('id' => attachment_id, 'label' => 'Original', 'tonalidad' => 'Sol'), ... )  (mínimo 1, salvo que la canción tenga letra)
  *                   'tonalidad' vacía = la ORIGINAL de la canción (_pieb_tonalidad), no la habitual de una iglesia; las
  *                   entradas antiguas no traen la clave
  *  _pieb_youtube    array( array('url' => '...', 'label' => 'Versión coral'), ... )

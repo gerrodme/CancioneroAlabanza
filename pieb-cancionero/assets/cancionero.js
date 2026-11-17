@@ -3058,7 +3058,8 @@
       if (tagInput.value) { addTag(tagInput.value); }
       var errores = [];
       if (!fTitulo.value.trim()) { errores.push(__('Escribe el título.')); }
-      if (!existentes.length && !nuevas.length) { errores.push(__('Añade al menos una partitura.')); }
+      // Sin partitura solo se puede guardar una canción que tenga letra.
+      if (!existentes.length && !nuevas.length && !fLetra.valor().letra.trim()) { errores.push(__('Añade al menos una partitura o una letra.')); }
       if (videos.some(function (v) { return v.url && !youtubeId(v.url); })) { errores.push(__('Hay enlaces que no son de YouTube.')); }
       if (errores.length) {
         errorBox.textContent = errores.join(' ');
