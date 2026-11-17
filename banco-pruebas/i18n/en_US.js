@@ -3355,6 +3355,12 @@ window.PIEB_I18N = {
   ],
   "Escribe «Verso 1», «Coro»… y pulsa Intro: la línea se marca como sección.": [
    "Type “Verse 1”, “Chorus”… and press Enter: the line is marked as a section."
+  ],
+  "Varias tonalidades": [
+   "Several keys"
+  ],
+  "Partituras en varias tonalidades": [
+   "Scores in several keys"
   ]
  }
 };

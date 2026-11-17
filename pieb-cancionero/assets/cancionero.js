@@ -155,6 +155,11 @@
   }
 
   /** Pastilla de tonalidad; con el estilo «Colores» cada tonalidad lleva su color (--tono-h, por el círculo de quintas). */
+  /** Tonalidades en que hay partitura de una canción (la habitual primero); si no hay ninguna, solo la habitual. */
+  function tonosDeCancion(c) {
+    return c.tonalidades && c.tonalidades.length ? c.tonalidades : (c.tonalidad ? [c.tonalidad] : []);
+  }
+
   function pastillaTono(valorTono, attrs) {
     var q = quintaDe(valorTono);
     var a = { class: 'pcan-key', text: tonoVer(valorTono), style: q < 0 ? null : '--tono-h: ' + (q * 30) };
@@ -975,7 +980,7 @@
           letra: norm(c.letra),
           numero: String(c.numero || '').replace(/^0+/, ''),
           // La tonalidad se encuentra escribiéndola en cualquier notación («Sol» o «G», «Mib» o «Eb»).
-          tonos: tonosBuscables(c.tonalidad)
+          tonos: tonosDeCancion(c).reduce(function (a, t) { return a.concat(tonosBuscables(t)); }, [])
         };
       });
       state.cargado = true;
@@ -1710,6 +1715,7 @@
     if (state.filtro === 'editable') { return !!c.editables; }
     if (state.filtro === 'youtube') { return !!c.youtube; }
     if (state.filtro === 'nunca') { return !state.uso[c.id]; }
+    if (state.filtro === 'tonos') { return tonosDeCancion(c).length > 1; }
     return true;
   }
 
@@ -1746,7 +1752,8 @@
       { id: 'letra', texto: __('Con letra'), n: cuenta(function (c) { return c.letra; }), icono: 'letra' },
       { id: 'audio', texto: __('Con audio'), n: cuenta(function (c) { return c.audios; }), icono: 'audio' },
       { id: 'editable', texto: __('Con editable'), n: cuenta(function (c) { return c.editables; }), icono: 'editable' },
-      { id: 'youtube', texto: __('Con YouTube'), n: cuenta(function (c) { return c.youtube; }), icono: 'youtube' }
+      { id: 'youtube', texto: __('Con YouTube'), n: cuenta(function (c) { return c.youtube; }), icono: 'youtube' },
+      { id: 'tonos', texto: __('Varias tonalidades'), n: cuenta(function (c) { return tonosDeCancion(c).length > 1; }), icono: 'nota' }
     ];
     if (state.usoCargado) {
       tarjetas.push({ id: 'nunca', texto: __('Nunca tocadas'), n: cuenta(function (c) { return !state.uso[c.id]; }), icono: 'calendario' });
@@ -2028,7 +2035,7 @@
           c.autor ? h('span', { class: 'pcan-row-autor', text: c.autor }) : null,
           snippet ? h('span', { class: 'pcan-row-snippet' }, '«', resaltar(snippet, state.query), '»') : null),
         h('span', { class: 'pcan-row-meta' },
-          h('span', { class: 'pcan-c-tono' }, c.tonalidad ? pastillaTono(c.tonalidad) : null),
+          h('span', { class: 'pcan-c-tono' + (tonosDeCancion(c).length > 1 ? ' is-varios' : ''), title: tonosDeCancion(c).length > 1 ? __('Partituras en varias tonalidades') : null }, tonosDeCancion(c).map(function (t) { return pastillaTono(t); })),
           h('span', { class: 'pcan-c-tempo', title: c.tempo ? sprintf(/* translators: %s: tempo en pulsaciones por minuto */ __('%s pulsaciones por minuto'), c.tempo) : null, text: c.tempo ? '♩ ' + c.tempo : '' }),
           h('span', { class: 'pcan-c-tags' }, c.etiquetas.map(function (e) { return h('span', { class: 'pcan-tag', style: estiloEtiqueta(e) }, marcaEtiquetaUniversal(e), e); }))),
         h('span', { class: 'pcan-c-rec' },
@@ -2622,7 +2629,7 @@
     state.canciones.forEach(function (s, i) {
       if (+s.id !== +r.id) { return; }
       s.tonalidad = r.tonalidad; s.tonalidadOriginal = r.tonalidadOriginal; s.tonalidades = r.tonalidades;
-      if (state.indice[i] && state.indice[i].c === s) { state.indice[i].tonos = tonosBuscables(s.tonalidad); }
+      if (state.indice[i] && state.indice[i].c === s) { state.indice[i].tonos = tonosDeCancion(s).reduce(function (a, t) { return a.concat(tonosBuscables(t)); }, []); }
     });
     if (ui.lista) { pintarLista(); }
   }

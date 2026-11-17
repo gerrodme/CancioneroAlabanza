@@ -2,6 +2,10 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.38.0 · 2026-11-17
+
+En la lista de canciones, las que tienen partituras en varias tonalidades muestran todas sus tonalidades (la habitual primero), no solo una, y se encuentran buscando cualquiera de ellas. Nueva tarjeta de resumen «Varias tonalidades», que filtra la lista a esas canciones.
+
 ## 1.37.1 · 2026-11-17
 
 En la ficha del culto, «Editar» pasa a la fila de «Copiar como texto» y «Más acciones», como en la ficha de la canción, para que «Tocar el culto» y «Cantar el culto» queden solos y del mismo tamaño.

@@ -1660,7 +1660,7 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
   .pcan-split-list .pcan-list { display: flex !important; flex-direction: column; gap: 0 !important; }
   .pcan-thead, .pcan-split-list .pcan-row {
     display: grid; grid-template-areas: none;
-    grid-template-columns: 48px minmax(200px, 2.4fr) 72px 64px minmax(110px, 1.5fr) 124px 128px 76px;
+    grid-template-columns: 48px minmax(200px, 2.4fr) 104px 64px minmax(110px, 1.5fr) 124px 128px 76px;
     column-gap: 14px; align-items: center;
   }
   .pcan-thead {
@@ -2605,3 +2605,7 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
 .pcan-editor.is-max .pcan-editor-insertar { display: flex; flex-wrap: wrap; gap: 6px; }
 .pcan-editor.is-max .pcan-editor-pista { display: block; margin: 0; color: var(--pc-muted); font-size: 13px; }
 @media (max-width: 600px) { .pcan-editor.is-max .pcan-editor-pista { display: none; } }
+
+/* Canciones con partituras en varias tonalidades: todas las pastillas en la lista. */
+.pcan-c-tono { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 3px; }
+.pcan-c-tono.is-varios .pcan-key { font-size: 11px; padding: 1px 6px; }
