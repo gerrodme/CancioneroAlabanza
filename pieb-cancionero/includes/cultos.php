@@ -219,6 +219,9 @@ function pieb_can_culto_detalle($post) {
             'letraHtml'  => $detalle['letraHtml'],
             'partituras' => $detalle['partituras'],
             'tonalidades' => $detalle['tonalidades'],
+            'youtube'    => array_values(array_filter(array_map(function ($y) {
+                return array('videoId' => $y['videoId'], 'label' => $y['label']);
+            }, $detalle['youtube']), function ($y) { return $y['videoId']; })),
         );
     }
     unset($item);

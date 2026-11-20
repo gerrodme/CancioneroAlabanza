@@ -298,7 +298,7 @@
   function detalleCulto(c) {
     return Object.assign({}, c, { escaleta: c.escaleta || null, items: c.items.map(function (it) {
       var s = canciones.filter(function (x) { return x.id === it.cancion; })[0];
-      return Object.assign({}, it, { datos: { titulo: s.titulo, numero: s.numero, tonalidad: habitualDe(s), tonalidadOriginal: s.tonalidad, tempo: s.tempo, autor: s.autor, letra: s.letra, letraHtml: s.letraHtml, partituras: partiturasDeItemMock(it, s), tonalidades: resumenCancion(s).tonalidades } });
+      return Object.assign({}, it, { datos: { titulo: s.titulo, numero: s.numero, tonalidad: habitualDe(s), tonalidadOriginal: s.tonalidad, tempo: s.tempo, autor: s.autor, letra: s.letra, letraHtml: s.letraHtml, partituras: partiturasDeItemMock(it, s), tonalidades: resumenCancion(s).tonalidades, youtube: s.youtube ? [{ videoId: 'dQw4w9WgXcQ', label: 'Coro' }] : [] } });
     }) });
   }
   // Ajustes y equipo: la lista guardada vive aquí para que guardar y enviar la bienvenida se noten al volver a abrir.

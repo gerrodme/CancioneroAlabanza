@@ -928,6 +928,25 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
 .pcan-metro-pulso.is-on { opacity: 1; transform: scale(1.5); }
 @media (prefers-reduced-motion: reduce) { .pcan-metro-punto, .pcan-metro-pulso { transition: none; } }
 
+/* Vídeo del lector: panel flotante arriba a la derecha (el metrónomo va abajo, así no se tapan). */
+.pcan-chip-btn[hidden] { display: none; }
+.pcan-lector .pcan-video-lector[hidden] { display: none; }
+.pcan-lector .pcan-video-lector {
+  position: absolute; top: 10px; right: 10px; z-index: 3; width: min(360px, calc(100% - 24px)); box-sizing: border-box;
+  display: grid; gap: 8px; padding: 10px 12px; border: 1px solid rgba(255, 255, 255, .22); border-radius: 16px;
+  background: color-mix(in srgb, var(--pc-stage) 88%, #000); color: var(--pc-stage-ink); box-shadow: 0 6px 24px rgba(0, 0, 0, .45);
+}
+.pcan-video-acciones { display: flex; gap: 8px; }
+.pcan-video-lector button, .pcan-video-lector select { font: inherit; color: inherit; }
+.pcan-video-lector [hidden] { display: none; }
+.pcan-video-zona { aspect-ratio: 16 / 9; background: #000; border-radius: 10px; overflow: hidden; }
+.pcan-video-zona iframe, [data-pcan-theme] .pcan-video-zona .pcan-video-thumb { display: block; width: 100%; height: 100%; border: 0; }
+[data-pcan-theme] .pcan-video-version { height: 44px; padding: 0 8px; border: 1px solid rgba(255, 255, 255, .3); border-radius: 999px; background: transparent; font-size: 14px; }
+.pcan-video-version option { color: #111; }
+.pcan-video-lector button:focus-visible, .pcan-video-lector select:focus-visible, .pcan-video-lector a:focus-visible { outline: 2px solid var(--pc-accent); outline-offset: 2px; }
+.pcan-video-sonando { flex: 0 0 auto; width: 9px; height: 9px; border-radius: 50%; background: #e62117; box-shadow: 0 0 0 2px rgba(255, 255, 255, .5); }
+.pcan-video-sonando[hidden] { display: none; }
+
 /* ================================================================== paleta de búsqueda */
 
 .pcan-paleta-capa { position: fixed; inset: 0; z-index: 99998; display: flex; justify-content: center; align-items: flex-start; padding: 10vh 12px 12px; background: rgba(8, 12, 20, .5); animation: pcan-fade .15s ease; }
@@ -1920,6 +1939,7 @@ a.pcan-barra:hover { background: var(--pc-surface-2); }
   [data-pcan-theme] .pcan-lector-pastilla { padding: 0 4px; }
   .pcan-chip-btn span { display: none; }
   .pcan-lector .pcan-metro { left: 0; right: 0; bottom: 0; width: auto; transform: none; border-radius: 16px 16px 0 0; border-width: 1px 0 0; }
+  .pcan-lector .pcan-video-lector { left: 0; right: 0; top: 0; width: auto; border-radius: 0 0 16px 16px; border-width: 0 0 1px; }
   .pcan-panel-wrap.is-modal { padding: 0; }
   .pcan-panel-wrap.is-modal .pcan-panel { width: 100%; max-height: none; height: 100%; border-radius: 0; }
 }

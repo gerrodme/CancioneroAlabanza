@@ -3361,6 +3361,18 @@ window.PIEB_I18N = {
   ],
   "Añade al menos una partitura o una letra.": [
    "Add at least one score or some lyrics."
+  ],
+  "Versión del vídeo": [
+   "Video version"
+  ],
+  "Abrir en YouTube": [
+   "Open on YouTube"
+  ],
+  "Versión %d": [
+   "Version %d"
+  ],
+  "Vídeo (V)": [
+   "Video (V)"
   ]
  }
 };

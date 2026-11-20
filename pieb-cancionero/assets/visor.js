@@ -555,6 +555,123 @@
     return { panel: panel, alternar: alternar, cambiarCancion: cambiarCancion, destruir: destruir };
   }
 
+  /**
+   * Vídeo de YouTube de la canción, en un panel flotante sobre el lector. Ocultar el panel NO para el vídeo (como el
+   * metrónomo): el botón de la barra muestra un punto mientras suena. El iframe solo se crea al pulsar «play», y se
+   * quita al parar, al cambiar de canción y al cerrar el lector. El estado abierto/cerrado no se guarda.
+   * `canciones` lleva `youtube: [{ videoId, label }]`; `boton` es el botón de la barra (lo crea quien lo usa).
+   * Devuelve { panel, alternar(), cambiarCancion(i), destruir() }.
+   */
+  function crearVideo(canciones, boton) {
+    var cancion = -1;
+    var version = 0;
+    var abierto = false;
+    var sonando = false;
+
+    function videosDe(i) {
+      var c = canciones[i];
+      return ((c && c.youtube) || []).filter(function (y) { return y && y.videoId; });
+    }
+
+    var btnOcultar = h('button', { type: 'button', class: 'pcan-metro-sec', onclick: function () { alternar(); }, text: __('Ocultar') });
+    var btnParar = h('button', { type: 'button', class: 'pcan-metro-sec', onclick: function () { parar(); }, text: __('Parar'), hidden: true });
+    var selVersion = h('select', { class: 'pcan-video-version', 'aria-label': __('Versión del vídeo'), onchange: function () { version = +selVersion.value; parar(); pintarEnlace(); } });
+    var zona = h('div', { class: 'pcan-video-zona' });
+    var enlace = h('a', { class: 'pcan-metro-enlace pcan-video-enlace', target: '_blank', rel: 'noopener', text: __('Abrir en YouTube') });
+
+    var panel = h('div', { class: 'pcan-video-lector', role: 'group', 'aria-label': __('Vídeo'), hidden: true },
+      h('div', { class: 'pcan-metro-cab' }, h('strong', { text: __('Vídeo') }), h('span', { class: 'pcan-video-acciones' }, btnParar, btnOcultar)),
+      selVersion, zona, enlace);
+    // Las teclas de página del lector no deben dispararse al usar los controles del panel.
+    panel.addEventListener('keydown', function (e) {
+      if ([' ', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'Backspace'].indexOf(e.key) !== -1) { e.stopPropagation(); }
+    });
+
+    var puntoBoton = h('i', { class: 'pcan-video-sonando', 'aria-hidden': 'true', hidden: true });
+    boton.insertBefore(puntoBoton, boton.lastChild);
+    boton.addEventListener('click', function () { alternar(); });
+
+    function actual() { return videosDe(cancion)[version] || null; }
+
+    function pintarBoton() {
+      var hay = videosDe(cancion).length > 0;
+      boton.hidden = !hay;
+      boton.classList.toggle('is-active', abierto && hay);
+      boton.classList.toggle('is-sonando', sonando);
+      boton.setAttribute('aria-pressed', abierto && hay ? 'true' : 'false');
+      boton.setAttribute('aria-expanded', abierto && hay ? 'true' : 'false');
+      puntoBoton.hidden = !(sonando && !abierto);
+      panel.hidden = !(abierto && hay);
+      btnParar.hidden = !sonando;
+    }
+
+    function pintarEnlace() {
+      var y = actual();
+      enlace.hidden = !y;
+      if (y) { enlace.href = 'https://www.youtube.com/watch?v=' + encodeURIComponent(y.videoId); }
+    }
+
+    /** Muestra la miniatura de la versión actual con su botón de play; el iframe no existe hasta pulsarlo. */
+    function miniatura() {
+      zona.innerHTML = '';
+      var y = actual();
+      if (!y) { return; }
+      var nombre = y.label || __('vídeo');
+      append(zona, h('button', {
+        type: 'button', class: 'pcan-video-thumb', 'aria-label': sprintf(/* translators: %s: descripción del vídeo */ __('Reproducir %s'), nombre),
+        onclick: function () { reproducir(); }
+      }, h('img', { src: 'https://i.ytimg.com/vi/' + encodeURIComponent(y.videoId) + '/mqdefault.jpg', alt: '' }), h('span', { class: 'pcan-play' }, icono('play'))));
+    }
+
+    function reproducir() {
+      var y = actual();
+      if (!y) { return; }
+      zona.innerHTML = '';
+      append(zona, h('iframe', {
+        src: 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(y.videoId) + '?autoplay=1&rel=0&playsinline=1',
+        title: y.label || __('Vídeo'), allow: 'autoplay; encrypted-media; picture-in-picture', allowfullscreen: true, frameborder: '0'
+      }));
+      sonando = true;
+      pintarBoton();
+    }
+
+    /** Quita el iframe (el vídeo deja de sonar) y vuelve a la miniatura. */
+    function parar() {
+      sonando = false;
+      miniatura();
+      pintarBoton();
+    }
+
+    function alternar() {
+      if (!videosDe(cancion).length) { return; }
+      abierto = !abierto;
+      pintarBoton();
+      if (abierto) { var b = zona.querySelector('button, iframe'); if (b) { b.focus(); } } else { boton.focus(); }
+    }
+
+    function cambiarCancion(i) {
+      cancion = i;
+      version = 0;
+      sonando = false;
+      var vs = videosDe(i);
+      selVersion.innerHTML = '';
+      vs.forEach(function (y, k) { append(selVersion, h('option', { value: String(k), text: y.label || sprintf(/* translators: %d: posición de la versión del vídeo (1, 2, 3…) */ __('Versión %d'), k + 1) })); });
+      selVersion.hidden = vs.length < 2;
+      if (!vs.length) { abierto = false; }
+      miniatura();
+      pintarEnlace();
+      pintarBoton();
+    }
+
+    function destruir() {
+      sonando = false;
+      zona.innerHTML = '';
+    }
+
+    boton.hidden = true;
+    return { panel: panel, alternar: alternar, cambiarCancion: cambiarCancion, destruir: destruir };
+  }
+
   /** Rellena el título de la barra del lector (y del cantor): contador, número · título, tono, tempo y nota. */
   function pintarTituloLector(titulo, c, i, total) {
     titulo.innerHTML = '';
@@ -586,6 +703,7 @@
 
     var titulo = h('div', { class: 'pcan-lector-titulo' });
     var btnLetra = h('button', { type: 'button', class: 'pcan-chip-btn', onclick: function () { alternarLetra(); } }, icono('letra'), h('span', { text: __('Letra') }));
+    var btnVideo = h('button', { type: 'button', class: 'pcan-chip-btn', 'aria-pressed': 'false', 'aria-expanded': 'false', title: __('Vídeo (V)') }, icono('youtube'), h('span', { text: __('Vídeo') }));
     var btnMetro = h('button', { type: 'button', class: 'pcan-chip-btn', 'aria-label': __('Metrónomo'), 'aria-pressed': 'false', 'aria-expanded': 'false', title: __('Metrónomo (M)') }, icono('metronomo'), h('span', { text: __('Metrónomo') }));
     var selVariante = h('select', { class: 'pcan-lector-variante', 'aria-label': __('Versión de la partitura'), onchange: function () { cambiarVariante(+selVariante.value); } });
     var paginaInfo = h('span', { class: 'pcan-lector-pagina' });
@@ -602,6 +720,7 @@
     var flechaDer = h('button', { type: 'button', class: 'pcan-lector-flecha is-der', 'aria-label': __('Página siguiente'), onclick: function () { siguiente(); } }, icono('siguiente'));
 
     var metro = crearMetronomo(canciones, btnMetro);
+    var video = crearVideo(canciones, btnVideo);
 
     var capa = h('div', { class: 'pcan-lector', role: 'dialog', 'aria-modal': 'true', 'aria-label': opciones.titulo || __('Partitura'), tabindex: '-1' },
       h('div', { class: 'pcan-lector-barra' },
@@ -609,9 +728,10 @@
         titulo,
         selVariante,
         btnLetra,
+        btnVideo,
         btnMetro,
         h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': __('Pantalla completa'), title: __('Pantalla completa'), onclick: pantallaCompleta }, icono('expandir'))),
-      h('div', { class: 'pcan-lector-cuerpo' }, escenario.el, letra, flechaIzq, flechaDer, metro.panel),
+      h('div', { class: 'pcan-lector-cuerpo' }, escenario.el, letra, flechaIzq, flechaDer, video.panel, metro.panel),
       h('div', { class: 'pcan-lector-pie' }, pastillas, paginaInfo));
     P.temaEn(capa);
 
@@ -639,6 +759,7 @@
           if (k === est.cancion && b.scrollIntoView) { b.scrollIntoView({ block: 'nearest', inline: 'center' }); }
         });
         metro.cambiarCancion(est.cancion);
+        video.cambiarCancion(est.cancion);
         if (opciones.alCambiar) { opciones.alCambiar(est.cancion); }
       }
       paginaInfo.textContent = textoPagina(est);
@@ -685,6 +806,7 @@
       else if (e.key === 'Home') { e.preventDefault(); escenario.irACancion(cancionActual); }
       else if (e.key === 'l' || e.key === 'L') { if (canciones[cancionActual] && canciones[cancionActual].letra) { alternarLetra(); } }
       else if (e.key === 'm' || e.key === 'M') { metro.alternar(); }
+      else if (e.key === 'v' || e.key === 'V') { video.alternar(); }
       else if (e.key === 'f' || e.key === 'F') { pantallaCompleta(); }
       else if (e.key === 'Escape' && !document.fullscreenElement) { cerrar(); }
     }
@@ -697,6 +819,7 @@
     function cerrar() {
       document.removeEventListener('keydown', teclas);
       metro.destruir();
+      video.destruir();
       if (document.fullscreenElement) { document.exitFullscreen().catch(function () {}); }
       if (wakeLock) { wakeLock.release().catch(function () {}); }
       escenario.destruir();
@@ -736,12 +859,14 @@
     var titulo = h('div', { class: 'pcan-lector-titulo' });
     var btnMenos = h('button', { type: 'button', class: 'pcan-chip-btn pcan-cantar-tam', 'aria-label': __('Letra más pequeña'), title: __('Letra más pequeña'), onclick: function () { cambiarTam(-1); }, text: 'A−' });
     var btnMas = h('button', { type: 'button', class: 'pcan-chip-btn pcan-cantar-tam', 'aria-label': __('Letra más grande'), title: __('Letra más grande'), onclick: function () { cambiarTam(1); }, text: 'A+' });
+    var btnVideo = h('button', { type: 'button', class: 'pcan-chip-btn', 'aria-pressed': 'false', 'aria-expanded': 'false', title: __('Vídeo (V)') }, icono('youtube'), h('span', { text: __('Vídeo') }));
     var btnMetro = h('button', { type: 'button', class: 'pcan-chip-btn', 'aria-label': __('Metrónomo'), 'aria-pressed': 'false', 'aria-expanded': 'false', title: __('Metrónomo (M)') }, icono('metronomo'), h('span', { text: __('Metrónomo') }));
     var letra = h('div', { class: 'pcan-lector-letra' });
     var pastillas = h('div', { class: 'pcan-lector-canciones', role: 'tablist', 'aria-label': __('Canciones') });
     var flechaIzq = h('button', { type: 'button', class: 'pcan-lector-flecha is-izq', 'aria-label': __('Página anterior'), onclick: function () { anterior(); } }, icono('anterior'));
     var flechaDer = h('button', { type: 'button', class: 'pcan-lector-flecha is-der', 'aria-label': __('Página siguiente'), onclick: function () { siguiente(); } }, icono('siguiente'));
     var metro = crearMetronomo(canciones, btnMetro);
+    var video = crearVideo(canciones, btnVideo);
 
     var capa = h('div', { class: 'pcan-lector is-cantar', role: 'dialog', 'aria-modal': 'true', 'aria-label': opciones.titulo || __('Letra'), tabindex: '-1' },
       h('div', { class: 'pcan-lector-barra' },
@@ -749,9 +874,10 @@
         titulo,
         btnMenos,
         btnMas,
+        btnVideo,
         btnMetro,
         h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': __('Pantalla completa'), title: __('Pantalla completa'), onclick: pantallaCompleta }, icono('expandir'))),
-      h('div', { class: 'pcan-lector-cuerpo' }, letra, flechaIzq, flechaDer, metro.panel),
+      h('div', { class: 'pcan-lector-cuerpo' }, letra, flechaIzq, flechaDer, video.panel, metro.panel),
       h('div', { class: 'pcan-lector-pie' }, pastillas));
     P.temaEn(capa);
 
@@ -801,6 +927,7 @@
           if (k === i && b.scrollIntoView) { b.scrollIntoView({ block: 'nearest', inline: 'center' }); }
         });
         metro.cambiarCancion(i);
+        video.cambiarCancion(i);
         if (opciones.alCambiar) { opciones.alCambiar(i); }
       }
       letra.innerHTML = '';
@@ -887,6 +1014,7 @@
       else if (['ArrowLeft', 'PageUp', 'ArrowUp', 'Backspace'].indexOf(e.key) !== -1) { e.preventDefault(); anterior(); }
       else if (e.key === 'Home') { e.preventDefault(); desplazarA(0); }
       else if (e.key === 'm' || e.key === 'M') { metro.alternar(); }
+      else if (e.key === 'v' || e.key === 'V') { video.alternar(); }
       else if (e.key === 'f' || e.key === 'F') { pantallaCompleta(); }
       else if (e.key === 'Escape' && !document.fullscreenElement) { cerrar(); }
     }
@@ -901,6 +1029,7 @@
       window.removeEventListener('resize', pintarFlechas);
       clearTimeout(destinoTimer);
       metro.destruir();
+      video.destruir();
       if (document.fullscreenElement) { document.exitFullscreen().catch(function () {}); }
       if (wakeLock) { wakeLock.release().catch(function () {}); }
       capa.remove();

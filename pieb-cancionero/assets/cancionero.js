@@ -2407,7 +2407,7 @@
     if (partitura && orden.indexOf(partitura) !== -1) { orden.splice(orden.indexOf(partitura), 1); orden.unshift(partitura); }
     P.Visor.abrirLector({
       titulo: c.titulo,
-      canciones: [{ id: c.id, titulo: c.titulo, numero: c.numero, tono: tonoSel || c.tonalidad, tempo: c.tempo, nota: '', letra: c.letra, letraHtml: c.letraHtml || '', partituras: orden }]
+      canciones: [{ id: c.id, titulo: c.titulo, numero: c.numero, tono: tonoSel || c.tonalidad, tempo: c.tempo, nota: '', letra: c.letra, letraHtml: c.letraHtml || '', youtube: c.youtube || [], partituras: orden }]
     });
   }
 
@@ -2416,7 +2416,7 @@
     if (!P.Visor || !c.letra) { return; }
     P.Visor.abrirCantor({
       titulo: c.titulo,
-      canciones: [{ id: c.id, titulo: c.titulo, numero: c.numero, tono: tonoDeFicha(c) || c.tonalidad, tempo: c.tempo, nota: '', letra: c.letra, letraHtml: c.letraHtml || '' }]
+      canciones: [{ id: c.id, titulo: c.titulo, numero: c.numero, tono: tonoDeFicha(c) || c.tonalidad, tempo: c.tempo, nota: '', letra: c.letra, letraHtml: c.letraHtml || '', youtube: c.youtube || [] }]
     });
   }
 

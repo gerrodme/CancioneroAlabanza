@@ -864,7 +864,8 @@
         canciones: items.map(function (it) {
           var cancion = {
             id: +it.cancion, titulo: it.datos.titulo, numero: it.datos.numero,
-            tono: it.tonalidad || it.datos.tonalidad, tempo: it.datos.tempo, nota: it.nota, letra: it.datos.letra, letraHtml: it.datos.letraHtml
+            tono: it.tonalidad || it.datos.tonalidad, tempo: it.datos.tempo, nota: it.nota, letra: it.datos.letra, letraHtml: it.datos.letraHtml,
+            youtube: it.datos.youtube || []
           };
           if (!cantar) { cancion.partituras = it.datos.partituras; }
           return cancion;
