@@ -2,6 +2,10 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.40.1 · 2026-11-20
+
+En pantallas anchas, el metrónomo del lector ya no se abre en medio de la partitura: va en la columna de la derecha, debajo del vídeo (o arriba si el vídeo está cerrado). En el móvil no cambia nada.
+
 ## 1.40.0 · 2026-11-20
 
 **Vídeo de YouTube al tocar y al cantar.** En «Tocar» y «Cantar» (desde la ficha de la canción o desde el culto), si la canción tiene enlaces de YouTube aparece el botón «Vídeo» (tecla V): abre un panel flotante arriba a la derecha con la miniatura, que se reproduce al pulsarla, y un selector si hay varias versiones. «Ocultar» deja el vídeo sonando (el botón lo indica con un punto), «Parar» lo detiene. Al pasar a otra canción del culto se para el vídeo anterior y se ofrece el de la nueva. Pensado para ensayar en casa.

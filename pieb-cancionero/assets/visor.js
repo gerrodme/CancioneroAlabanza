@@ -731,7 +731,7 @@
         btnVideo,
         btnMetro,
         h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': __('Pantalla completa'), title: __('Pantalla completa'), onclick: pantallaCompleta }, icono('expandir'))),
-      h('div', { class: 'pcan-lector-cuerpo' }, escenario.el, letra, flechaIzq, flechaDer, video.panel, metro.panel),
+      h('div', { class: 'pcan-lector-cuerpo' }, escenario.el, letra, flechaIzq, flechaDer, h('div', { class: 'pcan-lector-paneles' }, video.panel, metro.panel)),
       h('div', { class: 'pcan-lector-pie' }, pastillas, paginaInfo));
     P.temaEn(capa);
 
@@ -877,7 +877,7 @@
         btnVideo,
         btnMetro,
         h('button', { type: 'button', class: 'pcan-icon-btn', 'aria-label': __('Pantalla completa'), title: __('Pantalla completa'), onclick: pantallaCompleta }, icono('expandir'))),
-      h('div', { class: 'pcan-lector-cuerpo' }, letra, flechaIzq, flechaDer, video.panel, metro.panel),
+      h('div', { class: 'pcan-lector-cuerpo' }, letra, flechaIzq, flechaDer, h('div', { class: 'pcan-lector-paneles' }, video.panel, metro.panel)),
       h('div', { class: 'pcan-lector-pie' }, pastillas));
     P.temaEn(capa);
 

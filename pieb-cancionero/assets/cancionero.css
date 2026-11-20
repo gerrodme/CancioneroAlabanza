@@ -928,7 +928,19 @@ html.pcan-lock, html.pcan-lock body, html.pcan-app-open, html.pcan-app-open body
 .pcan-metro-pulso.is-on { opacity: 1; transform: scale(1.5); }
 @media (prefers-reduced-motion: reduce) { .pcan-metro-punto, .pcan-metro-pulso { transition: none; } }
 
-/* Vídeo del lector: panel flotante arriba a la derecha (el metrónomo va abajo, así no se tapan). */
+/* Vídeo del lector: panel flotante arriba a la derecha. En pantallas anchas, vídeo y metrónomo van en una columna a la
+   derecha (el metrónomo debajo del vídeo) para no tapar la partitura; en móvil la columna se «disuelve» (vídeo arriba,
+   metrónomo abajo). */
+@media (min-width: 761px) {
+  .pcan-lector-paneles {
+    position: absolute; top: 10px; right: 10px; z-index: 3; width: min(360px, calc(100% - 24px)); max-height: calc(100% - 20px);
+    display: flex; flex-direction: column; gap: 10px; overflow-y: auto; pointer-events: none;
+  }
+  .pcan-lector .pcan-lector-paneles > .pcan-metro, .pcan-lector .pcan-lector-paneles > .pcan-video-lector {
+    position: static; transform: none; width: auto; flex: 0 0 auto; pointer-events: auto;
+  }
+}
+@media (max-width: 760px) { .pcan-lector-paneles { display: contents; } }
 .pcan-chip-btn[hidden] { display: none; }
 .pcan-lector .pcan-video-lector[hidden] { display: none; }
 .pcan-lector .pcan-video-lector {
