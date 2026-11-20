@@ -10,8 +10,8 @@
 *Versión en español: [README.md](README.md)*
 
 A WordPress plugin to manage a **worship team's songbook**: songs with their scores (PDF or image), lyrics, audio,
-editable scores, tempo, key and YouTube links; **services with their setlist**; a **play mode** for performing from a
-tablet; statistics; backups; and team sign-in with Google or with an email link.
+editable scores, tempo, key and YouTube links; **services with their setlist**; a **play mode** for playing or singing
+from a tablet, with metronome and video; statistics; several churches in one installation; backups; and team sign-in with Google or with an email link.
 
 It is free software, meant to let any church or music group manage its own scores. The plugin is only the tool: it
 **includes no songs or scores**; each installation brings its own. The interface is available in Spanish and English and
@@ -23,43 +23,85 @@ can be translated into other languages. In English, an installation without a na
 
 ## What it does
 
-- **Songs:** one page per song with one or more scores, lyrics, notes, audio, editable files (MuseScore, MusicXML…),
-  colored tags, key, tempo (BPM), hymnal number and YouTube videos.
+### Songs
+- **Song page:** one or more scores (PDF or image), lyrics, notes for the team, audio, editable scores (MuseScore,
+  MusicXML…), colored tags, key, tempo (BPM), hymnal number and YouTube videos. The page tells you what is missing
+  ("Complete the song page").
+- **Key per score:** each score can have its own key. On the song page and when playing you pick the key and see only its
+  scores; the list shows every key of each song.
 - **Main score:** if a song has several scores, the first one is the main one (the one used by default); change it with
   "Make main" on the song page.
-- **Trash:** deleted songs go to a trash that administrators see in Settings and team → Trash: they can open them, restore them or delete
-  them for good. The trash empties itself after N days (30 by default, configurable; 0 = never).
+- **Formatted lyrics:** an editor with bold, italic, underline, section titles (Verse 1, Chorus…) and refrain. It goes
+  full screen while you type; typing a section name and pressing Enter turns it into a title, and there are quick buttons
+  and shortcuts. A song can be saved **with lyrics only** and get its score later.
+- **List and search:** search by title, number, author, lyrics or any key; filter by tag, key and resources (with
+  YouTube, with audio, editable, never played, several keys…); sort by any column.
+- **Many songs at once:** "Bulk upload" (drag many PDFs or images; the title, hymnal number and key are worked out from
+  the file name), "Tag" several songs in one go and multiple delete.
+- **Trash:** deleted songs go to a trash that administrators see in Settings and team → Trash: they can open them,
+  restore them or delete them for good. The trash empties itself after N days (30 by default, configurable; 0 = never).
   When someone deletes a song, the administrators get an **email alert** with the song, its files, who deleted it and
   when (deletions made in a row arrive in a single email; it can be turned off in Settings and team → General).
-- **Bulk import:** "Bulk upload" (drag many PDFs/images at once; the title, hymnal number and key are worked out from the
-  file name).
-- **Services and setlists:** the order of songs for each service, with key, note and chosen score per song, a countdown to
-  the next service and a PDF of the setlist.
+
+### Play and sing
+- **Play (play mode):** the score full screen on the tablet, with blank margins trimmed and two pages in landscape. Turn
+  pages by swiping, tapping the sides, with the keyboard or a Bluetooth pedal; tapping the centre leaves only the music,
+  and the screen stays on while you play.
+- **Sing:** the same reader with each song's lyrics, at an adjustable size and scrolling by screens.
+- **Metronome** (M key): starts at each song's tempo, with time signature, "Tap" to work out the tempo and sound that can
+  be muted.
+- **Video** (V key): the song's YouTube video in a floating panel, to rehearse at home. "Hide" keeps it playing, and
+  moving to another song offers that song's video.
+- Open them from a song page (**Play** and **Sing**) or from a service (**Play the service** and **Sing the service**,
+  which go through the whole setlist).
+
+### Services
+- **Setlist:** the order of songs for each service, with key, note and chosen score per song; a countdown to the next
+  service, a PDF of the setlist and "Copy as text". Services can be **private** (only their author sees them) and
+  deleted services go to their own trash.
 - **Exporting lyrics:** the lyrics of one song or of a whole setlist as a PDF sheet, a PowerPoint presentation, PDF slides
   (with background images an administrator uploads), OpenLyrics (OpenLP, FreeShow, Quelea…) or plain text.
 - **Order of service:** the printed sheet with the order of the service (a header with the church logo and a table
   with the sections). Each service has its own, in its Order of service tab: it is filled in with the service's songs, the
-  sections and titles can be changed (only for that service) and it is exported as a PDF. A new service starts from the
-  last order of service prepared; in Settings and team → Order of service only the logo and the header image are chosen.
-- **Viewer / play mode:** a screen designed for tablets, with a large score, quick switching between songs and a metronome that starts at each song's tempo.
-- **Sing the service:** the same reader showing each song's lyrics at an adjustable size, scrolling by screens (Bluetooth pedal, keys or taps) with the metronome available.
+  sections and titles can be changed (only for that service), with formatted text and a live preview, and it is exported
+  as a PDF. A new service starts from the last order of service prepared; in Settings and team → Order of service only
+  the logo and the header image are chosen.
+- **Statistics:** services held, the most played songs, those not heard for a while, those never played and activity by
+  month, over 3, 6 or 12 months or all time.
+
+### Team and access
 - **Access:** the "Worship team" role, sign-in with Google (Google Identity Services) or with an email link.
 - **Welcome:** anyone added to the team list receives an email with the logo and a button that signs them
-  straight into the songbook (single use, valid for 7 days), plus how to sign in later. From **Settings and team → Team** it can be sent again to the people you choose.
+  straight into the songbook (single use, valid for 7 days), plus how to sign in later. From **Settings and team → Team**
+  it can be sent again to the people you choose.
 - **Activity:** under **Settings and team → Activity**, who signs in and how much the songbook is used: active people,
   sign-ins, days of use, how they sign in, from which device and on which days, with each person's details. Kept for
   12 months, no IP addresses.
 - **Songbook administrators:** besides WordPress administrators, others can be named under **Settings and team**. They can
-  change the settings, manage the team and delete songs (to the WordPress trash).
-- **Order-of-service managers:** the team can view and export the order of service of a service, but only managers (named under
-  **Settings and team → Team**) and administrators can create and change it.
+  change the settings, manage the team and delete songs (to the songbook trash).
+- **Order-of-service managers:** the team can view and export the order of service of a service, but only managers
+  (named under **Settings and team → Team**) and administrators can create and change it.
+
+### Several churches
+- One installation can serve **several churches**. Songs are shared (each person **adds** scores, videos or details but
+  cannot change what others added), and each church has its own services, team and roles, tags, audio, usual key and
+  main score for each song, statistics and order of service.
+- The central administrator manages the churches under **Settings and team → Churches** (create, rename, archive and
+  delete empty ones) and can make a tag or an audio file **universal** so every church sees it. With a single church
+  none of this shows.
+
+### Customization and data
 - **Your own name:** the name of the songbook ("Our church songbook", etc.) is changed under **Settings and team →
   General**.
 - **Visual themes:** Colors (default), Staff, Like the site, Pulse, Studio, Stage and Score.
 - **Languages:** Spanish and English. Each person chooses their language and the notation for keys (Do-Re-Mi or C-D-E) in
   their account menu; by default the WordPress language is used. More languages can be added (see
   [docs/translate.en.md](docs/translate.en.md)).
-- **Backups:** export and import all the content from Settings and team → Backups (songbook and WordPress administrators).
+- **Shortcut:** the songbook page can be added to the home screen (PC, Android, iPhone/iPad) with its icon.
+- **Backups:** export and import all the content from Settings and team → Backups (songbook and WordPress
+  administrators).
+- **REST API** (`/wp-json/pieb/v1/`) covering everything the interface does, handy for bulk loading (see
+  [docs/carga-masiva.en.md](docs/carga-masiva.en.md)).
 
 It is shown on any page with the `[cancionero]` shortcode.
 

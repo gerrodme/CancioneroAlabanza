@@ -11,7 +11,8 @@
 
 Plugin de WordPress para gestionar el **cancionero de un equipo de adoración**: canciones con partitura (PDF o imagen),
 letra, audios, partituras editables, tempo, tonalidad y enlaces de YouTube; **cultos con su setlist**; un **modo culto**
-para tocar desde la tableta; estadísticas; copias de seguridad; y acceso del equipo con Google o con enlace por correo.
+para tocar o cantar desde la tableta, con metrónomo y vídeo; estadísticas; varias iglesias en una misma
+instalación; copias de seguridad; y acceso del equipo con Google o con enlace por correo.
 
 Es software libre pensado para que cualquier iglesia o grupo musical gestione sus propias partituras. El plugin es solo
 la herramienta: **no incluye ninguna canción ni partitura**; cada instalación aporta las suyas. La interfaz está en español e inglés, y se puede traducir a otros idiomas.
@@ -22,41 +23,86 @@ la herramienta: **no incluye ninguna canción ni partitura**; cada instalación 
 
 ## Qué hace
 
-- **Canciones:** una ficha por canción con una o varias partituras, letra, notas, audios, editables (MuseScore, MusicXML…),
-  etiquetas de color, tonalidad, tempo (BPM), número de himnario y vídeos de YouTube.
-- **Partitura principal:** si una canción tiene varias partituras, la primera es la principal (la que se usa por defecto);
-  se cambia con «Hacer principal» en la ficha.
-- **Papelera:** las canciones borradas van a una papelera que los administradores ven en Ajustes y equipo → Papelera: pueden abrirlas,
-  restaurarlas o eliminarlas para siempre. Se limpian solas pasados N días (30 por defecto, configurable; 0 = nunca).
-  Cuando alguien borra una canción, los administradores reciben un **aviso por correo** con la canción, sus archivos,
-  quién la borró y cuándo (los borrados seguidos llegan en un solo correo; se desactiva en Ajustes y equipo → General).
-- **Importación masiva:** «Subida múltiple» (arrastrar muchos PDF/imágenes de una vez; el título, el número de himnario
-  y la tonalidad se deducen del nombre del archivo).
-- **Cultos y setlists:** orden de canciones por culto, con tonalidad, nota y partitura elegida por canción, cuenta atrás al próximo culto
-  y PDF del setlist.
-- **Exportar letras:** la letra de una canción o de todo un setlist en hoja PDF, presentación PowerPoint, diapositivas en PDF
-  (con imágenes de fondo que sube un administrador), OpenLyrics (OpenLP, FreeShow, Quelea…) o texto.
+### Canciones
+- **Ficha de cada canción:** una o varias partituras (PDF o imagen), letra, notas para el equipo, audios, partituras
+  editables (MuseScore, MusicXML…), etiquetas de color, tonalidad, tempo (BPM), número de himnario y vídeos de YouTube.
+  La ficha avisa de lo que le falta («Completa la ficha»).
+- **Tonalidad por partitura:** cada partitura puede llevar su tonalidad. En la ficha y al tocar se elige la tonalidad y
+  se ven solo sus partituras; la lista muestra todas las tonalidades de cada canción.
+- **Partitura principal:** si una canción tiene varias partituras, la primera es la principal (la que se usa por
+  defecto); se cambia con «Hacer principal» en la ficha.
+- **Letra con formato:** un editor con negrita, cursiva, subrayado, títulos de sección (Verso 1, Coro…) y estribillo. Se
+  maximiza al escribir; si escribes el nombre de una sección y pulsas Intro, pasa a ser su título, y tiene botones
+  rápidos y atajos. Una canción puede guardarse **solo con letra** y recibir la partitura más adelante.
+- **Lista y búsqueda:** buscar por título, número, autor, letra o cualquier tonalidad; filtrar por etiqueta, tonalidad y
+  recursos (con YouTube, con audio, editables, nunca tocadas, varias tonalidades…); ordenar por cualquier columna.
+- **Varias canciones a la vez:** «Subida múltiple» (arrastrar muchos PDF o imágenes; el título, el número de himnario y la
+  tonalidad se deducen del nombre del archivo), «Etiquetar» varias canciones de golpe y borrado múltiple.
+- **Papelera:** las canciones borradas van a una papelera que los administradores ven en Ajustes y equipo → Papelera:
+  pueden abrirlas, restaurarlas o eliminarlas para siempre. Se limpian solas pasados N días (30 por defecto,
+  configurable; 0 = nunca). Cuando alguien borra una canción, los administradores reciben un **aviso por correo** con la
+  canción, sus archivos, quién la borró y cuándo (los borrados seguidos llegan en un solo correo; se desactiva en
+  Ajustes y equipo → General).
+
+### Tocar y cantar
+- **Tocar (modo culto):** la partitura a pantalla completa en la tableta, sin márgenes en blanco y a dos páginas en
+  horizontal. Se pasa de página deslizando, tocando los laterales, con el teclado o con un pedal Bluetooth; tocar el
+  centro deja solo la música, y la pantalla no se apaga mientras se toca.
+- **Cantar:** el mismo lector con la letra de cada canción, a tamaño ajustable y con avance por pantallas.
+- **Metrónomo** (tecla M): parte del tempo de cada canción, con compás, «Marcar» para calcular el tempo a toques y sonido
+  que se puede quitar.
+- **Vídeo** (tecla V): el vídeo de YouTube de la canción en un panel flotante, para ensayar en casa. «Ocultar» lo deja
+  sonando y al pasar a otra canción se ofrece el suyo.
+- Se abre desde la ficha de una canción (**Tocar** y **Cantar**) o desde un culto (**Tocar el culto** y **Cantar el
+  culto**, que recorren todo el setlist).
+
+### Cultos
+- **Setlist:** el orden de canciones de cada culto, con tonalidad, nota y partitura elegida por canción; cuenta atrás al
+  próximo culto, PDF del setlist y «Copiar como texto». Los cultos pueden ser **privados** (solo los ve quien los creó) y
+  los borrados van a su papelera.
+- **Exportar letras:** la letra de una canción o de todo un setlist en hoja PDF, presentación PowerPoint, diapositivas en
+  PDF (con imágenes de fondo que sube un administrador), OpenLyrics (OpenLP, FreeShow, Quelea…) o texto.
 - **Escaleta del culto:** la hoja impresa con el orden del culto (cabecera con el logo de la iglesia y una tabla con
   las secciones). Cada culto tiene la suya, en su pestaña Escaleta: se rellena con sus canciones, se pueden cambiar las
-  secciones y los títulos (solo en ese culto) y se exporta en PDF. Un culto nuevo parte de la última escaleta preparada;
-  en Ajustes y equipo → Escaleta solo se eligen el logo y la imagen de cabecera.
-- **Visor / modo culto:** pantalla pensada para tableta, con la partitura grande, cambio rápido entre canciones y un metrónomo que parte del tempo de cada canción.
-- **Cantar el culto:** el mismo lector con la letra de cada canción a tamaño ajustable, con scroll por pantallas (pedal Bluetooth, teclas o toques) y el metrónomo.
+  secciones y los títulos (solo en ese culto), con texto con formato y vista previa en vivo, y se exporta en PDF. Un
+  culto nuevo parte de la última escaleta preparada; en Ajustes y equipo → Escaleta solo se eligen el logo y la imagen
+  de cabecera.
+- **Estadísticas:** cultos celebrados, las canciones más tocadas, las que hace tiempo que no suenan, las que nunca se han
+  tocado y la actividad por mes, en 3, 6 o 12 meses o desde siempre.
+
+### Equipo y acceso
 - **Acceso:** rol «Equipo de adoración», inicio de sesión con Google (Google Identity Services) o con enlace por correo.
 - **Bienvenida:** quien se añade a la lista del equipo recibe un correo con el logo y un botón que le deja dentro
-  del cancionero (sirve una vez durante 7 días), y cómo entrar más adelante. Desde **Ajustes y equipo → Equipo** se puede reenviar a las personas que se elijan.
+  del cancionero (sirve una vez durante 7 días), y cómo entrar más adelante. Desde **Ajustes y equipo → Equipo** se puede
+  reenviar a las personas que se elijan.
 - **Accesos:** en **Ajustes y equipo → Accesos**, quién entra y cuánto se usa: personas activas, inicios de sesión, días
   de uso, cómo entran, desde qué dispositivo y qué días, con el detalle de cada persona. Se guardan 12 meses, sin IP.
 - **Administradores del cancionero:** además de los administradores de WordPress, se pueden nombrar otros desde
-  **Ajustes y equipo**. Pueden cambiar los ajustes, gestionar el equipo y borrar canciones (a la papelera de WordPress).
+  **Ajustes y equipo**. Pueden cambiar los ajustes, gestionar el equipo y borrar canciones (a la papelera del cancionero).
 - **Responsables de escaleta:** el equipo puede ver y exportar la escaleta de un culto, pero solo los responsables de
   escaleta (se nombran en **Ajustes y equipo → Equipo**) y los administradores pueden crearla y modificarla.
+
+### Varias iglesias
+- Una misma instalación puede servir a **varias iglesias**. Las canciones son comunes (cada persona **añade**
+  partituras, vídeos o datos sin poder cambiar lo que añadieron otras), y cada iglesia tiene sus cultos, su equipo y sus
+  roles, sus etiquetas, sus audios, su tonalidad habitual y partitura principal de cada canción, sus estadísticas y su
+  escaleta.
+- El administrador central gestiona las iglesias en **Ajustes y equipo → Iglesias** (crear, renombrar, archivar y borrar
+  las vacías) y puede hacer **universales** una etiqueta o un audio para que los vean todas. Con una sola iglesia no se
+  ve nada de esto.
+
+### Personalización y datos
 - **Nombre propio:** el nombre del cancionero («Cancionero de la iglesia», etc.) se cambia en **Ajustes y equipo → General**.
 - **Temas visuales:** Colores (por defecto), Pentagrama, Como la web, Pulso, Estudio, Escenario y Partitura.
 - **Idiomas:** español e inglés. Cada persona elige su idioma y la notación de las tonalidades (Do-Re-Mi o C-D-E) en el
   menú de su cuenta; por defecto se usa el idioma de WordPress. Se pueden añadir más idiomas (ver
   [docs/traducir.md](docs/traducir.md)).
-- **Copias de seguridad:** exportar e importar todo el contenido desde Ajustes y equipo → Copias de seguridad (administradores del cancionero y de WordPress).
+- **Acceso directo:** la página del cancionero se puede añadir a la pantalla de inicio (PC, Android, iPhone/iPad) con su
+  icono.
+- **Copias de seguridad:** exportar e importar todo el contenido desde Ajustes y equipo → Copias de seguridad
+  (administradores del cancionero y de WordPress).
+- **API REST** (`/wp-json/pieb/v1/`) con todo lo que hace la interfaz, útil para cargas masivas (ver
+  [docs/carga-masiva.md](docs/carga-masiva.md)).
 
 Se muestra en cualquier página con el shortcode `[cancionero]`.
 
