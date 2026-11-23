@@ -159,14 +159,22 @@ function pieb_can_rest_cancion($id, $con_papelera = false) {
     return $post;
 }
 
-function pieb_can_rest_listar() {
+function pieb_can_rest_listar(WP_REST_Request $request) {
     // La lista montada se guarda por iglesia activa (ver pieb_can_lista_invalidar en canciones.php): no depende del usuario.
     $activa = (int) pieb_can_iglesia_activa();
     $clave = 'pieb_can_lista_' . $activa;
     $gen = pieb_can_lista_generacion();
     $guardada = get_transient($clave);
-    if (is_array($guardada) && isset($guardada['gen'], $guardada['datos']) && (int) $guardada['gen'] === $gen) {
-        return rest_ensure_response($guardada['datos']);
+    $hay_copia = is_array($guardada) && isset($guardada['gen'], $guardada['datos']);
+    if ($hay_copia && (int) $guardada['gen'] === $gen) {
+        return pieb_can_lista_respuesta($request, $guardada['datos'], $gen, $activa);
+    }
+
+    // Tras un cambio, solo una petición rehace la lista; las que llegan mientras tanto reciben la copia anterior (unas
+    // décimas de segundo desfasada) en vez de rehacerla todas a la vez. Quien hizo el cambio la rehace siempre, para verlo.
+    $cerrojo = pieb_can_lista_cerrojo($activa);
+    if (!$cerrojo && $hay_copia && (int) get_option('pieb_can_lista_autor', 0) !== get_current_user_id()) {
+        return pieb_can_lista_respuesta($request, $guardada['datos'], (int) $guardada['gen'], $activa);
     }
 
     $posts = get_posts(array(
@@ -183,12 +191,74 @@ function pieb_can_rest_listar() {
         return pieb_can_resumen($p, $activa);
     }, $posts);
     set_transient($clave, array('gen' => $gen, 'datos' => $lista), 12 * HOUR_IN_SECONDS);
-    return rest_ensure_response($lista);
+    if ($cerrojo) {
+        pieb_can_lista_soltar($activa);
+    }
+    return pieb_can_lista_respuesta($request, $lista, $gen, $activa);
+}
+
+/**
+ * Respuesta del listado con ETag (versión del plugin, iglesia activa y generación de la lista). Con sesión, WordPress manda
+ * «no-store»; aquí se cambia por «private, no-cache», como las partituras: el navegador guarda la lista y en cada apertura
+ * pregunta si ha cambiado (sin sesión la pregunta falla y no se usa la copia). Si no ha cambiado, responde 304 sin cuerpo.
+ */
+function pieb_can_lista_respuesta($request, $datos, $gen, $activa) {
+    $etag = '"' . md5(PIEB_CAN_VERSION . '|' . (int) $activa . '|' . (int) $gen) . '"';
+    $previa = (string) $request->get_header('if_none_match');
+    $iguales = false;
+    foreach (explode(',', $previa) as $e) {
+        // Apache, al comprimir, añade «-gzip» (o «-br») al ETag y el navegador lo devuelve así; también puede venir débil (W/).
+        $e = preg_replace('~^W/~', '', trim($e));
+        $e = preg_replace('~-(gzip|br|deflate)"$~', '"', $e);
+        if ($e === $etag) {
+            $iguales = true;
+            break;
+        }
+    }
+    $respuesta = $iguales ? new WP_REST_Response(null, 304) : new WP_REST_Response($datos);
+    $respuesta->header('ETag', $etag);
+    $respuesta->header('Cache-Control', 'private, no-cache');
+    // WordPress manda sus cabeceras «no-store» después de la respuesta y pisarían la anterior: solo en esta petición, no.
+    add_filter('rest_send_nocache_headers', '__return_false');
+    return $respuesta;
+}
+
+// Un 304 va sin cuerpo (la API REST escribiría «null»).
+add_filter('rest_pre_serve_request', function ($servido, $resultado, $request) {
+    if (!$servido && $resultado instanceof WP_HTTP_Response && $resultado->get_status() === 304
+        && $request instanceof WP_REST_Request && $request->get_route() === '/pieb/v1/canciones') {
+        return true;
+    }
+    return $servido;
+}, 10, 3);
+
+/**
+ * Toma el cerrojo para rehacer la lista de una iglesia; false si otra petición lo tiene. Es una fila de wp_options escrita
+ * con INSERT IGNORE (atómico en la base de datos, sin pasar por la caché de opciones). Si la petición que lo tenía murió,
+ * el cerrojo caduca a los 30 s.
+ */
+function pieb_can_lista_cerrojo($activa) {
+    global $wpdb;
+    $nombre = 'pieb_can_lista_cerrojo_' . (int) $activa;
+    $ahora = time();
+    if ($wpdb->query($wpdb->prepare("INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'no')", $nombre, $ahora))) {
+        return true;
+    }
+    $desde = (int) $wpdb->get_var($wpdb->prepare("SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", $nombre));
+    if ($desde && $desde < $ahora - 30) {
+        return (bool) $wpdb->query($wpdb->prepare("UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND option_value = %s", $ahora, $nombre, $desde));
+    }
+    return false;
+}
+
+function pieb_can_lista_soltar($activa) {
+    global $wpdb;
+    $wpdb->delete($wpdb->options, array('option_name' => 'pieb_can_lista_cerrojo_' . (int) $activa));
 }
 
 /**
  * Precarga en la caché de objetos todo lo que pieb_can_resumen lee de cada canción, para no lanzar consultas sueltas:
- * meta de las canciones, posts y meta de los adjuntos de sus partituras (miniaturas), términos y meta de las etiquetas.
+ * meta de las canciones, términos y meta de las etiquetas. (El listado no lee los adjuntos de las partituras.)
  */
 function pieb_can_lista_precargar($posts) {
     $ids = wp_list_pluck($posts, 'ID');
@@ -198,21 +268,12 @@ function pieb_can_lista_precargar($posts) {
     update_meta_cache('post', $ids);
     update_object_term_cache($ids, PIEB_CAN_CPT);
 
-    $adjuntos = array();
     $terminos = array();
     foreach ($ids as $id) {
-        foreach (pieb_can_get_partituras($id) as $par) {
-            if (!empty($par['id'])) {
-                $adjuntos[(int) $par['id']] = true;
-            }
-        }
         $ts = get_object_term_cache($id, PIEB_CAN_TAX);
         foreach (is_array($ts) ? $ts : array() as $t) {
             $terminos[is_object($t) ? (int) $t->term_id : (int) $t] = true;
         }
-    }
-    if ($adjuntos) {
-        _prime_post_caches(array_keys($adjuntos), false, true); // posts y su meta (metadatos de las miniaturas, archivo)
     }
     if ($terminos) {
         update_termmeta_cache(array_keys($terminos));

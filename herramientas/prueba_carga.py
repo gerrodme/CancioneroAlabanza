@@ -4,7 +4,8 @@ y genera un informe HTML con tiempos de respuesta y errores por nivel de carga.
 
 Cada usuario virtual repite una visita típica:
   1. abre la página del cancionero (HTML con sesión);
-  2. carga la lista de canciones (GET /canciones) y unas miniaturas;
+  2. carga los colores de las etiquetas y la lista de canciones (GET /canciones), revalidándola como un navegador
+     (If-None-Match con el ETag de la vez anterior: si no ha cambiado, 304 sin cuerpo);
   3. mira los cultos (GET /cultos);
   4. abre varias canciones (ficha) y descarga su partitura, con pausas de lectura entre una y otra;
   5. vuelve a pedir una partitura ya vista (revalidación con ETag: debería responder 304).
@@ -40,8 +41,8 @@ except ImportError:
 
 TIPOS = {
     'pagina': 'Abrir el cancionero',
+    'etiquetas': 'Colores de etiquetas',
     'canciones': 'Lista de canciones',
-    'miniatura': 'Miniatura',
     'cultos': 'Lista de cultos',
     'ficha': 'Ficha de canción',
     'partitura': 'Descargar partitura',
@@ -76,7 +77,9 @@ async def peticion(sesion, med, tipo, url, cabeceras=None, ok=(200,), leer=True)
             n = 0
             cuerpo = None
             if leer == 'json':
-                cuerpo = await r.json(content_type=None)
+                crudo = await r.read()
+                n = len(crudo)
+                cuerpo = json.loads(crudo) if r.status == 200 and crudo else None
             elif leer == 'texto':
                 cuerpo = await r.text()
                 n = len(cuerpo)
@@ -122,15 +125,17 @@ async def usuario_virtual(n, cuenta, web, pagina, med, comun, fin, pausa):
     async with aiohttp.ClientSession(cookies=cookies, timeout=timeout, connector=conector,
                                      cookie_jar=aiohttp.CookieJar(unsafe=True)) as s:
         await asyncio.sleep(random.uniform(0, 3))  # que no arranquen todos en el mismo milisegundo
+        etag_lista = ''  # la lista que «tiene» este navegador
         while time.monotonic() < fin[0]:
             await peticion(s, med, 'pagina', urljoin(web, pagina), leer='texto')
-            est, lista, _ = await peticion(s, med, 'canciones', api + 'canciones', api_h, leer='json')
+            await peticion(s, med, 'etiquetas', api + 'etiquetas', api_h, leer='json')
+            h_lista = dict(api_h, **({'If-None-Match': etag_lista} if etag_lista else {}))
+            est, lista, h = await peticion(s, med, 'canciones', api + 'canciones', h_lista, ok=(200, 304), leer='json')
             if est == 200 and isinstance(lista, list) and lista:
                 comun['canciones'] = lista
+            if est in (200, 304) and h.get('ETag'):
+                etag_lista = h['ETag']
             lista = comun.get('canciones') or []
-            con_mini = [c for c in lista if c.get('miniatura')]
-            await asyncio.gather(*[peticion(s, med, 'miniatura', urljoin(web, c['miniatura']))
-                                   for c in random.sample(con_mini, min(12, len(con_mini)))])
             await peticion(s, med, 'cultos', api + 'cultos', api_h, leer='json')
 
             vistas = []

@@ -94,7 +94,7 @@ interface receives it in `PIEB_CANCIONERO.nonce`; the API base is in `PIEB_CANCI
 
 | Route | Methods | Notes |
 |---|---|---|
-| `/canciones` | GET, POST | GET returns a **summary** of all songs (`id, titulo, numero, autor, tonalidad` (the active church's usual key), `tonalidadOriginal`, `tempo`, etiquetas, letra, miniatura, creada, modificada` and the **counts** `partituras`, `youtube` and `audios` (only those the caller can see); when there is more than one score, `variantes` `[{id, label, tonalidad}]` with the raw key; and `tonalidades`: the distinct effective keys of its scores, no empties, the active church's usual one first if any score is in it). With the active church's main score, that score comes first in `variantes` and gives the `miniatura`. POST creates. |
+| `/canciones` | GET, POST | GET returns a **summary** of all songs (`id, titulo, numero, autor, tonalidad` (the active church's usual key), `tonalidadOriginal`, `tempo`, etiquetas, letra, creada, modificada` and the **counts** `partituras`, `youtube` and `audios` (only those the caller can see); when there is more than one score, `variantes` `[{id, label, tonalidad}]` with the raw key; and `tonalidades`: the distinct effective keys of its scores, no empties, the active church's usual one first if any score is in it). With the active church's main score, that score comes first in `variantes`. (Up to 1.41 it also carried `miniatura`, which the interface did not use.) The built list is cached per active church and invalidated on its own; the response carries an `ETag` and `Cache-Control: private, no-cache`, and returns 304 when nothing changed. POST creates. |
 | `/canciones/{id}` | GET, POST, DELETE | GET returns the full record (scores with `archivo`/`url`, audio, `youtube` with `videoId`, notes…). POST **updates by replacing everything** (see below). DELETE sends it to the trash. |
 | `/manifest?pagina=ID` | GET | **Public** (no session or nonce). Web manifest (`application/manifest+json`) for the shortcut to the songbook page: the installation's name, that page's `start_url`/`scope` (`pagina` must hold the shortcode; otherwise the home page), `display: standalone` and icons (192, 512 and maskable). Exposes nothing private. |
 | `/subidas` | POST | **Chunked** file upload (a 10 MB audio fits even if PHP limits requests to 2 MB). |
@@ -230,7 +230,7 @@ single-church installation behaves exactly as before.
     `datos.tonalidadOriginal`); the item's scores are filtered by comparing each score's effective key (computed with the
     original) with the item's.
   - **Main score.** If the active church's `principal` is a score the song still has, `pieb_can_partituras_iglesia()` puts it
-    first (record, and the summary's thumbnail and `variantes`); saving the song does not use this function, so it does not
+    first (record, and the summary's `variantes`); saving the song does not use this function, so it does not
     alter the order set by whoever created it. In a service, the score chosen for it wins.
   - **Notes.** The API's `notas` are the active church's (`pieb_can_notas()`/`pieb_can_notas_guardar()`); any member edits them
     with the `notas` of `POST /canciones/{id}`. The default church uses `_pieb_notas`; the others use `notas` of `_pieb_ig_{id}`.

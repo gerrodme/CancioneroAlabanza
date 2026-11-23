@@ -2,6 +2,10 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.42.0 · 2026-11-23
+
+**La lista de canciones aguanta mejor los momentos de mucho uso y gasta menos datos en el móvil.** Si alguien cambia una canción mientras muchas personas tienen el cancionero abierto, ahora solo una petición rehace la lista y las demás reciben la anterior unas décimas de segundo, en vez de rehacerla todas a la vez (quien hizo el cambio lo ve siempre). Al abrir el cancionero, el navegador pregunta si la lista ha cambiado y, si no, no la vuelve a descargar (antes eran ~500 KB cada vez). Guardar el equipo, la escaleta u otros ajustes de una iglesia ya no obliga a rehacer la lista, y la lista deja de llevar la miniatura de cada canción, que la interfaz no usaba (más ligera y rápida de montar). La prueba de carga (`herramientas/prueba_carga.py`) ya no pide miniaturas y revalida la lista como un navegador.
+
 ## 1.41.1 · 2026-11-23
 
 **La lista de canciones carga mucho más rápido.** Antes, cada vez que alguien abría el cancionero, el servidor hacía unas tres consultas a la base de datos por canción (etiquetas, miniatura, tipo de archivo): con ~800 canciones tardaba más de un segundo y, con muchas personas a la vez, se convertía en el cuello de botella de todo el servicio. Ahora carga esos datos de una sola vez y guarda la lista ya montada de cada iglesia hasta que cambia una canción, una etiqueta o una partitura. La API devuelve exactamente lo mismo. Nueva herramienta `herramientas/prueba_carga.py` para medir cuántas personas aguanta un servidor.

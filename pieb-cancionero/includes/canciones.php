@@ -652,7 +652,10 @@ function pieb_can_lista_generacion() {
     return (int) get_option('pieb_can_lista_gen', 0);
 }
 
-/** Invalida la lista guardada. Como mucho una escritura por petición, aunque un guardado dispare decenas de ganchos. */
+/**
+ * Invalida la lista guardada. Como mucho una escritura por petición, aunque un guardado dispare decenas de ganchos. Anota
+ * también quién hizo el cambio: esa persona nunca recibe la copia anterior (ver pieb_can_rest_listar), para que vea su cambio.
+ */
 function pieb_can_lista_invalidar() {
     static $hecho = false;
     if ($hecho) {
@@ -660,14 +663,16 @@ function pieb_can_lista_invalidar() {
     }
     $hecho = true;
     update_option('pieb_can_lista_gen', pieb_can_lista_generacion() + 1, true);
+    update_option('pieb_can_lista_autor', get_current_user_id(), true);
 }
 
-/** ¿Es el post de un tipo que afecta al listado (canción, adjunto o iglesia)? */
+/** ¿Afecta el post al listado? Las canciones y las iglesias (crear, archivar o recuperar una cambia lo que se ve). */
 function pieb_can_lista_post_relevante($post_id) {
     $tipo = get_post_type($post_id);
-    return $tipo === PIEB_CAN_CPT || $tipo === 'attachment' || $tipo === PIEB_CAN_IGLESIA;
+    return $tipo === PIEB_CAN_CPT || $tipo === PIEB_CAN_IGLESIA;
 }
 
+// Solo la meta de las canciones: la de las iglesias (equipo, escaleta, fondos…) no aparece en el listado.
 add_action('added_post_meta', 'pieb_can_lista_meta_post', 10, 3);
 add_action('updated_post_meta', 'pieb_can_lista_meta_post', 10, 3);
 add_action('deleted_post_meta', 'pieb_can_lista_meta_post', 10, 3);
@@ -675,12 +680,12 @@ function pieb_can_lista_meta_post($mid, $post_id, $clave = '') {
     if ($clave === '_edit_lock' || $clave === '_edit_last') {
         return;
     }
-    if (pieb_can_lista_post_relevante($post_id)) {
+    if (get_post_type($post_id) === PIEB_CAN_CPT) {
         pieb_can_lista_invalidar();
     }
 }
 
-// Crear, editar, borrar, papelera y restaurar posts.
+// Crear, editar, borrar, papelera y restaurar canciones e iglesias.
 add_action('clean_post_cache', 'pieb_can_lista_post_limpiado', 10, 1);
 function pieb_can_lista_post_limpiado($post_id) {
     if (pieb_can_lista_post_relevante($post_id)) {
@@ -725,10 +730,6 @@ function pieb_can_resumen($post, $activa = 0) {
     $activa = $activa ? (int) $activa : (int) pieb_can_iglesia_activa();
     $todas = pieb_can_get_partituras($post->ID);
     $partituras = pieb_can_partituras_iglesia($post->ID, $activa, $todas);
-    $thumb = '';
-    if ($partituras) {
-        $thumb = pieb_can_url_miniatura($partituras[0]['id'], 'medium');
-    }
 
     $etiquetas = pieb_can_etiquetas_visibles($post->ID, $activa);
     $universales = array();
@@ -757,7 +758,6 @@ function pieb_can_resumen($post, $activa = 0) {
         'youtube'     => count(pieb_can_get_youtube($post->ID)),
         'audios'      => count(pieb_can_get_audios_visibles($post->ID, $activa)),
         'editables'   => count(pieb_can_get_editables($post->ID)),
-        'miniatura'   => $thumb ? $thumb : '',
         // Versiones (partituras) de la canción, solo si hay más de una: el setlist deja elegir cuál usar.
         'variantes'   => count($partituras) > 1 ? array_map(function ($p) {
             return array('id' => (int) $p['id'], 'label' => (string) $p['label'], 'tonalidad' => (string) $p['tonalidad']);

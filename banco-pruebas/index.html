@@ -115,7 +115,7 @@
     if (x[0] === 437) { for (var v = 1; v <= 6; v++) { x[6] += '\n\nVerso ' + v + '\nEl río canta bajo el puente viejo\ny el viento peina el campo de cebada\nlas campanas despiertan el camino\ny la aldea se llena de mañana'; } }
     if (letraHtml) { x[6] = 'Verso 1\nCanto al sol que se levanta\nsobre el valle y el trigal\n\nCoro\nLuz, luz de la mañana\nbrilla siempre en mi lugar'; }
     return { letraHtml: letraHtml, id: x[0], titulo: x[1], numero: x[2], tonalidad: x[3], tempo: { 432: '72', 437: '120', 436: '88', 441: '60' }[x[0]] || '', autor: x[4], etiquetas: x[5], letra: x[6], variantes: x[1] === 'A Cristo coronad' ? [{ id: 1, label: 'Himnario' }, { id: 2, label: 'Coro' }] : [], partituras: 1, tonalidades: [],
-      youtube: i % 3 === 0 ? 1 : 0, audios: i % 4 === 0 ? 1 : 0, editables: i % 3 === 0 ? (i ? 1 : 2) : 0, miniatura: '', creada: dias(-i * 3) + 'T10:00:00Z', modificada: dias(-i) + 'T10:00:00Z' };
+      youtube: i % 3 === 0 ? 1 : 0, audios: i % 4 === 0 ? 1 : 0, editables: i % 3 === 0 ? (i ? 1 : 2) : 0, creada: dias(-i * 3) + 'T10:00:00Z', modificada: dias(-i) + 'T10:00:00Z' };
   });
   // «A Cristo coronad»: tres partituras, dos en la habitual (Sol) y una en Fa.
   canciones.forEach(function (c) {
@@ -792,7 +792,7 @@
       var fd = cuerpoXhr, id = this._cancion[1] ? +this._cancion[1] : 0;
       igActual = iglesiaActiva;
       var cancion = canciones.filter(function (c) { return c.id === id; })[0];
-      if (!cancion) { cancion = { id: 500 + canciones.length, partituras: 1, youtube: 0, audios: 0, editables: 0, etiquetas: [], variantes: [], miniatura: '' }; canciones.unshift(cancion); }
+      if (!cancion) { cancion = { id: 500 + canciones.length, partituras: 1, youtube: 0, audios: 0, editables: 0, etiquetas: [], variantes: [] }; canciones.unshift(cancion); }
       // Como el servidor: en una canción restringida se ignoran en silencio los cambios no permitidos (título, número, tonalidad y letra)
       // y se conserva lo ajeno aunque llegue cambiado o no llegue.
       var vedada = restringidaBanco(cancion);
