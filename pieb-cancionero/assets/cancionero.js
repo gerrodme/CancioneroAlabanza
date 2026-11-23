@@ -3525,7 +3525,7 @@
   function escOpcionesDefecto(tipo) {
     return tipo === 'cancion'
       ? [['primera', __('La primera del culto')], ['siguiente', __('La siguiente a la última asignada antes')], ['ninguna', __('Ninguna')]]
-      : tipo === 'canciones' ? [['ninguna', __('Ninguna')], ['siguiente', __('La siguiente a la última asignada antes')], ['restantes', __('Las que no estén en otras secciones')]] : null;
+      : tipo === 'canciones' ? [['primera', __('La primera del culto')], ['ninguna', __('Ninguna')], ['siguiente', __('La siguiente a la última asignada antes')], ['restantes', __('Las que no estén en otras secciones')]] : null;
   }
 
   function escDefectoDeTipo(tipo) { return escEsCancion(tipo) ? 'ninguna' : ''; }

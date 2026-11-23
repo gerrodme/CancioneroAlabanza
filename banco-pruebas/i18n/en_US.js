@@ -2483,9 +2483,6 @@ window.PIEB_I18N = {
   "Cambia las secciones y sus campos solo para este culto. Al volver a «Rellenar» se conserva lo que ya habías escrito en los campos que sigan existiendo.": [
    "Change the sections and their fields for this service only. When you go back to “Fill in”, what you had typed is kept in the fields that still exist."
   ],
-  "Escribe lo que corresponde a cada sección. Con «Editar secciones» cambias la estructura de la hoja, solo en este culto.": [
-   "Type what goes in each section. With “Edit sections” you change the layout of the sheet, for this service only."
-  ],
   "Parte de la escaleta de «%s». Lo que cambies aquí solo afecta a este culto.": [
    "Based on the order of service of “%s”. What you change here only affects this service."
   ],
@@ -3373,6 +3370,15 @@ window.PIEB_I18N = {
   ],
   "Vídeo (V)": [
    "Video (V)"
+  ],
+  "Etiqueta del campo": [
+   "Field label"
+  ],
+  "Nota de la sección": [
+   "Section note"
+  ],
+  "Escribe lo que corresponde a cada sección. Los títulos y las etiquetas se cambian ahí mismo; con «Editar secciones» añades, quitas u ordenas secciones y campos. Todo vale solo para este culto.": [
+   "Write what goes in each section. Titles and labels can be changed right here; with “Edit sections” you add, remove or reorder sections and fields. Everything applies to this service only."
   ]
  }
 };

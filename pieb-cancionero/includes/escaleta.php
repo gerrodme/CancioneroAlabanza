@@ -16,7 +16,8 @@
  *    «escaleta») y valen para todos sus cultos.
  *
  * Cada escaleta lleva un número de versión («version»): la 2 trajo las secciones opcionales «Respuesta» y «Santa Cena», la
- * pregunta «¿cantado o instrumental?» del Preludio y las notas por canción. La interfaz pone al día las anteriores al abrirlas.
+ * pregunta «¿cantado o instrumental?» del Preludio y las notas por canción; la 3, varias canciones en el Preludio (su campo
+ * pasa de «cancion» a «canciones»). La interfaz pone al día las anteriores al abrirlas.
  *
  * Los campos son de cuatro tipos: «texto» (una línea), «textoLargo» (varias líneas), «cancion» (una canción del culto o un
  * nombre escrito a mano) y «canciones» (varias). Un valor null significa «aún sin tocar»: la interfaz aplica entonces el
@@ -35,7 +36,7 @@ const PIEB_CAN_ESCALETA_MAX_SECCIONES = 30;
 const PIEB_CAN_ESCALETA_MAX_CAMPOS    = 10;
 const PIEB_CAN_ESCALETA_MAX_CANCIONES = 100;
 const PIEB_CAN_ESCALETA_MAX_IMAGEN    = 2 * 1048576;
-const PIEB_CAN_ESCALETA_VERSION       = 2;
+const PIEB_CAN_ESCALETA_VERSION       = 3;
 const PIEB_CAN_ESCALETA_TIPOS_IMAGEN  = array(
     'jpg|jpeg' => 'image/jpeg',
     'png'      => 'image/png',
@@ -86,7 +87,7 @@ function pieb_can_escaleta_generica() {
         'version'   => PIEB_CAN_ESCALETA_VERSION,
         'secciones' => array(
             pieb_can_escaleta_seccion('preludio', _x('PRELUDIO', 'sección de la escaleta del culto (en mayúsculas)', 'pieb-cancionero'), array(
-                pieb_can_escaleta_campo('cancion', 'cancion', '', 'primera', false, true),
+                pieb_can_escaleta_campo('cancion', 'canciones', '', 'primera', false, true),
             )),
             pieb_can_escaleta_seccion('lectura-oracion', _x('LECTURA Y ORACIÓN', 'sección de la escaleta del culto (en mayúsculas)', 'pieb-cancionero'), array(
                 pieb_can_escaleta_campo('presidencia', 'texto', _x('Presidencia', 'etiqueta de un campo de la escaleta del culto', 'pieb-cancionero')),
@@ -308,13 +309,13 @@ function pieb_can_escaleta_id_imagen($valor) {
     return $id;
 }
 
-/** Valores que puede tomar el defecto de un campo de canciones: 'cancion' → primera|siguiente|ninguna; 'canciones' → ninguna|siguiente|restantes. */
+/** Valores que puede tomar el defecto de un campo de canciones: 'cancion' → primera|siguiente|ninguna; 'canciones' → primera|ninguna|siguiente|restantes. */
 function pieb_can_escaleta_limpiar_defecto($tipo, $defecto) {
     if ($tipo === 'cancion') {
         return in_array($defecto, array('primera', 'siguiente', 'ninguna'), true) ? $defecto : 'ninguna';
     }
     if ($tipo === 'canciones') {
-        return in_array($defecto, array('ninguna', 'siguiente', 'restantes'), true) ? $defecto : 'ninguna';
+        return in_array($defecto, array('primera', 'ninguna', 'siguiente', 'restantes'), true) ? $defecto : 'ninguna';
     }
     return pieb_can_escaleta_texto($defecto, 500, $tipo === 'textoLargo');
 }

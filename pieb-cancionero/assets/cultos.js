@@ -1303,7 +1303,7 @@
     return s && s.src ? s.src.replace(/[^\/?#]*([?#].*)?$/, '') : '';
   })();
 
-  var VERSION_ESCALETA = 2;
+  var VERSION_ESCALETA = 3;
 
   function campoEsc(id, tipo, etiqueta, defecto, pequeno, modo) {
     return { id: id, tipo: tipo, etiqueta: etiqueta || '', defecto: defecto === undefined ? '' : defecto, pequeno: !!pequeno, modo: !!modo };
@@ -1332,7 +1332,7 @@
     return {
       titulo: _x('ORDEN DE CULTO', 'título de la escaleta impresa del culto (se imprime en mayúsculas)'), central: '', logo: null, cabecera: null, version: VERSION_ESCALETA,
       secciones: [
-        sec('preludio', _x('PRELUDIO', 'sección de la escaleta del culto (en mayúsculas)'), [campo('cancion', 'cancion', '', 'primera', false, true)]),
+        sec('preludio', _x('PRELUDIO', 'sección de la escaleta del culto (en mayúsculas)'), [campo('cancion', 'canciones', '', 'primera', false, true)]),
         sec('lectura-oracion', _x('LECTURA Y ORACIÓN', 'sección de la escaleta del culto (en mayúsculas)'), [campo('presidencia', 'texto', _x('Presidencia', 'etiqueta de un campo de la escaleta del culto')), campo('lectura', 'texto', _x('Lectura', 'etiqueta de un campo de la escaleta del culto'))]),
         sec('bienvenida', _x('BIENVENIDA', 'sección de la escaleta del culto (en mayúsculas)'), [campo('bienvenida', 'texto', '', __('Bienvenida a todos y a quienes nos visitan'))]),
         sec('comunidad', _x('VIDA DE COMUNIDAD', 'sección de la escaleta del culto (en mayúsculas)'), [campo('comunidad', 'textoLargo')]),
@@ -1357,17 +1357,29 @@
   function actualizarEscaleta(e) {
     if (!e || !Array.isArray(e.secciones) || e.version >= VERSION_ESCALETA) { return e; }
     var preludio = e.secciones.filter(function (s) { return s.id === 'preludio'; })[0];
-    var cancion = preludio ? preludio.campos.filter(function (c) { return c.tipo === 'cancion'; })[0] : null;
-    if (cancion) { cancion.modo = true; }
-    var nuevas = seccionesOpcionales().filter(function (n) { return !e.secciones.some(function (s) { return s.id === n.id; }); });
-    nuevas.forEach(function (n) {
-      n.oculta = true; n.extra = false;
-      n.campos.forEach(function (c) { c.valor = null; });
-    });
-    function pos(id) { for (var k = 0; k < e.secciones.length; k++) { if (e.secciones[k].id === id) { return k; } } return -1; }
-    var k = pos('predicacion');
-    k = k >= 0 ? k + 1 : pos('despedida') >= 0 ? pos('despedida') : e.secciones.length;
-    Array.prototype.splice.apply(e.secciones, [k, 0].concat(nuevas));
+    if (!(e.version >= 2)) {
+      var cancion = preludio ? preludio.campos.filter(function (c) { return c.tipo === 'cancion'; })[0] : null;
+      if (cancion) { cancion.modo = true; }
+      var nuevas = seccionesOpcionales().filter(function (n) { return !e.secciones.some(function (s) { return s.id === n.id; }); });
+      nuevas.forEach(function (n) {
+        n.oculta = true; n.extra = false;
+        n.campos.forEach(function (c) { c.valor = null; });
+      });
+      var pos = function (id) { for (var k = 0; k < e.secciones.length; k++) { if (e.secciones[k].id === id) { return k; } } return -1; };
+      var k = pos('predicacion');
+      k = k >= 0 ? k + 1 : pos('despedida') >= 0 ? pos('despedida') : e.secciones.length;
+      Array.prototype.splice.apply(e.secciones, [k, 0].concat(nuevas));
+    }
+    // Versión 3: el Preludio admite varias canciones (sus campos de una canción pasan a lista).
+    if (preludio) {
+      preludio.campos.forEach(function (c) {
+        if (c.tipo !== 'cancion') { return; }
+        c.tipo = 'canciones';
+        var v = c.valor;
+        if (v && typeof v === 'object' && !Array.isArray(v)) { c.valor = (+v.cancion || String(v.nombre || '').trim()) ? [v] : []; }
+        else if (!Array.isArray(v)) { c.valor = null; }
+      });
+    }
     e.version = VERSION_ESCALETA;
     return e;
   }
@@ -1514,7 +1526,9 @@
         } else if (c.tipo === 'canciones') {
           if (sinTocar && c.defecto === 'restantes') { diferidos.push(c); valores.set(c, []); return; }
           var lista;
-          if (sinTocar && c.defecto === 'siguiente') {
+          if (sinTocar && c.defecto === 'primera') {
+            lista = orden.length ? [{ cancion: orden[0], nombre: porId[orden[0]].titulo, nota: '', instrumental: false }] : [];
+          } else if (sinTocar && c.defecto === 'siguiente') {
             lista = ultima + 1 < orden.length ? [{ cancion: orden[ultima + 1], nombre: porId[orden[ultima + 1]].titulo, nota: '', instrumental: false }] : [];
           } else {
             lista = sinTocar ? [] : listaCanciones(v, porId, orden);
@@ -1846,10 +1860,10 @@
       var id = 'pcan-ec-r' + (++contadorEsc);
       var inicial = c.valor === null || c.valor === undefined ? String(c.defecto || '') : String(c.valor);
       var mod = /Mac|iPhone|iPad/.test(navigator.platform || '') ? 'Cmd' : 'Ctrl';
-      var etiqueta = c.etiqueta ? h('span', { class: 'pcan-label', id: id + '-et', text: c.etiqueta, onclick: function () { editor.focus(); } }) : null;
+      var etiqueta = c.etiqueta ? etiquetaEditable(c, id + '-et') : null;
       var editor = h('div', {
         class: 'pcan-ec-rico' + (c.pequeno ? ' is-pequeno' : ''), contenteditable: 'true', role: 'textbox', 'aria-multiline': 'true', spellcheck: 'true',
-        'aria-labelledby': etiqueta ? id + '-et' : null, 'aria-label': etiqueta ? null : nombreSeccion(sec)
+        'aria-label': (c.etiqueta || '').trim() || nombreSeccion(sec)
       });
       editor.innerHTML = formatoAHtml(inicial);
       try { document.execCommand('defaultParagraphSeparator', false, 'div'); } catch (e) { /* sin soporte: se usa el del navegador */ }
@@ -1951,15 +1965,26 @@
         c.pequeno ? h('span', { class: 'pcan-help', text: __('Se imprime en letra pequeña') }) : null);
     }
 
+    /** Etiqueta de un campo, editable en el sitio (solo cambia este culto). Vaciarla la quita de la hoja; el cuadro sigue ahí hasta volver a pintar.
+     *  `alCambiar(texto)` deja que el campo ajuste su nombre accesible. */
+    function etiquetaEditable(c, id, alCambiar) {
+      var el = h('input', {
+        type: 'text', class: 'pcan-label pcan-ec-etiqueta', maxlength: '40', spellcheck: 'false', 'aria-label': __('Etiqueta del campo'), id: id || null,
+        oninput: function () { c.etiqueta = el.value; if (alCambiar) { alCambiar(el.value); } }
+      });
+      el.value = c.etiqueta;
+      return el;
+    }
+
     function campoTexto(sec, c) {
       if (c.tipo === 'textoLargo') { return campoTextoRico(sec, c); }
       var el = h('input', { type: 'text', class: 'pcan-input', maxlength: '300' });
       el.value = c.valor === null || c.valor === undefined ? String(c.defecto || '') : String(c.valor);
       if (c.pequeno) { el.classList.add('is-pequeno'); }
-      if (!c.etiqueta) { el.setAttribute('aria-label', nombreSeccion(sec)); }
+      el.setAttribute('aria-label', c.etiqueta.trim() || nombreSeccion(sec));
       el.addEventListener('input', function () { c.valor = el.value; });
-      return h('label', { class: 'pcan-field' },
-        c.etiqueta ? h('span', { class: 'pcan-label', text: c.etiqueta }) : null,
+      return h('div', { class: 'pcan-field' },
+        c.etiqueta ? etiquetaEditable(c, null, function (t) { el.setAttribute('aria-label', t.trim() || nombreSeccion(sec)); }) : null,
         el,
         c.pequeno ? h('span', { class: 'pcan-help', text: __('Se imprime en letra pequeña') }) : null);
     }
@@ -2043,7 +2068,7 @@
         extras.hidden = !v.cancion && v.nombre.trim() === '';
 
         append(caja, [
-          h('span', { class: 'pcan-label', id: grupo + '-et', text: c.etiqueta || __('Canción') }),
+          c.etiqueta ? etiquetaEditable(c, grupo + '-et') : h('span', { class: 'pcan-label', id: grupo + '-et', text: __('Canción') }),
           lista.length ? null : ayuda(__('Este culto aún no tiene canciones: añádelas en la pestaña Canciones o escribe el nombre.')),
           ops,
           extras
@@ -2112,7 +2137,7 @@
         v.filter(function (x) { return !x.cancion; }).forEach(function (x) { filaEscrita(x, false); });
 
         append(caja, [
-          h('span', { class: 'pcan-label', id: grupo + '-et', text: c.etiqueta || __('Canciones') }),
+          c.etiqueta ? etiquetaEditable(c, grupo + '-et') : h('span', { class: 'pcan-label', id: grupo + '-et', text: __('Canciones') }),
           !lista.length ? ayuda(__('Este culto aún no tiene canciones: añádelas en la pestaña Canciones o escribe los nombres.'))
             : !visibles.length ? ayuda(__('Todas las canciones del culto están ya en otras secciones.')) : null,
           ops,
@@ -2141,13 +2166,23 @@
       var nombre = nombreSeccion(sec);
       var li = h('li', { class: 'pcan-ec-sec' + (sec.oculta ? ' is-oculta' : ''), 'data-i': String(i) });
       var asa = h('button', { type: 'button', class: 'pcan-drag', 'aria-label': sprintf(/* translators: %s: título de la sección de la escaleta */ __('Arrastrar para reordenar la sección %s'), nombre), title: __('Arrastrar') }, icono('arrastrar'));
+      var titulo = h('input', {
+        type: 'text', class: 'pcan-input pcan-ec-titulo-input', maxlength: '60', spellcheck: 'false', placeholder: __('Título de la sección'), 'aria-label': __('Título de la sección'), 'data-campo': 'titulo',
+        oninput: function () { sec.titulo = titulo.value; titulo.classList.remove('is-invalid'); titulo.removeAttribute('aria-invalid'); }
+      });
+      titulo.value = sec.titulo;
+      var nota = sec.nota ? h('input', {
+        type: 'text', class: 'pcan-input pcan-ec-nota-input', maxlength: '120', spellcheck: 'false', 'aria-label': __('Nota de la sección'),
+        oninput: function () { sec.nota = nota.value; }
+      }) : null;
+      if (nota) { nota.value = sec.nota; }
       var oculta = h('input', {
         type: 'checkbox', checked: !!sec.oculta,
         onchange: function (e) { sec.oculta = e.target.checked; li.classList.toggle('is-oculta', sec.oculta); cambio(null); }
       });
 
       append(li, [
-        h('div', { class: 'pcan-ec-cab' }, asa, h('h4', { class: 'pcan-ec-titulo', text: tituloMay(sec.titulo) }),
+        h('div', { class: 'pcan-ec-cab' }, asa, h('h4', { class: 'pcan-ec-titulo' }, titulo),
           h('div', { class: 'pcan-ec-tools' },
             h('button', {
               type: 'button', class: 'pcan-btn pcan-btn-sm', 'data-accion': 'subir', disabled: i === 0,
@@ -2157,7 +2192,7 @@
               type: 'button', class: 'pcan-btn pcan-btn-sm', 'data-accion': 'bajar', disabled: i === esc.secciones.length - 1,
               'aria-label': sprintf(/* translators: %s: título de la sección de la escaleta */ __('Bajar la sección %s'), nombre), onclick: function () { mover(i, i + 1, 'bajar'); }
             }, icono('abajo'), _x('Bajar', 'mover una sección de la escaleta hacia abajo')))),
-        sec.nota ? h('p', { class: 'pcan-ec-nota', text: sec.nota }) : null,
+        nota,
         h('label', { class: 'pcan-ec-oculta' }, oculta, h('span', { text: __('No incluir en este culto') })),
         h('div', { class: 'pcan-ec-campos' }, sec.campos.map(function (c) { return campoDe(sec, c); }))
       ]);
@@ -2260,7 +2295,7 @@
           boton('rellenar', __('Rellenar')), boton('editar', __('Editar secciones'))),
         ayuda(editando
           ? __('Cambia las secciones y sus campos solo para este culto. Al volver a «Rellenar» se conserva lo que ya habías escrito en los campos que sigan existiendo.')
-          : __('Escribe lo que corresponde a cada sección. Con «Editar secciones» cambias la estructura de la hoja, solo en este culto.')));
+          : __('Escribe lo que corresponde a cada sección. Los títulos y las etiquetas se cambian ahí mismo; con «Editar secciones» añades, quitas u ordenas secciones y campos. Todo vale solo para este culto.')));
     }
 
     function notaOrigen() {
@@ -2344,7 +2379,23 @@
         }
       },
       setlistCambio: function () { if (pintado && esc && modo === 'rellenar') { recalcular(); repintarCanciones(null); } programarVista(); },
-      validar: function () { return modo === 'editar' && editor ? editor.validar() : null; },
+      validar: function () {
+        if (modo === 'editar' && editor) { return editor.validar(); }
+        if (!esc || lectura) { return null; }
+        for (var i = 0; i < esc.secciones.length; i++) {
+          if (String(esc.secciones[i].titulo || '').trim()) { continue; }
+          var pos = i;
+          return {
+            mensaje: sprintf(/* translators: %d: número de la sección dentro de la escaleta */ __('La sección %d no tiene título: escríbelo para continuar.'), pos + 1),
+            enfocar: function () {
+              var t = main.querySelectorAll('.pcan-ec-sec')[pos];
+              t = t && t.querySelector('[data-campo="titulo"]');
+              if (t) { t.classList.add('is-invalid'); t.setAttribute('aria-invalid', 'true'); t.focus(); }
+            }
+          };
+        }
+        return null;
+      },
       valor: function () { return !lectura && esc ? explicitar(actual(), canciones()) : undefined; }
     };
   }

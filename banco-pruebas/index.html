@@ -310,9 +310,9 @@
     }
     function s(id, titulo, campos, opcional) { return { id: id, titulo: titulo, nota: '', opcional: !!opcional, campos: campos }; }
     return {
-      titulo: 'ORDEN DE CULTO', central: '', logo: null, cabecera: null, version: 2,
+      titulo: 'ORDEN DE CULTO', central: '', logo: null, cabecera: null, version: 3,
       secciones: [
-        s('preludio', 'PRELUDIO', [c('cancion', 'cancion', '', 'primera', false, true)]),
+        s('preludio', 'PRELUDIO', [c('cancion', 'canciones', '', 'primera', false, true)]),
         s('lectura-oracion', 'LECTURA Y ORACIÓN', [c('presidencia', 'texto', 'Presidencia'), c('lectura', 'texto', 'Lectura')]),
         s('bienvenida', 'BIENVENIDA', [c('bienvenida', 'texto', '', 'Bienvenida a todos y a quienes nos visitan')]),
         s('comunidad', 'VIDA DE COMUNIDAD', [c('comunidad', 'textoLargo')]),
@@ -337,6 +337,7 @@
     // Simula una escaleta guardada ANTES de la versión 2: sin «version», sin «opcional» ni «modo» y sin las secciones Respuesta y Santa Cena
     // de la genérica (la interfaz las añade al abrirla; su «Santa Cena» propia de abajo, con el mismo id, se respeta).
     delete e.version;
+    e.secciones[0].campos[0].tipo = 'cancion';   // el Preludio de entonces era de una sola canción (la interfaz lo pasa a lista al abrirla)
     e.secciones = e.secciones.filter(function (s) { return s.id !== 'respuesta' && s.id !== 'santa-cena'; });
     e.secciones.forEach(function (s) { delete s.opcional; s.oculta = false; s.extra = false; s.campos.forEach(function (c) { delete c.modo; c.valor = null; }); });
     function pon(sec, campo, valor) {

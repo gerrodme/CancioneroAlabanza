@@ -2,6 +2,10 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.41.0 · 2026-11-23
+
+Escaleta: **todos los textos se cambian al rellenarla**. En «Rellenar», el título de cada sección, su nota y las etiquetas de los campos (por ejemplo, «Música instrumental» en la Ofrenda) se escriben ahí mismo, solo para ese culto; una etiqueta vacía no se imprime. «Editar secciones» queda para añadir, quitar u ordenar secciones y campos. El **Preludio admite varias canciones** (por defecto, la primera del culto), cada una con su casilla «Instrumental» y su nota; las escaletas guardadas se ponen al día solas al abrirlas y conservan su canción (versión 3 de la escaleta). Los campos de varias canciones admiten «La primera del culto» como propuesta.
+
 ## 1.40.1 · 2026-11-20
 
 En pantallas anchas, el metrónomo del lector ya no se abre en medio de la partitura: va en la columna de la derecha, debajo del vídeo (o arriba si el vídeo está cerrado). En el móvil no cambia nada.
