@@ -171,7 +171,10 @@ function pieb_can_etiqueta_universal_obtener($nombre) {
 
 /** Términos de la canción que ve el usuario (objetos), por nombre; si hay dos con el mismo nombre, la universal. */
 function pieb_can_etiquetas_visibles($post_id, $activa = 0) {
-    $terms = wp_get_object_terms($post_id, PIEB_CAN_TAX);
+    // get_the_terms usa la caché de términos (que el listado precarga); wp_get_object_terms iría siempre a la base de datos.
+    // wp_set_object_terms limpia esa caché del objeto, así que tras fijar etiquetas se lee lo nuevo. WordPress llena esa caché
+    // con orderby => name (en MySQL), el mismo orden que daba wp_get_object_terms: no se reordena aquí.
+    $terms = get_the_terms($post_id, PIEB_CAN_TAX);
     if (is_wp_error($terms) || !is_array($terms)) {
         return array();
     }

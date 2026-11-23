@@ -638,6 +638,87 @@ function pieb_can_guardar_letra($post_id, $letra, $letra_html) {
     update_post_meta($post_id, '_pieb_letra', $plano);
 }
 
+// ---------------------------------------------------------------- caché del listado
+
+/*
+ * Montar el listado de canciones (GET /canciones) cuesta ~1 s con ~800 canciones en reposo y mucho más bajo carga, y es lo
+ * primero que pide la interfaz. Su resultado solo depende de las canciones y de la iglesia activa (no del usuario), así que
+ * se guarda en un transient por iglesia activa con una «generación»: cualquier cambio que pueda alterarlo sube la
+ * generación (pieb_can_lista_invalidar) y la copia guardada deja de valer. Cada iglesia tiene una sola entrada.
+ */
+
+/** Generación actual de la lista (opción con autoload). */
+function pieb_can_lista_generacion() {
+    return (int) get_option('pieb_can_lista_gen', 0);
+}
+
+/** Invalida la lista guardada. Como mucho una escritura por petición, aunque un guardado dispare decenas de ganchos. */
+function pieb_can_lista_invalidar() {
+    static $hecho = false;
+    if ($hecho) {
+        return;
+    }
+    $hecho = true;
+    update_option('pieb_can_lista_gen', pieb_can_lista_generacion() + 1, true);
+}
+
+/** ¿Es el post de un tipo que afecta al listado (canción, adjunto o iglesia)? */
+function pieb_can_lista_post_relevante($post_id) {
+    $tipo = get_post_type($post_id);
+    return $tipo === PIEB_CAN_CPT || $tipo === 'attachment' || $tipo === PIEB_CAN_IGLESIA;
+}
+
+add_action('added_post_meta', 'pieb_can_lista_meta_post', 10, 3);
+add_action('updated_post_meta', 'pieb_can_lista_meta_post', 10, 3);
+add_action('deleted_post_meta', 'pieb_can_lista_meta_post', 10, 3);
+function pieb_can_lista_meta_post($mid, $post_id, $clave = '') {
+    if ($clave === '_edit_lock' || $clave === '_edit_last') {
+        return;
+    }
+    if (pieb_can_lista_post_relevante($post_id)) {
+        pieb_can_lista_invalidar();
+    }
+}
+
+// Crear, editar, borrar, papelera y restaurar posts.
+add_action('clean_post_cache', 'pieb_can_lista_post_limpiado', 10, 1);
+function pieb_can_lista_post_limpiado($post_id) {
+    if (pieb_can_lista_post_relevante($post_id)) {
+        pieb_can_lista_invalidar();
+    }
+}
+
+// Etiquetas: asignación a canciones, altas, cambios y bajas de términos y su meta (universal, iglesia).
+add_action('set_object_terms', 'pieb_can_lista_terminos_asignados', 10, 4);
+function pieb_can_lista_terminos_asignados($object_id, $terms, $tt_ids, $taxonomy) {
+    if ($taxonomy === PIEB_CAN_TAX) {
+        pieb_can_lista_invalidar();
+    }
+}
+
+add_action('created_term', 'pieb_can_lista_termino', 10, 3);
+add_action('edited_term', 'pieb_can_lista_termino', 10, 3);
+add_action('delete_term', 'pieb_can_lista_termino', 10, 3);
+function pieb_can_lista_termino($term_id, $tt_id, $taxonomy) {
+    if ($taxonomy === PIEB_CAN_TAX) {
+        pieb_can_lista_invalidar();
+    }
+}
+
+add_action('added_term_meta', 'pieb_can_lista_meta_termino', 10, 2);
+add_action('updated_term_meta', 'pieb_can_lista_meta_termino', 10, 2);
+add_action('deleted_term_meta', 'pieb_can_lista_meta_termino', 10, 2);
+function pieb_can_lista_meta_termino($mid, $term_id) {
+    $t = get_term((int) $term_id);
+    if ($t && !is_wp_error($t) && $t->taxonomy === PIEB_CAN_TAX) {
+        pieb_can_lista_invalidar();
+    }
+}
+
+// La iglesia por defecto cambia el origen que se completa en partituras y audios.
+add_action('update_option_pieb_can_iglesia_defecto', 'pieb_can_lista_invalidar');
+add_action('add_option_pieb_can_iglesia_defecto', 'pieb_can_lista_invalidar');
+
 /** Datos ligeros para el listado y la búsqueda. $activa: iglesia activa ya calculada (0 = se calcula aquí). */
 function pieb_can_resumen($post, $activa = 0) {
     // La partitura principal de la iglesia activa va la primera; el resto, en su orden.

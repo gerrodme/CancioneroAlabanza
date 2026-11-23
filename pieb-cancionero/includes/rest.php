@@ -160,6 +160,15 @@ function pieb_can_rest_cancion($id, $con_papelera = false) {
 }
 
 function pieb_can_rest_listar() {
+    // La lista montada se guarda por iglesia activa (ver pieb_can_lista_invalidar en canciones.php): no depende del usuario.
+    $activa = (int) pieb_can_iglesia_activa();
+    $clave = 'pieb_can_lista_' . $activa;
+    $gen = pieb_can_lista_generacion();
+    $guardada = get_transient($clave);
+    if (is_array($guardada) && isset($guardada['gen'], $guardada['datos']) && (int) $guardada['gen'] === $gen) {
+        return rest_ensure_response($guardada['datos']);
+    }
+
     $posts = get_posts(array(
         'post_type'      => PIEB_CAN_CPT,
         'post_status'    => 'publish',
@@ -168,13 +177,46 @@ function pieb_can_rest_listar() {
         'order'          => 'ASC',
     ));
 
-    update_meta_cache('post', wp_list_pluck($posts, 'ID'));
+    pieb_can_lista_precargar($posts);
 
-    // La iglesia activa se calcula una vez para todo el listado.
-    $activa = (int) pieb_can_iglesia_activa();
-    return rest_ensure_response(array_map(function ($p) use ($activa) {
+    $lista = array_map(function ($p) use ($activa) {
         return pieb_can_resumen($p, $activa);
-    }, $posts));
+    }, $posts);
+    set_transient($clave, array('gen' => $gen, 'datos' => $lista), 12 * HOUR_IN_SECONDS);
+    return rest_ensure_response($lista);
+}
+
+/**
+ * Precarga en la caché de objetos todo lo que pieb_can_resumen lee de cada canción, para no lanzar consultas sueltas:
+ * meta de las canciones, posts y meta de los adjuntos de sus partituras (miniaturas), términos y meta de las etiquetas.
+ */
+function pieb_can_lista_precargar($posts) {
+    $ids = wp_list_pluck($posts, 'ID');
+    if (!$ids) {
+        return;
+    }
+    update_meta_cache('post', $ids);
+    update_object_term_cache($ids, PIEB_CAN_CPT);
+
+    $adjuntos = array();
+    $terminos = array();
+    foreach ($ids as $id) {
+        foreach (pieb_can_get_partituras($id) as $par) {
+            if (!empty($par['id'])) {
+                $adjuntos[(int) $par['id']] = true;
+            }
+        }
+        $ts = get_object_term_cache($id, PIEB_CAN_TAX);
+        foreach (is_array($ts) ? $ts : array() as $t) {
+            $terminos[is_object($t) ? (int) $t->term_id : (int) $t] = true;
+        }
+    }
+    if ($adjuntos) {
+        _prime_post_caches(array_keys($adjuntos), false, true); // posts y su meta (metadatos de las miniaturas, archivo)
+    }
+    if ($terminos) {
+        update_termmeta_cache(array_keys($terminos));
+    }
 }
 
 function pieb_can_rest_ver(WP_REST_Request $request) {

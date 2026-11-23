@@ -2,6 +2,10 @@
 
 Formato: versión · resumen. El detalle está en `git log`. La versión vive en `pieb-cancionero/pieb-cancionero.php`.
 
+## 1.41.1 · 2026-11-23
+
+**La lista de canciones carga mucho más rápido.** Antes, cada vez que alguien abría el cancionero, el servidor hacía unas tres consultas a la base de datos por canción (etiquetas, miniatura, tipo de archivo): con ~800 canciones tardaba más de un segundo y, con muchas personas a la vez, se convertía en el cuello de botella de todo el servicio. Ahora carga esos datos de una sola vez y guarda la lista ya montada de cada iglesia hasta que cambia una canción, una etiqueta o una partitura. La API devuelve exactamente lo mismo. Nueva herramienta `herramientas/prueba_carga.py` para medir cuántas personas aguanta un servidor.
+
 ## 1.41.0 · 2026-11-23
 
 Escaleta: **todos los textos se cambian al rellenarla**. En «Rellenar», el título de cada sección, su nota y las etiquetas de los campos (por ejemplo, «Música instrumental» en la Ofrenda) se escriben ahí mismo, solo para ese culto; una etiqueta vacía no se imprime. «Editar secciones» queda para añadir, quitar u ordenar secciones y campos. El **Preludio admite varias canciones** (por defecto, la primera del culto), cada una con su casilla «Instrumental» y su nota; las escaletas guardadas se ponen al día solas al abrirlas y conservan su canción (versión 3 de la escaleta). Los campos de varias canciones admiten «La primera del culto» como propuesta.
